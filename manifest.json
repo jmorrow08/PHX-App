@@ -1,0 +1,31 @@
+{
+  "name": "PHX App — Phoenix Culture Platform",
+  "short_name": "PHX",
+  "description": "602 Culture. One App. Music, events, eats, fashion, podcasts and more — built for Phoenix. Powered by Murkemz + Plug City Records.",
+  "start_url": "/app.html",
+  "display": "standalone",
+  "background_color": "#07070F",
+  "theme_color": "#F97316",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "https://murkmerch.com/cdn/shop/files/AAB814A5-32E3-4FF1-A00C-0DF47B57E8DA.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://murkmerch.com/cdn/shop/files/AAB814A5-32E3-4FF1-A00C-0DF47B57E8DA.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "categories": ["lifestyle", "entertainment", "music"],
+  "screenshots": [
+    {
+      "src": "https://murkmerch.com/cdn/shop/files/IMG-8437.jpg?v=1763879859",
+      "sizes": "1280x720",
+      "type": "image/jpeg",
+      "label": "PHX App — City Feed Dashboard"
+    }
+  ]
+}

@@ -1,0 +1,1195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>PHX — Phoenix Culture Platform</title>
+<meta name="description" content="602 Culture. One App. Music, events, eats, fashion, podcasts and more — all built for Phoenix. Powered by Murkemz + Plug City Records.">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#F97316">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:#07070F;color:#F1F1F8;font-family:'Inter',-apple-system,sans-serif;min-height:100vh;overflow-x:hidden;cursor:none}
+:root{
+  --bg:#07070F;--bg2:#0D0D1A;--bg3:#131325;--bg4:#1C1C30;
+  --orange:#F97316;--orange-l:#FB923C;--orange-d:#EA580C;
+  --gold:#EAB308;--gold-l:#FDE047;
+  --purple:#7C3AED;--purple-l:#A78BFA;
+  --teal:#14B8A6;--green:#22C55E;--blue:#3B82F6;--red:#EF4444;
+  --white:#F1F1F8;--muted:#6B7280;--border:rgba(249,115,22,.14);
+}
+
+/* CURSOR */
+#cur{position:fixed;width:10px;height:10px;border-radius:50%;background:var(--orange);pointer-events:none;z-index:99999;transform:translate(-50%,-50%);mix-blend-mode:screen;transition:width .12s,height .12s}
+#cur-r{position:fixed;width:34px;height:34px;border-radius:50%;border:1.5px solid var(--orange);pointer-events:none;z-index:99998;transform:translate(-50%,-50%);transition:all .15s;opacity:.5}
+
+/* LOADER */
+#loader{position:fixed;inset:0;background:#07070F;z-index:99990;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:1.2rem;transition:opacity .7s,visibility .7s}
+#loader.out{opacity:0;visibility:hidden}
+.ld-logo{font-size:5.5rem;font-weight:900;letter-spacing:-.04em;background:linear-gradient(135deg,#F97316 0%,#EAB308 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-family:'Inter',sans-serif;line-height:1}
+.ld-wrap{width:180px;height:2px;background:rgba(249,115,22,.2);border-radius:2px;overflow:hidden}
+.ld-bar{height:100%;background:linear-gradient(90deg,var(--orange),var(--gold));width:0%;border-radius:2px;transition:width .04s linear}
+.ld-txt{font-size:.78rem;color:var(--muted);letter-spacing:.2em;text-transform:uppercase}
+
+/* CANVAS */
+#c{position:fixed;inset:0;z-index:0;pointer-events:none}
+
+/* NAV */
+nav{position:fixed;top:0;left:0;right:0;z-index:1000;padding:0 2rem;height:64px;display:flex;align-items:center;justify-content:space-between;background:rgba(7,7,15,.85);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);transition:background .3s}
+.nav-logo{font-size:1.7rem;font-weight:900;letter-spacing:-.04em;background:linear-gradient(135deg,#F97316,#EAB308);-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-decoration:none}
+.nav-links{display:flex;align-items:center;gap:1.8rem}
+.nav-links a{color:var(--muted);text-decoration:none;font-size:.88rem;font-weight:500;transition:color .2s}
+.nav-links a:hover{color:var(--white)}
+.nav-btns{display:flex;gap:.75rem}
+.btn{display:inline-flex;align-items:center;gap:.4rem;padding:.55rem 1.2rem;border-radius:8px;font-size:.88rem;font-weight:600;cursor:none;text-decoration:none;transition:all .2s;border:none}
+.btn-ghost{background:transparent;border:1.5px solid var(--border);color:var(--white)}
+.btn-ghost:hover{border-color:var(--orange);color:var(--orange)}
+.btn-orange{background:var(--orange);color:#fff}
+.btn-orange:hover{background:var(--orange-l);transform:translateY(-1px)}
+.btn-lg{padding:.8rem 1.8rem;font-size:1rem;border-radius:10px}
+
+/* HERO */
+#hero{position:relative;min-height:100vh;display:flex;align-items:center;overflow:hidden;padding:7rem 2rem 4rem}
+.hero-glow{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:60vw;height:60vh;background:radial-gradient(ellipse,rgba(249,115,22,.12) 0%,transparent 70%);pointer-events:none}
+.hero-inner{position:relative;z-index:2;max-width:1200px;margin:0 auto;width:100%;display:grid;grid-template-columns:1fr 1fr;gap:4rem;align-items:center}
+.hero-tag{display:inline-flex;align-items:center;gap:.5rem;padding:.35rem .9rem;border-radius:100px;background:rgba(249,115,22,.12);border:1px solid rgba(249,115,22,.3);font-size:.8rem;font-weight:600;color:var(--orange);letter-spacing:.08em;text-transform:uppercase;margin-bottom:1.5rem}
+.hero-h1{font-size:clamp(4rem,10vw,8.5rem);font-weight:900;letter-spacing:-.04em;line-height:.95;margin-bottom:1.2rem}
+.hero-h1 .g{background:linear-gradient(135deg,#F97316 0%,#EAB308 60%,#FB923C 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hero-sub{font-size:1.25rem;color:var(--muted);line-height:1.6;margin-bottom:2rem;max-width:480px}
+.hero-btns{display:flex;gap:1rem;flex-wrap:wrap}
+.hero-stats{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+.h-stat{background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:1.2rem 1.4rem}
+.h-stat-num{font-size:2rem;font-weight:800;color:var(--white);line-height:1;margin-bottom:.3rem}
+.h-stat-num span{color:var(--orange)}
+.h-stat-label{font-size:.82rem;color:var(--muted)}
+.hero-scroll{position:absolute;bottom:2rem;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:.5rem;color:var(--muted);font-size:.78rem;letter-spacing:.1em;text-transform:uppercase;animation:bounce 2s infinite}
+@keyframes bounce{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(6px)}}
+
+/* STATS TICKER */
+.stats-bar{position:relative;z-index:2;background:var(--bg3);border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:0;overflow:hidden;height:52px}
+.ticker-track{display:flex;align-items:center;height:100%;animation:ticker 30s linear infinite;width:max-content;gap:0}
+.ticker-item{display:flex;align-items:center;gap:.5rem;padding:0 2.5rem;white-space:nowrap;font-size:.82rem;color:var(--muted);border-right:1px solid var(--border)}
+.ticker-item strong{color:var(--orange);font-weight:700}
+@keyframes ticker{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+
+/* SECTIONS */
+section{position:relative;z-index:2;padding:6rem 2rem}
+.section-inner{max-width:1200px;margin:0 auto}
+.section-tag{display:inline-block;font-size:.78rem;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--orange);margin-bottom:1rem}
+.section-h2{font-size:clamp(2rem,4vw,3.2rem);font-weight:800;letter-spacing:-.02em;margin-bottom:1rem;line-height:1.1}
+.section-h2 .g{background:linear-gradient(135deg,#F97316,#EAB308);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.section-sub{font-size:1.05rem;color:var(--muted);max-width:560px;line-height:1.7;margin-bottom:3rem}
+
+/* CONCEPT */
+#concept{background:var(--bg2)}
+.concept-grid{display:grid;grid-template-columns:1fr 1fr;gap:3rem;align-items:center}
+.concept-pills{display:flex;flex-wrap:wrap;gap:.6rem;margin-top:2rem}
+.pill{padding:.4rem .9rem;border-radius:100px;font-size:.82rem;font-weight:600;border:1px solid}
+.pill-orange{color:var(--orange);border-color:rgba(249,115,22,.3);background:rgba(249,115,22,.08)}
+.pill-purple{color:var(--purple-l);border-color:rgba(124,58,237,.3);background:rgba(124,58,237,.08)}
+.pill-teal{color:var(--teal);border-color:rgba(20,184,166,.3);background:rgba(20,184,166,.08)}
+.pill-gold{color:var(--gold);border-color:rgba(234,179,8,.3);background:rgba(234,179,8,.08)}
+.concept-right{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+.c-card{background:var(--bg3);border:1px solid var(--border);border-radius:14px;padding:1.4rem}
+.c-card-icon{font-size:1.8rem;margin-bottom:.8rem}
+.c-card-title{font-size:.95rem;font-weight:700;margin-bottom:.4rem}
+.c-card-desc{font-size:.82rem;color:var(--muted);line-height:1.5}
+.c-card.hl{border-color:rgba(249,115,22,.4);background:rgba(249,115,22,.06)}
+
+/* VERTICALS */
+#verticals{background:var(--bg)}
+.vert-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1.2rem}
+.vert-card{background:var(--bg3);border:1px solid var(--border);border-radius:16px;padding:1.6rem;transition:all .25s;position:relative;overflow:hidden;cursor:none}
+.vert-card::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,transparent,rgba(249,115,22,.04));opacity:0;transition:opacity .25s}
+.vert-card:hover{transform:translateY(-4px);border-color:rgba(249,115,22,.4)}
+.vert-card:hover::before{opacity:1}
+.vert-icon{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.4rem;margin-bottom:1rem}
+.vert-name{font-size:1.05rem;font-weight:700;margin-bottom:.5rem}
+.vert-desc{font-size:.82rem;color:var(--muted);line-height:1.5;margin-bottom:1rem}
+.vert-tag{font-size:.75rem;font-weight:600;padding:.25rem .65rem;border-radius:100px;display:inline-block}
+
+/* PASS */
+#pass{background:var(--bg2)}
+.pass-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem}
+.pass-card{background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:2rem;position:relative;overflow:hidden;transition:transform .2s}
+.pass-card:hover{transform:translateY(-4px)}
+.pass-card.featured{border-color:rgba(249,115,22,.5);background:linear-gradient(135deg,rgba(249,115,22,.08),var(--bg3))}
+.pass-card.featured::after{content:'MOST POPULAR';position:absolute;top:1.2rem;right:1.2rem;font-size:.65rem;font-weight:800;letter-spacing:.1em;color:var(--orange);background:rgba(249,115,22,.15);padding:.25rem .65rem;border-radius:100px}
+.pass-tier{font-size:.75rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:.5rem}
+.pass-name{font-size:1.4rem;font-weight:800;margin-bottom:.5rem}
+.pass-price{font-size:3rem;font-weight:900;letter-spacing:-.03em;margin-bottom:.3rem;line-height:1}
+.pass-price sub{font-size:1rem;font-weight:500;color:var(--muted);vertical-align:top;margin-top:.6rem}
+.pass-desc{font-size:.85rem;color:var(--muted);margin-bottom:1.5rem;min-height:2.5rem}
+.pass-divider{height:1px;background:var(--border);margin-bottom:1.5rem}
+.pass-feat{list-style:none;display:flex;flex-direction:column;gap:.7rem;margin-bottom:1.8rem}
+.pass-feat li{display:flex;align-items:center;gap:.6rem;font-size:.85rem;color:var(--white)}
+.pass-feat li span.check{color:var(--green);font-weight:700}
+.pass-feat li span.x{color:var(--muted)}
+
+/* PARTNERS */
+#partners{background:var(--bg)}
+.partner-tabs{display:flex;gap:.75rem;margin-bottom:2.5rem}
+.ptab{padding:.55rem 1.4rem;border-radius:8px;font-size:.88rem;font-weight:600;cursor:none;border:1.5px solid var(--border);color:var(--muted);background:transparent;transition:all .2s}
+.ptab.active{background:var(--orange);border-color:var(--orange);color:#fff}
+.partner-view{display:none}
+.partner-view.active{display:block}
+.partner-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem}
+.partner-card{background:var(--bg3);border:1px solid var(--border);border-radius:18px;padding:1.8rem;transition:transform .2s}
+.partner-card:hover{transform:translateY(-3px)}
+.partner-card.anchor{border-color:rgba(249,115,22,.5)}
+.partner-badge{display:inline-block;font-size:.7rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:.25rem .7rem;border-radius:100px;margin-bottom:1rem}
+.partner-card-name{font-size:1.25rem;font-weight:800;margin-bottom:.4rem}
+.partner-card-price{font-size:2.2rem;font-weight:900;letter-spacing:-.03em;margin-bottom:.3rem}
+.partner-card-price sub{font-size:.9rem;font-weight:400;color:var(--muted)}
+.partner-card-sub{font-size:.82rem;color:var(--muted);margin-bottom:1.2rem}
+.partner-feat{list-style:none;display:flex;flex-direction:column;gap:.6rem;margin-bottom:1.5rem}
+.partner-feat li{font-size:.83rem;color:var(--white);display:flex;align-items:center;gap:.5rem}
+.partner-feat li::before{content:'✓';color:var(--green);font-weight:700;flex-shrink:0}
+
+/* FOUNDING PARTNER BANNER */
+.founding-banner{margin-top:3rem;background:linear-gradient(135deg,rgba(249,115,22,.12),rgba(234,179,8,.08));border:1px solid rgba(249,115,22,.35);border-radius:20px;padding:2.5rem 3rem;display:grid;grid-template-columns:1fr auto;gap:2rem;align-items:center}
+.fb-star{font-size:2.5rem;margin-bottom:1rem}
+.fb-title{font-size:1.5rem;font-weight:800;margin-bottom:.6rem}
+.fb-title span{color:var(--orange)}
+.fb-body{font-size:.92rem;color:var(--muted);line-height:1.7;max-width:600px}
+.fb-right{text-align:center}
+.fb-spots{font-size:3.5rem;font-weight:900;color:var(--orange);line-height:1}
+.fb-spots-label{font-size:.82rem;color:var(--muted);margin-top:.3rem}
+
+/* APPROACH SECTION */
+#approach{background:var(--bg2)}
+.approach-grid{display:grid;grid-template-columns:1fr 1fr;gap:3rem}
+.approach-steps{display:flex;flex-direction:column;gap:1.2rem}
+.a-step{display:flex;gap:1.2rem;align-items:flex-start}
+.a-num{width:36px;height:36px;border-radius:50%;background:var(--orange);color:#fff;font-weight:800;font-size:.9rem;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.a-step-body h4{font-size:.98rem;font-weight:700;margin-bottom:.3rem}
+.a-step-body p{font-size:.85rem;color:var(--muted);line-height:1.6}
+.approach-quote{background:var(--bg3);border-left:3px solid var(--orange);border-radius:0 16px 16px 0;padding:2rem 2.5rem;display:flex;flex-direction:column;justify-content:center}
+.q-text{font-size:1.15rem;font-style:italic;line-height:1.7;color:var(--white);margin-bottom:1.2rem}
+.q-attr{font-size:.82rem;color:var(--orange);font-weight:600}
+
+/* FOUNDER */
+#founder{background:var(--bg)}
+.founder-grid{display:grid;grid-template-columns:1fr 1fr;gap:4rem;align-items:center}
+.founder-img{background:linear-gradient(135deg,var(--bg3),var(--bg4));border:1px solid var(--border);border-radius:20px;aspect-ratio:4/5;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem;overflow:hidden;position:relative}
+.founder-img img{width:100%;height:100%;object-fit:cover;opacity:.85}
+.founder-overlay{position:absolute;bottom:0;left:0;right:0;padding:2rem;background:linear-gradient(to top,rgba(7,7,15,.95),transparent)}
+.founder-name{font-size:1.5rem;font-weight:800}
+.founder-role{font-size:.85rem;color:var(--orange)}
+.founder-right{}
+.founder-right .section-h2{margin-bottom:1rem}
+.founder-right p{font-size:.95rem;color:var(--muted);line-height:1.8;margin-bottom:1rem}
+.cosign-row{display:flex;flex-wrap:wrap;gap:.6rem;margin-top:1.5rem}
+.cosign{padding:.35rem .85rem;border-radius:8px;background:var(--bg3);font-size:.8rem;font-weight:600;color:var(--white);border:1px solid var(--border)}
+
+/* INSTALL */
+#install{background:var(--bg2)}
+.install-inner{text-align:center}
+.install-inner .section-h2{margin-bottom:1rem}
+.install-inner .section-sub{margin:0 auto 2.5rem}
+.install-btns{display:flex;justify-content:center;gap:1rem;flex-wrap:wrap}
+.install-card{background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:1.2rem 2rem;display:flex;align-items:center;gap:1rem;cursor:none;transition:all .2s;text-decoration:none}
+.install-card:hover{border-color:var(--orange);transform:translateY(-2px)}
+.install-card-icon{font-size:2rem}
+.install-card-text{text-align:left}
+.install-card-text small{display:block;font-size:.72rem;color:var(--muted);letter-spacing:.05em;text-transform:uppercase}
+.install-card-text strong{display:block;font-size:1rem;color:var(--white)}
+.pwa-hint{margin-top:1.5rem;font-size:.82rem;color:var(--muted)}
+
+/* FOOTER */
+footer{background:var(--bg);border-top:1px solid var(--border);padding:4rem 2rem 2rem;position:relative;z-index:2}
+.footer-inner{max-width:1200px;margin:0 auto}
+.footer-top{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:3rem;margin-bottom:3rem}
+.footer-brand .nav-logo{font-size:2rem;display:inline-block;margin-bottom:1rem}
+.footer-brand p{font-size:.85rem;color:var(--muted);line-height:1.7;max-width:260px}
+.footer-col h5{font-size:.8rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:1rem}
+.footer-col a{display:block;color:var(--white);text-decoration:none;font-size:.88rem;margin-bottom:.6rem;opacity:.7;transition:opacity .2s}
+.footer-col a:hover{opacity:1;color:var(--orange)}
+.footer-bottom{border-top:1px solid var(--border);padding-top:1.5rem;display:flex;align-items:center;justify-content:space-between;font-size:.8rem;color:var(--muted)}
+.footer-socials{display:flex;gap:1rem}
+.footer-socials a{color:var(--muted);text-decoration:none;font-size:.88rem;transition:color .2s}
+.footer-socials a:hover{color:var(--orange)}
+
+/* ANIMATIONS */
+.fi{opacity:0;transform:translateY(24px);transition:opacity .6s ease,transform .6s ease}
+.fi.vis{opacity:1;transform:translateY(0)}
+.fi-d1{transition-delay:.1s}.fi-d2{transition-delay:.2s}.fi-d3{transition-delay:.3s}.fi-d4{transition-delay:.4s}
+
+/* RESPONSIVE */
+@media(max-width:900px){
+  .hero-inner,.concept-grid,.founder-grid,.approach-grid{grid-template-columns:1fr}
+  .vert-grid{grid-template-columns:repeat(2,1fr)}
+  .pass-grid,.partner-cards{grid-template-columns:1fr}
+  .footer-top{grid-template-columns:1fr 1fr}
+  .founding-banner{grid-template-columns:1fr}
+  nav .nav-links{display:none}
+}
+</style>
+  <link rel="stylesheet" href="shared.css">
+</head>
+<body>
+
+<div id="loader">
+  <div class="ld-logo">PHX</div>
+  <div class="ld-wrap"><div class="ld-bar" id="ld-bar"></div></div>
+  <div class="ld-txt">602 Culture. One App.</div>
+</div>
+
+<div id="cur"></div>
+<div id="cur-r"></div>
+<canvas id="c"></canvas>
+
+<!-- NAV -->
+<nav>
+  <a href="#" class="nav-logo">PHX</a>
+  <div class="nav-links">
+    <a href="#verticals">Platform</a>
+    <a href="#pass">PHX Pass</a>
+    <a href="#partners">Partners</a>
+    <a href="#founder">About</a>
+  </div>
+  <div class="nav-btns">
+    <a href="partner.html" class="btn btn-ghost">Partner Login</a>
+    <a href="app.html" class="btn btn-orange">Get PHX Pass</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section id="hero">
+  <div class="hero-glow"></div>
+  <div class="hero-inner">
+    <div>
+      <div class="hero-tag">🔥 Phoenix's Culture Platform — Now Live</div>
+      <h1 class="hero-h1"><span class="g">PHX</span><br>is the app.</h1>
+      <p class="hero-sub">Music. Events. Eats. Fashion. Podcasts. Barbershops. Art. Sports. Everything that makes Phoenix, Phoenix — all in one place.</p>
+      <div class="hero-btns">
+        <a href="app.html" class="btn btn-orange btn-lg">Get Your PHX Pass ↗</a>
+        <a href="partner.html" class="btn btn-ghost btn-lg">Join as a Partner</a>
+      </div>
+    </div>
+    <div class="hero-stats">
+      <div class="h-stat fi">
+        <div class="h-stat-num"><span>5M</span>+</div>
+        <div class="h-stat-label">Phoenix Metro Reach</div>
+      </div>
+      <div class="h-stat fi fi-d1">
+        <div class="h-stat-num" id="h-members">2,847</div>
+        <div class="h-stat-label">PHX Pass Members</div>
+      </div>
+      <div class="h-stat fi fi-d2">
+        <div class="h-stat-num"><span>340</span>+</div>
+        <div class="h-stat-label">Partner Businesses</div>
+      </div>
+      <div class="h-stat fi fi-d3">
+        <div class="h-stat-num"><span>1,200</span>+</div>
+        <div class="h-stat-label">Creators on Platform</div>
+      </div>
+    </div>
+  </div>
+  <div class="hero-scroll">Explore ↓</div>
+</section>
+
+<!-- STATS TICKER -->
+<div class="stats-bar">
+  <div class="ticker-track" id="ticker">
+    <div class="ticker-item"><strong>27,256</strong> Murkemz Monthly Listeners</div>
+    <div class="ticker-item"><strong>2.1M+</strong> Monthly Instagram Views</div>
+    <div class="ticker-item"><strong>PHX</strong> — Climbing the Charts</div>
+    <div class="ticker-item"><strong>340+</strong> Founding Business Partners</div>
+    <div class="ticker-item"><strong>$9,189</strong> MRR from Fan Passes</div>
+    <div class="ticker-item"><strong>Ice-T · Wu-Tang · Roc-A-Fella</strong> Co-Signs</div>
+    <div class="ticker-item"><strong>Phoenix New Times</strong> Best Hip-Hop 2025</div>
+    <div class="ticker-item"><strong>602</strong> Culture. One App. Built Different.</div>
+    <!-- duplicate for seamless loop -->
+    <div class="ticker-item"><strong>27,256</strong> Murkemz Monthly Listeners</div>
+    <div class="ticker-item"><strong>2.1M+</strong> Monthly Instagram Views</div>
+    <div class="ticker-item"><strong>PHX</strong> — Climbing the Charts</div>
+    <div class="ticker-item"><strong>340+</strong> Founding Business Partners</div>
+    <div class="ticker-item"><strong>$9,189</strong> MRR from Fan Passes</div>
+    <div class="ticker-item"><strong>Ice-T · Wu-Tang · Roc-A-Fella</strong> Co-Signs</div>
+    <div class="ticker-item"><strong>Phoenix New Times</strong> Best Hip-Hop 2025</div>
+    <div class="ticker-item"><strong>602</strong> Culture. One App. Built Different.</div>
+  </div>
+</div>
+
+<!-- CONCEPT -->
+<section id="concept">
+  <div class="section-inner">
+    <div class="concept-grid">
+      <div class="fi">
+        <div class="section-tag">What is PHX App</div>
+        <h2 class="section-h2">Phoenix finally has its<br><span class="g">own platform.</span></h2>
+        <p style="color:var(--muted);line-height:1.8;font-size:.95rem;margin-bottom:1.2rem">
+          Yelp treats your favorite restaurant like a review. Instagram doesn't know what city you're in. Eventbrite doesn't care about the culture. None of them were built for Phoenix.
+        </p>
+        <p style="color:var(--muted);line-height:1.8;font-size:.95rem;margin-bottom:1.2rem">
+          PHX App is the first platform where Phoenix culture — music, food, fashion, events, podcasts, art — lives together. Where local creators and businesses reach the exact audience that represents this city.
+        </p>
+        <p style="color:var(--white);line-height:1.8;font-size:.95rem;font-weight:600">
+          Built by Murkemz. Powered by Plug City Records. Made for 602.
+        </p>
+        <div class="concept-pills">
+          <span class="pill pill-orange">Music & Artists</span>
+          <span class="pill pill-teal">Restaurants & Eats</span>
+          <span class="pill pill-purple">Fashion & Drops</span>
+          <span class="pill pill-gold">Events & Tickets</span>
+          <span class="pill pill-orange">Podcasts & Media</span>
+          <span class="pill pill-teal">Barbershops</span>
+          <span class="pill pill-purple">Art & Murals</span>
+          <span class="pill pill-gold">Sports & Hustle</span>
+        </div>
+      </div>
+      <div class="concept-right fi fi-d1">
+        <div class="c-card hl">
+          <div class="c-card-icon">🎵</div>
+          <div class="c-card-title">Built on music credibility</div>
+          <div class="c-card-desc">Murkemz has the co-signs, the streams, and the Phoenix fan base. That credibility is the platform's foundation — no startup can buy it.</div>
+        </div>
+        <div class="c-card">
+          <div class="c-card-icon">💳</div>
+          <div class="c-card-title">PHX Pass = city membership</div>
+          <div class="c-card-desc">One monthly pass gets you perks at partner restaurants, early event access, exclusive artist content, and a digital city identity card.</div>
+        </div>
+        <div class="c-card">
+          <div class="c-card-icon">📊</div>
+          <div class="c-card-title">Real data for local business</div>
+          <div class="c-card-desc">Businesses see exactly how many PHX Pass members visited, redeemed perks, or engaged — not just impressions.</div>
+        </div>
+        <div class="c-card">
+          <div class="c-card-icon">🏙️</div>
+          <div class="c-card-title">The city platform that scales</div>
+          <div class="c-card-desc">Phoenix is the template. Tucson, Vegas, Albuquerque, LA — the model replicates. Other artists become anchors in their cities.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- VERTICALS -->
+<section id="verticals">
+  <div class="section-inner">
+    <div class="section-tag fi">The Platform</div>
+    <h2 class="section-h2 fi fi-d1">8 Verticals.<br><span class="g">One Ecosystem.</span></h2>
+    <p class="section-sub fi fi-d2">Every corner of Phoenix culture, connected. Browse by what you love or explore it all.</p>
+    <div class="vert-grid">
+      <div class="vert-card fi">
+        <div class="vert-icon" style="background:rgba(249,115,22,.15)">🎵</div>
+        <div class="vert-name">Music</div>
+        <div class="vert-desc">Murk Radio, local artist pages, fan passes, beat portal, royalty drops, sync licensing.</div>
+        <span class="vert-tag" style="background:rgba(249,115,22,.12);color:var(--orange)">Powered by Plug City</span>
+      </div>
+      <div class="vert-card fi fi-d1">
+        <div class="vert-icon" style="background:rgba(20,184,166,.15)">🍽️</div>
+        <div class="vert-name">PHX Eats</div>
+        <div class="vert-desc">James Beard chefs, hood spots, food trucks, pop-ups — curated for the culture, not critics.</div>
+        <span class="vert-tag" style="background:rgba(20,184,166,.12);color:var(--teal)">Member Perks</span>
+      </div>
+      <div class="vert-card fi fi-d2">
+        <div class="vert-icon" style="background:rgba(124,58,237,.15)">👕</div>
+        <div class="vert-name">PHX Drops</div>
+        <div class="vert-desc">Local streetwear brands, limited drops, lookbooks, boutiques. PHX Pass = early access.</div>
+        <span class="vert-tag" style="background:rgba(124,58,237,.12);color:var(--purple-l)">Drop Alerts</span>
+      </div>
+      <div class="vert-card fi fi-d3">
+        <div class="vert-icon" style="background:rgba(234,179,8,.15)">🎟️</div>
+        <div class="vert-name">PHX Events</div>
+        <div class="vert-desc">The definitive Phoenix event guide + ticketing. From The Blunt Club to Roosevelt Row First Fridays.</div>
+        <span class="vert-tag" style="background:rgba(234,179,8,.12);color:var(--gold)">Built-in Ticketing</span>
+      </div>
+      <div class="vert-card fi">
+        <div class="vert-icon" style="background:rgba(59,130,246,.15)">🎙️</div>
+        <div class="vert-name">PHX Audio</div>
+        <div class="vert-desc">Phoenix podcast network. Local shows, sports talk, culture commentary, chef series. Ad-free for members.</div>
+        <span class="vert-tag" style="background:rgba(59,130,246,.12);color:var(--blue)">Creator Network</span>
+      </div>
+      <div class="vert-card fi fi-d1">
+        <div class="vert-icon" style="background:rgba(249,115,22,.15)">✂️</div>
+        <div class="vert-name">PHX Cuts</div>
+        <div class="vert-desc">Local barbershops and salons. Build a following, take bookings, post content — all inside PHX.</div>
+        <span class="vert-tag" style="background:rgba(249,115,22,.12);color:var(--orange)">Book + Follow</span>
+      </div>
+      <div class="vert-card fi fi-d2">
+        <div class="vert-icon" style="background:rgba(239,68,68,.15)">🎨</div>
+        <div class="vert-name">PHX Canvas</div>
+        <div class="vert-desc">Roosevelt Row muralists, photographers, visual artists. Commission marketplace + digital collectibles.</div>
+        <span class="vert-tag" style="background:rgba(239,68,68,.12);color:var(--red)">Commission</span>
+      </div>
+      <div class="vert-card fi fi-d3">
+        <div class="vert-icon" style="background:rgba(34,197,94,.15)">🏀</div>
+        <div class="vert-name">PHX Grid</div>
+        <div class="vert-desc">Sports, fitness, esports. Local athletes, trainers, Suns/Cardinals fan culture, pickup leagues.</div>
+        <span class="vert-tag" style="background:rgba(34,197,94,.12);color:var(--green)">602 Sports</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PHX PASS -->
+<section id="pass">
+  <div class="section-inner">
+    <div class="section-tag fi">PHX Pass</div>
+    <h2 class="section-h2 fi fi-d1">Your city membership card.<br><span class="g">Pick your level.</span></h2>
+    <p class="section-sub fi fi-d2">One subscription unlocks member perks at hundreds of Phoenix businesses, exclusive events, artist content, and your digital city identity.</p>
+    <div class="pass-grid fi fi-d1">
+      <div class="pass-card">
+        <div class="pass-tier">PHX Pass · Tier 1</div>
+        <div class="pass-name">Explorer</div>
+        <div class="pass-price">$7<sub>/mo</sub></div>
+        <div class="pass-desc">Get in the door. Access the full city guide and event calendar.</div>
+        <div class="pass-divider"></div>
+        <ul class="pass-feat">
+          <li><span class="check">✓</span> Full PHX event calendar</li>
+          <li><span class="check">✓</span> Business directory with hours & info</li>
+          <li><span class="check">✓</span> City feed & community</li>
+          <li><span class="check">✓</span> PHX Radio — ad-supported</li>
+          <li><span class="check">✓</span> Digital Explorer card</li>
+          <li><span class="x">·</span> <span style="color:var(--muted)">Partner discounts & perks</span></li>
+          <li><span class="x">·</span> <span style="color:var(--muted)">Early event access</span></li>
+        </ul>
+        <a href="app.html" class="btn btn-ghost" style="width:100%;justify-content:center;border-radius:10px;padding:.75rem">Start for $7/mo</a>
+      </div>
+      <div class="pass-card featured">
+        <div class="pass-tier">PHX Pass · Tier 2</div>
+        <div class="pass-name" style="color:var(--orange)">Native</div>
+        <div class="pass-price" style="color:var(--orange)">$15<sub>/mo</sub></div>
+        <div class="pass-desc">The full Phoenix experience. Perks, early access, and exclusive content.</div>
+        <div class="pass-divider"></div>
+        <ul class="pass-feat">
+          <li><span class="check">✓</span> Everything in Explorer</li>
+          <li><span class="check">✓</span> Discounts at 200+ partner businesses</li>
+          <li><span class="check">✓</span> Early access to events + presale tickets</li>
+          <li><span class="check">✓</span> Ad-free PHX Radio + artist drops</li>
+          <li><span class="check">✓</span> AI Murk chatbot access</li>
+          <li><span class="check">✓</span> Digital Native card (Apple/Google Wallet)</li>
+          <li><span class="check">✓</span> PHX Drops early access</li>
+        </ul>
+        <a href="app.html" class="btn btn-orange" style="width:100%;justify-content:center;border-radius:10px;padding:.75rem">Get PHX Native — $15/mo</a>
+      </div>
+      <div class="pass-card">
+        <div class="pass-tier">PHX Pass · Tier 3</div>
+        <div class="pass-name">Insider</div>
+        <div class="pass-price">$29<sub>/mo</sub></div>
+        <div class="pass-desc">Top of the city. VIP access, artist meet-ups, monthly drop boxes.</div>
+        <div class="pass-divider"></div>
+        <ul class="pass-feat">
+          <li><span class="check">✓</span> Everything in Native</li>
+          <li><span class="check">✓</span> Monthly PHX Insider box mailed to you</li>
+          <li><span class="check">✓</span> VIP entry at partner events</li>
+          <li><span class="check">✓</span> Direct DM to Murkemz + artists</li>
+          <li><span class="check">✓</span> Fan ownership drop eligibility</li>
+          <li><span class="check">✓</span> Co-signed Insider card (limited numbered)</li>
+          <li><span class="check">✓</span> Private Insider Discord channel</li>
+        </ul>
+        <a href="app.html" class="btn btn-ghost" style="width:100%;justify-content:center;border-radius:10px;padding:.75rem;border-color:rgba(249,115,22,.4)">Become an Insider</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PARTNERS -->
+<section id="partners">
+  <div class="section-inner">
+    <div class="section-tag fi">Partner Program</div>
+    <h2 class="section-h2 fi fi-d1">Three ways to be part<br>of <span class="g">PHX.</span></h2>
+    <p class="section-sub fi fi-d2">Whether you create, run a business, or throw events — there's a spot built specifically for you.</p>
+
+    <div class="partner-tabs fi">
+      <button class="ptab active" onclick="showPartnerTab('creator')">🎤 Creator Partners</button>
+      <button class="ptab" onclick="showPartnerTab('business')">🏪 Business Partners</button>
+      <button class="ptab" onclick="showPartnerTab('promoter')">🎟️ Event Promoters</button>
+    </div>
+
+    <!-- CREATOR -->
+    <div class="partner-view active" id="ptab-creator">
+      <p style="color:var(--muted);font-size:.9rem;margin-bottom:2rem">For artists, podcasters, photographers, chefs with content, visual creators — anyone building an audience in Phoenix.</p>
+      <div class="partner-cards">
+        <div class="partner-card">
+          <span class="partner-badge" style="background:rgba(249,115,22,.12);color:var(--orange)">Free</span>
+          <div class="partner-card-name">PHX Creator</div>
+          <div class="partner-card-price">$0<sub>/mo</sub></div>
+          <div class="partner-card-sub">Start building your profile. No commitment.</div>
+          <ul class="partner-feat">
+            <li>Basic creator profile + bio</li>
+            <li>Up to 5 content uploads/month</li>
+            <li>Listed in PHX creator directory</li>
+            <li>Event listing (1/month)</li>
+            <li>Public fan follower count</li>
+          </ul>
+          <a href="partner.html" class="btn btn-ghost" style="width:100%;justify-content:center;border-radius:10px;padding:.7rem">Create Free Profile</a>
+        </div>
+        <div class="partner-card" style="border-color:rgba(249,115,22,.4)">
+          <span class="partner-badge" style="background:rgba(249,115,22,.15);color:var(--orange);font-size:.68rem">CREATOR PASS</span>
+          <div class="partner-card-name">PHX Creator Pro</div>
+          <div class="partner-card-price" style="color:var(--orange)">$29<sub>/mo</sub></div>
+          <div class="partner-card-sub">Full creator monetization suite. Fan subscriptions + analytics.</div>
+          <ul class="partner-feat">
+            <li>Unlimited content uploads</li>
+            <li>Fan subscription tiers (you set the price)</li>
+            <li>Analytics dashboard — demographics, plays, revenue</li>
+            <li>AI content tools (script builder, scheduler)</li>
+            <li>Featured in category page</li>
+            <li>Event creation with ticketing</li>
+            <li>Direct fan messaging</li>
+          </ul>
+          <a href="partner.html" class="btn btn-orange" style="width:100%;justify-content:center;border-radius:10px;padding:.7rem">Start Creator Pro — $29/mo</a>
+        </div>
+        <div class="partner-card">
+          <span class="partner-badge" style="background:rgba(234,179,8,.12);color:var(--gold)">STUDIO TIER</span>
+          <div class="partner-card-name">PHX Creator Studio</div>
+          <div class="partner-card-price" style="color:var(--gold)">$79<sub>/mo</sub></div>
+          <div class="partner-card-sub">For power creators. Full label-level tools in one dashboard.</div>
+          <ul class="partner-feat">
+            <li>Everything in Creator Pro</li>
+            <li>Merch store (Shopify integration)</li>
+            <li>Beat portal + sync licensing submissions</li>
+            <li>Fan ownership drops</li>
+            <li>Shoutout order system</li>
+            <li>AI Murk-style chatbot (your persona)</li>
+            <li>Priority in PHX App featured slots</li>
+          </ul>
+          <a href="partner.html" class="btn btn-ghost" style="width:100%;justify-content:center;border-radius:10px;padding:.7rem;border-color:rgba(234,179,8,.4);color:var(--gold)">Go Studio — $79/mo</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- BUSINESS -->
+    <div class="partner-view" id="ptab-business">
+      <p style="color:var(--muted);font-size:.9rem;margin-bottom:2rem">For restaurants, barbershops, boutiques, gyms, studios — physical businesses that want to reach Phoenix culture fans directly.</p>
+      <div class="partner-cards">
+        <div class="partner-card">
+          <span class="partner-badge" style="background:rgba(20,184,166,.12);color:var(--teal)">LOCAL</span>
+          <div class="partner-card-name">PHX Local</div>
+          <div class="partner-card-price" style="color:var(--teal)">$99<sub>/mo</sub></div>
+          <div class="partner-card-sub">Get listed. Start showing up for PHX Pass members.</div>
+          <ul class="partner-feat">
+            <li>Full business listing with photos + hours</li>
+            <li>PHX Pass member perk (you set the offer)</li>
+            <li>Listed in your category directory</li>
+            <li>Monthly analytics report (views, visits)</li>
+            <li>1 event listing/month</li>
+            <li>City feed mention on sign-up</li>
+          </ul>
+          <a href="partner.html" class="btn btn-ghost" style="width:100%;justify-content:center;border-radius:10px;padding:.7rem;border-color:rgba(20,184,166,.3);color:var(--teal)">Join as Local — $99/mo</a>
+        </div>
+        <div class="partner-card" style="border-color:rgba(249,115,22,.4)">
+          <span class="partner-badge" style="background:rgba(249,115,22,.15);color:var(--orange);font-size:.68rem">PREMIER</span>
+          <div class="partner-card-name">PHX Premier</div>
+          <div class="partner-card-price" style="color:var(--orange)">$299<sub>/mo</sub></div>
+          <div class="partner-card-sub">Featured placement + push notifications to your exact audience.</div>
+          <ul class="partner-feat">
+            <li>Everything in Local</li>
+            <li>Featured card in category page (top position)</li>
+            <li>Push notification to PHX Pass members (2/mo)</li>
+            <li>Advanced analytics (demographics, perk ROI)</li>
+            <li>Unlimited events listing</li>
+            <li>Co-branded city feed posts</li>
+            <li>PHX Native member highlight badge</li>
+          </ul>
+          <a href="partner.html" class="btn btn-orange" style="width:100%;justify-content:center;border-radius:10px;padding:.7rem">Go Premier — $299/mo</a>
+        </div>
+        <div class="partner-card anchor">
+          <span class="partner-badge" style="background:rgba(124,58,237,.12);color:var(--purple-l)">ANCHOR</span>
+          <div class="partner-card-name">PHX Anchor</div>
+          <div class="partner-card-price" style="color:var(--purple-l)">$599<sub>/mo</sub></div>
+          <div class="partner-card-sub">You ARE Phoenix. Homepage placement, co-branded campaigns, account manager.</div>
+          <ul class="partner-feat">
+            <li>Everything in Premier</li>
+            <li>Homepage feature (rotating hero slot)</li>
+            <li>Co-branded marketing campaigns with PHX App</li>
+            <li>Push notifications (unlimited)</li>
+            <li>Dedicated account manager</li>
+            <li>Artist collaboration facilitation (Murkemz mentions)</li>
+            <li>First partner on new vertical launches</li>
+          </ul>
+          <a href="partner.html" class="btn btn-ghost" style="width:100%;justify-content:center;border-radius:10px;padding:.7rem;border-color:rgba(124,58,237,.4);color:var(--purple-l)">Become an Anchor</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- PROMOTER -->
+    <div class="partner-view" id="ptab-promoter">
+      <p style="color:var(--muted);font-size:.9rem;margin-bottom:2rem">For event promoters, venue owners, festival organizers, and anyone putting people in rooms.</p>
+      <div class="partner-cards">
+        <div class="partner-card">
+          <span class="partner-badge" style="background:rgba(234,179,8,.12);color:var(--gold)">FREE + FEE</span>
+          <div class="partner-card-name">PHX Promoter</div>
+          <div class="partner-card-price">$0<sub> + 5%</sub></div>
+          <div class="partner-card-sub">List events for free. We take 5% of ticket revenue. No upfront cost.</div>
+          <ul class="partner-feat">
+            <li>Unlimited event listings</li>
+            <li>Integrated ticket sales (5% platform fee)</li>
+            <li>Listed in PHX Events calendar</li>
+            <li>PHX Pass member early notification</li>
+            <li>Basic event analytics</li>
+          </ul>
+          <a href="partner.html" class="btn btn-ghost" style="width:100%;justify-content:center;border-radius:10px;padding:.7rem">List Your First Event</a>
+        </div>
+        <div class="partner-card" style="border-color:rgba(249,115,22,.4)">
+          <span class="partner-badge" style="background:rgba(249,115,22,.15);color:var(--orange)">PRO</span>
+          <div class="partner-card-name">PHX Promoter Pro</div>
+          <div class="partner-card-price" style="color:var(--orange)">$199<sub>/mo</sub></div>
+          <div class="partner-card-sub">Priority placement + reduced fee + push notifications for your events.</div>
+          <ul class="partner-feat">
+            <li>Priority event placement (top of calendar)</li>
+            <li>Reduced ticketing fee: 3% (vs 5%)</li>
+            <li>Push notifications to PHX Pass members</li>
+            <li>Early ticket window for PHX Insider members</li>
+            <li>Advanced event analytics + attendance data</li>
+            <li>Co-promotion with PHX App social channels</li>
+          </ul>
+          <a href="partner.html" class="btn btn-orange" style="width:100%;justify-content:center;border-radius:10px;padding:.7rem">Go Promoter Pro</a>
+        </div>
+        <div class="partner-card">
+          <span class="partner-badge" style="background:rgba(239,68,68,.12);color:var(--red)">VENUE</span>
+          <div class="partner-card-name">PHX Venue Partner</div>
+          <div class="partner-card-price">Custom</div>
+          <div class="partner-card-sub">For established venues (200+ cap). Dedicated venue page + residency deals.</div>
+          <ul class="partner-feat">
+            <li>Dedicated venue page inside PHX App</li>
+            <li>0% ticketing fee (rev share model)</li>
+            <li>PHX Pass member door perks (skip line, discount)</li>
+            <li>Featured in PHX Events home</li>
+            <li>Multi-event promotion packages</li>
+            <li>Artist booking facilitation via Plug City</li>
+          </ul>
+          <a href="partner.html" class="btn btn-ghost" style="width:100%;justify-content:center;border-radius:10px;padding:.7rem">Get Venue Pricing</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- FOUNDING PARTNER BANNER -->
+    <div class="founding-banner fi">
+      <div>
+        <div class="fb-star">⭐</div>
+        <div class="fb-title"><span>Founding Partner</span> Program — First 50 Spots</div>
+        <div class="fb-body">
+          The first 50 businesses to join PHX App get <strong style="color:var(--white)">90 days completely free</strong> — regardless of which tier they choose. This isn't charity. It's strategy.<br><br>
+          In exchange, we ask for 3 posts to your own audience about PHX App in month one. If you have 2,000 followers, that's 2,000 people seeing the platform. 50 businesses × 2,000 = 100,000 organic impressions before we spend $1 on ads.<br><br>
+          After 90 days, you have real data: how many PHX Pass members viewed your listing, redeemed your perk, and walked through your door. That data closes the sale on staying — we don't have to.<br><br>
+          <strong style="color:var(--orange)">You keep the "Founding Partner" badge on your profile forever.</strong> Early partners own a piece of the city's culture identity.
+        </div>
+      </div>
+      <div class="fb-right">
+        <div class="fb-spots" id="founding-counter">43</div>
+        <div class="fb-spots-label">of 50 spots remaining</div>
+        <br><br>
+        <a href="partner.html" class="btn btn-orange" style="font-size:1rem;padding:.9rem 1.8rem">Apply as Founding Partner →</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PARTNER PREVIEWS -->
+<style>
+#partner-preview{background:var(--bg2);padding:6rem 1.5rem}
+.pp-tabs{display:flex;gap:.6rem;justify-content:center;margin:2.5rem 0;flex-wrap:wrap}
+.pp-tab{padding:.6rem 1.4rem;border-radius:30px;border:1px solid rgba(249,115,22,.25);background:transparent;color:rgba(241,241,248,.55);font-size:.9rem;font-weight:600;cursor:pointer;transition:all .18s;font-family:inherit}
+.pp-tab:hover{border-color:rgba(249,115,22,.5);color:#F97316}
+.pp-tab.active{background:rgba(249,115,22,.15);border-color:#F97316;color:#F97316}
+.pp-panel{display:none;animation:ppIn .35s ease}
+.pp-panel.active{display:block}
+@keyframes ppIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.pp-mockup{background:var(--bg3);border:1px solid rgba(255,255,255,.07);border-radius:16px;overflow:hidden;margin-bottom:2rem;box-shadow:0 20px 60px rgba(0,0,0,.4)}
+.pp-mock-topbar{background:var(--bg4);padding:.85rem 1.25rem;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.06)}
+.pp-mock-title{font-size:.85rem;font-weight:700;color:#F1F1F8}
+.pp-mock-chip{font-size:.7rem;font-weight:700;padding:.25rem .7rem;border-radius:20px;background:rgba(249,115,22,.15);color:#F97316;border:1px solid rgba(249,115,22,.3)}
+.pp-mock-chip.biz{background:rgba(16,185,129,.12);color:#10B981;border-color:rgba(16,185,129,.3)}
+.pp-mock-chip.promo{background:rgba(124,58,237,.12);color:#A78BFA;border-color:rgba(124,58,237,.3)}
+.pp-mock-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:rgba(255,255,255,.05)}
+.pp-mock-kpi{background:var(--bg3);padding:1rem 1.25rem}
+.pp-k-num{font-size:1.5rem;font-weight:800;color:#F1F1F8;margin-bottom:.2rem}
+.pp-k-num.green{color:#10B981}
+.pp-k-lab{font-size:.7rem;color:rgba(241,241,248,.4);text-transform:uppercase;letter-spacing:.06em}
+.pp-mock-body{display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;padding:1.25rem}
+.pp-mock-col{display:flex;flex-direction:column;gap:1rem}
+.pp-mock-card{background:var(--bg4);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:1rem}
+.pp-mock-card-title{font-size:.72rem;font-weight:700;color:rgba(241,241,248,.5);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.75rem;padding-bottom:.5rem;border-bottom:1px solid rgba(255,255,255,.05)}
+.pp-fp-row,.pp-pl-row,.pp-act-row,.pp-perk-row,.pp-evt-row{display:flex;align-items:center;justify-content:space-between;gap:.5rem;padding:.4rem 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:.8rem;color:rgba(241,241,248,.7)}
+.pp-fp-row:last-child,.pp-pl-row:last-child,.pp-act-row:last-child,.pp-perk-row:last-child,.pp-evt-row:last-child{border-bottom:none}
+.pp-fp-badge{padding:.2rem .6rem;border-radius:20px;font-size:.65rem;font-weight:700;background:rgba(249,115,22,.15);color:#F97316;flex-shrink:0}
+.pp-fp-badge.nat{background:rgba(16,185,129,.15);color:#10B981}
+.pp-fp-badge.ins{background:rgba(124,58,237,.15);color:#A78BFA}
+.pp-fp-val{font-weight:700;color:#F1F1F8}
+.pp-pl-row.bold span:last-child{font-weight:800;font-size:.9rem}
+.pp-pl-row .g{color:#10B981}
+.pp-pl-row .r{color:#F87171}
+.pp-act-dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.2);flex-shrink:0}
+.pp-act-dot.new{background:#F97316}
+.pp-perk-icon{font-size:1rem;flex-shrink:0}
+.pp-perk-tag{font-size:.62rem;font-weight:700;padding:.18rem .5rem;border-radius:10px;background:rgba(249,115,22,.12);color:#F97316;flex-shrink:0;white-space:nowrap}
+.pp-perk-tag.nat{background:rgba(16,185,129,.12);color:#10B981}
+.pp-perk-tag.ins{background:rgba(124,58,237,.12);color:#A78BFA}
+.pp-evt-date{font-size:.7rem;font-weight:700;color:#F97316;flex-shrink:0;min-width:36px}
+.pp-evt-tick{font-size:.7rem;color:rgba(241,241,248,.45);flex-shrink:0}
+.pp-found-badge{font-size:.78rem;font-weight:700;color:#EAB308;padding:.4rem .8rem;border-radius:8px;background:rgba(234,179,8,.1);border:1px solid rgba(234,179,8,.2);margin:.5rem 0;text-align:center}
+.pp-found-sub{font-size:.7rem;color:rgba(241,241,248,.45);text-align:center;line-height:1.6}
+.pp-inc-title{font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:rgba(241,241,248,.4);margin:.25rem 0 .5rem}
+.pp-inc-list{list-style:none;padding:0}
+.pp-inc-list li{font-size:.8rem;color:rgba(241,241,248,.65);padding:.25rem 0;padding-left:0}
+.pp-tier-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.25rem;margin-top:.5rem}
+.pp-tier-card{background:var(--bg3);border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:1.5rem;display:flex;flex-direction:column;gap:.6rem}
+.pp-tier-card.feat{border-color:rgba(249,115,22,.35);box-shadow:0 0 24px rgba(249,115,22,.1)}
+.pp-tier-name{font-size:.95rem;font-weight:800;color:#F1F1F8}
+.pp-tier-price{font-size:1.4rem;font-weight:900;color:#F97316;margin:.15rem 0}
+.pp-tier-list{list-style:none;padding:0;flex:1}
+.pp-tier-list li{font-size:.8rem;color:rgba(241,241,248,.6);padding:.22rem 0;padding-left:1.1rem;position:relative}
+.pp-tier-list li::before{content:'✓';position:absolute;left:0;color:#F97316;font-size:.7rem}
+.pp-tier-badge{margin-top:.5rem;padding:.35rem .8rem;border-radius:20px;font-size:.72rem;font-weight:700;text-align:center;background:rgba(255,255,255,.06);color:rgba(241,241,248,.5);border:1px solid rgba(255,255,255,.08)}
+.pp-tier-badge.hl{background:rgba(249,115,22,.15);color:#F97316;border-color:rgba(249,115,22,.3)}
+@media(max-width:768px){
+  .pp-mock-kpis{grid-template-columns:repeat(2,1fr)}
+  .pp-mock-body{grid-template-columns:1fr}
+  .pp-tier-grid{grid-template-columns:1fr}
+}
+</style>
+<section id="partner-preview">
+  <div class="section-inner">
+    <div class="section-tag fi">Inside the Platform</div>
+    <h2 class="section-h2 fi">See exactly what<br><span class="g">partners get.</span></h2>
+    <p style="text-align:center;color:rgba(241,241,248,.55);max-width:560px;margin:.75rem auto 0;font-size:1rem;line-height:1.7" class="fi">Every partner type has a dedicated dashboard. Here's a real look at what you'd see when you log in.</p>
+    <div class="pp-tabs fi">
+      <button class="pp-tab active" onclick="showPP('creator')">🎵 Creator Partner</button>
+      <button class="pp-tab" onclick="showPP('business')">🏪 Business Partner</button>
+      <button class="pp-tab" onclick="showPP('promoter')">🎪 Event Promoter</button>
+    </div>
+
+    <!-- ── CREATOR ─────────────────────────────────── -->
+    <div class="pp-panel active" id="pp-creator">
+      <div class="pp-mockup">
+        <div class="pp-mock-topbar">
+          <span class="pp-mock-title">🎵 Creator Dashboard — Murkemz</span>
+          <span class="pp-mock-chip">Creator Studio · $79/mo</span>
+        </div>
+        <div class="pp-mock-kpis">
+          <div class="pp-mock-kpi"><div class="pp-k-num">2,184</div><div class="pp-k-lab">Fan Pass Holders</div></div>
+          <div class="pp-mock-kpi"><div class="pp-k-num green">$9,189</div><div class="pp-k-lab">Monthly Revenue</div></div>
+          <div class="pp-mock-kpi"><div class="pp-k-num">42K</div><div class="pp-k-lab">Profile Views</div></div>
+          <div class="pp-mock-kpi"><div class="pp-k-num">6</div><div class="pp-k-lab">Active Perks</div></div>
+        </div>
+        <div class="pp-mock-body">
+          <div class="pp-mock-col">
+            <div class="pp-mock-card">
+              <div class="pp-mock-card-title">Fan Pass Breakdown</div>
+              <div class="pp-fp-row"><span class="pp-fp-badge">Explorer</span><span>$7 × 178 fans</span><span class="pp-fp-val">$1,246</span></div>
+              <div class="pp-fp-row"><span class="pp-fp-badge nat">Native</span><span>$15 × 334 fans</span><span class="pp-fp-val">$5,010</span></div>
+              <div class="pp-fp-row"><span class="pp-fp-badge ins">Insider</span><span>$29 × 101 fans</span><span class="pp-fp-val">$2,929</span></div>
+            </div>
+            <div class="pp-inc-title">What Creator Studio includes</div>
+            <ul class="pp-inc-list">
+              <li>Full artist profile + all social links</li>
+              <li>Exclusive unlisted track drops</li>
+              <li>Fan DMs + community chat room</li>
+              <li>3 platform spotlights per month</li>
+              <li>Merch drop announcements</li>
+              <li>Event listing with ticketing</li>
+              <li>Full revenue P&amp;L analytics</li>
+            </ul>
+          </div>
+          <div class="pp-mock-col">
+            <div class="pp-mock-card">
+              <div class="pp-mock-card-title">Recent Activity</div>
+              <div class="pp-act-row"><span class="pp-act-dot new"></span><span>New fan pass — <strong>@desert_wave</strong></span></div>
+              <div class="pp-act-row"><span class="pp-act-dot"></span><span>Track "PHX" streamed 847×</span></div>
+              <div class="pp-act-row"><span class="pp-act-dot"></span><span>Event sold out: Shady Park</span></div>
+              <div class="pp-act-row"><span class="pp-act-dot"></span><span>Merch sold: 12 Murk hoodies</span></div>
+            </div>
+            <div class="pp-mock-card">
+              <div class="pp-mock-card-title">Revenue P&amp;L — June</div>
+              <div class="pp-pl-row"><span>Fan Pass Gross</span><span class="g">+$9,185</span></div>
+              <div class="pp-pl-row"><span>Platform Fee (20%)</span><span class="r">−$1,837</span></div>
+              <div class="pp-pl-row bold"><span>Net to Creator</span><span class="g">$7,348</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="pp-tier-grid">
+        <div class="pp-tier-card"><div class="pp-tier-name">Free</div><div class="pp-tier-price" style="color:rgba(241,241,248,.5)">$0/mo</div><ul class="pp-tier-list"><li>Basic artist profile</li><li>Feed posts + photos</li><li>1 spotlight/month</li><li>Explorer perk tier only</li></ul><div class="pp-tier-badge">Start here</div></div>
+        <div class="pp-tier-card"><div class="pp-tier-name">Creator Pro</div><div class="pp-tier-price">$29/mo</div><ul class="pp-tier-list"><li>Full profile + all links</li><li>Exclusive track drops</li><li>Fan analytics dashboard</li><li>3 spotlights/month</li><li>2 PHX Pass tiers</li></ul><div class="pp-tier-badge">Most popular</div></div>
+        <div class="pp-tier-card feat"><div class="pp-tier-name">Creator Studio</div><div class="pp-tier-price">$79/mo</div><ul class="pp-tier-list"><li>Everything in Pro</li><li>Fan DMs + community</li><li>Merch + event ticketing</li><li>Priority across all 8 verticals</li><li>All PHX Pass tiers</li><li>Full revenue P&amp;L</li></ul><div class="pp-tier-badge hl">Max revenue</div></div>
+      </div>
+    </div>
+
+    <!-- ── BUSINESS ────────────────────────────────── -->
+    <div class="pp-panel" id="pp-business">
+      <div class="pp-mockup">
+        <div class="pp-mock-topbar">
+          <span class="pp-mock-title">🏪 Business Dashboard — Arboleda PHX</span>
+          <span class="pp-mock-chip biz">Premier Partner · $299/mo</span>
+        </div>
+        <div class="pp-mock-kpis">
+          <div class="pp-mock-kpi"><div class="pp-k-num">428</div><div class="pp-k-lab">Member Visits</div></div>
+          <div class="pp-mock-kpi"><div class="pp-k-num green">$0</div><div class="pp-k-lab">Cost (Founding)</div></div>
+          <div class="pp-mock-kpi"><div class="pp-k-num">$2,890</div><div class="pp-k-lab">Est. New Revenue</div></div>
+          <div class="pp-mock-kpi"><div class="pp-k-num">89</div><div class="pp-k-lab">Perks Redeemed</div></div>
+        </div>
+        <div class="pp-mock-body">
+          <div class="pp-mock-col">
+            <div class="pp-mock-card">
+              <div class="pp-mock-card-title">Active Perks on Platform</div>
+              <div class="pp-perk-row"><span class="pp-perk-icon">🍽️</span><span>10% off any order</span><span class="pp-perk-tag">Explorer+</span></div>
+              <div class="pp-perk-row"><span class="pp-perk-icon">🎁</span><span>Free dessert w/ $30+ spend</span><span class="pp-perk-tag nat">Native+</span></div>
+              <div class="pp-perk-row"><span class="pp-perk-icon">⭐</span><span>Priority seating + chef's tasting</span><span class="pp-perk-tag ins">Insider</span></div>
+            </div>
+            <div class="pp-inc-title">What Premier includes</div>
+            <ul class="pp-inc-list">
+              <li>Full business listing + media gallery</li>
+              <li>3-tier perks (all PHX Pass levels)</li>
+              <li>Featured in "Eats" category feed</li>
+              <li>Partner Spotlight 2× per month</li>
+              <li>Event co-hosting with creators</li>
+              <li>Customer traffic + ROI analytics</li>
+              <li>Message blast to local members</li>
+            </ul>
+          </div>
+          <div class="pp-mock-col">
+            <div class="pp-mock-card">
+              <div class="pp-mock-card-title">ROI Snapshot — June</div>
+              <div class="pp-pl-row"><span>New customers via PHX App</span><span class="g">+89</span></div>
+              <div class="pp-pl-row"><span>Avg. spend per visit</span><span>$32.50</span></div>
+              <div class="pp-pl-row"><span>Est. Revenue Generated</span><span class="g">$2,892</span></div>
+              <div class="pp-pl-row"><span>Platform Cost (Founding)</span><span>$0</span></div>
+              <div class="pp-pl-row bold"><span>Net ROI</span><span class="g">∞</span></div>
+            </div>
+            <div class="pp-mock-card">
+              <div class="pp-mock-card-title">Founding Partner Status</div>
+              <div class="pp-found-badge">🏅 Founding Partner — ACTIVE</div>
+              <div class="pp-found-sub">Day 47 of 90-day free period · 3 posts completed ✓</div>
+              <div class="pp-found-sub" style="margin-top:.5rem">Badge stays permanently after paid conversion</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="pp-tier-grid">
+        <div class="pp-tier-card"><div class="pp-tier-name">Local</div><div class="pp-tier-price">$99/mo</div><ul class="pp-tier-list"><li>Basic business listing</li><li>1 perk tier (Explorer)</li><li>Category feed placement</li><li>Basic traffic analytics</li></ul><div class="pp-tier-badge">Get started</div></div>
+        <div class="pp-tier-card feat"><div class="pp-tier-name">Premier</div><div class="pp-tier-price">$299/mo</div><ul class="pp-tier-list"><li>Full listing + media gallery</li><li>3 perk tiers (all pass levels)</li><li>Partner Spotlights 2×/mo</li><li>Event co-hosting</li><li>Traffic + ROI analytics</li></ul><div class="pp-tier-badge hl">Most popular</div></div>
+        <div class="pp-tier-card"><div class="pp-tier-name">Anchor</div><div class="pp-tier-price">$599/mo</div><ul class="pp-tier-list"><li>Homepage feature placement</li><li>Unlimited spotlights</li><li>Dedicated city concierge</li><li>Custom perk campaigns</li><li>Category sponsorship</li></ul><div class="pp-tier-badge">Top visibility</div></div>
+      </div>
+    </div>
+
+    <!-- ── PROMOTER ───────────────────────────────── -->
+    <div class="pp-panel" id="pp-promoter">
+      <div class="pp-mockup">
+        <div class="pp-mock-topbar">
+          <span class="pp-mock-title">🎪 Event Promoter Dashboard — Crescent PHX</span>
+          <span class="pp-mock-chip promo">Promoter Pro · $199/mo</span>
+        </div>
+        <div class="pp-mock-kpis">
+          <div class="pp-mock-kpi"><div class="pp-k-num">3</div><div class="pp-k-lab">Active Events</div></div>
+          <div class="pp-mock-kpi"><div class="pp-k-num green">847</div><div class="pp-k-lab">Tickets Sold</div></div>
+          <div class="pp-mock-kpi"><div class="pp-k-num">$12,400</div><div class="pp-k-lab">Ticket Revenue</div></div>
+          <div class="pp-mock-kpi"><div class="pp-k-num">94%</div><div class="pp-k-lab">Member Attendance</div></div>
+        </div>
+        <div class="pp-mock-body">
+          <div class="pp-mock-col">
+            <div class="pp-mock-card">
+              <div class="pp-mock-card-title">Upcoming Events</div>
+              <div class="pp-evt-row"><span class="pp-evt-date">Jun 21</span><span>PHX Underground @ Crescent</span><span class="pp-evt-tick">280 sold</span></div>
+              <div class="pp-evt-row"><span class="pp-evt-date">Jul 4</span><span>Desert Block Party</span><span class="pp-evt-tick">412 sold</span></div>
+              <div class="pp-evt-row"><span class="pp-evt-date">Jul 19</span><span>Plug City Showcase Vol. 3</span><span class="pp-evt-tick">155 sold</span></div>
+            </div>
+            <div class="pp-inc-title">What Promoter Pro includes</div>
+            <ul class="pp-inc-list">
+              <li>Unlimited event listings</li>
+              <li>Featured placement in Events feed</li>
+              <li>Push notification blasts to members</li>
+              <li>PHX Pass holder early access windows</li>
+              <li>Creator co-promotion tools</li>
+              <li>Ticket sales + attendance analytics</li>
+            </ul>
+          </div>
+          <div class="pp-mock-col">
+            <div class="pp-mock-card">
+              <div class="pp-mock-card-title">Revenue Breakdown — June</div>
+              <div class="pp-pl-row"><span>Gross Ticket Sales</span><span class="g">$12,400</span></div>
+              <div class="pp-pl-row"><span>Platform Fee (5%)</span><span class="r">−$620</span></div>
+              <div class="pp-pl-row"><span>Promoter Pro Plan</span><span class="r">−$199</span></div>
+              <div class="pp-pl-row bold"><span>Net Promoter Keep</span><span class="g">$11,581</span></div>
+            </div>
+            <div class="pp-mock-card">
+              <div class="pp-mock-card-title">Audience Breakdown</div>
+              <div class="pp-pl-row"><span>Explorer Members</span><span>38%</span></div>
+              <div class="pp-pl-row"><span>Native Members</span><span>41%</span></div>
+              <div class="pp-pl-row"><span>Insider Members</span><span>15%</span></div>
+              <div class="pp-pl-row"><span>Non-members</span><span>6%</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="pp-tier-grid">
+        <div class="pp-tier-card"><div class="pp-tier-name">Free</div><div class="pp-tier-price" style="color:rgba(241,241,248,.5)">Free + 5%</div><ul class="pp-tier-list"><li>Up to 3 events/month</li><li>Standard feed placement</li><li>Basic ticket processing</li></ul><div class="pp-tier-badge">Start here</div></div>
+        <div class="pp-tier-card feat"><div class="pp-tier-name">Promoter Pro</div><div class="pp-tier-price">$199/mo</div><ul class="pp-tier-list"><li>Unlimited event listings</li><li>Featured feed placement</li><li>Push notification blasts</li><li>Pass holder early access</li><li>Creator co-promotion</li></ul><div class="pp-tier-badge hl">Best value</div></div>
+        <div class="pp-tier-card"><div class="pp-tier-name">Venue Partner</div><div class="pp-tier-price">Custom</div><ul class="pp-tier-list"><li>Venue partnership deal</li><li>Monthly calendar feature</li><li>Dedicated promoter page</li><li>Co-branded campaigns</li><li>Revenue share options</li></ul><div class="pp-tier-badge">Let's talk</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+<script>
+function showPP(type){
+  document.querySelectorAll('.pp-tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.pp-panel').forEach(p=>p.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('pp-'+type).classList.add('active');
+}
+</script>
+
+<!-- APPROACH -->
+<section id="approach">
+  <div class="section-inner">
+    <div class="approach-grid">
+      <div>
+        <div class="section-tag fi">The Partner Approach</div>
+        <h2 class="section-h2 fi fi-d1">How the conversation goes.<br><span class="g">In real life.</span></h2>
+        <p style="color:var(--muted);font-size:.9rem;line-height:1.7;margin-bottom:2rem" class="fi fi-d2">Murkemz doesn't cold-call. He walks in as the face of PHX. The pitch is a handshake, not a sales deck.</p>
+        <div class="approach-steps fi fi-d2">
+          <div class="a-step">
+            <div class="a-num">1</div>
+            <div class="a-step-body">
+              <h4>"We're building Phoenix's culture platform."</h4>
+              <p>Open with the vision, not the price. Murkemz has 2.1M monthly IG views. The introduction matters before the offer.</p>
+            </div>
+          </div>
+          <div class="a-step">
+            <div class="a-num">2</div>
+            <div class="a-step-body">
+              <h4>"We're selecting 50 founding partners who represent the city."</h4>
+              <p>This is a curated list, not a directory. You're inviting them to be part of a movement, not a listing service.</p>
+            </div>
+          </div>
+          <div class="a-step">
+            <div class="a-num">3</div>
+            <div class="a-step-body">
+              <h4>"Free for 90 days. Zero risk."</h4>
+              <p>Remove the friction. They have nothing to lose, and you get their audience as organic distribution.</p>
+            </div>
+          </div>
+          <div class="a-step">
+            <div class="a-num">4</div>
+            <div class="a-step-body">
+              <h4>"After 90 days, the data decides."</h4>
+              <p>Show them real numbers: X members visited, Y redeemed the perk, Z were first-time customers. The ROI sells itself.</p>
+            </div>
+          </div>
+          <div class="a-step">
+            <div class="a-num">5</div>
+            <div class="a-step-body">
+              <h4>"Founding Partner badge stays forever."</h4>
+              <p>Status matters in culture. Being a founding partner means you were part of the city's platform before it was big.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="approach-quote fi fi-d2">
+        <div class="q-text">"I'm not selling you an ad. I'm asking you to be part of the city's culture platform. PHX is blowing up — the song, the app, the whole movement. You can be a founding partner and tell your customers you helped build this. Or you can join later when everyone else already is."</div>
+        <div class="q-attr">— The Murkemz Pitch</div>
+        <br>
+        <div style="height:1px;background:var(--border);margin:1rem 0"></div>
+        <p style="font-size:.82rem;color:var(--muted);line-height:1.7">Every business in Phoenix wants to reach young, culturally connected consumers. PHX Pass members are exactly that. Businesses aren't buying software — they're buying audience access to a community that trusts the platform.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOUNDER -->
+<section id="founder">
+  <div class="section-inner">
+    <div class="founder-grid">
+      <div class="founder-img fi">
+        <img src="https://murkmerch.com/cdn/shop/files/IMG-8437.jpg?v=1763879859" alt="Murkemz" onerror="this.style.display='none'">
+        <div class="founder-overlay">
+          <div class="founder-name">Murkemz</div>
+          <div class="founder-role">Founder · PHX App · Plug City Records</div>
+        </div>
+      </div>
+      <div class="founder-right fi fi-d1">
+        <div class="section-tag">The Founder</div>
+        <h2 class="section-h2">Queens-born.<br>Phoenix-raised.<br><span class="g">602 for life.</span></h2>
+        <p>Murkemz is the most connected artist in Phoenix hip-hop. Ice-T spotted him at a Grammy event and made him a protégé. He's recorded with Inspectah Deck of Wu-Tang Clan, Freeway of Roc-A-Fella, and Chris Webby. Phoenix New Times named him Best Hip-Hop Artist in 2025.</p>
+        <p>With 27,256 monthly Spotify listeners, 2.1M monthly Instagram views, and a new hit called PHX — he doesn't just represent the city. He IS the city's artist. And now he's building the platform to prove it.</p>
+        <p style="color:var(--orange);font-weight:600">Managed by Bryce Breeze · Plug City Records</p>
+        <div class="cosign-row">
+          <span class="cosign">🧊 Ice-T</span>
+          <span class="cosign">🎤 Inspectah Deck</span>
+          <span class="cosign">🎤 Freeway</span>
+          <span class="cosign">🎤 Chris Webby</span>
+          <span class="cosign">📻 Hot 97</span>
+          <span class="cosign">📻 Sway's Universe</span>
+          <span class="cosign">🏆 PHX New Times Best Hip-Hop 2025</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- INSTALL -->
+<section id="install" style="text-align:center">
+  <div class="section-inner install-inner">
+    <div class="section-tag fi">Download / Install</div>
+    <h2 class="section-h2 fi fi-d1">Add PHX to your<br><span class="g">home screen.</span></h2>
+    <p class="section-sub fi fi-d2">No App Store required. PHX App installs directly from your browser — works like a native app on iPhone and Android.</p>
+    <div class="install-btns fi fi-d1">
+      <a href="app.html" class="install-card">
+        <div class="install-card-icon">📱</div>
+        <div class="install-card-text">
+          <small>Open in browser, tap Share</small>
+          <strong>Add to Home Screen</strong>
+        </div>
+      </a>
+      <a href="app.html" class="install-card">
+        <div class="install-card-icon">💳</div>
+        <div class="install-card-text">
+          <small>Start with</small>
+          <strong>Get PHX Pass</strong>
+        </div>
+      </a>
+      <a href="partner.html" class="install-card">
+        <div class="install-card-icon">🤝</div>
+        <div class="install-card-text">
+          <small>Businesses & Creators</small>
+          <strong>Partner Dashboard</strong>
+        </div>
+      </a>
+    </div>
+    <p class="pwa-hint">Available on iOS and Android · No App Store fees · Installs in 10 seconds</p>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-top">
+      <div class="footer-brand">
+        <a href="#" class="nav-logo">PHX</a>
+        <p>Phoenix's culture platform. Music, events, food, fashion, podcasts, barbershops and more — all built for 602. Powered by Murkemz + Plug City Records.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Platform</h5>
+        <a href="#verticals">Music</a>
+        <a href="#verticals">PHX Eats</a>
+        <a href="#verticals">PHX Events</a>
+        <a href="#verticals">PHX Drops</a>
+        <a href="#verticals">PHX Audio</a>
+        <a href="#verticals">PHX Cuts</a>
+      </div>
+      <div class="footer-col">
+        <h5>Partners</h5>
+        <a href="partner.html">Creator Partners</a>
+        <a href="partner.html">Business Partners</a>
+        <a href="partner.html">Event Promoters</a>
+        <a href="partner.html">Founding Program</a>
+      </div>
+      <div class="footer-col">
+        <h5>Connect</h5>
+        <a href="https://instagram.com/murkemz" target="_blank">@murkemz (IG)</a>
+        <a href="https://tiktok.com/@murktheayatollah" target="_blank">TikTok</a>
+        <a href="https://x.com/Murkemz" target="_blank">X / Twitter</a>
+        <a href="https://murkmerch.com" target="_blank">murkmerch.com</a>
+        <a href="index.html">Plug City Records</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 PHX App · Plug City Records · All rights reserved</span>
+      <div class="footer-socials">
+        <a href="https://instagram.com/murkemz" target="_blank">IG</a>
+        <a href="https://tiktok.com/@murktheayatollah" target="_blank">TikTok</a>
+        <a href="https://x.com/Murkemz" target="_blank">X</a>
+        <a href="https://open.spotify.com/artist/murkemz" target="_blank">Spotify</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script>
+// ── CURSOR ──────────────────────────────────────────────
+const cur=document.getElementById('cur'),curR=document.getElementById('cur-r');
+let mx=0,my=0,rx=0,ry=0;
+document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;cur.style.left=mx+'px';cur.style.top=my+'px'});
+function animR(){rx+=(mx-rx)*.15;ry+=(my-ry)*.15;curR.style.left=rx+'px';curR.style.top=ry+'px';requestAnimationFrame(animR)}animR();
+document.querySelectorAll('a,button,.vert-card,.pass-card,.partner-card,.install-card').forEach(el=>{
+  el.addEventListener('mouseenter',()=>{cur.style.width='18px';cur.style.height='18px';curR.style.width='48px';curR.style.height='48px';curR.style.opacity='1'});
+  el.addEventListener('mouseleave',()=>{cur.style.width='10px';cur.style.height='10px';curR.style.width='34px';curR.style.height='34px';curR.style.opacity='.5'});
+});
+
+// ── LOADER ──────────────────────────────────────────────
+const bar=document.getElementById('ld-bar');
+let p=0;
+const iv=setInterval(()=>{
+  p+=Math.random()*8+2;
+  if(p>=100){p=100;clearInterval(iv);
+    setTimeout(()=>{document.getElementById('loader').classList.add('out')},400);
+  }
+  bar.style.width=p+'%';
+},60);
+
+// ── CANVAS EMBER PARTICLES ───────────────────────────────
+const canvas=document.getElementById('c'),ctx=canvas.getContext('2d');
+function resize(){canvas.width=window.innerWidth;canvas.height=window.innerHeight}
+resize();window.addEventListener('resize',resize);
+class Ember{
+  constructor(){this.reset(true)}
+  reset(init=false){
+    this.x=Math.random()*canvas.width;
+    this.y=init?Math.random()*canvas.height:canvas.height+8;
+    this.r=Math.random()*2.2+.4;
+    this.vx=(Math.random()-.5)*.5;
+    this.vy=-(Math.random()*1.1+.3);
+    this.op=Math.random()*.65+.15;
+    this.hue=Math.random()*35+10;
+  }
+  tick(){
+    this.x+=this.vx+Math.sin(Date.now()*.001+this.y*.008)*.25;
+    this.y+=this.vy;
+    this.op-=.0018;
+    if(this.op<=0||this.y<-10)this.reset();
+  }
+  draw(){
+    ctx.globalAlpha=this.op;
+    ctx.beginPath();ctx.arc(this.x,this.y,this.r,0,Math.PI*2);
+    ctx.fillStyle=`hsl(${this.hue},92%,62%)`;ctx.fill();
+  }
+}
+const embers=Array.from({length:140},()=>new Ember());
+function loop(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  embers.forEach(e=>{e.tick();e.draw()});
+  ctx.globalAlpha=1;requestAnimationFrame(loop);
+}loop();
+
+// ── SCROLL ANIMATIONS ────────────────────────────────────
+const obs=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)e.target.classList.add('vis')}),{threshold:.12});
+document.querySelectorAll('.fi').forEach(el=>obs.observe(el));
+
+// ── PARTNER TABS ─────────────────────────────────────────
+function showPartnerTab(id){
+  document.querySelectorAll('.ptab').forEach((t,i)=>t.classList.toggle('active',['creator','business','promoter'][i]===id));
+  document.querySelectorAll('.partner-view').forEach(v=>v.classList.toggle('active',v.id==='ptab-'+id));
+}
+
+// ── LIVE COUNTERS ─────────────────────────────────────────
+function jitter(id,base,delta){
+  const el=document.getElementById(id);
+  if(!el)return;
+  setInterval(()=>{
+    const v=base+Math.floor(Math.random()*delta);
+    el.textContent=v.toLocaleString();
+  },4500);
+}
+jitter('h-members',2847,8);
+
+// Founding counter countdown effect
+setInterval(()=>{
+  const el=document.getElementById('founding-counter');
+  if(el){const v=parseInt(el.textContent);if(v>35)el.textContent=v-(Math.random()>.97?1:0)}
+},9000);
+
+// ── NAV SCROLL ────────────────────────────────────────────
+window.addEventListener('scroll',()=>{
+  document.getElementById('nav') && document.getElementById('nav').classList.toggle('scrolled',window.scrollY>60);
+});
+</script>
+<script src="shared.js"></script>
+<script src="tour.js"></script>
+</body>
+</html>

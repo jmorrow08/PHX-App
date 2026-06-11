@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>PHX App — Member Dashboard</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#F97316">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+body{background:#07070F;color:#F1F1F8;font-family:'Inter',-apple-system,sans-serif;min-height:100vh;overflow-x:hidden}
+:root{
+  --bg:#07070F;--bg2:#0D0D1A;--bg3:#131325;--bg4:#1C1C30;
+  --orange:#F97316;--orange-l:#FB923C;--orange-d:#EA580C;
+  --gold:#EAB308;--purple:#7C3AED;--purple-l:#A78BFA;
+  --teal:#14B8A6;--green:#22C55E;--blue:#3B82F6;--red:#EF4444;
+  --white:#F1F1F8;--muted:#6B7280;--border:rgba(249,115,22,.14);
+}
+
+/* LAYOUT */
+.app-shell{display:grid;grid-template-columns:240px 1fr;min-height:100vh}
+
+/* SIDEBAR */
+.sidebar{background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto}
+.sb-top{padding:1.2rem 1.2rem .8rem;border-bottom:1px solid var(--border)}
+.sb-logo{font-size:1.8rem;font-weight:900;letter-spacing:-.04em;background:linear-gradient(135deg,#F97316,#EAB308);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.sb-tagline{font-size:.7rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-top:.1rem}
+
+.pass-chip{margin:.8rem 1rem;background:linear-gradient(135deg,var(--orange-d),var(--orange));border-radius:12px;padding:1rem;position:relative;overflow:hidden}
+.pass-chip::before{content:'';position:absolute;top:-20px;right:-20px;width:80px;height:80px;border-radius:50%;background:rgba(255,255,255,.08)}
+.pass-chip-tier{font-size:.7rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.7);margin-bottom:.3rem}
+.pass-chip-name{font-size:1.1rem;font-weight:800;color:#fff;margin-bottom:.2rem}
+.pass-chip-sub{font-size:.72rem;color:rgba(255,255,255,.7)}
+
+.sb-nav{flex:1;padding:.6rem .6rem}
+.sb-section{font-size:.68rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding:.4rem .6rem;margin-top:1rem;margin-bottom:.2rem}
+.nav-item{display:flex;align-items:center;gap:.75rem;padding:.65rem .75rem;border-radius:10px;cursor:pointer;transition:all .18s;font-size:.88rem;font-weight:500;color:var(--muted);border:none;background:transparent;width:100%;text-align:left}
+.nav-item:hover{background:rgba(249,115,22,.08);color:var(--white)}
+.nav-item.active{background:rgba(249,115,22,.15);color:var(--orange);font-weight:600}
+.nav-item .icon{width:20px;text-align:center;flex-shrink:0}
+.nav-badge{margin-left:auto;background:var(--orange);color:#fff;font-size:.65rem;font-weight:700;padding:.15rem .5rem;border-radius:100px;min-width:20px;text-align:center}
+
+.sb-bottom{padding:1rem;border-top:1px solid var(--border)}
+.profile-row{display:flex;align-items:center;gap:.75rem}
+.profile-ava{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,var(--orange),var(--purple));display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.95rem;flex-shrink:0}
+.profile-name{font-size:.88rem;font-weight:600}
+.profile-tier{font-size:.72rem;color:var(--orange)}
+
+/* MAIN */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:.85rem 1.8rem;border-bottom:1px solid var(--border);background:rgba(13,13,26,.8);backdrop-filter:blur(12px);position:sticky;top:0;z-index:100}
+.topbar-title{font-size:1.05rem;font-weight:700}
+.topbar-right{display:flex;align-items:center;gap:.75rem}
+.tb-btn{padding:.45rem .9rem;border-radius:8px;font-size:.82rem;font-weight:600;cursor:pointer;border:1.5px solid var(--border);color:var(--white);background:transparent;transition:all .18s}
+.tb-btn:hover{border-color:var(--orange);color:var(--orange)}
+.tb-btn.primary{background:var(--orange);border-color:var(--orange);color:#fff}
+.notif-dot{width:8px;height:8px;border-radius:50%;background:var(--orange);position:absolute;top:4px;right:4px}
+
+/* VIEWS */
+.content{padding:1.6rem 1.8rem;overflow-y:auto;flex:1}
+.view{display:none}
+.view.active{display:block}
+
+/* CARDS */
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:1.5rem}
+.kpi{background:var(--bg3);border:1px solid var(--border);border-radius:14px;padding:1.2rem}
+.kpi-val{font-size:1.8rem;font-weight:800;line-height:1;margin-bottom:.3rem}
+.kpi-label{font-size:.78rem;color:var(--muted)}
+.kpi-change{font-size:.75rem;margin-top:.3rem}
+.up{color:var(--green)}.dn{color:var(--red)}
+
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;margin-bottom:1.2rem}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem}
+.card{background:var(--bg3);border:1px solid var(--border);border-radius:16px;padding:1.4rem}
+.card-title{font-size:.82rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:1rem}
+
+/* FEED */
+.feed-post{background:var(--bg3);border:1px solid var(--border);border-radius:14px;padding:1.2rem;margin-bottom:.8rem;transition:border-color .2s}
+.feed-post:hover{border-color:rgba(249,115,22,.3)}
+.fp-header{display:flex;align-items:center;gap:.75rem;margin-bottom:.8rem}
+.fp-ava{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1rem;font-weight:700;flex-shrink:0}
+.fp-meta h4{font-size:.9rem;font-weight:700}
+.fp-meta span{font-size:.75rem;color:var(--muted)}
+.fp-body{font-size:.88rem;line-height:1.6;color:var(--white);margin-bottom:.8rem}
+.fp-body .hl{color:var(--orange);font-weight:600}
+.fp-actions{display:flex;gap:1rem}
+.fp-act{font-size:.8rem;color:var(--muted);cursor:pointer;transition:color .18s;background:none;border:none;display:flex;align-items:center;gap:.35rem}
+.fp-act:hover{color:var(--orange)}
+
+/* EVENTS */
+.event-row{display:grid;grid-template-columns:70px 1fr auto;gap:1rem;align-items:center;background:var(--bg3);border:1px solid var(--border);border-radius:14px;padding:1rem 1.2rem;margin-bottom:.75rem;transition:border-color .2s}
+.event-row:hover{border-color:rgba(249,115,22,.3)}
+.event-date{text-align:center}
+.event-month{font-size:.7rem;font-weight:700;text-transform:uppercase;color:var(--orange)}
+.event-day{font-size:2rem;font-weight:900;line-height:1}
+.event-name{font-size:.98rem;font-weight:700;margin-bottom:.25rem}
+.event-venue{font-size:.82rem;color:var(--muted)}
+.event-tags{display:flex;gap:.4rem;margin-top:.4rem;flex-wrap:wrap}
+.event-tag{font-size:.7rem;padding:.2rem .55rem;border-radius:100px;border:1px solid var(--border);color:var(--muted)}
+.event-tag.featured{border-color:rgba(249,115,22,.3);color:var(--orange);background:rgba(249,115,22,.08)}
+
+/* EATS */
+.eats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1rem}
+.eat-card{background:var(--bg3);border:1px solid var(--border);border-radius:16px;overflow:hidden;transition:all .2s}
+.eat-card:hover{transform:translateY(-3px);border-color:rgba(249,115,22,.35)}
+.eat-img{height:120px;background:linear-gradient(135deg,var(--bg4),var(--bg3));display:flex;align-items:center;justify-content:center;font-size:3rem;position:relative}
+.eat-perk{position:absolute;bottom:.5rem;right:.5rem;background:var(--orange);color:#fff;font-size:.68rem;font-weight:700;padding:.2rem .55rem;border-radius:100px}
+.eat-body{padding:1rem}
+.eat-name{font-size:.95rem;font-weight:700;margin-bottom:.25rem}
+.eat-type{font-size:.78rem;color:var(--muted);margin-bottom:.5rem}
+.eat-stars{font-size:.78rem;color:var(--gold)}
+
+/* MUSIC */
+.music-player{background:linear-gradient(135deg,rgba(249,115,22,.12),var(--bg3));border:1px solid rgba(249,115,22,.3);border-radius:18px;padding:1.5rem;margin-bottom:1.2rem}
+.np-label{font-size:.72rem;font-weight:700;letter-spacing:.12em;color:var(--orange);text-transform:uppercase;margin-bottom:.6rem}
+.np-info{display:flex;align-items:center;gap:1rem;margin-bottom:1rem}
+.np-art{width:56px;height:56px;border-radius:10px;background:linear-gradient(135deg,var(--orange-d),var(--purple));display:flex;align-items:center;justify-content:center;font-size:1.6rem;flex-shrink:0}
+.np-title{font-size:1.05rem;font-weight:700}
+.np-artist{font-size:.82rem;color:var(--muted)}
+.progress-wrap{height:3px;background:rgba(255,255,255,.1);border-radius:3px;margin-bottom:.75rem;cursor:pointer;position:relative}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--orange),var(--gold));border-radius:3px;width:35%;transition:width .3s}
+.np-controls{display:flex;align-items:center;justify-content:center;gap:1.4rem}
+.ctrl-btn{background:none;border:none;color:var(--white);cursor:pointer;font-size:1.2rem;opacity:.7;transition:opacity .18s;padding:.3rem}
+.ctrl-btn:hover{opacity:1}
+.ctrl-btn.play{width:46px;height:46px;border-radius:50%;background:var(--orange);color:#fff;font-size:1.3rem;opacity:1;display:flex;align-items:center;justify-content:center}
+
+.track-list{display:flex;flex-direction:column;gap:.5rem}
+.track-row{display:flex;align-items:center;gap:.9rem;padding:.7rem .9rem;border-radius:10px;transition:background .18s;cursor:pointer}
+.track-row:hover,.track-row.playing{background:rgba(249,115,22,.1)}
+.track-num{font-size:.82rem;color:var(--muted);width:20px;text-align:center}
+.track-art{width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg,var(--orange-d),var(--purple));display:flex;align-items:center;justify-content:center;font-size:.9rem;flex-shrink:0}
+.track-info{flex:1}
+.track-title{font-size:.88rem;font-weight:600}
+.track-feat{font-size:.75rem;color:var(--muted)}
+.track-time{font-size:.78rem;color:var(--muted)}
+.track-exclusive{font-size:.65rem;background:rgba(249,115,22,.15);color:var(--orange);padding:.15rem .5rem;border-radius:100px;border:1px solid rgba(249,115,22,.25)}
+
+/* PODCASTS */
+.pod-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+.pod-card{background:var(--bg3);border:1px solid var(--border);border-radius:14px;padding:1.1rem;display:flex;gap:.9rem;align-items:flex-start;cursor:pointer;transition:border-color .18s}
+.pod-card:hover{border-color:rgba(249,115,22,.35)}
+.pod-art{width:56px;height:56px;border-radius:10px;background:linear-gradient(135deg,var(--blue),var(--purple));display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0}
+.pod-title{font-size:.9rem;font-weight:700;margin-bottom:.25rem}
+.pod-host{font-size:.78rem;color:var(--muted);margin-bottom:.4rem}
+.pod-ep{font-size:.75rem;color:var(--orange)}
+
+/* DROPS */
+.drop-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1rem}
+.drop-card{background:var(--bg3);border:1px solid var(--border);border-radius:16px;overflow:hidden;transition:all .2s}
+.drop-card:hover{transform:translateY(-3px);border-color:rgba(124,58,237,.4)}
+.drop-img{height:140px;background:linear-gradient(135deg,var(--bg4),rgba(124,58,237,.2));display:flex;align-items:center;justify-content:center;font-size:3.5rem}
+.drop-timer{position:relative;background:rgba(124,58,237,.15);border-top:1px solid rgba(124,58,237,.2);padding:.5rem .9rem;font-size:.75rem;color:var(--purple-l);font-weight:600;text-align:center}
+.drop-body{padding:.9rem 1rem}
+.drop-brand{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted)}
+.drop-name{font-size:.95rem;font-weight:700;margin:.2rem 0 .5rem}
+.drop-price{font-size:1rem;font-weight:700;color:var(--orange)}
+
+/* CUTS */
+.cuts-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1rem}
+.cut-card{background:var(--bg3);border:1px solid var(--border);border-radius:14px;padding:1.2rem;transition:all .18s;cursor:pointer}
+.cut-card:hover{border-color:rgba(249,115,22,.35)}
+.cut-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:.8rem}
+.cut-name{font-size:.95rem;font-weight:700}
+.cut-rating{font-size:.78rem;color:var(--gold)}
+.cut-location{font-size:.8rem;color:var(--muted);margin-bottom:.6rem}
+.cut-perk{font-size:.75rem;background:rgba(249,115,22,.1);color:var(--orange);padding:.3rem .7rem;border-radius:8px;display:inline-block;border:1px solid rgba(249,115,22,.2);margin-bottom:.8rem}
+.cut-slots{font-size:.78rem;color:var(--muted)}
+.cut-slots span{color:var(--green);font-weight:600}
+
+/* MY PASS */
+.my-pass-card{background:linear-gradient(135deg,#2D1810,#1A0F30,#0D1A30);border:1px solid rgba(249,115,22,.4);border-radius:20px;padding:2rem;position:relative;overflow:hidden;margin-bottom:1.5rem}
+.my-pass-card::before{content:'PHX';position:absolute;right:-1rem;top:50%;transform:translateY(-50%);font-size:7rem;font-weight:900;color:rgba(255,255,255,.04);letter-spacing:-.04em}
+.pass-logo{font-size:2.2rem;font-weight:900;background:linear-gradient(135deg,#F97316,#EAB308);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:1.2rem}
+.pass-holder{font-size:1.2rem;font-weight:700;margin-bottom:.2rem}
+.pass-tier-label{font-size:.78rem;color:var(--orange);font-weight:600;text-transform:uppercase;letter-spacing:.1em;margin-bottom:1.2rem}
+.pass-since{font-size:.78rem;color:var(--muted);margin-bottom:1.5rem}
+.pass-wallet-btns{display:flex;gap:.75rem}
+.wallet-btn{display:flex;align-items:center;gap:.6rem;padding:.55rem 1.2rem;border-radius:9px;font-size:.85rem;font-weight:600;cursor:pointer;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.08);color:var(--white);transition:all .18s}
+.wallet-btn:hover{background:rgba(255,255,255,.14)}
+
+.perks-list{display:flex;flex-direction:column;gap:.7rem}
+.perk-row{display:flex;align-items:center;gap:.9rem;background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:.9rem 1.1rem}
+.perk-icon{font-size:1.3rem;flex-shrink:0}
+.perk-biz{font-size:.9rem;font-weight:600}
+.perk-offer{font-size:.8rem;color:var(--orange)}
+.perk-status{margin-left:auto;font-size:.72rem;padding:.2rem .65rem;border-radius:100px}
+.perk-status.avail{background:rgba(34,197,94,.12);color:var(--green);border:1px solid rgba(34,197,94,.25)}
+.perk-status.used{background:rgba(107,114,128,.12);color:var(--muted);border:1px solid var(--border)}
+
+/* SECTION HEADERS */
+.sh{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem}
+.sh h3{font-size:1rem;font-weight:700}
+.sh a{font-size:.8rem;color:var(--orange);text-decoration:none;opacity:.8;transition:opacity .18s}
+.sh a:hover{opacity:1}
+
+/* MINI PLAYER */
+.mini-player{position:fixed;bottom:0;left:240px;right:0;background:rgba(13,13,26,.95);backdrop-filter:blur(16px);border-top:1px solid var(--border);padding:.7rem 1.8rem;display:flex;align-items:center;gap:1.5rem;z-index:200}
+.mp-art{width:40px;height:40px;border-radius:8px;background:linear-gradient(135deg,var(--orange-d),var(--purple));display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:1rem}
+.mp-info{flex:1;min-width:0}
+.mp-title{font-size:.85rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mp-artist{font-size:.75rem;color:var(--muted)}
+.mp-controls{display:flex;align-items:center;gap:.9rem}
+.mp-btn{background:none;border:none;color:var(--white);cursor:pointer;font-size:1rem;opacity:.7;transition:opacity .18s}
+.mp-btn:hover{opacity:1}
+.mp-btn.play{width:36px;height:36px;border-radius:50%;background:var(--orange);color:#fff;opacity:1;display:flex;align-items:center;justify-content:center;font-size:.9rem}
+.mp-bar{flex:1;max-width:200px;height:3px;background:rgba(255,255,255,.1);border-radius:3px;cursor:pointer}
+.mp-fill{width:35%;height:100%;background:var(--orange);border-radius:3px}
+.mp-time{font-size:.72rem;color:var(--muted);white-space:nowrap}
+
+/* BADGES */
+.badge{display:inline-block;font-size:.7rem;font-weight:700;padding:.2rem .6rem;border-radius:100px}
+.badge-orange{background:rgba(249,115,22,.15);color:var(--orange);border:1px solid rgba(249,115,22,.3)}
+.badge-green{background:rgba(34,197,94,.12);color:var(--green);border:1px solid rgba(34,197,94,.25)}
+.badge-purple{background:rgba(124,58,237,.12);color:var(--purple-l);border:1px solid rgba(124,58,237,.25)}
+.badge-gold{background:rgba(234,179,8,.12);color:var(--gold);border:1px solid rgba(234,179,8,.25)}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:9999;display:none;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:2rem;max-width:500px;width:90%;max-height:80vh;overflow-y:auto}
+.modal-close{position:absolute;top:1rem;right:1rem;background:none;border:none;color:var(--muted);font-size:1.3rem;cursor:pointer}
+</style>
+  <link rel="stylesheet" href="shared.css">
+</head>
+<body>
+
+<div class="app-shell">
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sb-top">
+    <div class="sb-logo">PHX</div>
+    <div class="sb-tagline">602 Culture. One App.</div>
+  </div>
+  <div class="pass-chip">
+    <div class="pass-chip-tier">PHX Pass · Native</div>
+    <div class="pass-chip-name">Alex Rivera</div>
+    <div class="pass-chip-sub">Member since April 2026</div>
+  </div>
+  <nav class="sb-nav">
+    <div class="sb-section">Explore</div>
+    <button class="nav-item active" onclick="showView('home')"><span class="icon">🏙️</span>City Feed</button>
+    <button class="nav-item" onclick="showView('discover')"><span class="icon">🔍</span>Discover</button>
+    <button class="nav-item" onclick="showView('events')"><span class="icon">🎟️</span>Events<span class="nav-badge">4</span></button>
+    <div class="sb-section">Verticals</div>
+    <button class="nav-item" onclick="showView('eats')"><span class="icon">🍽️</span>PHX Eats</button>
+    <button class="nav-item" onclick="showView('music')"><span class="icon">🎵</span>PHX Music</button>
+    <button class="nav-item" onclick="showView('podcasts')"><span class="icon">🎙️</span>PHX Audio</button>
+    <button class="nav-item" onclick="showView('drops')"><span class="icon">👕</span>PHX Drops</button>
+    <button class="nav-item" onclick="showView('cuts')"><span class="icon">✂️</span>PHX Cuts</button>
+    <div class="sb-section">My PHX</div>
+    <button class="nav-item" onclick="showView('mypass')"><span class="icon">💳</span>My Pass</button>
+    <button class="nav-item" onclick="showView('profile')"><span class="icon">👤</span>Profile</button>
+  </nav>
+  <div class="sb-bottom">
+    <div class="profile-row">
+      <div class="profile-ava">A</div>
+      <div>
+        <div class="profile-name">Alex Rivera</div>
+        <div class="profile-tier">PHX Native Member</div>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-title" id="page-title">City Feed</div>
+    <div class="topbar-right">
+      <button class="tb-btn">🔔 <span style="position:relative"><span class="notif-dot"></span></span></button>
+      <button class="tb-btn primary" onclick="showView('mypass')">💳 Native Pass</button>
+    </div>
+  </div>
+
+  <div class="content" style="padding-bottom:80px">
+
+    <!-- HOME / CITY FEED -->
+    <div class="view active" id="v-home">
+      <div class="kpi-row">
+        <div class="kpi"><div class="kpi-val" style="color:var(--orange)">4</div><div class="kpi-label">Events This Week</div><div class="kpi-change up">2 you might like</div></div>
+        <div class="kpi"><div class="kpi-val">12</div><div class="kpi-label">Partner Perks Available</div><div class="kpi-change up">3 near you</div></div>
+        <div class="kpi"><div class="kpi-val" style="color:var(--green)">$47</div><div class="kpi-label">Saved with PHX Pass</div><div class="kpi-change up">this month</div></div>
+        <div class="kpi"><div class="kpi-val">3</div><div class="kpi-label">New Drops This Week</div><div class="kpi-change" style="color:var(--purple-l)">1 exclusive</div></div>
+      </div>
+
+      <div class="grid-2">
+        <div>
+          <div class="sh"><h3>City Feed</h3><a href="#">See all</a></div>
+          <div class="feed-post">
+            <div class="fp-header">
+              <div class="fp-ava" style="background:linear-gradient(135deg,var(--orange-d),var(--orange))">M</div>
+              <div class="fp-meta"><h4>Murkemz 🎤 <span class="badge badge-orange" style="font-size:.65rem">Official</span></h4><span>2 hours ago</span></div>
+            </div>
+            <div class="fp-body"><span class="hl">PHX</span> just crossed 15K streams and it's only been out a few weeks. To the city — this one's for y'all. More to come. 🔥 <br><br>Founding partners — thank you for being on the app early. The real PHX insiders.</div>
+            <div class="fp-actions">
+              <button class="fp-act">❤️ 847</button>
+              <button class="fp-act">💬 124</button>
+              <button class="fp-act">🔁 Share</button>
+            </div>
+          </div>
+          <div class="feed-post">
+            <div class="fp-header">
+              <div class="fp-ava" style="background:linear-gradient(135deg,var(--teal),var(--blue))">B</div>
+              <div class="fp-meta"><h4>Bacanora 🍽️ <span class="badge badge-green" style="font-size:.65rem">PHX Local</span></h4><span>5 hours ago</span></div>
+            </div>
+            <div class="fp-body">James Beard Best Chef Southwest 2024. 📍 Downtown Phoenix. PHX Pass <span class="hl">Native members get a free appetizer</span> this week. Come celebrate with us. We are Phoenix.</div>
+            <div class="fp-actions">
+              <button class="fp-act">❤️ 412</button>
+              <button class="fp-act">💬 38</button>
+              <button class="fp-act">📍 Get Directions</button>
+            </div>
+          </div>
+          <div class="feed-post">
+            <div class="fp-header">
+              <div class="fp-ava" style="background:linear-gradient(135deg,var(--purple),var(--blue))">BB</div>
+              <div class="fp-meta"><h4>Bryce Breeze 📋 <span class="badge badge-orange" style="font-size:.65rem">Management</span></h4><span>Yesterday</span></div>
+            </div>
+            <div class="fp-body">PHX App founding partner spots are almost gone. 43 of 50 claimed. If your business wants to be part of this city's platform from the beginning — now is the time. Link in bio. 602 forever.</div>
+            <div class="fp-actions">
+              <button class="fp-act">❤️ 289</button>
+              <button class="fp-act">💬 67</button>
+              <button class="fp-act">🔗 Partner Info</button>
+            </div>
+          </div>
+          <div class="feed-post">
+            <div class="fp-header">
+              <div class="fp-ava" style="background:linear-gradient(135deg,#7C3AED,var(--orange))">M</div>
+              <div class="fp-meta"><h4>Manor PHX 👕 <span class="badge badge-purple" style="font-size:.65rem">PHX Premier</span></h4><span>2 days ago</span></div>
+            </div>
+            <div class="fp-body">New drop alert. 🚨 PHX Insider members get early access at 6PM. Everyone else waits til midnight. Sneakers + streetwear that actually represents the desert. Limited quantities. Don't sleep.</div>
+            <div class="fp-actions">
+              <button class="fp-act">❤️ 731</button>
+              <button class="fp-act">💬 95</button>
+              <button class="fp-act">👕 View Drop</button>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="sh"><h3>This Week in PHX</h3><a href="#" onclick="showView('events')">All Events</a></div>
+          <div class="event-row">
+            <div class="event-date"><div class="event-month">JUN</div><div class="event-day">12</div></div>
+            <div><div class="event-name">The Blunt Club Night</div><div class="event-venue">📍 Trill, 16th St · Hip-Hop</div><div class="event-tags"><span class="event-tag featured">PHX Pass Discount</span><span class="event-tag">18+</span></div></div>
+            <button class="tb-btn primary" style="font-size:.78rem;padding:.4rem .8rem">Tickets</button>
+          </div>
+          <div class="event-row">
+            <div class="event-date"><div class="event-month">JUN</div><div class="event-day">14</div></div>
+            <div><div class="event-name">Roosevelt Row First Friday</div><div class="event-venue">📍 Roosevelt Row · Art + Music</div><div class="event-tags"><span class="event-tag featured">Free for Insiders</span><span class="event-tag">All Ages</span></div></div>
+            <button class="tb-btn" style="font-size:.78rem;padding:.4rem .8rem">RSVP</button>
+          </div>
+          <div class="event-row">
+            <div class="event-date"><div class="event-month">JUN</div><div class="event-day">18</div></div>
+            <div><div class="event-name">Murkemz — PHX Release Showcase</div><div class="event-venue">📍 The Rebel Lounge · Hip-Hop</div><div class="event-tags"><span class="event-tag featured">Insider VIP Early Entry</span><span class="event-tag">21+</span></div></div>
+            <button class="tb-btn primary" style="font-size:.78rem;padding:.4rem .8rem">Get Tickets</button>
+          </div>
+          <br>
+          <div class="sh"><h3>Near You — PHX Eats</h3><a href="#" onclick="showView('eats')">All Eats</a></div>
+          <div style="display:flex;flex-direction:column;gap:.6rem">
+            <div class="eat-card" style="display:flex;align-items:center;gap:.9rem;padding:.9rem">
+              <div style="font-size:2rem">🌮</div>
+              <div style="flex:1"><div class="eat-name">Chilte</div><div class="eat-type">New-Wave Mexican · Downtown PHX</div><div class="eat-stars">★★★★★ <span style="color:var(--muted)">Food & Wine Best New Chef 2024</span></div></div>
+              <span class="badge badge-orange">15% off</span>
+            </div>
+            <div class="eat-card" style="display:flex;align-items:center;gap:.9rem;padding:.9rem">
+              <div style="font-size:2rem">🔥</div>
+              <div style="flex:1"><div class="eat-name">Bacanora</div><div class="eat-type">Sonoran Cuisine · Downtown PHX</div><div class="eat-stars">★★★★★ <span style="color:var(--muted)">James Beard Best Chef Southwest</span></div></div>
+              <span class="badge badge-green">Free app</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DISCOVER -->
+    <div class="view" id="v-discover">
+      <p style="color:var(--muted);margin-bottom:1.5rem;font-size:.9rem">Browse everything Phoenix has to offer. Tap any category to explore.</p>
+      <div class="grid-3" style="grid-template-columns:repeat(4,1fr)">
+        <div class="card" style="text-align:center;cursor:pointer;transition:all .2s" onclick="showView('music')" onmouseover="this.style.borderColor='rgba(249,115,22,.4)'" onmouseout="this.style.borderColor='var(--border)'">
+          <div style="font-size:2.5rem;margin-bottom:.6rem">🎵</div>
+          <div style="font-size:.95rem;font-weight:700">Music</div>
+          <div style="font-size:.78rem;color:var(--muted)">48 artists</div>
+        </div>
+        <div class="card" style="text-align:center;cursor:pointer;transition:all .2s" onclick="showView('events')" onmouseover="this.style.borderColor='rgba(234,179,8,.4)'" onmouseout="this.style.borderColor='var(--border)'">
+          <div style="font-size:2.5rem;margin-bottom:.6rem">🎟️</div>
+          <div style="font-size:.95rem;font-weight:700">Events</div>
+          <div style="font-size:.78rem;color:var(--muted)">12 this week</div>
+        </div>
+        <div class="card" style="text-align:center;cursor:pointer;transition:all .2s" onclick="showView('eats')" onmouseover="this.style.borderColor='rgba(20,184,166,.4)'" onmouseout="this.style.borderColor='var(--border)'">
+          <div style="font-size:2.5rem;margin-bottom:.6rem">🍽️</div>
+          <div style="font-size:.95rem;font-weight:700">PHX Eats</div>
+          <div style="font-size:.78rem;color:var(--muted)">64 restaurants</div>
+        </div>
+        <div class="card" style="text-align:center;cursor:pointer;transition:all .2s" onclick="showView('drops')" onmouseover="this.style.borderColor='rgba(124,58,237,.4)'" onmouseout="this.style.borderColor='var(--border)'">
+          <div style="font-size:2.5rem;margin-bottom:.6rem">👕</div>
+          <div style="font-size:.95rem;font-weight:700">PHX Drops</div>
+          <div style="font-size:.78rem;color:var(--muted)">3 live drops</div>
+        </div>
+        <div class="card" style="text-align:center;cursor:pointer;transition:all .2s" onclick="showView('podcasts')" onmouseover="this.style.borderColor='rgba(59,130,246,.4)'" onmouseout="this.style.borderColor='var(--border)'">
+          <div style="font-size:2.5rem;margin-bottom:.6rem">🎙️</div>
+          <div style="font-size:.95rem;font-weight:700">PHX Audio</div>
+          <div style="font-size:.78rem;color:var(--muted)">22 shows</div>
+        </div>
+        <div class="card" style="text-align:center;cursor:pointer;transition:all .2s" onclick="showView('cuts')" onmouseover="this.style.borderColor='rgba(249,115,22,.4)'" onmouseout="this.style.borderColor='var(--border)'">
+          <div style="font-size:2.5rem;margin-bottom:.6rem">✂️</div>
+          <div style="font-size:.95rem;font-weight:700">PHX Cuts</div>
+          <div style="font-size:.78rem;color:var(--muted)">38 shops</div>
+        </div>
+        <div class="card" style="text-align:center;cursor:pointer;transition:all .2s" onmouseover="this.style.borderColor='rgba(239,68,68,.4)'" onmouseout="this.style.borderColor='var(--border)'">
+          <div style="font-size:2.5rem;margin-bottom:.6rem">🎨</div>
+          <div style="font-size:.95rem;font-weight:700">PHX Canvas</div>
+          <div style="font-size:.78rem;color:var(--muted)">31 artists</div>
+        </div>
+        <div class="card" style="text-align:center;cursor:pointer;transition:all .2s" onmouseover="this.style.borderColor='rgba(34,197,94,.4)'" onmouseout="this.style.borderColor='var(--border)'">
+          <div style="font-size:2.5rem;margin-bottom:.6rem">🏀</div>
+          <div style="font-size:.95rem;font-weight:700">PHX Grid</div>
+          <div style="font-size:.78rem;color:var(--muted)">Sports + Fitness</div>
+        </div>
+      </div>
+      <br>
+      <div class="sh"><h3>🔥 Trending in Phoenix</h3></div>
+      <div style="display:flex;flex-wrap:wrap;gap:.6rem">
+        <span class="badge badge-orange" style="font-size:.82rem;padding:.4rem .9rem">PHX (Song) 🎵</span>
+        <span class="badge badge-green" style="font-size:.82rem;padding:.4rem .9rem">Bacanora 🌮</span>
+        <span class="badge badge-purple" style="font-size:.82rem;padding:.4rem .9rem">Manor PHX Drop 👕</span>
+        <span class="badge badge-gold" style="font-size:.82rem;padding:.4rem .9rem">Rebel Lounge Shows 🎤</span>
+        <span class="badge badge-orange" style="font-size:.82rem;padding:.4rem .9rem">Roosevelt Row First Friday 🎨</span>
+        <span class="badge badge-green" style="font-size:.82rem;padding:.4rem .9rem">Chilte · Food & Wine 🔥</span>
+        <span class="badge badge-purple" style="font-size:.82rem;padding:.4rem .9rem">PHX App Founding Partners 🤝</span>
+      </div>
+    </div>
+
+    <!-- EVENTS -->
+    <div class="view" id="v-events">
+      <div class="sh"><h3>Phoenix Events Calendar</h3><span class="badge badge-orange">4 PHX Pass perks this week</span></div>
+      <div id="events-list">
+        <div class="event-row">
+          <div class="event-date"><div class="event-month">JUN</div><div class="event-day">12</div></div>
+          <div><div class="event-name">The Blunt Club Hip-Hop Night</div><div class="event-venue">📍 Trill, 4828 N 16th St · Running 23+ years</div><div class="event-tags"><span class="event-tag featured">PHX Pass 20% Discount</span><span class="event-tag">Hip-Hop</span><span class="event-tag">18+</span></div></div>
+          <button class="tb-btn primary">Tickets $15</button>
+        </div>
+        <div class="event-row">
+          <div class="event-date"><div class="event-month">JUN</div><div class="event-day">14</div></div>
+          <div><div class="event-name">Roosevelt Row First Friday</div><div class="event-venue">📍 Roosevelt Row Arts District · Murals + Music</div><div class="event-tags"><span class="event-tag featured">Free for PHX Insider</span><span class="event-tag">Art</span><span class="event-tag">All Ages</span></div></div>
+          <button class="tb-btn">RSVP Free</button>
+        </div>
+        <div class="event-row">
+          <div class="event-date"><div class="event-month">JUN</div><div class="event-day">18</div></div>
+          <div><div class="event-name">Murkemz — PHX Release Showcase 🔥</div><div class="event-venue">📍 The Rebel Lounge · Billboard's Best Venue Under 500-Cap 2024</div><div class="event-tags"><span class="event-tag featured">Insider VIP Early Entry</span><span class="event-tag">Native Gets $5 Off</span><span class="event-tag">21+</span></div></div>
+          <button class="tb-btn primary">Tickets $25</button>
+        </div>
+        <div class="event-row">
+          <div class="event-date"><div class="event-month">JUN</div><div class="event-day">21</div></div>
+          <div><div class="event-name">AZ Hip Hop Festival Preview Night</div><div class="event-venue">📍 9th and Jackson · Local Artists + Networking</div><div class="event-tags"><span class="event-tag featured">PHX Pass Pre-Sale</span><span class="event-tag">Hip-Hop</span><span class="event-tag">All Ages</span></div></div>
+          <button class="tb-btn">Tickets $20</button>
+        </div>
+        <div class="event-row">
+          <div class="event-date"><div class="event-month">JUN</div><div class="event-day">25</div></div>
+          <div><div class="event-name">PHX App Founding Partner Mixer</div><div class="event-venue">📍 Location: TBA Downtown · Invite Only</div><div class="event-tags"><span class="event-tag featured">PHX Insider Access Only</span><span class="event-tag">Networking</span></div></div>
+          <button class="tb-btn primary">Request Invite</button>
+        </div>
+        <div class="event-row">
+          <div class="event-date"><div class="event-month">JUL</div><div class="event-day">4</div></div>
+          <div><div class="event-name">PHX Summer Pop-Up — Fashion + Music</div><div class="event-venue">📍 Venue TBA · Manor PHX · Onassis Krown · PHX Drops</div><div class="event-tags"><span class="event-tag featured">PHX Pass Early Entry</span><span class="event-tag">Fashion</span><span class="event-tag">All Ages</span></div></div>
+          <button class="tb-btn">Notify Me</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PHX EATS -->
+    <div class="view" id="v-eats">
+      <div class="sh"><h3>PHX Eats — Member Directory</h3><span class="badge badge-green">64 partners · Your perks active</span></div>
+      <div class="eats-grid">
+        <div class="eat-card">
+          <div class="eat-img">🔥<span class="eat-perk">Free App</span></div>
+          <div class="eat-body"><div class="eat-name">Bacanora</div><div class="eat-type">Sonoran · James Beard Best Chef Southwest 2024 · Downtown PHX</div><div class="eat-stars">★★★★★ Founding Partner</div></div>
+        </div>
+        <div class="eat-card">
+          <div class="eat-img">🌮<span class="eat-perk">15% Off</span></div>
+          <div class="eat-body"><div class="eat-name">Chilte</div><div class="eat-type">New-Wave Mexican · Food & Wine Best New Chef 2024 · Downtown PHX</div><div class="eat-stars">★★★★★ Founding Partner</div></div>
+        </div>
+        <div class="eat-card">
+          <div class="eat-img">🥐<span class="eat-perk">Free Drink</span></div>
+          <div class="eat-body"><div class="eat-name">Valentine</div><div class="eat-type">Brunch/Pastry · Eater Pastry Chef of the Year · Midtown</div><div class="eat-stars">★★★★½ PHX Premier</div></div>
+        </div>
+        <div class="eat-card">
+          <div class="eat-img">🍕<span class="eat-perk">10% Off</span></div>
+          <div class="eat-body"><div class="eat-name">Cibo Urban Pizzeria</div><div class="eat-type">Wood-Fired Pizza · Historic Downtown · Date Night</div><div class="eat-stars">★★★★ PHX Local</div></div>
+        </div>
+        <div class="eat-card">
+          <div class="eat-img">🌶️<span class="eat-perk">Free Chips</span></div>
+          <div class="eat-body"><div class="eat-name">Barrio Café</div><div class="eat-type">Upscale Mexican · James Beard Nominee · 16th St</div><div class="eat-stars">★★★★★ PHX Premier</div></div>
+        </div>
+        <div class="eat-card">
+          <div class="eat-img">🍜<span class="eat-perk">Free App</span></div>
+          <div class="eat-body"><div class="eat-name">Pho Bang</div><div class="eat-type">Vietnamese · Phoenix Metro Institution · South PHX</div><div class="eat-stars">★★★★ PHX Local</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MUSIC -->
+    <div class="view" id="v-music">
+      <div class="music-player">
+        <div class="np-label">▶ Now Playing — Murk Radio</div>
+        <div class="np-info">
+          <div class="np-art">🎵</div>
+          <div><div class="np-title">PHX <span class="badge badge-orange" style="font-size:.65rem">NEW</span></div><div class="np-artist">Murkemz · Recess EP · 2026</div></div>
+        </div>
+        <div class="progress-wrap"><div class="progress-fill" id="prog-fill"></div></div>
+        <div class="np-controls">
+          <button class="ctrl-btn">⏮</button>
+          <button class="ctrl-btn">⏪</button>
+          <button class="ctrl-btn play" id="play-btn" onclick="togglePlay()">▶</button>
+          <button class="ctrl-btn">⏩</button>
+          <button class="ctrl-btn">⏭</button>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div>
+          <div class="sh"><h3>Murkemz — Full Catalog</h3></div>
+          <div class="track-list">
+            <div class="track-row playing" onclick="playTrack(this,'PHX','Recess EP · 2026')">
+              <div class="track-num">▶</div>
+              <div class="track-art">🎵</div>
+              <div class="track-info"><div class="track-title">PHX</div><div class="track-feat">Recess EP · Prod. PA. Dre</div></div>
+              <span class="track-exclusive">EXCLUSIVE 48HR</span>
+              <div class="track-time">3:24</div>
+            </div>
+            <div class="track-row" onclick="playTrack(this,'Against All Odds','ft. Freeway · 2026')">
+              <div class="track-num">2</div>
+              <div class="track-art">🎵</div>
+              <div class="track-info"><div class="track-title">Against All Odds</div><div class="track-feat">ft. Freeway (Roc-A-Fella) · 2026</div></div>
+              <div class="track-time">3:47</div>
+            </div>
+            <div class="track-row" onclick="playTrack(this,'Hadouken RMX','ft. Chris Webby')">
+              <div class="track-num">3</div>
+              <div class="track-art">🎵</div>
+              <div class="track-info"><div class="track-title">Hadouken RMX</div><div class="track-feat">ft. Chris Webby · 541K streams</div></div>
+              <div class="track-time">4:12</div>
+            </div>
+            <div class="track-row" onclick="playTrack(this,'Survive','ft. Inspectah Deck')">
+              <div class="track-num">4</div>
+              <div class="track-art">🎵</div>
+              <div class="track-info"><div class="track-title">Survive</div><div class="track-feat">ft. Inspectah Deck (Wu-Tang) · 244K streams</div></div>
+              <div class="track-time">3:58</div>
+            </div>
+            <div class="track-row" onclick="playTrack(this,'The Ayatollah','Album · 2025')">
+              <div class="track-num">5</div>
+              <div class="track-art">🎵</div>
+              <div class="track-info"><div class="track-title">The Ayatollah</div><div class="track-feat">Flagship Album · 2025</div></div>
+              <div class="track-time">4:33</div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="sh"><h3>Local PHX Artists</h3></div>
+          <div style="display:flex;flex-direction:column;gap:.7rem">
+            <div class="card" style="display:flex;align-items:center;gap:1rem;padding:1rem">
+              <div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--orange-d),var(--purple));display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0">M</div>
+              <div style="flex:1"><div style="font-weight:700;font-size:.92rem">Murkemz</div><div style="font-size:.78rem;color:var(--muted)">27.2K listeners · PHX Hip-Hop</div></div>
+              <span class="badge badge-orange">Founder</span>
+            </div>
+            <div class="card" style="display:flex;align-items:center;gap:1rem;padding:1rem">
+              <div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--teal),var(--blue));display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0">F</div>
+              <div style="flex:1"><div style="font-weight:700;font-size:.92rem">Futuristic</div><div style="font-size:.78rem;color:var(--muted)">Phoenix Hip-Hop · PHX Creator Pro</div></div>
+              <button class="tb-btn" style="font-size:.75rem;padding:.35rem .75rem">Follow</button>
+            </div>
+            <div class="card" style="display:flex;align-items:center;gap:1rem;padding:1rem">
+              <div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--purple),var(--gold));display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0">R</div>
+              <div style="flex:1"><div style="font-weight:700;font-size:.92rem">Mega Ran</div><div style="font-size:.78rem;color:var(--muted)">Nerd-hop · Phoenix Legend · PHX Creator Pro</div></div>
+              <button class="tb-btn" style="font-size:.75rem;padding:.35rem .75rem">Follow</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PODCASTS -->
+    <div class="view" id="v-podcasts">
+      <div class="sh"><h3>PHX Audio Network</h3><span class="badge badge-green">22 shows · Ad-free for PHX Native</span></div>
+      <div class="pod-grid">
+        <div class="pod-card">
+          <div class="pod-art" style="background:linear-gradient(135deg,var(--orange-d),var(--orange))">🎤</div>
+          <div><div class="pod-title">Murk Report</div><div class="pod-host">Murkemz · Music + Culture</div><div class="pod-ep">Ep 12: The PHX Movement — 2.4K plays</div></div>
+        </div>
+        <div class="pod-card">
+          <div class="pod-art" style="background:linear-gradient(135deg,var(--teal),var(--blue))">🏀</div>
+          <div><div class="pod-title">602 Sports Talk</div><div class="pod-host">Phoenix Sports Network · Weekly</div><div class="pod-ep">Suns season recap + Valley predictions</div></div>
+        </div>
+        <div class="pod-card">
+          <div class="pod-art" style="background:linear-gradient(135deg,var(--purple),var(--purple-l))">🍽️</div>
+          <div><div class="pod-title">Desert Table</div><div class="pod-host">Chef Collective PHX · Food Culture</div><div class="pod-ep">James Beard winner Rene Andrade interview</div></div>
+        </div>
+        <div class="pod-card">
+          <div class="pod-art" style="background:linear-gradient(135deg,var(--gold),var(--orange))">✂️</div>
+          <div><div class="pod-title">The Shop Talk</div><div class="pod-host">PHX Barbershop Network · Culture</div><div class="pod-ep">Barbershop economics in 2026</div></div>
+        </div>
+        <div class="pod-card">
+          <div class="pod-art" style="background:linear-gradient(135deg,var(--red),var(--purple))">🎨</div>
+          <div><div class="pod-title">RoRo Sessions</div><div class="pod-host">Roosevelt Row Artists · Art + City</div><div class="pod-ep">Muralists shaping the PHX skyline</div></div>
+        </div>
+        <div class="pod-card">
+          <div class="pod-art" style="background:linear-gradient(135deg,var(--green),var(--teal))">💼</div>
+          <div><div class="pod-title">PHX Hustle</div><div class="pod-host">Local Entrepreneurs · Business</div><div class="pod-ep">From the block to the boardroom: 602 founders</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DROPS -->
+    <div class="view" id="v-drops">
+      <div class="sh"><h3>PHX Drops — Fashion & Streetwear</h3><span class="badge badge-purple">3 live drops</span></div>
+      <div class="drop-grid">
+        <div class="drop-card">
+          <div class="drop-img">👟</div>
+          <div class="drop-timer">⏰ Insider Early Access — 6:00 PM Tonight</div>
+          <div class="drop-body">
+            <div class="drop-brand">Manor PHX · Founding Partner</div>
+            <div class="drop-name">Desert Pack Vol. 3 — Limited Colorways</div>
+            <div class="drop-price">$185 <span style="color:var(--muted);font-size:.82rem;text-decoration:line-through">$220</span></div>
+            <div style="margin-top:.5rem;font-size:.78rem;color:var(--muted)">PHX Native: 15% discount applied at checkout</div>
+            <br><button class="tb-btn primary" style="width:100%">Set Drop Alert</button>
+          </div>
+        </div>
+        <div class="drop-card">
+          <div class="drop-img">👕</div>
+          <div class="drop-timer" style="color:var(--green)">✅ Live Now — 47 of 100 remaining</div>
+          <div class="drop-body">
+            <div class="drop-brand">Onassis Krown · PHX Local</div>
+            <div class="drop-name">"602 Forever" Heavyweight Tee — Desert Edition</div>
+            <div class="drop-price">$65</div>
+            <div style="margin-top:.5rem;font-size:.78rem;color:var(--muted)">PHX Native: 10% off → $58.50</div>
+            <br><button class="tb-btn primary" style="width:100%">Buy Now</button>
+          </div>
+        </div>
+        <div class="drop-card">
+          <div class="drop-img">🧢</div>
+          <div class="drop-timer" style="color:var(--muted)">Drops in 3 days — Notify Me</div>
+          <div class="drop-body">
+            <div class="drop-brand">Plug City Records × Manor PHX · Collab</div>
+            <div class="drop-name">PHX App Launch Cap — Murkemz Signed Edition</div>
+            <div class="drop-price">$95 <span style="font-size:.75rem;color:var(--orange)">Insider Only</span></div>
+            <div style="margin-top:.5rem;font-size:.78rem;color:var(--muted)">Limited to 50 units. PHX Insider first access.</div>
+            <br><button class="tb-btn" style="width:100%;border-color:rgba(249,115,22,.4);color:var(--orange)">Notify Me</button>
+          </div>
+        </div>
+        <div class="drop-card">
+          <div class="drop-img" style="background:linear-gradient(135deg,rgba(59,130,246,.1),var(--bg4))">👖</div>
+          <div class="drop-timer" style="color:var(--muted)">Coming Next Week</div>
+          <div class="drop-body">
+            <div class="drop-brand">Archive PHX · PHX Premier</div>
+            <div class="drop-name">Archive x Suns Collaboration — Limited Run</div>
+            <div class="drop-price">From $120</div>
+            <br><button class="tb-btn" style="width:100%">Notify Me</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CUTS -->
+    <div class="view" id="v-cuts">
+      <div class="sh"><h3>PHX Cuts — Barbershops</h3><span class="badge badge-orange">38 shops · Member discounts</span></div>
+      <div class="cuts-grid">
+        <div class="cut-card">
+          <div class="cut-header"><div class="cut-name">Cuts & Culture PHX</div><div class="cut-rating">★★★★★</div></div>
+          <div class="cut-location">📍 South Phoenix · Murkemz's go-to · Founding Partner</div>
+          <div class="cut-perk">💳 PHX Native: 20% off any cut</div>
+          <div class="cut-slots">Next available: <span>Today 2PM</span></div>
+          <br><button class="tb-btn primary" style="width:100%;font-size:.82rem">Book Now</button>
+        </div>
+        <div class="cut-card">
+          <div class="cut-header"><div class="cut-name">Desert Edge Barbershop</div><div class="cut-rating">★★★★½</div></div>
+          <div class="cut-location">📍 Downtown Phoenix · Roosevelt Row Adjacent</div>
+          <div class="cut-perk">💳 PHX Native: $5 off + free lineup</div>
+          <div class="cut-slots">Next available: <span>Tomorrow 10AM</span></div>
+          <br><button class="tb-btn primary" style="width:100%;font-size:.82rem">Book Now</button>
+        </div>
+        <div class="cut-card">
+          <div class="cut-header"><div class="cut-name">602 Fades</div><div class="cut-rating">★★★★★</div></div>
+          <div class="cut-location">📍 West Phoenix · Known for skin fades</div>
+          <div class="cut-perk">💳 PHX Native: 15% off</div>
+          <div class="cut-slots">Next available: <span>Today 4PM</span></div>
+          <br><button class="tb-btn primary" style="width:100%;font-size:.82rem">Book Now</button>
+        </div>
+        <div class="cut-card">
+          <div class="cut-header"><div class="cut-name">Uptown Cuts PHX</div><div class="cut-rating">★★★★</div></div>
+          <div class="cut-location">📍 North Phoenix · Camelback Mountain area</div>
+          <div class="cut-perk">💳 PHX Explorer: 10% off</div>
+          <div class="cut-slots">Next available: <span>Thursday 11AM</span></div>
+          <br><button class="tb-btn" style="width:100%;font-size:.82rem">Book Now</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MY PASS -->
+    <div class="view" id="v-mypass">
+      <div class="grid-2">
+        <div>
+          <div class="my-pass-card">
+            <div class="pass-logo">PHX</div>
+            <div class="pass-holder">Alex Rivera</div>
+            <div class="pass-tier-label">PHX Native — Member</div>
+            <div class="pass-since">Member since April 2026 · Pass #PHX-00847</div>
+            <div class="pass-wallet-btns">
+              <button class="wallet-btn">🍎 Add to Apple Wallet</button>
+              <button class="wallet-btn">🤖 Add to Google Wallet</button>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title">This Month's Savings</div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:1rem">
+              <div><div style="font-size:1.8rem;font-weight:800;color:var(--green)">$47.20</div><div style="font-size:.78rem;color:var(--muted)">Saved via PHX Pass perks</div></div>
+              <div><div style="font-size:1.8rem;font-weight:800;color:var(--orange)">9</div><div style="font-size:.78rem;color:var(--muted)">Perks redeemed</div></div>
+              <div><div style="font-size:1.8rem;font-weight:800;color:var(--blue)">3</div><div style="font-size:.78rem;color:var(--muted)">Events attended</div></div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="sh"><h3>Your Active Perks</h3><a href="#" onclick="showView('eats')">Browse All</a></div>
+          <div class="perks-list">
+            <div class="perk-row">
+              <div class="perk-icon">🔥</div>
+              <div><div class="perk-biz">Bacanora</div><div class="perk-offer">Free appetizer this week</div></div>
+              <span class="perk-status avail">Available</span>
+            </div>
+            <div class="perk-row">
+              <div class="perk-icon">✂️</div>
+              <div><div class="perk-biz">Cuts & Culture PHX</div><div class="perk-offer">20% off any service</div></div>
+              <span class="perk-status avail">Available</span>
+            </div>
+            <div class="perk-row">
+              <div class="perk-icon">👕</div>
+              <div><div class="perk-biz">Manor PHX</div><div class="perk-offer">15% off + early drop access</div></div>
+              <span class="perk-status avail">Available</span>
+            </div>
+            <div class="perk-row">
+              <div class="perk-icon">🌮</div>
+              <div><div class="perk-biz">Chilte</div><div class="perk-offer">15% off total bill</div></div>
+              <span class="perk-status used">Used Jun 8</span>
+            </div>
+            <div class="perk-row">
+              <div class="perk-icon">🎟️</div>
+              <div><div class="perk-biz">The Rebel Lounge</div><div class="perk-offer">$5 off door + skip line</div></div>
+              <span class="perk-status avail">Available</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PROFILE -->
+    <div class="view" id="v-profile">
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">My Profile</div>
+          <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1.5rem">
+            <div style="width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,var(--orange),var(--purple));display:flex;align-items:center;justify-content:center;font-size:1.8rem;font-weight:700">A</div>
+            <div><div style="font-size:1.1rem;font-weight:700">Alex Rivera</div><div style="font-size:.82rem;color:var(--orange)">PHX Native Member</div><div style="font-size:.78rem;color:var(--muted)">@alexrivera602</div></div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:.8rem;font-size:.88rem">
+            <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Member Since</span><span>April 2026</span></div>
+            <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Pass Level</span><span style="color:var(--orange)">PHX Native</span></div>
+            <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Monthly Billing</span><span>$15/mo</span></div>
+            <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Events Attended</span><span>7</span></div>
+            <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Total Saved</span><span style="color:var(--green)">$142.50</span></div>
+          </div>
+          <br>
+          <button class="tb-btn" style="width:100%;margin-bottom:.6rem">Edit Profile</button>
+          <button class="tb-btn primary" style="width:100%">Upgrade to PHX Insider — $29/mo</button>
+        </div>
+        <div class="card">
+          <div class="card-title">City Activity</div>
+          <canvas id="activity-chart" height="180"></canvas>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+</div><!-- /app-shell -->
+
+<!-- MINI PLAYER -->
+<div class="mini-player">
+  <div class="mp-art">🎵</div>
+  <div class="mp-info"><div class="mp-title" id="mp-title">PHX</div><div class="mp-artist" id="mp-artist">Murkemz · Recess EP</div></div>
+  <div class="mp-controls">
+    <button class="mp-btn">⏮</button>
+    <button class="mp-btn play" onclick="togglePlay()">▶</button>
+    <button class="mp-btn">⏭</button>
+  </div>
+  <div class="mp-bar"><div class="mp-fill" id="mp-fill"></div></div>
+  <div class="mp-time" id="mp-time">1:12 / 3:24</div>
+</div>
+
+<script>
+// VIEW SWITCHING
+const titles={home:'City Feed',discover:'Discover PHX',events:'Events',eats:'PHX Eats',music:'PHX Music',podcasts:'PHX Audio',drops:'PHX Drops',cuts:'PHX Cuts',mypass:'My PHX Pass',profile:'My Profile'};
+function showView(id){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('v-'+id).classList.add('active');
+  document.querySelector(`[onclick="showView('${id}')"]`)?.classList.add('active');
+  document.getElementById('page-title').textContent=titles[id]||id;
+}
+
+// PLAYER
+let playing=false,prog=35;
+function togglePlay(){
+  playing=!playing;
+  document.querySelectorAll('.ctrl-btn.play,.mp-btn.play').forEach(b=>b.textContent=playing?'⏸':'▶');
+}
+setInterval(()=>{if(playing){prog=(prog+.03)%100;document.getElementById('prog-fill')&&(document.getElementById('prog-fill').style.width=prog+'%');document.getElementById('mp-fill')&&(document.getElementById('mp-fill').style.width=prog+'%')}},300);
+
+function playTrack(el,title,feat){
+  document.querySelectorAll('.track-row').forEach(r=>r.classList.remove('playing'));
+  el.classList.add('playing');
+  el.querySelector('.track-num').textContent='▶';
+  document.getElementById('mp-title').textContent=title;
+  document.getElementById('mp-artist').textContent='Murkemz · '+feat;
+  document.getElementById('np-title') && (document.getElementById('np-title').querySelector ? document.querySelector('.np-title').innerHTML = title + ' <span class="badge badge-orange" style="font-size:.65rem">PLAYING</span>' : null);
+  playing=true;
+  document.querySelectorAll('.ctrl-btn.play,.mp-btn.play').forEach(b=>b.textContent='⏸');
+}
+
+// ACTIVITY CHART
+window.addEventListener('load',()=>{
+  const ctx=document.getElementById('activity-chart');
+  if(ctx&&window.Chart){
+    new Chart(ctx,{
+      type:'bar',
+      data:{
+        labels:['Jan','Feb','Mar','Apr','May','Jun'],
+        datasets:[
+          {label:'Events',data:[1,2,1,3,4,3],backgroundColor:'rgba(249,115,22,.7)',borderRadius:4},
+          {label:'Perks Used',data:[2,3,4,6,8,9],backgroundColor:'rgba(20,184,166,.5)',borderRadius:4},
+        ]
+      },
+      options:{responsive:true,plugins:{legend:{labels:{color:'#6B7280',font:{size:10}}}},scales:{x:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#6B7280'}},y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#6B7280'}}}}
+    });
+  }
+});
+</script>
+<script src="shared.js"></script>
+<script src="tour.js"></script>
+</body>
+</html>

@@ -1,0 +1,1006 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>PHX App — Partner Dashboard</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#F97316">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+body{background:#07070F;color:#F1F1F8;font-family:'Inter',-apple-system,sans-serif;min-height:100vh;overflow-x:hidden}
+:root{
+  --bg:#07070F;--bg2:#0D0D1A;--bg3:#131325;--bg4:#1C1C30;
+  --orange:#F97316;--orange-l:#FB923C;--orange-d:#EA580C;
+  --gold:#EAB308;--purple:#7C3AED;--purple-l:#A78BFA;
+  --teal:#14B8A6;--green:#22C55E;--blue:#3B82F6;--red:#EF4444;
+  --white:#F1F1F8;--muted:#6B7280;--border:rgba(249,115,22,.14);
+}
+
+/* LAYOUT */
+.app-shell{display:grid;grid-template-columns:260px 1fr;min-height:100vh}
+
+/* SIDEBAR */
+.sidebar{background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto}
+.sb-top{padding:1.2rem 1.2rem .8rem;border-bottom:1px solid var(--border)}
+.sb-logo{font-size:1.8rem;font-weight:900;letter-spacing:-.04em;background:linear-gradient(135deg,#F97316,#EAB308);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.sb-tagline{font-size:.7rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-top:.1rem}
+
+/* PARTNER TYPE TOGGLE */
+.type-toggle{margin:.8rem 1rem;display:grid;grid-template-columns:1fr 1fr;background:var(--bg3);border-radius:10px;padding:4px;gap:4px}
+.type-btn{padding:.55rem;border-radius:7px;font-size:.78rem;font-weight:700;cursor:pointer;border:none;background:transparent;color:var(--muted);transition:all .18s;text-align:center}
+.type-btn.active{background:var(--orange);color:#fff}
+
+/* PARTNER CHIP */
+.partner-chip{margin:.4rem 1rem .8rem;background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:.9rem 1rem}
+.pc-badge{font-size:.65rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--orange);margin-bottom:.4rem}
+.pc-name{font-size:1rem;font-weight:800;margin-bottom:.2rem}
+.pc-type{font-size:.75rem;color:var(--muted)}
+
+.sb-nav{flex:1;padding:.6rem}
+.sb-section{font-size:.68rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding:.4rem .6rem;margin-top:1rem;margin-bottom:.2rem}
+.nav-item{display:flex;align-items:center;gap:.75rem;padding:.65rem .75rem;border-radius:10px;cursor:pointer;transition:all .18s;font-size:.88rem;font-weight:500;color:var(--muted);border:none;background:transparent;width:100%;text-align:left}
+.nav-item:hover{background:rgba(249,115,22,.08);color:var(--white)}
+.nav-item.active{background:rgba(249,115,22,.15);color:var(--orange);font-weight:600}
+.nav-item .icon{width:20px;text-align:center;flex-shrink:0}
+
+.sb-bottom{padding:1rem;border-top:1px solid var(--border)}
+.sb-plan{background:rgba(249,115,22,.08);border:1px solid rgba(249,115,22,.25);border-radius:10px;padding:.8rem}
+.sb-plan-tier{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--orange)}
+.sb-plan-name{font-size:.88rem;font-weight:700;margin:.2rem 0}
+.sb-plan-sub{font-size:.72rem;color:var(--muted)}
+
+/* TOPBAR */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:.85rem 1.8rem;border-bottom:1px solid var(--border);background:rgba(13,13,26,.8);backdrop-filter:blur(12px);position:sticky;top:0;z-index:100}
+.topbar-left{display:flex;align-items:center;gap:1rem}
+.topbar-title{font-size:1.05rem;font-weight:700}
+.topbar-right{display:flex;align-items:center;gap:.75rem}
+.tb-btn{padding:.45rem .9rem;border-radius:8px;font-size:.82rem;font-weight:600;cursor:pointer;border:1.5px solid var(--border);color:var(--white);background:transparent;transition:all .18s}
+.tb-btn:hover{border-color:var(--orange);color:var(--orange)}
+.tb-btn.primary{background:var(--orange);border-color:var(--orange);color:#fff}
+
+/* CONTENT */
+.content{padding:1.6rem 1.8rem;overflow-y:auto;flex:1}
+.view{display:none}
+.view.active{display:block}
+
+/* CARDS */
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:1.5rem}
+.kpi{background:var(--bg3);border:1px solid var(--border);border-radius:14px;padding:1.2rem}
+.kpi-val{font-size:1.9rem;font-weight:800;line-height:1;margin-bottom:.3rem}
+.kpi-label{font-size:.78rem;color:var(--muted)}
+.kpi-change{font-size:.75rem;margin-top:.35rem}
+.up{color:var(--green)}.dn{color:var(--red)}
+
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;margin-bottom:1.2rem}
+.card{background:var(--bg3);border:1px solid var(--border);border-radius:16px;padding:1.4rem}
+.card-title{font-size:.82rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:1rem}
+.card-title.hl{color:var(--orange)}
+
+/* TABLE */
+.data-table{width:100%;border-collapse:collapse}
+.data-table th{font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);padding:.6rem .8rem;text-align:left;border-bottom:1px solid var(--border)}
+.data-table td{font-size:.85rem;padding:.75rem .8rem;border-bottom:1px solid rgba(249,115,22,.06);vertical-align:middle}
+.data-table tr:last-child td{border-bottom:none}
+.data-table tr:hover td{background:rgba(249,115,22,.04)}
+
+/* BADGES */
+.badge{display:inline-block;font-size:.7rem;font-weight:700;padding:.2rem .6rem;border-radius:100px}
+.badge-orange{background:rgba(249,115,22,.15);color:var(--orange);border:1px solid rgba(249,115,22,.3)}
+.badge-green{background:rgba(34,197,94,.12);color:var(--green);border:1px solid rgba(34,197,94,.25)}
+.badge-gold{background:rgba(234,179,8,.12);color:var(--gold);border:1px solid rgba(234,179,8,.25)}
+.badge-purple{background:rgba(124,58,237,.12);color:var(--purple-l);border:1px solid rgba(124,58,237,.25)}
+.badge-muted{background:rgba(107,114,128,.12);color:var(--muted);border:1px solid var(--border)}
+.badge-teal{background:rgba(20,184,166,.12);color:var(--teal);border:1px solid rgba(20,184,166,.25)}
+
+/* ROI HIGHLIGHT */
+.roi-bar{margin:1.5rem 0;padding:1.2rem 1.5rem;background:linear-gradient(135deg,rgba(249,115,22,.08),rgba(34,197,94,.06));border:1px solid rgba(249,115,22,.25);border-radius:14px;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap}
+.roi-stat{text-align:center}
+.roi-val{font-size:1.6rem;font-weight:800;color:var(--orange);line-height:1}
+.roi-label{font-size:.72rem;color:var(--muted);margin-top:.2rem}
+
+/* PERK CARD */
+.perk-mgr{background:var(--bg3);border:1px solid var(--border);border-radius:14px;padding:1.2rem;margin-bottom:.75rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap}
+.perk-info h4{font-size:.92rem;font-weight:700;margin-bottom:.2rem}
+.perk-info p{font-size:.8rem;color:var(--muted)}
+.perk-toggle{width:46px;height:26px;border-radius:13px;background:var(--green);position:relative;cursor:pointer;flex-shrink:0;transition:background .2s}
+.perk-toggle::after{content:'';position:absolute;width:20px;height:20px;border-radius:50%;background:#fff;top:3px;right:3px;transition:right .2s}
+
+/* FORM */
+.form-group{margin-bottom:1rem}
+.form-label{display:block;font-size:.82rem;font-weight:600;color:var(--muted);margin-bottom:.4rem}
+.form-input{width:100%;background:var(--bg4);border:1px solid var(--border);border-radius:9px;padding:.65rem .9rem;color:var(--white);font-size:.88rem;outline:none;transition:border-color .18s;font-family:inherit}
+.form-input:focus{border-color:var(--orange)}
+.form-textarea{min-height:90px;resize:vertical}
+.form-select{appearance:none;cursor:pointer}
+
+/* SECTION HEADERS */
+.sh{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem}
+.sh h3{font-size:1rem;font-weight:700}
+.sh a{font-size:.8rem;color:var(--orange);text-decoration:none;opacity:.8}
+.sh a:hover{opacity:1}
+
+/* FOUNDING BANNER */
+.founding-active{background:linear-gradient(135deg,rgba(249,115,22,.1),rgba(234,179,8,.06));border:1px solid rgba(249,115,22,.3);border-radius:14px;padding:1.2rem 1.5rem;margin-bottom:1.5rem;display:flex;align-items:center;gap:1rem}
+.fa-icon{font-size:2rem}
+.fa-text h4{font-size:.95rem;font-weight:700;color:var(--orange)}
+.fa-text p{font-size:.82rem;color:var(--muted);margin-top:.2rem}
+.fa-badge{margin-left:auto;background:rgba(249,115,22,.15);border:1px solid rgba(249,115,22,.3);border-radius:8px;padding:.5rem .9rem;text-align:center;flex-shrink:0}
+.fa-badge-tier{font-size:.65rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--orange)}
+.fa-badge-days{font-size:1.4rem;font-weight:800;color:var(--white);line-height:1}
+.fa-badge-label{font-size:.7rem;color:var(--muted)}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:9999;display:none;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:2rem;max-width:520px;width:90%;max-height:80vh;overflow-y:auto;position:relative}
+.modal-close{position:absolute;top:1rem;right:1rem;background:none;border:none;color:var(--muted);font-size:1.3rem;cursor:pointer;line-height:1}
+.modal-title{font-size:1.15rem;font-weight:800;margin-bottom:1.2rem;color:var(--orange)}
+</style>
+  <link rel="stylesheet" href="shared.css">
+</head>
+<body>
+
+<div class="app-shell">
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sb-top">
+    <div class="sb-logo">PHX</div>
+    <div class="sb-tagline">Partner Dashboard</div>
+  </div>
+
+  <!-- TYPE TOGGLE -->
+  <div class="type-toggle">
+    <button class="type-btn active" id="toggle-biz" onclick="setPartnerType('business')">🏪 Business</button>
+    <button class="type-btn" id="toggle-creator" onclick="setPartnerType('creator')">🎤 Creator</button>
+  </div>
+
+  <!-- PARTNER CHIP (business mode) -->
+  <div class="partner-chip" id="biz-chip">
+    <div class="pc-badge">⭐ Founding Partner · PHX Premier</div>
+    <div class="pc-name">Bacanora PHX</div>
+    <div class="pc-type">Sonoran Restaurant · Downtown Phoenix</div>
+  </div>
+  <div class="partner-chip" id="creator-chip" style="display:none">
+    <div class="pc-badge">🎤 PHX Creator Pro</div>
+    <div class="pc-name">Murkemz</div>
+    <div class="pc-type">Hip-Hop Artist · Plug City Records</div>
+  </div>
+
+  <!-- BUSINESS NAV -->
+  <nav class="sb-nav" id="biz-nav">
+    <div class="sb-section">Business</div>
+    <button class="nav-item active" onclick="showView('b-overview')"><span class="icon">📊</span>Overview</button>
+    <button class="nav-item" onclick="showView('b-profile')"><span class="icon">🏪</span>My Listing</button>
+    <button class="nav-item" onclick="showView('b-perks')"><span class="icon">💳</span>PHX Pass Perks</button>
+    <button class="nav-item" onclick="showView('b-events')"><span class="icon">🎟️</span>Events</button>
+    <button class="nav-item" onclick="showView('b-analytics')"><span class="icon">📈</span>Analytics</button>
+    <button class="nav-item" onclick="showView('b-messages')"><span class="icon">💬</span>Messages</button>
+    <button class="nav-item" onclick="showView('b-shop')"><span class="icon">🛍️</span>Shop</button>
+    <button class="nav-item" onclick="showView('b-billing')"><span class="icon">💰</span>Billing</button>
+  </nav>
+
+  <!-- CREATOR NAV -->
+  <nav class="sb-nav" id="creator-nav" style="display:none">
+    <div class="sb-section">Creator</div>
+    <button class="nav-item active" onclick="showView('c-overview')"><span class="icon">📊</span>Overview</button>
+    <button class="nav-item" onclick="showView('c-content')"><span class="icon">🎵</span>Content</button>
+    <button class="nav-item" onclick="showView('c-fans')"><span class="icon">👥</span>Fans</button>
+    <button class="nav-item" onclick="showView('c-events')"><span class="icon">🎟️</span>Events</button>
+    <button class="nav-item" onclick="showView('c-shop')"><span class="icon">🛍️</span>Shop</button>
+    <button class="nav-item" onclick="showView('c-analytics')"><span class="icon">📈</span>Analytics</button>
+    <button class="nav-item" onclick="showView('c-billing')"><span class="icon">💰</span>Revenue</button>
+  </nav>
+
+  <div class="sb-bottom">
+    <div class="sb-plan" id="biz-plan">
+      <div class="sb-plan-tier">⭐ Founding Partner</div>
+      <div class="sb-plan-name">PHX Premier Plan</div>
+      <div class="sb-plan-sub">82 days left in free period</div>
+    </div>
+    <div class="sb-plan" id="creator-plan" style="display:none;border-color:rgba(249,115,22,.25);background:rgba(249,115,22,.06)">
+      <div class="sb-plan-tier">🎤 Creator</div>
+      <div class="sb-plan-name">PHX Creator Pro</div>
+      <div class="sb-plan-sub">$29/mo · Active</div>
+    </div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-title" id="page-title">Business Overview</div>
+    </div>
+    <div class="topbar-right">
+      <button class="tb-btn" onclick="document.getElementById('push-modal').classList.add('open')">📲 Push Members</button>
+      <button class="tb-btn primary" onclick="showView('b-events');document.getElementById('page-title').textContent='Events'">+ Create Event</button>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- ════════ BUSINESS VIEWS ════════ -->
+
+    <!-- B-OVERVIEW -->
+    <div class="view active" id="v-b-overview">
+      <div class="founding-active">
+        <div class="fa-icon">⭐</div>
+        <div class="fa-text">
+          <h4>You're a PHX Founding Partner</h4>
+          <p>Your free period runs through September 9, 2026. You'll receive an analytics report 30 days before billing starts. The data will close the deal for you.</p>
+        </div>
+        <div class="fa-badge">
+          <div class="fa-badge-tier">Days Free</div>
+          <div class="fa-badge-days">82</div>
+          <div class="fa-badge-label">remaining</div>
+        </div>
+      </div>
+      <div class="kpi-row">
+        <div class="kpi"><div class="kpi-val" style="color:var(--orange)" id="k-views">1,847</div><div class="kpi-label">Listing Views This Month</div><div class="kpi-change up">↑ 23% vs last month</div></div>
+        <div class="kpi"><div class="kpi-val" style="color:var(--green)" id="k-visits">312</div><div class="kpi-label">PHX Pass Members Visited</div><div class="kpi-change up">↑ 41% vs last month</div></div>
+        <div class="kpi"><div class="kpi-val" style="color:var(--blue)" id="k-redeemed">89</div><div class="kpi-label">Perks Redeemed</div><div class="kpi-change up">$3,560 est. spend</div></div>
+        <div class="kpi"><div class="kpi-val" style="color:var(--purple-l)">4.9</div><div class="kpi-label">Average Rating</div><div class="kpi-change up">↑ 0.2 this month</div></div>
+      </div>
+
+      <div class="roi-bar">
+        <div class="roi-stat"><div class="roi-val">$3,560</div><div class="roi-label">Estimated PHX Pass Revenue</div></div>
+        <div class="roi-stat"><div class="roi-val" style="color:var(--green)">$0</div><div class="roi-label">Platform Cost This Month</div></div>
+        <div class="roi-stat"><div class="roi-val" style="color:var(--green)">∞</div><div class="roi-label">ROI This Month (Free Period)</div></div>
+        <div class="roi-stat"><div class="roi-val">89</div><div class="roi-label">Perks Redeemed</div></div>
+        <div class="roi-stat"><div class="roi-val">47</div><div class="roi-label">First-Time PHX Pass Customers</div></div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Member Traffic — 30 Days</div>
+          <canvas id="traffic-chart" height="200"></canvas>
+        </div>
+        <div class="card">
+          <div class="card-title hl">Your PHX Pass Perk Performance</div>
+          <div style="display:flex;flex-direction:column;gap:.8rem;margin-bottom:1rem">
+            <div>
+              <div style="display:flex;justify-content:space-between;font-size:.85rem;margin-bottom:.3rem"><span>Free Appetizer (Native Tier)</span><span style="color:var(--orange)">89 redeemed</span></div>
+              <div style="height:6px;background:rgba(255,255,255,.06);border-radius:3px"><div style="width:72%;height:100%;background:var(--orange);border-radius:3px"></div></div>
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;font-size:.85rem;margin-bottom:.3rem"><span>10% Drink Discount (Explorer)</span><span style="color:var(--teal)">34 redeemed</span></div>
+              <div style="height:6px;background:rgba(255,255,255,.06);border-radius:3px"><div style="width:35%;height:100%;background:var(--teal);border-radius:3px"></div></div>
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;font-size:.85rem;margin-bottom:.3rem"><span>VIP Table Reservation (Insider)</span><span style="color:var(--purple-l)">8 redeemed</span></div>
+              <div style="height:6px;background:rgba(255,255,255,.06);border-radius:3px"><div style="width:12%;height:100%;background:var(--purple-l);border-radius:3px"></div></div>
+            </div>
+          </div>
+          <div style="background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);border-radius:10px;padding:.9rem;font-size:.82rem;color:var(--green)">
+            💡 Members who redeem perks spend <strong>2.4x more</strong> than non-members on same visits. 47 of your 89 perk redeemers were first-time customers.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- B-PROFILE -->
+    <div class="view" id="v-b-profile">
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title hl">Business Listing</div>
+          <div class="form-group"><label class="form-label">Business Name</label><input class="form-input" value="Bacanora PHX"></div>
+          <div class="form-group"><label class="form-label">Category</label><select class="form-input form-select"><option>Restaurant — Sonoran/Mexican</option><option>Restaurant — American</option><option>Barbershop</option><option>Boutique/Fashion</option><option>Fitness/Gym</option><option>Event Venue</option></select></div>
+          <div class="form-group"><label class="form-label">Short Description</label><textarea class="form-input form-textarea">James Beard Award Best Chef Southwest 2024. Authentic Sonoran cuisine in the heart of Downtown Phoenix. Chef Rene Andrade.</textarea></div>
+          <div class="form-group"><label class="form-label">Address</label><input class="form-input" value="5 E Camelback Rd, Phoenix, AZ 85012"></div>
+          <div class="form-group"><label class="form-label">Phone</label><input class="form-input" value="(602) 555-0182"></div>
+          <div class="form-group"><label class="form-label">Website</label><input class="form-input" value="https://bacanora.com"></div>
+          <button class="tb-btn primary" style="width:100%">Save Listing</button>
+        </div>
+        <div>
+          <div class="card" style="margin-bottom:1rem">
+            <div class="card-title">Hours</div>
+            <div style="display:flex;flex-direction:column;gap:.5rem;font-size:.85rem">
+              <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Mon–Thu</span><span>5:00 PM – 10:00 PM</span></div>
+              <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Fri–Sat</span><span>5:00 PM – 11:00 PM</span></div>
+              <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Sunday</span><span style="color:var(--red)">Closed</span></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title">Listing Preview</div>
+            <div style="background:var(--bg4);border-radius:12px;padding:1rem">
+              <div style="font-size:1.1rem;font-weight:700;margin-bottom:.2rem">Bacanora PHX <span class="badge badge-orange" style="font-size:.65rem">⭐ Founding</span></div>
+              <div style="font-size:.8rem;color:var(--muted);margin-bottom:.4rem">Sonoran Cuisine · Downtown PHX</div>
+              <div style="font-size:.78rem;color:var(--gold)">★★★★★</div>
+              <div style="font-size:.75rem;color:var(--green);margin-top:.4rem;background:rgba(34,197,94,.08);border-radius:6px;padding:.3rem .6rem;display:inline-block">💳 PHX Native: Free Appetizer</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- B-PERKS -->
+    <div class="view" id="v-b-perks">
+      <div class="sh"><h3>PHX Pass Perk Manager</h3><button class="tb-btn" onclick="document.getElementById('perk-modal').classList.add('open')">+ Add Perk</button></div>
+      <p style="color:var(--muted);font-size:.85rem;margin-bottom:1.5rem">Perks are shown to PHX Pass members in your listing, the city feed, and the perks section. Each tier gets different offers.</p>
+      <div class="perk-mgr">
+        <div class="perk-info"><h4>Free Appetizer</h4><p>Available to: PHX Native + Insider · No min spend · 1 per visit</p></div>
+        <div style="display:flex;align-items:center;gap:.8rem"><span class="badge badge-green">Active</span><span style="font-size:.82rem;color:var(--muted)">89 redeemed</span><div class="perk-toggle"></div></div>
+      </div>
+      <div class="perk-mgr">
+        <div class="perk-info"><h4>10% Off Beverages</h4><p>Available to: PHX Explorer + · Min $30 bill · 1 per visit</p></div>
+        <div style="display:flex;align-items:center;gap:.8rem"><span class="badge badge-green">Active</span><span style="font-size:.82rem;color:var(--muted)">34 redeemed</span><div class="perk-toggle"></div></div>
+      </div>
+      <div class="perk-mgr">
+        <div class="perk-info"><h4>Priority Reservation (VIP Table)</h4><p>Available to: PHX Insider only · Must call ahead · Weekends only</p></div>
+        <div style="display:flex;align-items:center;gap:.8rem"><span class="badge badge-green">Active</span><span style="font-size:.82rem;color:var(--muted)">8 redeemed</span><div class="perk-toggle"></div></div>
+      </div>
+      <div class="perk-mgr" style="border-color:rgba(107,114,128,.2)">
+        <div class="perk-info"><h4>Free Dessert on Birthday</h4><p>Available to: All tiers · Birthday must be in member profile · 1 per year</p></div>
+        <div style="display:flex;align-items:center;gap:.8rem"><span class="badge badge-muted">Paused</span><span style="font-size:.82rem;color:var(--muted)">0 redeemed</span><div class="perk-toggle" style="background:var(--muted)"></div></div>
+      </div>
+      <br>
+      <div style="background:rgba(249,115,22,.06);border:1px solid rgba(249,115,22,.2);border-radius:12px;padding:1.2rem">
+        <div style="font-size:.88rem;font-weight:700;color:var(--orange);margin-bottom:.5rem">💡 Perk Strategy Tip</div>
+        <div style="font-size:.82rem;color:var(--muted);line-height:1.7">Businesses with 3+ active perks see <strong style="color:var(--white)">2.8x more PHX Pass member visits</strong> than those with 1 perk. Free appetizers have the highest redemption rate (72%). Aim to have one perk for each of the 3 membership tiers to maximize exposure across all member types.</div>
+      </div>
+    </div>
+
+    <!-- B-EVENTS -->
+    <div class="view" id="v-b-events">
+      <div class="sh"><h3>Events & Promotions</h3><button class="tb-btn primary" onclick="document.getElementById('event-modal').classList.add('open')">+ Create Event</button></div>
+      <table class="data-table" style="margin-bottom:1.5rem">
+        <thead><tr><th>Event</th><th>Date</th><th>Tickets Sold</th><th>Revenue</th><th>PHX Pass</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Sonoran Tasting Night</strong></td><td style="color:var(--muted)">Jun 20 2026</td><td>38 / 50</td><td style="color:var(--green)">$1,140</td><td><span class="badge badge-orange">Early Access</span></td><td><span class="badge badge-green">Live</span></td></tr>
+          <tr><td><strong>James Beard Celebration Dinner</strong></td><td style="color:var(--muted)">Jul 4 2026</td><td>12 / 40</td><td style="color:var(--muted)">$840</td><td><span class="badge badge-orange">Insider Only</span></td><td><span class="badge badge-gold">Upcoming</span></td></tr>
+          <tr><td><strong>Chef's Table — Murkemz Collab</strong></td><td style="color:var(--muted)">Jul 18 2026</td><td>0 / 12</td><td style="color:var(--muted)">$0</td><td><span class="badge badge-purple">Insider VIP</span></td><td><span class="badge badge-muted">Draft</span></td></tr>
+          <tr><td><strong>PHX App Launch Dinner</strong></td><td style="color:var(--muted)">Jun 25 2026</td><td>24 / 24</td><td style="color:var(--green)">$1,800</td><td><span class="badge badge-orange">Founding Partner</span></td><td><span class="badge badge-green">Sold Out</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- B-ANALYTICS -->
+    <div class="view" id="v-b-analytics">
+      <div class="kpi-row">
+        <div class="kpi"><div class="kpi-val" style="color:var(--orange)">1,847</div><div class="kpi-label">Listing Views</div><div class="kpi-change up">↑ 23%</div></div>
+        <div class="kpi"><div class="kpi-val">312</div><div class="kpi-label">Member Visits</div><div class="kpi-change up">↑ 41%</div></div>
+        <div class="kpi"><div class="kpi-val" style="color:var(--green)">89</div><div class="kpi-label">Perks Redeemed</div><div class="kpi-change up">+14 this week</div></div>
+        <div class="kpi"><div class="kpi-val" style="color:var(--purple-l)">47</div><div class="kpi-label">New Customers via PHX</div><div class="kpi-change up">+8 this week</div></div>
+      </div>
+      <div class="grid-2">
+        <div class="card"><div class="card-title">Member Traffic — 6 Months</div><canvas id="biz-traffic" height="200"></canvas></div>
+        <div class="card">
+          <div class="card-title">Member Demographics</div>
+          <canvas id="biz-demo" height="200"></canvas>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title hl">PHX Pass Tier Breakdown</div>
+        <table class="data-table">
+          <thead><tr><th>Pass Tier</th><th>Unique Visitors</th><th>Perks Used</th><th>Avg Spend</th><th>Est. Revenue</th></tr></thead>
+          <tbody>
+            <tr><td><span class="badge badge-muted">Explorer — $7</span></td><td>82</td><td>34</td><td>$38</td><td style="color:var(--muted)">$3,116</td></tr>
+            <tr><td><span class="badge badge-orange">Native — $15</span></td><td>189</td><td>89</td><td>$52</td><td style="color:var(--green)">$9,828</td></tr>
+            <tr><td><span class="badge badge-gold">Insider — $29</span></td><td>41</td><td>8</td><td>$91</td><td style="color:var(--green)">$3,731</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- B-MESSAGES -->
+    <div class="view" id="v-b-messages">
+      <div class="sh"><h3>Member Messages</h3></div>
+      <p style="color:var(--muted);font-size:.85rem;margin-bottom:1.5rem">Members who redeem perks can send you a message directly through the platform.</p>
+      <div style="display:flex;flex-direction:column;gap:.75rem">
+        <div class="card" style="display:flex;align-items:flex-start;gap:1rem">
+          <div style="width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,var(--orange-d),var(--purple));display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.9rem;flex-shrink:0">J</div>
+          <div style="flex:1"><div style="display:flex;justify-content:space-between"><strong>JMallory_602</strong><span style="font-size:.75rem;color:var(--muted)">2 hours ago</span></div><div style="font-size:.85rem;color:var(--muted);margin-top:.3rem">Came in last night with my PHX Native pass — your team was amazing about the free appetizer. Already made a second reservation for my birthday. Best discovery from PHX App so far.</div></div>
+        </div>
+        <div class="card" style="display:flex;align-items:flex-start;gap:1rem">
+          <div style="width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,var(--teal),var(--blue));display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.9rem;flex-shrink:0">S</div>
+          <div style="flex:1"><div style="display:flex;justify-content:space-between"><strong>SunCityFoodie</strong><span style="font-size:.75rem;color:var(--muted)">Yesterday</span></div><div style="font-size:.85rem;color:var(--muted);margin-top:.3rem">Chef Andrade is a legend. Can't believe I only found this place through the app. The perk is cool but honestly I'd come back full price every time. See you Saturday.</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- B-SHOP (COMMERCE LAYER) -->
+    <style>
+    .shop-type-pills{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1.2rem}
+    .shop-type-pill{padding:.4rem 1rem;border-radius:20px;border:1px solid rgba(249,115,22,.2);background:transparent;color:rgba(241,241,248,.5);font-size:.8rem;font-weight:600;cursor:pointer;transition:all .16s;font-family:inherit}
+    .shop-type-pill:hover{border-color:rgba(249,115,22,.4);color:#F97316}
+    .shop-type-pill.active{background:rgba(249,115,22,.15);border-color:#F97316;color:#F97316}
+    .shop-tab-bar{display:flex;gap:.2rem;border-bottom:1px solid rgba(255,255,255,.07);margin-bottom:1.25rem;padding-bottom:0}
+    .shop-tab{padding:.5rem 1rem;background:none;border:none;border-bottom:2px solid transparent;color:rgba(241,241,248,.45);font-size:.82rem;font-weight:600;cursor:pointer;font-family:inherit;transition:all .16s;margin-bottom:-1px}
+    .shop-tab:hover{color:#F97316}
+    .shop-tab.active{color:#F97316;border-bottom-color:#F97316}
+    .shop-panel{display:none}
+    .shop-panel.active{display:block}
+    .svc-section{display:none}
+    .svc-section.active{display:block}
+    /* Product grid */
+    .product-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:1rem;margin-bottom:1.5rem}
+    .product-card{background:var(--bg3);border:1px solid rgba(255,255,255,.07);border-radius:12px;overflow:hidden}
+    .product-img{height:110px;background:linear-gradient(135deg,var(--bg4) 0%,rgba(249,115,22,.08) 100%);display:flex;align-items:center;justify-content:center;font-size:2.5rem}
+    .product-body{padding:.85rem}
+    .product-name{font-size:.85rem;font-weight:700;color:#F1F1F8;margin-bottom:.25rem}
+    .product-meta{font-size:.72rem;color:var(--muted);margin-bottom:.5rem}
+    .product-footer{display:flex;align-items:center;justify-content:space-between}
+    .product-price{font-size:.9rem;font-weight:800;color:#F97316}
+    .product-badge{font-size:.62rem;font-weight:700;padding:.18rem .5rem;border-radius:10px;background:rgba(16,185,129,.12);color:#10B981}
+    .product-badge.low{background:rgba(234,179,8,.1);color:#EAB308}
+    .product-badge.draft{background:rgba(255,255,255,.06);color:var(--muted)}
+    /* Orders table */
+    .order-table{width:100%;border-collapse:collapse;font-size:.8rem}
+    .order-table th{text-align:left;padding:.5rem .75rem;color:var(--muted);font-size:.68rem;text-transform:uppercase;letter-spacing:.07em;border-bottom:1px solid rgba(255,255,255,.07)}
+    .order-table td{padding:.7rem .75rem;border-bottom:1px solid rgba(255,255,255,.05);color:rgba(241,241,248,.75)}
+    .order-table tr:last-child td{border-bottom:none}
+    .order-status{padding:.2rem .55rem;border-radius:10px;font-size:.65rem;font-weight:700;white-space:nowrap}
+    .os-new{background:rgba(249,115,22,.15);color:#F97316}
+    .os-processing{background:rgba(234,179,8,.12);color:#EAB308}
+    .os-shipped{background:rgba(59,130,246,.12);color:#60A5FA}
+    .os-delivered{background:rgba(16,185,129,.12);color:#10B981}
+    .os-confirmed{background:rgba(16,185,129,.12);color:#10B981}
+    .os-upcoming{background:rgba(249,115,22,.15);color:#F97316}
+    .os-ready{background:rgba(16,185,129,.12);color:#10B981}
+    .os-completed{background:rgba(255,255,255,.07);color:var(--muted)}
+    /* Service rows */
+    .service-row{display:flex;align-items:center;gap:1rem;padding:.85rem 1rem;border-bottom:1px solid rgba(255,255,255,.05);background:var(--bg3);border-radius:8px;margin-bottom:.5rem}
+    .service-icon{font-size:1.3rem;width:36px;text-align:center;flex-shrink:0}
+    .service-info{flex:1}
+    .service-name{font-size:.85rem;font-weight:700;color:#F1F1F8}
+    .service-meta{font-size:.72rem;color:var(--muted);margin-top:.1rem}
+    .service-price{font-size:1rem;font-weight:800;color:#F97316;flex-shrink:0;text-align:right}
+    .service-deposit{font-size:.65rem;color:var(--muted)}
+    /* Menu */
+    .menu-cat-title{font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin:1.25rem 0 .6rem;padding-bottom:.4rem;border-bottom:1px solid rgba(255,255,255,.06)}
+    .menu-item{display:flex;align-items:center;justify-content:space-between;padding:.6rem .8rem;border-radius:8px;margin-bottom:.4rem;background:var(--bg3)}
+    .menu-item-info{flex:1}
+    .menu-item-name{font-size:.82rem;font-weight:600;color:#F1F1F8}
+    .menu-item-desc{font-size:.7rem;color:var(--muted);margin-top:.1rem}
+    .menu-item-right{display:flex;align-items:center;gap:.75rem;flex-shrink:0}
+    .menu-item-price{font-size:.85rem;font-weight:800;color:#F97316}
+    .menu-toggle{width:36px;height:20px;background:rgba(255,255,255,.1);border-radius:10px;position:relative;cursor:pointer;border:none;transition:background .2s;flex-shrink:0}
+    .menu-toggle.on{background:#F97316}
+    .menu-toggle::after{content:'';position:absolute;top:2px;left:2px;width:16px;height:16px;background:#fff;border-radius:50%;transition:left .2s}
+    .menu-toggle.on::after{left:18px}
+    /* Package cards */
+    .package-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:1rem}
+    .package-card{background:var(--bg3);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:1.1rem}
+    .package-icon{font-size:1.5rem;margin-bottom:.5rem}
+    .package-name{font-size:.85rem;font-weight:700;color:#F1F1F8;margin-bottom:.25rem}
+    .package-price{font-size:1.2rem;font-weight:900;color:#F97316;margin-bottom:.5rem}
+    .package-meta{font-size:.72rem;color:var(--muted);line-height:1.5}
+    .package-card.feat{border-color:rgba(249,115,22,.3);box-shadow:0 0 16px rgba(249,115,22,.08)}
+    /* Booking rows */
+    .booking-row{display:flex;align-items:center;gap:1rem;padding:.85rem 1rem;border-bottom:1px solid rgba(255,255,255,.05)}
+    .booking-row:last-child{border-bottom:none}
+    .booking-date{width:52px;text-align:center;flex-shrink:0;background:rgba(249,115,22,.1);border-radius:10px;padding:.4rem;border:1px solid rgba(249,115,22,.2)}
+    .booking-date-day{font-size:1.1rem;font-weight:800;color:#F97316;line-height:1}
+    .booking-date-mo{font-size:.6rem;text-transform:uppercase;color:var(--muted);margin-top:.1rem}
+    .booking-info{flex:1}
+    .booking-client{font-size:.85rem;font-weight:700;color:#F1F1F8}
+    .booking-service{font-size:.72rem;color:var(--muted);margin-top:.1rem}
+    .booking-time{font-size:.8rem;font-weight:600;color:rgba(241,241,248,.55);flex-shrink:0}
+    .shop-empty{text-align:center;padding:3rem 1rem;color:var(--muted);font-size:.85rem}
+    @media(max-width:768px){.product-grid{grid-template-columns:1fr 1fr}.package-grid{grid-template-columns:1fr}}
+    </style>
+    <div class="view" id="v-b-shop">
+      <div class="topbar">
+        <div><div class="page-title">🛍️ Commerce & Orders</div><div class="page-sub">Products, services, orders, and bookings</div></div>
+        <button class="btn btn-primary" style="font-size:.8rem;padding:.5rem 1rem" onclick="openShopAdd()">+ Add New</button>
+      </div>
+      <div class="content">
+        <!-- Vendor Type Selector -->
+        <div class="card" style="margin-bottom:1.5rem">
+          <div class="card-title" style="margin-bottom:.75rem">Vendor Type</div>
+          <div class="shop-type-pills" id="shop-type-pills">
+            <button class="shop-type-pill active" id="st-fashion"    onclick="setVendorType('fashion')">👗 Fashion</button>
+            <button class="shop-type-pill"         id="st-barber"    onclick="setVendorType('barber')">💈 Barber / Beauty</button>
+            <button class="shop-type-pill"         id="st-restaurant"onclick="setVendorType('restaurant')">🍽️ Restaurant</button>
+            <button class="shop-type-pill"         id="st-fitness"   onclick="setVendorType('fitness')">💪 Fitness</button>
+          </div>
+          <div class="shop-tab-bar" id="shop-tab-bar">
+            <button class="shop-tab active" id="stab-products" onclick="setShopTab('products')">Products / Services</button>
+            <button class="shop-tab"        id="stab-orders"   onclick="setShopTab('orders')">Orders</button>
+            <button class="shop-tab"        id="stab-bookings" onclick="setShopTab('bookings')">Bookings / Calendar</button>
+          </div>
+        </div>
+
+        <!-- ══ FASHION ══════════════════════════════════════════════ -->
+        <div class="svc-section active" id="svc-fashion">
+          <!-- Products -->
+          <div class="shop-panel active" id="sp-fashion-products">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
+              <div style="font-size:.82rem;color:var(--muted)">8 products listed · 3 low stock</div>
+              <div style="display:flex;gap:.5rem">
+                <select style="background:var(--bg3);border:1px solid rgba(255,255,255,.1);color:rgba(241,241,248,.7);font-size:.75rem;border-radius:7px;padding:.3rem .6rem;font-family:inherit"><option>All Status</option><option>Active</option><option>Draft</option><option>Sold Out</option></select>
+              </div>
+            </div>
+            <div class="product-grid">
+              <div class="product-card"><div class="product-img">🧢</div><div class="product-body"><div class="product-name">PHX Snapback</div><div class="product-meta">SKU-001 · 24 in stock</div><div class="product-footer"><span class="product-price">$45</span><span class="product-badge">Active</span></div></div></div>
+              <div class="product-card"><div class="product-img">👕</div><div class="product-body"><div class="product-name">Desert Bloom Tee</div><div class="product-meta">SKU-002 · 6 in stock</div><div class="product-footer"><span class="product-price">$38</span><span class="product-badge low">Low Stock</span></div></div></div>
+              <div class="product-card"><div class="product-img">🧥</div><div class="product-body"><div class="product-name">602 Hoodie</div><div class="product-meta">SKU-003 · 18 in stock</div><div class="product-footer"><span class="product-price">$75</span><span class="product-badge">Active</span></div></div></div>
+              <div class="product-card"><div class="product-img">👟</div><div class="product-body"><div class="product-name">Murk x Crep Collab</div><div class="product-meta">SKU-004 · 2 in stock</div><div class="product-footer"><span class="product-price">$120</span><span class="product-badge low">Low Stock</span></div></div></div>
+              <div class="product-card"><div class="product-img">🩳</div><div class="product-body"><div class="product-name">PHX Cargo Shorts</div><div class="product-meta">SKU-005 · 31 in stock</div><div class="product-footer"><span class="product-price">$55</span><span class="product-badge">Active</span></div></div></div>
+              <div class="product-card"><div class="product-img">🎽</div><div class="product-body"><div class="product-name">Desert Drip Tracksuit</div><div class="product-meta">SKU-006 · Draft</div><div class="product-footer"><span class="product-price">$95</span><span class="product-badge draft">Draft</span></div></div></div>
+            </div>
+          </div>
+          <!-- Orders -->
+          <div class="shop-panel" id="sp-fashion-orders">
+            <div style="font-size:.82rem;color:var(--muted);margin-bottom:1rem">12 orders · 3 need fulfillment</div>
+            <div class="card" style="padding:0;overflow:hidden">
+              <table class="order-table">
+                <thead><tr><th>Order</th><th>Buyer</th><th>Item</th><th>Qty</th><th>Amount</th><th>Status</th><th>Action</th></tr></thead>
+                <tbody>
+                  <tr><td>#1091</td><td>Jordan M.</td><td>602 Hoodie (L)</td><td>1</td><td>$75</td><td><span class="order-status os-new">New</span></td><td><button style="font-size:.68rem;padding:.2rem .5rem;background:var(--bg4);border:1px solid rgba(255,255,255,.1);color:rgba(241,241,248,.7);border-radius:6px;cursor:pointer">Ship</button></td></tr>
+                  <tr><td>#1090</td><td>Aaliyah T.</td><td>PHX Snapback</td><td>2</td><td>$90</td><td><span class="order-status os-new">New</span></td><td><button style="font-size:.68rem;padding:.2rem .5rem;background:var(--bg4);border:1px solid rgba(255,255,255,.1);color:rgba(241,241,248,.7);border-radius:6px;cursor:pointer">Ship</button></td></tr>
+                  <tr><td>#1089</td><td>Marcus D.</td><td>Desert Bloom Tee (M)</td><td>1</td><td>$38</td><td><span class="order-status os-processing">Processing</span></td><td>—</td></tr>
+                  <tr><td>#1088</td><td>Kiara S.</td><td>Murk x Crep Collab (10)</td><td>1</td><td>$120</td><td><span class="order-status os-shipped">Shipped</span></td><td><span style="font-size:.68rem;color:var(--muted)">Track →</span></td></tr>
+                  <tr><td>#1087</td><td>Devon R.</td><td>PHX Cargo Shorts (32)</td><td>1</td><td>$55</td><td><span class="order-status os-delivered">Delivered</span></td><td>—</td></tr>
+                  <tr><td>#1086</td><td>Tiana B.</td><td>602 Hoodie (S)</td><td>1</td><td>$75</td><td><span class="order-status os-delivered">Delivered</span></td><td>—</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <!-- No Bookings for fashion -->
+          <div class="shop-panel" id="sp-fashion-bookings">
+            <div class="shop-empty">👗 Fashion listings don't use bookings.<br>Switch to Barber or Fitness to see the booking calendar.</div>
+          </div>
+        </div>
+
+        <!-- ══ BARBER / BEAUTY ═══════════════════════════════════════ -->
+        <div class="svc-section" id="svc-barber">
+          <!-- Services -->
+          <div class="shop-panel active" id="sp-barber-products">
+            <div style="font-size:.82rem;color:var(--muted);margin-bottom:1rem">6 services listed · Deposits enabled · <span style="color:var(--green)">$10 avg deposit</span></div>
+            <div class="service-row"><span class="service-icon">✂️</span><div class="service-info"><div class="service-name">Classic Fade</div><div class="service-meta">~45 min · Deposit required</div></div><div class="service-price">$35<div class="service-deposit">$10 deposit</div></div></div>
+            <div class="service-row"><span class="service-icon">🪒</span><div class="service-info"><div class="service-name">Beard Trim + Shape</div><div class="service-meta">~20 min · No deposit</div></div><div class="service-price">$20<div class="service-deposit">Walk-in OK</div></div></div>
+            <div class="service-row"><span class="service-icon">💈</span><div class="service-info"><div class="service-name">Taper + Design</div><div class="service-meta">~60 min · Deposit required</div></div><div class="service-price">$55<div class="service-deposit">$15 deposit</div></div></div>
+            <div class="service-row"><span class="service-icon">🧴</span><div class="service-info"><div class="service-name">Scalp Treatment</div><div class="service-meta">~30 min · Add-on available</div></div><div class="service-price">$25<div class="service-deposit">$5 deposit</div></div></div>
+            <div class="service-row"><span class="service-icon">✨</span><div class="service-info"><div class="service-name">Full Groom Package</div><div class="service-meta">~90 min · Fade + beard + treatment</div></div><div class="service-price">$80<div class="service-deposit">$20 deposit</div></div></div>
+            <div class="service-row"><span class="service-icon">👶</span><div class="service-info"><div class="service-name">Kids Cut</div><div class="service-meta">~30 min · No deposit</div></div><div class="service-price">$20<div class="service-deposit">Walk-in OK</div></div></div>
+          </div>
+          <!-- Deposit Orders -->
+          <div class="shop-panel" id="sp-barber-orders">
+            <div style="font-size:.82rem;color:var(--muted);margin-bottom:1rem">8 deposit payments received this week</div>
+            <div class="card" style="padding:0;overflow:hidden">
+              <table class="order-table">
+                <thead><tr><th>Ref</th><th>Client</th><th>Service</th><th>Deposit</th><th>Appt Date</th><th>Status</th></tr></thead>
+                <tbody>
+                  <tr><td>#D-0048</td><td>Mike T.</td><td>Taper + Design</td><td>$15</td><td>Jun 14, 2pm</td><td><span class="order-status os-upcoming">Upcoming</span></td></tr>
+                  <tr><td>#D-0047</td><td>Chris A.</td><td>Classic Fade</td><td>$10</td><td>Jun 13, 11am</td><td><span class="order-status os-confirmed">Confirmed</span></td></tr>
+                  <tr><td>#D-0046</td><td>Jay M.</td><td>Full Groom Pkg</td><td>$20</td><td>Jun 13, 3pm</td><td><span class="order-status os-confirmed">Confirmed</span></td></tr>
+                  <tr><td>#D-0045</td><td>Dante R.</td><td>Classic Fade</td><td>$10</td><td>Jun 12</td><td><span class="order-status os-completed">Completed</span></td></tr>
+                  <tr><td>#D-0044</td><td>Kareem W.</td><td>Beard Trim</td><td>—</td><td>Jun 11</td><td><span class="order-status os-completed">Completed</span></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <!-- Bookings Calendar -->
+          <div class="shop-panel" id="sp-barber-bookings">
+            <div style="font-size:.82rem;color:var(--muted);margin-bottom:1rem">Next 7 days — 14 appointments booked</div>
+            <div class="card" style="padding:0;overflow:hidden">
+              <div style="padding:.8rem 1rem;background:var(--bg4);font-size:.7rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em">Upcoming Appointments</div>
+              <div class="booking-row"><div class="booking-date"><div class="booking-date-day">13</div><div class="booking-date-mo">Jun</div></div><div class="booking-info"><div class="booking-client">Chris Andrade — Classic Fade</div><div class="booking-service">Deposit paid · 45 min</div></div><div class="booking-time">11:00 AM</div></div>
+              <div class="booking-row"><div class="booking-date"><div class="booking-date-day">13</div><div class="booking-date-mo">Jun</div></div><div class="booking-info"><div class="booking-client">Jay Murillo — Full Groom Package</div><div class="booking-service">Deposit paid · 90 min</div></div><div class="booking-time">3:00 PM</div></div>
+              <div class="booking-row"><div class="booking-date"><div class="booking-date-day">14</div><div class="booking-date-mo">Jun</div></div><div class="booking-info"><div class="booking-client">Mike Torres — Taper + Design</div><div class="booking-service">Deposit paid · 60 min</div></div><div class="booking-time">2:00 PM</div></div>
+              <div class="booking-row"><div class="booking-date"><div class="booking-date-day">15</div><div class="booking-date-mo">Jun</div></div><div class="booking-info"><div class="booking-client">Devon Blake — Kids Cut</div><div class="booking-service">Walk-in · 30 min</div></div><div class="booking-time">10:00 AM</div></div>
+              <div class="booking-row"><div class="booking-date"><div class="booking-date-day">15</div><div class="booking-date-mo">Jun</div></div><div class="booking-info"><div class="booking-client">Reginald S. — Classic Fade</div><div class="booking-service">Deposit paid · 45 min</div></div><div class="booking-time">1:30 PM</div></div>
+              <div class="booking-row"><div class="booking-date"><div class="booking-date-day">16</div><div class="booking-date-mo">Jun</div></div><div class="booking-info"><div class="booking-client">Isaiah T. — Beard Trim</div><div class="booking-service">Walk-in · 20 min</div></div><div class="booking-time">12:00 PM</div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ══ RESTAURANT ════════════════════════════════════════════ -->
+        <div class="svc-section" id="svc-restaurant">
+          <!-- Menu Builder -->
+          <div class="shop-panel active" id="sp-restaurant-products">
+            <div style="font-size:.82rem;color:var(--muted);margin-bottom:.5rem">24 menu items · Pickup enabled · <span style="color:var(--orange)">Delivery: Coming Soon</span></div>
+            <div class="menu-cat-title">🥗 Starters</div>
+            <div class="menu-item"><div class="menu-item-info"><div class="menu-item-name">Queso Fundido</div><div class="menu-item-desc">Melted cheese, roasted peppers, warm tortillas</div></div><div class="menu-item-right"><span class="menu-item-price">$12</span><button class="menu-toggle on" onclick="this.classList.toggle('on')"></button></div></div>
+            <div class="menu-item"><div class="menu-item-info"><div class="menu-item-name">Elote Cup</div><div class="menu-item-desc">Cotija, lime crema, chili powder</div></div><div class="menu-item-right"><span class="menu-item-price">$8</span><button class="menu-toggle on" onclick="this.classList.toggle('on')"></button></div></div>
+            <div class="menu-item"><div class="menu-item-info"><div class="menu-item-name">Guac + Chips</div><div class="menu-item-desc">House-made, fresh avocado, pico</div></div><div class="menu-item-right"><span class="menu-item-price">$11</span><button class="menu-toggle" onclick="this.classList.toggle('on')"></button></div></div>
+            <div class="menu-cat-title">🌮 Mains</div>
+            <div class="menu-item"><div class="menu-item-info"><div class="menu-item-name">Birria Tacos (3)</div><div class="menu-item-desc">Consommé, cilantro, white onion, lime</div></div><div class="menu-item-right"><span class="menu-item-price">$18</span><button class="menu-toggle on" onclick="this.classList.toggle('on')"></button></div></div>
+            <div class="menu-item"><div class="menu-item-info"><div class="menu-item-name">Carne Asada Bowl</div><div class="menu-item-desc">Rice, beans, pico, crema, cheese</div></div><div class="menu-item-right"><span class="menu-item-price">$16</span><button class="menu-toggle on" onclick="this.classList.toggle('on')"></button></div></div>
+            <div class="menu-item"><div class="menu-item-info"><div class="menu-item-name">Al Pastor Quesadilla</div><div class="menu-item-desc">Flour tortilla, cheese, pineapple, salsa verde</div></div><div class="menu-item-right"><span class="menu-item-price">$14</span><button class="menu-toggle on" onclick="this.classList.toggle('on')"></button></div></div>
+            <div class="menu-cat-title">🍮 Desserts</div>
+            <div class="menu-item"><div class="menu-item-info"><div class="menu-item-name">Churros + Chocolate</div><div class="menu-item-desc">Cinnamon sugar, house chocolate sauce</div></div><div class="menu-item-right"><span class="menu-item-price">$9</span><button class="menu-toggle on" onclick="this.classList.toggle('on')"></button></div></div>
+            <div class="menu-item"><div class="menu-item-info"><div class="menu-item-name">Tres Leches Slice</div><div class="menu-item-desc">House recipe, seasonal fruit</div></div><div class="menu-item-right"><span class="menu-item-price">$8</span><button class="menu-toggle on" onclick="this.classList.toggle('on')"></button></div></div>
+          </div>
+          <!-- Pickup Orders -->
+          <div class="shop-panel" id="sp-restaurant-orders">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem"><div style="font-size:.82rem;color:var(--muted)">Live pickup queue — 4 active orders</div><div style="width:9px;height:9px;border-radius:50%;background:#F97316;animation:pulse 2s infinite"></div></div>
+            <div class="card" style="padding:0;overflow:hidden">
+              <table class="order-table">
+                <thead><tr><th>Order #</th><th>Buyer</th><th>Items</th><th>Total</th><th>Ready In</th><th>Status</th></tr></thead>
+                <tbody>
+                  <tr><td>#PU-204</td><td>Layla K.</td><td>Birria Tacos, Elote Cup</td><td>$26</td><td>8 min</td><td><span class="order-status os-new">Received</span></td></tr>
+                  <tr><td>#PU-203</td><td>Marcus H.</td><td>Carne Asada Bowl</td><td>$16</td><td>4 min</td><td><span class="order-status os-processing">Preparing</span></td></tr>
+                  <tr><td>#PU-202</td><td>Jasmine W.</td><td>Al Pastor Quesadilla, Guac</td><td>$25</td><td>—</td><td><span class="order-status os-ready">Ready ✓</span></td></tr>
+                  <tr><td>#PU-201</td><td>Dre B.</td><td>Queso Fundido, Churros</td><td>$21</td><td>—</td><td><span class="order-status os-delivered">Picked Up</span></td></tr>
+                  <tr><td>#PU-200</td><td>Priya S.</td><td>Birria Tacos (x2)</td><td>$36</td><td>—</td><td><span class="order-status os-delivered">Picked Up</span></td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div style="margin-top:1rem;padding:.75rem 1rem;background:rgba(249,115,22,.06);border:1px solid rgba(249,115,22,.15);border-radius:10px;font-size:.78rem;color:rgba(241,241,248,.6)">🚚 <strong style="color:#F97316">Delivery:</strong> Coming in PHX App v2. Members within 3 miles can request delivery. PHX Pass Insider members get free delivery credit once live.</div>
+          </div>
+          <!-- Restaurant Bookings = Reservations -->
+          <div class="shop-panel" id="sp-restaurant-bookings">
+            <div style="font-size:.82rem;color:var(--muted);margin-bottom:1rem">8 reservations this week · Insider members get priority seating</div>
+            <div class="card" style="padding:0;overflow:hidden">
+              <div style="padding:.8rem 1rem;background:var(--bg4);font-size:.7rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em">Upcoming Reservations</div>
+              <div class="booking-row"><div class="booking-date"><div class="booking-date-day">13</div><div class="booking-date-mo">Jun</div></div><div class="booking-info"><div class="booking-client">Aaliyah &amp; party of 4</div><div class="booking-service">Insider member · Priority seating</div></div><div class="booking-time">7:00 PM</div></div>
+              <div class="booking-row"><div class="booking-date"><div class="booking-date-day">14</div><div class="booking-date-mo">Jun</div></div><div class="booking-info"><div class="booking-client">Bryce B. &amp; party of 6</div><div class="booking-service">Native member · Standard seating</div></div><div class="booking-time">6:30 PM</div></div>
+              <div class="booking-row"><div class="booking-date"><div class="booking-date-day">15</div><div class="booking-date-mo">Jun</div></div><div class="booking-info"><div class="booking-client">Murkemz &amp; party of 8</div><div class="booking-service">Insider member · Private area</div></div><div class="booking-time">8:00 PM</div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ══ FITNESS ═══════════════════════════════════════════════ -->
+        <div class="svc-section" id="svc-fitness">
+          <!-- Packages / Sessions -->
+          <div class="shop-panel active" id="sp-fitness-products">
+            <div style="font-size:.82rem;color:var(--muted);margin-bottom:1rem">3 session types · 2 digital products · Online booking enabled</div>
+            <div class="package-grid" style="margin-bottom:1.5rem">
+              <div class="package-card feat"><div class="package-icon">🏋️</div><div class="package-name">1-on-1 Training Session</div><div class="package-price">$75</div><div class="package-meta">60 min · In-person · Custom programming<br><span style="color:var(--orange)">12 booked this month</span></div></div>
+              <div class="package-card"><div class="package-icon">👥</div><div class="package-name">Group Session (up to 6)</div><div class="package-price">$25/ea</div><div class="package-meta">45 min · In-person or virtual<br>8 booked this month</div></div>
+              <div class="package-card"><div class="package-icon">📅</div><div class="package-name">Monthly Package (8 sessions)</div><div class="package-price">$499</div><div class="package-meta">Best value · Auto-renewing<br>4 active subscriptions</div></div>
+            </div>
+            <div style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:.75rem">Digital Products</div>
+            <div class="service-row"><span class="service-icon">📖</span><div class="service-info"><div class="service-name">12-Week Strength Plan (PDF)</div><div class="service-meta">Instant download · 47 sold</div></div><div class="service-price">$29</div></div>
+            <div class="service-row"><span class="service-icon">🥗</span><div class="service-info"><div class="service-name">Desert Body Nutrition Guide</div><div class="service-meta">Instant download · 31 sold</div></div><div class="service-price">$19</div></div>
+          </div>
+          <!-- Orders (digital + sessions) -->
+          <div class="shop-panel" id="sp-fitness-orders">
+            <div style="font-size:.82rem;color:var(--muted);margin-bottom:1rem">22 transactions this month · $2,140 revenue</div>
+            <div class="card" style="padding:0;overflow:hidden">
+              <table class="order-table">
+                <thead><tr><th>Order</th><th>Client</th><th>Product</th><th>Amount</th><th>Type</th><th>Status</th></tr></thead>
+                <tbody>
+                  <tr><td>#F-0089</td><td>Nia J.</td><td>1-on-1 Session</td><td>$75</td><td>Booking</td><td><span class="order-status os-upcoming">Jun 14</span></td></tr>
+                  <tr><td>#F-0088</td><td>Trey M.</td><td>Monthly Package</td><td>$499</td><td>Subscription</td><td><span class="order-status os-confirmed">Active</span></td></tr>
+                  <tr><td>#F-0087</td><td>Keisha B.</td><td>12-Week Plan PDF</td><td>$29</td><td>Digital</td><td><span class="order-status os-delivered">Delivered</span></td></tr>
+                  <tr><td>#F-0086</td><td>Devon S.</td><td>Group Session</td><td>$25</td><td>Booking</td><td><span class="order-status os-completed">Jun 11 ✓</span></td></tr>
+                  <tr><td>#F-0085</td><td>Amir K.</td><td>Nutrition Guide</td><td>$19</td><td>Digital</td><td><span class="order-status os-delivered">Delivered</span></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <!-- Fitness Bookings -->
+          <div class="shop-panel" id="sp-fitness-bookings">
+            <div style="font-size:.82rem;color:var(--muted);margin-bottom:1rem">Next 7 days — 9 sessions scheduled</div>
+            <div class="card" style="padding:0;overflow:hidden">
+              <div style="padding:.8rem 1rem;background:var(--bg4);font-size:.7rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em">Upcoming Sessions</div>
+              <div class="booking-row"><div class="booking-date"><div class="booking-date-day">13</div><div class="booking-date-mo">Jun</div></div><div class="booking-info"><div class="booking-client">Nia Johnson — 1-on-1 Session</div><div class="booking-service">Paid in full · 60 min</div></div><div class="booking-time">8:00 AM</div></div>
+              <div class="booking-row"><div class="booking-date"><div class="booking-date-day">13</div><div class="booking-date-mo">Jun</div></div><div class="booking-info"><div class="booking-client">Group Session (4 clients)</div><div class="booking-service">4 spots filled · 45 min</div></div><div class="booking-time">5:30 PM</div></div>
+              <div class="booking-row"><div class="booking-date"><div class="booking-date-day">14</div><div class="booking-date-mo">Jun</div></div><div class="booking-info"><div class="booking-client">Trey Martin — Monthly Package</div><div class="booking-service">Session 3 of 8 · 60 min</div></div><div class="booking-time">7:00 AM</div></div>
+              <div class="booking-row"><div class="booking-date"><div class="booking-date-day">15</div><div class="booking-date-mo">Jun</div></div><div class="booking-info"><div class="booking-client">Keisha Brown — 1-on-1 Session</div><div class="booking-service">Paid in full · 60 min</div></div><div class="booking-time">9:00 AM</div></div>
+              <div class="booking-row"><div class="booking-date"><div class="booking-date-day">16</div><div class="booking-date-mo">Jun</div></div><div class="booking-info"><div class="booking-client">Group Session (3 clients)</div><div class="booking-service">3 spots filled · 45 min</div></div><div class="booking-time">6:00 PM</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- B-BILLING -->
+    <div class="view" id="v-b-billing">
+      <div class="card" style="max-width:600px;margin-bottom:1.5rem">
+        <div class="card-title hl">Current Plan</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.2rem">
+          <div><div style="font-size:1.3rem;font-weight:800">PHX Premier</div><div style="font-size:.85rem;color:var(--muted)">⭐ Founding Partner — Free until Sep 9, 2026</div></div>
+          <div style="font-size:2.5rem;font-weight:900;color:var(--green)">$0<span style="font-size:1rem;color:var(--muted)">/mo now</span></div>
+        </div>
+        <div style="background:rgba(249,115,22,.08);border:1px solid rgba(249,115,22,.2);border-radius:10px;padding:1rem;font-size:.85rem;color:var(--white);line-height:1.7">
+          After your free period ends on <strong style="color:var(--orange)">September 9, 2026</strong>, your plan converts to PHX Premier at <strong style="color:var(--orange)">$299/month</strong>. You'll receive a 30-day advance analytics report showing your exact ROI from the free period — visitor counts, perk redemptions, and estimated revenue from PHX Pass members.<br><br>
+          To continue at the same level: $299/mo. To downgrade to PHX Local: $99/mo. No contracts. Cancel anytime.
+        </div>
+        <br>
+        <div style="display:flex;gap:.75rem">
+          <button class="tb-btn primary" style="flex:1">Set Up Payment Method</button>
+          <button class="tb-btn" style="flex:1">Compare Plans</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════ CREATOR VIEWS ════════ -->
+
+    <!-- C-OVERVIEW -->
+    <div class="view" id="v-c-overview">
+      <div class="kpi-row">
+        <div class="kpi"><div class="kpi-val" style="color:var(--orange)">847</div><div class="kpi-label">Active Fan Subscribers</div><div class="kpi-change up">↑ 34 this month</div></div>
+        <div class="kpi"><div class="kpi-val" style="color:var(--green)">$4,892</div><div class="kpi-label">Monthly Creator Revenue</div><div class="kpi-change up">↑ 18% vs last month</div></div>
+        <div class="kpi"><div class="kpi-val">27.2K</div><div class="kpi-label">Monthly Listeners</div><div class="kpi-change up">↑ 1.4K this month</div></div>
+        <div class="kpi"><div class="kpi-val" style="color:var(--purple-l)">4</div><div class="kpi-label">Upcoming Events</div><div class="kpi-change">2 sold out</div></div>
+      </div>
+      <div class="grid-2">
+        <div class="card"><div class="card-title">Revenue Trend — 6 Months</div><canvas id="creator-revenue" height="200"></canvas></div>
+        <div class="card">
+          <div class="card-title">Fan Pass Breakdown</div>
+          <div style="display:flex;flex-direction:column;gap:.8rem">
+            <div style="display:flex;align-items:center;justify-content:space-between;background:var(--bg4);border-radius:10px;padding:.8rem 1rem">
+              <div><div style="font-size:.85rem;font-weight:700">Street Pass — $4/mo</div><div style="font-size:.75rem;color:var(--muted)">312 subscribers</div></div>
+              <div style="text-align:right"><div style="font-size:1.1rem;font-weight:700;color:var(--green)">$1,248</div><div style="font-size:.72rem;color:var(--muted)">MRR</div></div>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;background:rgba(249,115,22,.08);border:1px solid rgba(249,115,22,.2);border-radius:10px;padding:.8rem 1rem">
+              <div><div style="font-size:.85rem;font-weight:700;color:var(--orange)">Murk Mode — $12/mo</div><div style="font-size:.75rem;color:var(--muted)">418 subscribers</div></div>
+              <div style="text-align:right"><div style="font-size:1.1rem;font-weight:700;color:var(--orange)">$5,016</div><div style="font-size:.72rem;color:var(--muted)">MRR</div></div>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;background:rgba(234,179,8,.06);border:1px solid rgba(234,179,8,.2);border-radius:10px;padding:.8rem 1rem">
+              <div><div style="font-size:.85rem;font-weight:700;color:var(--gold)">Ayatollah — $25/mo</div><div style="font-size:.75rem;color:var(--muted)">117 subscribers</div></div>
+              <div style="text-align:right"><div style="font-size:1.1rem;font-weight:700;color:var(--gold)">$2,925</div><div style="font-size:.72rem;color:var(--muted)">MRR</div></div>
+            </div>
+          </div>
+          <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+            <span style="font-size:.85rem;font-weight:700">Total MRR</span>
+            <span style="font-size:1.3rem;font-weight:800;color:var(--green)">$9,189</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- C-CONTENT -->
+    <div class="view" id="v-c-content">
+      <div class="sh"><h3>Content Library</h3><button class="tb-btn primary">+ Upload Track / Episode</button></div>
+      <table class="data-table">
+        <thead><tr><th>Title</th><th>Type</th><th>Plays</th><th>Exclusive To</th><th>Revenue</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td><strong>PHX</strong> <span class="badge badge-orange">New</span></td><td>Track</td><td style="color:var(--orange)">15,234</td><td><span class="badge badge-gold">Murk Mode+</span></td><td style="color:var(--green)">$412</td><td><span class="badge badge-green">Live</span></td></tr>
+          <tr><td><strong>Against All Odds</strong></td><td>Track</td><td>8,791</td><td>Public</td><td style="color:var(--green)">$247</td><td><span class="badge badge-green">Live</span></td></tr>
+          <tr><td><strong>Hadouken RMX</strong></td><td>Track</td><td>541,872</td><td>Public</td><td style="color:var(--green)">$1,623</td><td><span class="badge badge-green">Live</span></td></tr>
+          <tr><td><strong>Survive ft. Deck</strong></td><td>Track</td><td>244,077</td><td>Public</td><td style="color:var(--green)">$732</td><td><span class="badge badge-green">Live</span></td></tr>
+          <tr><td><strong>Murk Report — Ep 12</strong></td><td>Podcast</td><td>2,847</td><td><span class="badge badge-orange">Native+</span></td><td style="color:var(--green)">$94</td><td><span class="badge badge-green">Live</span></td></tr>
+          <tr><td><strong>BTS: PHX Recording Session</strong></td><td>Video</td><td>—</td><td><span class="badge badge-purple">Ayatollah Only</span></td><td style="color:var(--muted)">$0</td><td><span class="badge badge-gold">Scheduled</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- C-FANS -->
+    <div class="view" id="v-c-fans">
+      <div class="kpi-row" style="grid-template-columns:repeat(4,1fr)">
+        <div class="kpi"><div class="kpi-val" style="color:var(--orange)">847</div><div class="kpi-label">Total Subscribers</div></div>
+        <div class="kpi"><div class="kpi-val" style="color:var(--green)">34</div><div class="kpi-label">Superfans (&gt;$25/mo)</div></div>
+        <div class="kpi"><div class="kpi-val">$184</div><div class="kpi-label">Avg Lifetime Value</div></div>
+        <div class="kpi"><div class="kpi-val" style="color:var(--purple-l)">92%</div><div class="kpi-label">Retention Rate</div></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Top Fans</div>
+        <table class="data-table">
+          <thead><tr><th>Fan</th><th>Pass Tier</th><th>Location</th><th>Joined</th><th>Spent Total</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr><td>@602rider</td><td><span class="badge badge-gold">Ayatollah</span></td><td>Phoenix, AZ</td><td>Jan 2026</td><td style="color:var(--green)">$425</td><td><span class="badge badge-green">Active</span></td></tr>
+            <tr><td>@sunsetMurk</td><td><span class="badge badge-gold">Ayatollah</span></td><td>Tempe, AZ</td><td>Feb 2026</td><td style="color:var(--green)">$375</td><td><span class="badge badge-green">Active</span></td></tr>
+            <tr><td>@dezmoney_PHX</td><td><span class="badge badge-orange">Murk Mode</span></td><td>Mesa, AZ</td><td>Dec 2025</td><td style="color:var(--green)">$288</td><td><span class="badge badge-green">Active</span></td></tr>
+            <tr><td>@jess_602fam</td><td><span class="badge badge-orange">Murk Mode</span></td><td>Scottsdale, AZ</td><td>Mar 2026</td><td style="color:var(--green)">$156</td><td><span class="badge badge-green">Active</span></td></tr>
+            <tr><td>@PHXrider99</td><td><span class="badge badge-muted">Street Pass</span></td><td>Glendale, AZ</td><td>Nov 2025</td><td style="color:var(--muted)">$48</td><td><span class="badge badge-green">Active</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- C-EVENTS (creator) -->
+    <div class="view" id="v-c-events">
+      <div class="sh"><h3>My Events</h3><button class="tb-btn primary" onclick="document.getElementById('event-modal').classList.add('open')">+ Create Event</button></div>
+      <table class="data-table">
+        <thead><tr><th>Event</th><th>Date</th><th>Venue</th><th>Tickets Sold</th><th>Revenue</th><th>Pass Access</th></tr></thead>
+        <tbody>
+          <tr><td><strong>PHX Release Showcase 🔥</strong></td><td>Jun 18</td><td>The Rebel Lounge</td><td style="color:var(--orange)">142 / 180</td><td style="color:var(--green)">$3,550</td><td><span class="badge badge-gold">Insider Early Entry</span></td></tr>
+          <tr><td><strong>AZ Hip Hop Festival</strong></td><td>Jun 21</td><td>9th & Jackson</td><td>67 / 100</td><td style="color:var(--green)">$1,340</td><td><span class="badge badge-orange">Pre-Sale</span></td></tr>
+          <tr><td><strong>PHX App Founding Mixer</strong></td><td>Jun 25</td><td>TBA Downtown</td><td style="color:var(--gold)">50 / 50</td><td style="color:var(--green)">$0 (Invite)</td><td><span class="badge badge-purple">Insider Only</span></td></tr>
+          <tr><td><strong>Murkemz Listening Party</strong></td><td>Jul 15</td><td>Plug City HQ</td><td>12 / 30</td><td style="color:var(--muted)">$600</td><td><span class="badge badge-gold">Ayatollah Only</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- C-SHOP -->
+    <div class="view" id="v-c-shop">
+      <div class="sh"><h3>Merch & Shop</h3><button class="tb-btn primary">+ Add Product</button></div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem">
+        <div class="card">
+          <div style="height:100px;background:var(--bg4);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:2.5rem;margin-bottom:.8rem">👕</div>
+          <div style="font-size:.95rem;font-weight:700;margin-bottom:.2rem">The Ayatollah Tee</div>
+          <div style="font-size:1.1rem;font-weight:800;color:var(--green);margin-bottom:.5rem">$45</div>
+          <div style="font-size:.78rem;color:var(--muted)">Sold: 23 · Revenue: $1,035</div>
+          <br><button class="tb-btn" style="width:100%;font-size:.78rem">Edit</button>
+        </div>
+        <div class="card">
+          <div style="height:100px;background:var(--bg4);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:2.5rem;margin-bottom:.8rem">🧢</div>
+          <div style="font-size:.95rem;font-weight:700;margin-bottom:.2rem">PHX Snapback — Signed</div>
+          <div style="font-size:1.1rem;font-weight:800;color:var(--orange);margin-bottom:.5rem">$85 <span style="font-size:.72rem">Insider Only</span></div>
+          <div style="font-size:.78rem;color:var(--muted)">Sold: 12 · Revenue: $1,020</div>
+          <br><button class="tb-btn" style="width:100%;font-size:.78rem">Edit</button>
+        </div>
+        <div class="card" style="border:1.5px dashed var(--border);display:flex;align-items:center;justify-content:center;min-height:180px;cursor:pointer;transition:border-color .2s" onclick="document.getElementById('page-title').textContent='Add Product'">
+          <div style="text-align:center;color:var(--muted)"><div style="font-size:2rem;margin-bottom:.5rem">+</div><div style="font-size:.85rem">Add Product</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- C-ANALYTICS -->
+    <div class="view" id="v-c-analytics">
+      <div class="kpi-row">
+        <div class="kpi"><div class="kpi-val" style="color:var(--orange)">27.2K</div><div class="kpi-label">Monthly Listeners</div><div class="kpi-change up">↑ 1.4K</div></div>
+        <div class="kpi"><div class="kpi-val">2.1M</div><div class="kpi-label">IG Views/Month</div><div class="kpi-change up">↑ 340K</div></div>
+        <div class="kpi"><div class="kpi-val" style="color:var(--green)">$9,189</div><div class="kpi-label">Total MRR</div><div class="kpi-change up">↑ 18%</div></div>
+        <div class="kpi"><div class="kpi-val">4.9★</div><div class="kpi-label">Platform Rating</div><div class="kpi-change up">Top 3% of creators</div></div>
+      </div>
+      <div class="card"><div class="card-title">Listener Geography — Phoenix Metro</div>
+        <table class="data-table" style="max-width:500px">
+          <thead><tr><th>City</th><th>% of Listeners</th><th>PHX Pass Members</th></tr></thead>
+          <tbody>
+            <tr><td>Phoenix (602)</td><td style="color:var(--orange)">34%</td><td>288</td></tr>
+            <tr><td>New York City</td><td>18%</td><td>52</td></tr>
+            <tr><td>Los Angeles</td><td>12%</td><td>31</td></tr>
+            <tr><td>Philadelphia</td><td>8%</td><td>14</td></tr>
+            <tr><td>Tempe / Mesa</td><td>7%</td><td>67</td></tr>
+            <tr><td>Other / International</td><td>21%</td><td>95</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- C-BILLING -->
+    <div class="view" id="v-c-billing">
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title hl">Revenue Breakdown — This Month</div>
+          <div style="display:flex;flex-direction:column;gap:.7rem">
+            <div style="display:flex;justify-content:space-between;font-size:.88rem;padding:.5rem 0;border-bottom:1px solid var(--border)"><span style="color:var(--muted)">Fan Pass Subscriptions</span><span style="color:var(--green)">$9,189</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:.88rem;padding:.5rem 0;border-bottom:1px solid var(--border)"><span style="color:var(--muted)">Merch Sales</span><span style="color:var(--green)">$2,055</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:.88rem;padding:.5rem 0;border-bottom:1px solid var(--border)"><span style="color:var(--muted)">Event Tickets (PHX App)</span><span style="color:var(--green)">$3,550</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:.88rem;padding:.5rem 0;border-bottom:1px solid var(--border)"><span style="color:var(--muted)">Beat Portal</span><span style="color:var(--green)">$700</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:.88rem;padding:.5rem 0;border-bottom:1px solid var(--border)"><span style="color:var(--muted)">Shoutouts</span><span style="color:var(--green)">$525</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:.88rem;padding:.5rem 0;border-bottom:1px solid var(--border)"><span style="color:var(--muted)">Platform Fee (20%)</span><span style="color:var(--red)">-$3,204</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:1rem;font-weight:800;padding:.5rem 0"><span>NET CREATOR PAYOUT</span><span style="color:var(--green)">$12,815</span></div>
+          </div>
+        </div>
+        <div class="card"><div class="card-title">6-Month Revenue Chart</div><canvas id="creator-rev-6" height="240"></canvas></div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+</div><!-- /app-shell -->
+
+<!-- PUSH MODAL -->
+<div class="modal-overlay" id="push-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="document.getElementById('push-modal').classList.remove('open')">✕</button>
+    <div class="modal-title">📲 Push Message to PHX Members</div>
+    <div class="form-group"><label class="form-label">Target Audience</label><select class="form-input form-select"><option>All PHX Pass Members Near Me</option><option>PHX Native + Insider Only</option><option>PHX Insider Only</option><option>All PHX Members</option></select></div>
+    <div class="form-group"><label class="form-label">Message (90 chars max)</label><input class="form-input" placeholder="e.g. Free appetizer this weekend only — show your PHX Pass" maxlength="90"></div>
+    <div class="form-group"><label class="form-label">CTA Link</label><select class="form-input form-select"><option>Your PHX listing</option><option>Your next event</option><option>Your current perk</option><option>Custom URL</option></select></div>
+    <button class="tb-btn primary" style="width:100%">Send Push (2 of 2 this month used)</button>
+  </div>
+</div>
+
+<!-- EVENT MODAL -->
+<div class="modal-overlay" id="event-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="document.getElementById('event-modal').classList.remove('open')">✕</button>
+    <div class="modal-title">🎟️ Create Event</div>
+    <div class="form-group"><label class="form-label">Event Name</label><input class="form-input" placeholder="e.g. PHX Summer Dinner Series"></div>
+    <div class="form-group"><label class="form-label">Date & Time</label><input class="form-input" type="datetime-local"></div>
+    <div class="form-group"><label class="form-label">Venue / Location</label><input class="form-input" placeholder="Address or venue name"></div>
+    <div class="form-group"><label class="form-label">Ticket Price</label><input class="form-input" type="number" placeholder="0 for free events"></div>
+    <div class="form-group"><label class="form-label">PHX Pass Benefit</label><select class="form-input form-select"><option>None</option><option>Native Early Access</option><option>Insider — Free Entry</option><option>All Pass Holders — $5 Discount</option><option>Insider Only Event</option></select></div>
+    <div class="form-group"><label class="form-label">Description</label><textarea class="form-input form-textarea" placeholder="What's happening, who should come..."></textarea></div>
+    <button class="tb-btn primary" style="width:100%">Create Event</button>
+  </div>
+</div>
+
+<!-- PERK MODAL -->
+<div class="modal-overlay" id="perk-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="document.getElementById('perk-modal').classList.remove('open')">✕</button>
+    <div class="modal-title">💳 Add PHX Pass Perk</div>
+    <div class="form-group"><label class="form-label">Perk Name</label><input class="form-input" placeholder="e.g. Free appetizer, 15% off, Skip the line"></div>
+    <div class="form-group"><label class="form-label">Available To</label><select class="form-input form-select"><option>All PHX Pass Tiers</option><option>PHX Native + Insider Only</option><option>PHX Insider Only</option></select></div>
+    <div class="form-group"><label class="form-label">Terms & Conditions</label><input class="form-input" placeholder="e.g. Min $30 spend, 1 per visit, weekdays only"></div>
+    <div class="form-group"><label class="form-label">Valid Until</label><input class="form-input" type="date"></div>
+    <button class="tb-btn primary" style="width:100%">Activate Perk</button>
+  </div>
+</div>
+
+<script>
+// PARTNER TYPE
+function setPartnerType(type){
+  const isBiz = type==='business';
+  document.getElementById('toggle-biz').classList.toggle('active',isBiz);
+  document.getElementById('toggle-creator').classList.toggle('active',!isBiz);
+  document.getElementById('biz-chip').style.display=isBiz?'':'none';
+  document.getElementById('creator-chip').style.display=isBiz?'none':'';
+  document.getElementById('biz-nav').style.display=isBiz?'':'none';
+  document.getElementById('creator-nav').style.display=isBiz?'none':'';
+  document.getElementById('biz-plan').style.display=isBiz?'':'none';
+  document.getElementById('creator-plan').style.display=isBiz?'none':'';
+  // activate default view
+  if(isBiz){showView('b-overview');document.getElementById('page-title').textContent='Business Overview'}
+  else{showView('c-overview');document.getElementById('page-title').textContent='Creator Overview'}
+  // reset nav items
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.querySelector(`[onclick="showView('${isBiz?'b':'c'}-overview')"]`)?.classList.add('active');
+}
+
+// VIEW SWITCHING
+function showView(id){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  const el=document.getElementById('v-'+id);
+  if(el)el.classList.add('active');
+  document.querySelector(`[onclick="showView('${id}')"]`)?.classList.add('active');
+  const titles={
+    'b-overview':'Business Overview','b-profile':'My Listing','b-perks':'PHX Pass Perks',
+    'b-events':'Events & Promotions','b-analytics':'Analytics','b-messages':'Messages','b-shop':'Commerce & Orders','b-billing':'Billing',
+    'c-overview':'Creator Overview','c-content':'Content Library','c-fans':'Fan Database',
+    'c-events':'My Events','c-shop':'Shop & Merch','c-analytics':'Analytics','c-billing':'Revenue'
+  };
+  document.getElementById('page-title').textContent=titles[id]||id;
+}
+
+// CHARTS
+window.addEventListener('load',()=>{
+  if(!window.Chart)return;
+  const defaults={responsive:true,plugins:{legend:{display:false}},scales:{x:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#6B7280',font:{size:10}}},y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#6B7280',font:{size:10}}}}};
+
+  const tc=document.getElementById('traffic-chart');
+  if(tc)new Chart(tc,{type:'line',data:{labels:['May 1','May 8','May 15','May 22','Jun 1','Jun 8'],datasets:[{data:[18,24,31,28,40,49],borderColor:'#F97316',backgroundColor:'rgba(249,115,22,.1)',fill:true,tension:.4}]},options:{...defaults}});
+
+  const btc=document.getElementById('biz-traffic');
+  if(btc)new Chart(btc,{type:'bar',data:{labels:['Jan','Feb','Mar','Apr','May','Jun'],datasets:[{label:'Member Visits',data:[41,58,79,124,199,312],backgroundColor:'rgba(249,115,22,.7)',borderRadius:4}]},options:{...defaults,plugins:{legend:{labels:{color:'#6B7280',font:{size:10}}}}}});
+
+  const bdc=document.getElementById('biz-demo');
+  if(bdc)new Chart(bdc,{type:'doughnut',data:{labels:['PHX Native','PHX Insider','PHX Explorer'],datasets:[{data:[189,41,82],backgroundColor:['#F97316','#EAB308','#6B7280'],borderWidth:0}]},options:{responsive:true,plugins:{legend:{labels:{color:'#6B7280',font:{size:11}},position:'bottom'}}}});
+
+  const crc=document.getElementById('creator-revenue');
+  if(crc)new Chart(crc,{type:'line',data:{labels:['Jan','Feb','Mar','Apr','May','Jun'],datasets:[{data:[4100,5200,6800,7400,7900,9189],borderColor:'#22C55E',backgroundColor:'rgba(34,197,94,.1)',fill:true,tension:.4,label:'MRR'}]},options:{...defaults,plugins:{legend:{labels:{color:'#6B7280',font:{size:10}}}}}});
+
+  const cr6=document.getElementById('creator-rev-6');
+  if(cr6)new Chart(cr6,{type:'bar',data:{labels:['Jan','Feb','Mar','Apr','May','Jun'],datasets:[{label:'Total Revenue',data:[6200,7800,9400,11200,13500,16000],backgroundColor:'rgba(34,197,94,.7)',borderRadius:4}]},options:{...defaults,plugins:{legend:{labels:{color:'#6B7280',font:{size:10}}}}}});
+});
+
+// COMMERCE: Vendor type switcher
+var currentVendorType = 'fashion';
+var currentShopTab = 'products';
+
+function setVendorType(type) {
+  currentVendorType = type;
+  document.querySelectorAll('.shop-type-pill').forEach(p => p.classList.remove('active'));
+  var pill = document.getElementById('st-' + type);
+  if (pill) pill.classList.add('active');
+  document.querySelectorAll('.svc-section').forEach(s => s.classList.remove('active'));
+  var sec = document.getElementById('svc-' + type);
+  if (sec) sec.classList.add('active');
+  // Show correct sub-tab panel within the new section
+  setShopTab(currentShopTab, true);
+}
+
+function setShopTab(tab, noToggleBtn) {
+  currentShopTab = tab;
+  if (!noToggleBtn) {
+    document.querySelectorAll('.shop-tab').forEach(t => t.classList.remove('active'));
+    var btn = document.getElementById('stab-' + tab);
+    if (btn) btn.classList.add('active');
+  }
+  // Hide all panels in current section, show correct one
+  var section = document.getElementById('svc-' + currentVendorType);
+  if (!section) return;
+  section.querySelectorAll('.shop-panel').forEach(p => p.classList.remove('active'));
+  var panel = section.querySelector('#sp-' + currentVendorType + '-' + tab);
+  if (panel) panel.classList.add('active');
+}
+
+function openShopAdd() {
+  var label = currentVendorType === 'fashion' ? 'product' :
+              currentVendorType === 'barber' ? 'service' :
+              currentVendorType === 'restaurant' ? 'menu item' : 'session/package';
+  alert('Add new ' + label + ' — full upload modal coming in next build!');
+}
+
+// LIVE KPI JITTER
+function jitter(id,base,delta){const el=document.getElementById(id);if(!el)return;setInterval(()=>{el.textContent=(base+Math.floor(Math.random()*delta)).toLocaleString()},4200)}
+jitter('k-views',1847,12);jitter('k-visits',312,4);jitter('k-redeemed',89,2);
+</script>
+<script src="shared.js"></script>
+<script src="tour.js"></script>
+</body>
+</html>
