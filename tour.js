@@ -150,6 +150,21 @@
     setTimeout(function () { drawOverlay(el); positionTooltip(el, step); }, 350);
   }
 
+  /* Cross-browser rounded rect (replaces ctx.roundRect which is Chrome 99+ only) */
+  function drawRoundRect(c, x, y, w, h, r) {
+    c.beginPath();
+    c.moveTo(x + r, y);
+    c.lineTo(x + w - r, y);
+    c.arcTo(x + w, y,     x + w, y + r,     r);
+    c.lineTo(x + w, y + h - r);
+    c.arcTo(x + w, y + h, x + w - r, y + h, r);
+    c.lineTo(x + r, y + h);
+    c.arcTo(x,     y + h, x,     y + h - r, r);
+    c.lineTo(x,     y + r);
+    c.arcTo(x,     y,     x + r, y,         r);
+    c.closePath();
+  }
+
   function drawOverlay(el) {
     var W = window.innerWidth, H = window.innerHeight;
     canvas.width = W; canvas.height = H;
@@ -161,16 +176,17 @@
     ctx.fillStyle = 'rgba(0,0,0,.8)';
     ctx.fillRect(0, 0, W, H);
 
+    var sx = r.left - pad, sy = r.top - pad;
+    var sw = r.width + pad * 2, sh = r.height + pad * 2;
+
     ctx.globalCompositeOperation = 'destination-out';
-    ctx.beginPath();
-    ctx.roundRect(r.left - pad, r.top - pad, r.width + pad * 2, r.height + pad * 2, 12);
+    drawRoundRect(ctx, sx, sy, sw, sh, 12);
     ctx.fill();
     ctx.globalCompositeOperation = 'source-over';
 
     ctx.strokeStyle = 'rgba(249,115,22,.6)';
     ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.roundRect(r.left - pad, r.top - pad, r.width + pad * 2, r.height + pad * 2, 12);
+    drawRoundRect(ctx, sx, sy, sw, sh, 12);
     ctx.stroke();
   }
 
