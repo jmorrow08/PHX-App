@@ -33,8 +33,7 @@
         }).join('') +
       '</div>' +
       '<span class="demo-nav-divider"></span>' +
-      /* PRODUCTION: replace ../index.html with your Plug City Vercel URL */
-      '<a href="../index.html" class="demo-nav-switch" id="demo-other-app">← Plug City</a>' +
+      '<a href="https://plug-city-records.vercel.app" class="demo-nav-switch" id="demo-other-app">← Plug City</a>' +
       '<button class="demo-nav-close" aria-label="Close demo bar" ' +
         'onclick="document.getElementById(\'demo-nav\').style.display=\'none\'">✕</button>' +
     '</div>';
