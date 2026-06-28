@@ -8,6 +8,7 @@
 <meta name="theme-color" content="#F97316">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 body{background:#07070F;color:#F1F1F8;font-family:'Inter',-apple-system,sans-serif;min-height:100vh;overflow-x:hidden}
@@ -918,6 +919,41 @@ function showView(id) {
   if (titleEl) titleEl.textContent = titles[id] || id;
 }
 
+// ── SUPABASE ────────────────────────────────────────────────────────────
+var _sb = supabase.createClient(
+  'https://dnzvtathfpjelffjnqrc.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRuenZ0YXRoZnBqZWxmZmpucXJjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI2MTMyODksImV4cCI6MjA5ODE4OTI4OX0.0X7C5UYnQCAB__opnWTCUC1uoAt5AZcmbmfNXpvlnQg'
+);
+
+// Track key → Supabase UUID
+var TRACK_IDS = {
+  'phx':             '00000000-0000-0000-0000-000000000101',
+  'against-all-odds':'00000000-0000-0000-0000-000000000102',
+  'hadouken':        '00000000-0000-0000-0000-000000000103',
+  'survive':         '00000000-0000-0000-0000-000000000104',
+  'ayatollah':       '00000000-0000-0000-0000-000000000105'
+};
+
+// Generate a UUID v4
+function uuidv4() {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    var r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
+
+// Persist a guest UUID per browser so the same device can't spam
+function getGuestId() {
+  var key = 'phx_guest_id';
+  var id = localStorage.getItem(key);
+  if (!id) { id = uuidv4(); localStorage.setItem(key, id); }
+  return id;
+}
+
+// One session ID per page load — deduplicates the same track within one visit
+var SESSION_ID = Math.random().toString(36).slice(2) + Date.now().toString(36);
+
 // ── STREAM TRACKING (30-second threshold) ─────────────────────────────
 var streamData = {
   currentTrack: 'phx',
@@ -933,6 +969,22 @@ var streamData = {
     'ayatollah': 12800
   }
 };
+
+// Load real stream counts from Supabase on startup
+function loadStreamCounts() {
+  _sb.from('tracks')
+    .select('id, stream_count')
+    .then(function(res) {
+      if (res.error || !res.data) return;
+      var byId = {};
+      res.data.forEach(function(t){ byId[t.id] = t.stream_count; });
+      Object.keys(TRACK_IDS).forEach(function(key) {
+        var uuid = TRACK_IDS[key];
+        if (byId[uuid] != null) streamData.streamCounts[key] = byId[uuid];
+      });
+      updateStreamDisplays(streamData.currentTrack);
+    });
+}
 
 function startStreamTimer(trackId) {
   clearStreamTimer();
@@ -964,6 +1016,19 @@ function countStream(trackId) {
   if (indicator) {
     indicator.textContent = '✓ Stream counted';
     setTimeout(function(){ indicator.style.display = 'none'; }, 2000);
+  }
+
+  // Write to Supabase
+  var uuid = TRACK_IDS[trackId];
+  if (uuid) {
+    _sb.rpc('record_stream', {
+      p_track_id:   uuid,
+      p_user_id:    getGuestId(),
+      p_session_id: SESSION_ID + '-' + trackId,
+      p_user_tier:  'native'
+    }).then(function(res) {
+      if (res.error) console.warn('stream RPC error:', res.error.message);
+    });
   }
 }
 
@@ -1097,6 +1162,9 @@ window.addEventListener('load', function() {
     });
   }
 });
+
+// Load live stream counts from Supabase
+loadStreamCounts();
 
 // ── NOTIFY ME BUTTONS ──────────────────────────────────────────────────
 document.querySelectorAll('.cs-notify-btn').forEach(function(btn) {
