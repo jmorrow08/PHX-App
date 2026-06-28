@@ -454,42 +454,9 @@ body{background:#07070F;color:#F1F1F8;font-family:'Inter',-apple-system,sans-ser
 
       <div class="grid-2">
         <div>
-          <div class="sh"><h3>City Feed</h3><a href="#">See all</a></div>
-          <div class="feed-post">
-            <div class="fp-header">
-              <div class="fp-ava" style="background:linear-gradient(135deg,var(--orange-d),var(--orange))">M</div>
-              <div class="fp-meta"><h4>Murkemz 🎤 <span class="badge badge-orange" style="font-size:.65rem">Official</span></h4><span>2 hours ago</span></div>
-            </div>
-            <div class="fp-body"><span class="hl">PHX</span> just crossed 15K streams on the app and it's only been out a few weeks. To the city — this one's for y'all. More to come. 🔥<br><br>And every stream on PHX App pays me directly — no middleman, no label cut. That's what we built this for.</div>
-            <div class="fp-actions">
-              <button class="fp-act">❤️ 847</button>
-              <button class="fp-act">💬 124</button>
-              <button class="fp-act">🔁 Share</button>
-            </div>
-          </div>
-          <div class="feed-post">
-            <div class="fp-header">
-              <div class="fp-ava" style="background:linear-gradient(135deg,var(--purple),var(--blue))">BB</div>
-              <div class="fp-meta"><h4>Bryce Breeze 📋 <span class="badge badge-orange" style="font-size:.65rem">Management</span></h4><span>Yesterday</span></div>
-            </div>
-            <div class="fp-body">PHX App founding partner spots are almost gone. 43 of 50 claimed. If your business wants to be part of this city's platform from the beginning — now is the time. PHX Eats, Drops, Cuts &amp; Events coming Q3 2026.</div>
-            <div class="fp-actions">
-              <button class="fp-act">❤️ 289</button>
-              <button class="fp-act">💬 67</button>
-              <button class="fp-act">🔗 Partner Info</button>
-            </div>
-          </div>
-          <div class="feed-post">
-            <div class="fp-header">
-              <div class="fp-ava" style="background:linear-gradient(135deg,#7C3AED,var(--orange))">M</div>
-              <div class="fp-meta"><h4>Manor PHX 👕 <span class="badge badge-purple" style="font-size:.65rem">PHX Premier</span></h4><span>2 days ago</span></div>
-            </div>
-            <div class="fp-body">PHX Drops is coming. We're the first confirmed brand partner. Desert streetwear that actually represents the city. PHX Insider members get early access when it launches. 602 forever.</div>
-            <div class="fp-actions">
-              <button class="fp-act">❤️ 731</button>
-              <button class="fp-act">💬 95</button>
-              <button class="fp-act">👕 Notify Me</button>
-            </div>
+          <div class="sh"><h3>City Feed</h3></div>
+          <div id="city-feed-container">
+            <div style="color:var(--muted);font-size:.84rem;padding:1rem 0">Loading feed…</div>
           </div>
         </div>
 
@@ -1165,50 +1132,66 @@ body{background:#07070F;color:#F1F1F8;font-family:'Inter',-apple-system,sans-ser
     <div class="view" id="v-artist-submit">
       <div class="grid-2">
         <div>
-          <div class="submit-form-card">
+          <!-- Success state -->
+          <div id="submit-success-msg" style="display:none" class="card" style="text-align:center">
+            <div style="font-size:3rem;margin-bottom:.5rem">✅</div>
+            <div style="font-size:1.1rem;font-weight:700;margin-bottom:.3rem">Track Submitted!</div>
+            <div style="font-size:.84rem;color:var(--muted);margin-bottom:1.2rem">Your track is in the review queue. You'll be notified within 24-48 hours.</div>
+            <button class="upgrade-btn" style="max-width:200px" onclick="resetSubmitForm()">Submit Another</button>
+          </div>
+          <!-- Form -->
+          <div id="submit-form-body" class="submit-form-card">
             <div class="sh" style="margin-bottom:1.2rem"><h3>Submit a New Track</h3></div>
             <div class="form-field">
               <label class="form-label">Track Title *</label>
-              <input class="form-input" type="text" placeholder="e.g. PHX (Part 2)">
+              <input class="form-input" id="track-title-input" type="text" placeholder="e.g. PHX (Part 2)">
             </div>
             <div class="form-field">
               <label class="form-label">Featuring (optional)</label>
-              <input class="form-input" type="text" placeholder="e.g. Freeway, Chris Webby">
+              <input class="form-input" id="track-feat-input" type="text" placeholder="e.g. Freeway, Chris Webby">
             </div>
             <div class="form-field">
               <label class="form-label">Produced By</label>
-              <input class="form-input" type="text" placeholder="e.g. PA. Dre">
+              <input class="form-input" id="track-prod-input" type="text" placeholder="e.g. PA. Dre">
             </div>
             <div class="form-field">
               <label class="form-label">Album / EP (optional)</label>
-              <input class="form-input" type="text" placeholder="e.g. Recess EP">
+              <input class="form-input" id="track-album-input" type="text" placeholder="e.g. Recess EP">
             </div>
             <div class="form-field">
               <label class="form-label">Release Type</label>
-              <select class="form-select">
-                <option>Single</option>
-                <option>Album track</option>
-                <option>EP track</option>
-                <option>Exclusive drop</option>
+              <select class="form-select" id="track-release-type">
+                <option value="single">Single</option>
+                <option value="album_track">Album track</option>
+                <option value="ep_track">EP track</option>
+                <option value="exclusive_drop">Exclusive drop</option>
               </select>
             </div>
             <div class="form-field">
               <label class="form-label">Tier Gate</label>
-              <select class="form-select">
-                <option>Free — all members</option>
-                <option>Native+ only ($15/mo)</option>
-                <option>Insider only ($29/mo)</option>
-                <option>Time-locked exclusive (48hr)</option>
+              <select class="form-select" id="track-tier-gate">
+                <option value="free">Free — all members</option>
+                <option value="native">Native+ only ($15/mo)</option>
+                <option value="insider">Insider only ($29/mo)</option>
+                <option value="timed">Time-locked exclusive (48hr)</option>
               </select>
             </div>
             <div class="form-field">
-              <label class="form-label">Audio File</label>
-              <div class="upload-zone">
-                <div class="upload-icon">🎵</div>
-                <div class="upload-text">Drop .mp3 or .wav here<br><span style="color:var(--orange)">or click to browse</span></div>
+              <label class="form-label">Audio File * <span id="upload-file-name" style="color:var(--green);font-size:.78rem;margin-left:.5rem"></span></label>
+              <input type="file" id="track-file-input" accept=".mp3,.wav,.ogg,.m4a,.aac" style="display:none" onchange="handleFileSelect(this)">
+              <div class="upload-zone" id="upload-zone-el" onclick="document.getElementById('track-file-input').click()">
+                <div class="upload-icon" id="upload-zone-icon">🎵</div>
+                <div class="upload-text" id="upload-zone-text">Drop .mp3 or .wav here<br><span style="color:var(--orange)">or click to browse</span></div>
+              </div>
+              <div id="upload-progress" style="display:none;margin-top:.5rem">
+                <div style="background:var(--bg4);border-radius:4px;height:6px">
+                  <div id="upload-progress-bar" style="height:6px;background:var(--orange);border-radius:4px;width:0%;transition:width .3s"></div>
+                </div>
+                <div id="upload-progress-label" style="font-size:.74rem;color:var(--muted);margin-top:.3rem">Uploading…</div>
               </div>
             </div>
-            <button class="upgrade-btn">Submit for Review</button>
+            <div id="submit-error-msg" style="display:none;color:var(--red);font-size:.82rem;margin-bottom:.75rem"></div>
+            <button class="upgrade-btn" id="track-submit-btn" onclick="submitTrack()">Submit for Review</button>
           </div>
         </div>
         <div>
@@ -1373,8 +1356,20 @@ body{background:#07070F;color:#F1F1F8;font-family:'Inter',-apple-system,sans-ser
 
     <!-- ADMIN — CONTENT -->
     <div class="view" id="v-admin-content">
+      <!-- Pending submissions — auto-loads from Supabase -->
+      <div class="card" style="margin-bottom:1.5rem">
+        <div class="sh" style="margin-bottom:.75rem">
+          <h3>Pending Review</h3>
+          <span class="badge badge-orange" id="pending-count-badge">…</span>
+          <button class="tb-btn" style="margin-left:auto;font-size:.76rem;padding:.3rem .65rem" onclick="loadPendingTracks()">↻ Refresh</button>
+        </div>
+        <div id="pending-tracks-feed">
+          <span style="color:var(--muted);font-size:.84rem">Loading…</span>
+        </div>
+      </div>
+
       <div class="card">
-        <div class="sh" style="margin-bottom:1rem"><h3>Track Catalog</h3><span class="badge badge-teal">5 live</span></div>
+        <div class="sh" style="margin-bottom:1rem"><h3>Track Catalog</h3><span class="badge badge-teal" id="live-track-count">5 live</span></div>
         <table class="data-table">
           <thead><tr><th>Title</th><th>Artist</th><th>Tier Gate</th><th>Streams</th><th>Status</th><th>Actions</th></tr></thead>
           <tbody>
@@ -1562,6 +1557,8 @@ function showView(id) {
   var titleEl = document.getElementById('page-title');
   if (titleEl) titleEl.textContent = titles[id] || id;
   if (id === 'admin-dashboard') loadAdminStreamData();
+  if (id === 'admin-content') loadPendingTracks();
+  if (id === 'home') loadCityFeed();
 }
 
 // ── ROLE SYSTEM ─────────────────────────────────────────────────────────
@@ -1787,6 +1784,18 @@ var TRACK_IDS = {
   'ayatollah':       '00000000-0000-0000-0000-000000000105'
 };
 
+// UUID → audio URL (populated on page load from Supabase)
+var TRACK_AUDIO_URLS = {};
+
+// Hidden audio element for real playback
+var PHX_AUDIO = (function() {
+  var a = document.createElement('audio');
+  a.id = 'phx-audio';
+  a.preload = 'metadata';
+  document.body.appendChild(a);
+  return a;
+}());
+
 // Generate a UUID v4
 function uuidv4() {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
@@ -1823,14 +1832,17 @@ var streamData = {
   }
 };
 
-// Load real stream counts from Supabase on startup
+// Load real stream counts + audio URLs from Supabase on startup
 function loadStreamCounts() {
   _sb.from('tracks')
-    .select('id, stream_count')
+    .select('id, stream_count, audio_url, status')
     .then(function(res) {
       if (res.error || !res.data) return;
       var byId = {};
-      res.data.forEach(function(t){ byId[t.id] = t.stream_count; });
+      res.data.forEach(function(t) {
+        byId[t.id] = t.stream_count;
+        if (t.audio_url) TRACK_AUDIO_URLS[t.id] = t.audio_url;
+      });
       Object.keys(TRACK_IDS).forEach(function(key) {
         var uuid = TRACK_IDS[key];
         if (byId[uuid] != null) streamData.streamCounts[key] = byId[uuid];
@@ -1928,8 +1940,10 @@ function togglePlay() {
 
   if (isPlaying) {
     startStreamTimer(streamData.currentTrack);
+    if (PHX_AUDIO && PHX_AUDIO.src) PHX_AUDIO.play().catch(function(){});
   } else {
     clearStreamTimer();
+    if (PHX_AUDIO) PHX_AUDIO.pause();
   }
 }
 
@@ -1986,6 +2000,17 @@ function playTrack(el, title, artist, feat, album, duration, trackId, streamCoun
   // Auto-play
   streamData.playing = true;
   document.querySelectorAll('.ctrl-btn.play, .mp-btn.play').forEach(function(b){ b.textContent = '⏸'; });
+
+  // Real audio if available for this track
+  var uuid = TRACK_IDS[trackId];
+  var audioUrl = uuid ? TRACK_AUDIO_URLS[uuid] : null;
+  if (audioUrl && PHX_AUDIO) {
+    PHX_AUDIO.src = audioUrl;
+    PHX_AUDIO.play().catch(function(e){ console.log('Audio blocked:', e.message); });
+  } else if (PHX_AUDIO) {
+    PHX_AUDIO.pause();
+    PHX_AUDIO.src = '';
+  }
 
   // Start stream timer (30s threshold)
   startStreamTimer(trackId);
@@ -2086,8 +2111,280 @@ async function loadAdminStreamData() {
   }
 }
 
-// Load live stream counts from Supabase
+// Load live stream counts + city feed on startup
 loadStreamCounts();
+loadCityFeed();
+
+// ── CITY FEED (from Supabase feed_posts) ────────────────────────────────
+var _cityFeedLoaded = false;
+async function loadCityFeed() {
+  if (_cityFeedLoaded) return;
+  var container = document.getElementById('city-feed-container');
+  if (!container || !_sb) return;
+  var { data, error } = await _sb
+    .from('feed_posts')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(20);
+  if (error || !data) return;
+  var postTypeIcon = { update:'📣', drop:'🔥', event:'📅', spotlight:'🎤', poll:'📊' };
+  var avatarBg = { admin:'linear-gradient(135deg,#F97316,#EAB308)', artist:'linear-gradient(135deg,#7C3AED,#F97316)', default:'linear-gradient(135deg,#3B82F6,#14B8A6)' };
+  var html = data.map(function(p) {
+    var d = new Date(p.created_at);
+    var diff = Math.floor((Date.now() - d.getTime()) / 60000);
+    var when = diff < 60 ? diff + 'm ago' : diff < 1440 ? Math.floor(diff/60) + 'h ago' : Math.floor(diff/1440) + 'd ago';
+    var bg = avatarBg[p.author_role] || avatarBg.default;
+    var badge = p.author_role === 'admin' ? '<span class="badge badge-orange" style="font-size:.65rem">PHX</span>' :
+                p.author_role === 'artist' ? '<span class="badge badge-orange" style="font-size:.65rem">Artist</span>' : '';
+    return '<div class="feed-post">' +
+      '<div class="fp-header">' +
+        '<div class="fp-ava" style="background:' + bg + '">' + (p.author_avatar||'?') + '</div>' +
+        '<div class="fp-meta"><h4>' + p.author_name + ' ' + badge + '</h4><span>' + when + '</span></div>' +
+      '</div>' +
+      '<div class="fp-body">' + p.content + '</div>' +
+      '<div class="fp-actions">' +
+        '<button class="fp-act" onclick="likeFeedPost(\'' + p.id + '\', this)">❤️ ' + p.likes_count + '</button>' +
+        '<button class="fp-act">🔁 Share</button>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+  container.innerHTML = html || '<div style="color:var(--muted);font-size:.84rem;padding:1rem 0">No posts yet.</div>';
+  _cityFeedLoaded = true;
+}
+
+async function likeFeedPost(postId, btn) {
+  btn.disabled = true;
+  var cur = parseInt(btn.textContent.replace(/[^0-9]/g,'')) || 0;
+  await _sb.from('feed_posts').update({ likes_count: cur + 1 }).eq('id', postId);
+  btn.textContent = '❤️ ' + (cur + 1);
+}
+
+// ── TRACK SUBMISSION ────────────────────────────────────────────────────
+function handleFileSelect(input) {
+  var file = input.files[0];
+  if (!file) return;
+  var nameEl = document.getElementById('upload-file-name');
+  var iconEl = document.getElementById('upload-zone-icon');
+  var textEl = document.getElementById('upload-zone-text');
+  if (nameEl) nameEl.textContent = '✓ ' + file.name;
+  if (iconEl) iconEl.textContent = '✅';
+  if (textEl) textEl.innerHTML = '<strong>' + file.name + '</strong><br><span style="color:var(--muted);font-size:.78rem">' + (file.size / 1048576).toFixed(1) + ' MB</span>';
+}
+
+async function submitTrack() {
+  var title    = (document.getElementById('track-title-input') || {}).value || '';
+  var feat     = (document.getElementById('track-feat-input')  || {}).value || '';
+  var prod     = (document.getElementById('track-prod-input')  || {}).value || '';
+  var album    = (document.getElementById('track-album-input') || {}).value || '';
+  var relType  = (document.getElementById('track-release-type')|| {}).value || 'single';
+  var tierGate = (document.getElementById('track-tier-gate')   || {}).value || 'free';
+  var fileInput = document.getElementById('track-file-input');
+  var file = fileInput && fileInput.files[0];
+  var errEl = document.getElementById('submit-error-msg');
+  var btn   = document.getElementById('track-submit-btn');
+
+  title = title.trim();
+  if (!title) { showSubmitError('Track title is required.'); return; }
+  if (!file)  { showSubmitError('Please select an audio file.'); return; }
+  if (errEl) errEl.style.display = 'none';
+
+  btn.textContent = 'Uploading…';
+  btn.disabled = true;
+
+  // Show progress bar
+  var progWrap = document.getElementById('upload-progress');
+  var progBar  = document.getElementById('upload-progress-bar');
+  var progLbl  = document.getElementById('upload-progress-label');
+  if (progWrap) progWrap.style.display = 'block';
+  if (progBar)  progBar.style.width = '20%';
+  if (progLbl)  progLbl.textContent = 'Uploading audio…';
+
+  // Build safe filename
+  var gid = getGuestId();
+  var safeTitle = title.toLowerCase().replace(/[^a-z0-9]/g,'-').slice(0,40);
+  var ext = file.name.split('.').pop().toLowerCase() || 'mp3';
+  var fileName = gid.slice(0,8) + '/' + Date.now() + '_' + safeTitle + '.' + ext;
+
+  // Upload to Supabase Storage
+  var { data: uploadData, error: uploadErr } = await _sb.storage
+    .from('track-audio')
+    .upload(fileName, file, { contentType: file.type, upsert: false });
+
+  if (uploadErr) {
+    if (progBar) progBar.style.width = '0%';
+    btn.textContent = 'Submit for Review';
+    btn.disabled = false;
+    showSubmitError('Upload failed: ' + uploadErr.message);
+    return;
+  }
+
+  if (progBar) progBar.style.width = '70%';
+  if (progLbl) progLbl.textContent = 'Saving track info…';
+
+  // Get public URL
+  var { data: urlData } = _sb.storage.from('track-audio').getPublicUrl(fileName);
+  var audioUrl = urlData ? urlData.publicUrl : null;
+
+  // Exclusive tier mapping
+  var excMap = { free: null, native: 'native', insider: 'insider', timed: 'native' };
+  var excTier = excMap[tierGate] || null;
+  var excUntil = (tierGate === 'timed') ? new Date(Date.now() + 172800000).toISOString() : null;
+
+  // Artist ID — use current role's artist (Murkemz placeholder until auth is live)
+  var artistId = '00000000-0000-0000-0000-000000000001';
+
+  var { error: insertErr } = await _sb.from('tracks').insert({
+    title:          title,
+    featuring:      feat || null,
+    producer:       prod || null,
+    artist_id:      artistId,
+    release_type:   relType,
+    audio_url:      audioUrl,
+    exclusive_tier: excTier,
+    exclusive_until:excUntil,
+    status:         'pending',
+    is_active:      false,
+    duration_seconds: 0,
+    stream_count:   0
+  });
+
+  if (insertErr) {
+    if (progBar) progBar.style.width = '0%';
+    btn.textContent = 'Submit for Review';
+    btn.disabled = false;
+    showSubmitError('Submission failed: ' + insertErr.message);
+    return;
+  }
+
+  if (progBar) progBar.style.width = '100%';
+  if (progLbl) progLbl.textContent = 'Done!';
+
+  // Show success
+  setTimeout(function() {
+    var formEl = document.getElementById('submit-form-body');
+    var succEl = document.getElementById('submit-success-msg');
+    if (formEl) formEl.style.display = 'none';
+    if (succEl) succEl.style.display = 'block';
+  }, 500);
+}
+
+function showSubmitError(msg) {
+  var errEl = document.getElementById('submit-error-msg');
+  if (errEl) { errEl.textContent = msg; errEl.style.display = 'block'; }
+}
+
+function resetSubmitForm() {
+  var formEl = document.getElementById('submit-form-body');
+  var succEl = document.getElementById('submit-success-msg');
+  var inputs = ['track-title-input','track-feat-input','track-prod-input','track-album-input'];
+  inputs.forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  var fi = document.getElementById('track-file-input');
+  if (fi) fi.value = '';
+  var nameEl = document.getElementById('upload-file-name');
+  var iconEl = document.getElementById('upload-zone-icon');
+  var textEl = document.getElementById('upload-zone-text');
+  if (nameEl) nameEl.textContent = '';
+  if (iconEl) iconEl.textContent = '🎵';
+  if (textEl) textEl.innerHTML = 'Drop .mp3 or .wav here<br><span style="color:var(--orange)">or click to browse</span>';
+  var progWrap = document.getElementById('upload-progress');
+  if (progWrap) progWrap.style.display = 'none';
+  var errEl = document.getElementById('submit-error-msg');
+  if (errEl) errEl.style.display = 'none';
+  var btn = document.getElementById('track-submit-btn');
+  if (btn) { btn.textContent = 'Submit for Review'; btn.disabled = false; }
+  if (formEl) formEl.style.display = 'block';
+  if (succEl) succEl.style.display = 'none';
+}
+
+// ── ADMIN: PENDING TRACKS ───────────────────────────────────────────────
+async function loadPendingTracks() {
+  var feed  = document.getElementById('pending-tracks-feed');
+  var badge = document.getElementById('pending-count-badge');
+  if (!feed || !_sb) return;
+  feed.innerHTML = '<span style="color:var(--muted);font-size:.84rem">Loading…</span>';
+
+  var { data, error } = await _sb
+    .from('tracks')
+    .select('id, title, featuring, producer, release_type, audio_url, status, submitted_at, artists(name)')
+    .eq('status', 'pending')
+    .order('submitted_at', { ascending: true });
+
+  var liveRes = await _sb.from('tracks').select('id', { count: 'exact' }).eq('status', 'live');
+  if (liveRes.count !== null) {
+    var liveEl = document.getElementById('live-track-count');
+    if (liveEl) liveEl.textContent = liveRes.count + ' live';
+  }
+
+  if (badge) badge.textContent = (data ? data.length : 0) + ' waiting';
+
+  if (error || !data || !data.length) {
+    feed.innerHTML = '<div style="color:var(--muted);font-size:.84rem;padding:.5rem 0">' +
+      (error ? 'Error loading.' : '✓ No pending submissions.') + '</div>';
+    return;
+  }
+
+  var html = data.map(function(t) {
+    var artist = t.artists ? t.artists.name : 'Unknown';
+    var d = new Date(t.submitted_at);
+    var when = d.toLocaleDateString('en-US',{month:'short',day:'numeric'}) + ' at ' +
+               d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true});
+    var hasAudio = !!t.audio_url;
+    return '<div style="display:flex;align-items:center;gap:.75rem;padding:.8rem;background:var(--bg4);border-radius:10px;border:1px solid var(--border);margin-bottom:.5rem;flex-wrap:wrap">' +
+      '<div style="flex:1;min-width:180px">' +
+        '<div style="font-size:.88rem;font-weight:600">' + t.title + (t.featuring ? ' <span style="color:var(--muted)">ft. ' + t.featuring + '</span>' : '') + '</div>' +
+        '<div style="font-size:.74rem;color:var(--muted);margin-top:.15rem">' + artist + ' · ' + (t.release_type||'single') + ' · submitted ' + when + '</div>' +
+        (t.producer ? '<div style="font-size:.72rem;color:var(--muted)">Prod. ' + t.producer + '</div>' : '') +
+      '</div>' +
+      (hasAudio ? '<a href="' + t.audio_url + '" target="_blank" class="tb-btn" style="font-size:.74rem;padding:.3rem .6rem;color:var(--teal);border-color:rgba(20,184,166,.3)">▶ Preview</a>' : '') +
+      '<button class="tb-btn" style="font-size:.74rem;padding:.3rem .65rem;color:var(--green);border-color:rgba(34,197,94,.3)" onclick="approveTrack(\'' + t.id + '\', this)">✓ Approve</button>' +
+      '<button class="tb-btn" style="font-size:.74rem;padding:.3rem .65rem;color:var(--red);border-color:rgba(239,68,68,.3)" onclick="rejectTrack(\'' + t.id + '\', this)">✕ Reject</button>' +
+    '</div>';
+  }).join('');
+  feed.innerHTML = html;
+}
+
+async function approveTrack(id, btn) {
+  btn.disabled = true;
+  btn.textContent = 'Approving…';
+  var { error } = await _sb.from('tracks').update({ status: 'live', is_active: true }).eq('id', id);
+  if (error) { btn.textContent = 'Error'; return; }
+  var row = btn.closest('div[style*="background:var(--bg4)"]');
+  if (row) {
+    row.style.borderColor = 'rgba(34,197,94,.4)';
+    row.style.background = 'rgba(34,197,94,.06)';
+    row.querySelector('div').insertAdjacentHTML('beforeend',
+      '<span style="display:block;font-size:.74rem;color:var(--green);font-weight:600;margin-top:.2rem">✓ Approved — now live</span>');
+    btn.style.display = 'none';
+    var rejectBtn = row.querySelector('[onclick*="rejectTrack"]');
+    if (rejectBtn) rejectBtn.style.display = 'none';
+  }
+  // Refresh pending count badge
+  loadPendingTracks();
+}
+
+async function rejectTrack(id, btn) {
+  var reason = prompt('Reason for rejection (optional, shown to artist):') || '';
+  btn.disabled = true;
+  btn.textContent = 'Rejecting…';
+  var { error } = await _sb.from('tracks')
+    .update({ status: 'rejected', rejection_reason: reason || null })
+    .eq('id', id);
+  if (error) { btn.textContent = 'Error'; return; }
+  var row = btn.closest('div[style*="background:var(--bg4)"]');
+  if (row) {
+    row.style.borderColor = 'rgba(239,68,68,.4)';
+    row.style.background = 'rgba(239,68,68,.06)';
+    row.querySelector('div').insertAdjacentHTML('beforeend',
+      '<span style="display:block;font-size:.74rem;color:var(--red);font-weight:600;margin-top:.2rem">✕ Rejected' + (reason ? ' — ' + reason : '') + '</span>');
+    btn.style.display = 'none';
+    var approveBtn = row.querySelector('[onclick*="approveTrack"]');
+    if (approveBtn) approveBtn.style.display = 'none';
+  }
+  loadPendingTracks();
+}
 
 // ── NOTIFY ME BUTTONS ──────────────────────────────────────────────────
 document.querySelectorAll('.cs-notify-btn').forEach(function(btn) {
