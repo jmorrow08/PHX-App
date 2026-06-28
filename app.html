@@ -343,8 +343,9 @@ body{background:#07070F;color:#F1F1F8;font-family:'Inter',-apple-system,sans-ser
 .section-tag{font-size:.68rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:.2rem .6rem;border-radius:100px;margin-left:.4rem}
 .tag-super{background:rgba(124,58,237,.15);color:var(--purple-l);border:1px solid rgba(124,58,237,.25)}
 .admin-alert{background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.2);border-radius:10px;padding:.8rem 1rem;display:flex;align-items:center;gap:.75rem;font-size:.82rem;margin-bottom:1rem;color:var(--red)}
+.admin-section-label{font-size:.7rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:.5rem}
 </style>
-  <link rel="stylesheet" href="shared.css">
+  <link rel="stylesheet" href="shared.css?v=2">
 </head>
 <body>
 
@@ -1302,6 +1303,18 @@ body{background:#07070F;color:#F1F1F8;font-family:'Inter',-apple-system,sans-ser
           <div style="margin-top:1rem;font-size:.78rem;color:var(--muted)">158 paying members · $3,705 MRR</div>
         </div>
       </div>
+
+      <!-- LIVE STREAM ACTIVITY — pulls real Supabase data -->
+      <div class="card" style="margin-top:1.5rem">
+        <div class="sh" style="margin-bottom:.75rem;align-items:center">
+          <h3>Live Stream Activity</h3>
+          <span class="badge badge-teal" style="margin-left:.5rem">● Live</span>
+          <button class="tb-btn" style="margin-left:auto;font-size:.76rem;padding:.3rem .65rem" onclick="loadAdminStreamData()">↻ Refresh</button>
+        </div>
+        <div id="admin-stream-feed" style="min-height:80px;display:flex;align-items:center;justify-content:center">
+          <span style="color:var(--muted);font-size:.84rem">Loading…</span>
+        </div>
+      </div>
     </div>
 
     <!-- ADMIN — MEMBERS -->
@@ -1548,6 +1561,7 @@ function showView(id) {
   if (btn && !btn.classList.contains('nav-soon-item')) btn.classList.add('active');
   var titleEl = document.getElementById('page-title');
   if (titleEl) titleEl.textContent = titles[id] || id;
+  if (id === 'admin-dashboard') loadAdminStreamData();
 }
 
 // ── ROLE SYSTEM ─────────────────────────────────────────────────────────
@@ -2001,6 +2015,76 @@ window.addEventListener('load', function() {
     });
   }
 });
+
+// ── ADMIN: LIVE STREAM ACTIVITY ───────────────────────────────────────
+async function loadAdminStreamData() {
+  var feed = document.getElementById('admin-stream-feed');
+  if (!feed || !_sb) return;
+  feed.innerHTML = '<span style="color:var(--muted);font-size:.84rem">Loading…</span>';
+
+  // Pull total streams from cached track counters
+  var trackRes = await _sb.from('tracks').select('title,stream_count,artist_id,artists(name)');
+  if (trackRes.data) {
+    var total = trackRes.data.reduce(function(s, t){ return s + (t.stream_count || 0); }, 0);
+    var kpiEl = document.getElementById('admin-streams-today');
+    if (kpiEl) kpiEl.textContent = total >= 1000 ? (total/1000).toFixed(1)+'K' : total;
+
+    // Top tracks block
+    var sorted = trackRes.data.slice().sort(function(a,b){ return (b.stream_count||0)-(a.stream_count||0); });
+    var topHtml = '<div style="margin-bottom:1rem"><div class="admin-section-label">Top Tracks (All-Time)</div>';
+    sorted.forEach(function(t, i) {
+      var pct = total > 0 ? Math.round((t.stream_count||0)/total*100) : 0;
+      var artistName = t.artists ? t.artists.name : '—';
+      var streams = (t.stream_count||0) >= 1000 ? ((t.stream_count||0)/1000).toFixed(1)+'K' : (t.stream_count||0);
+      topHtml += '<div style="padding:.45rem 0;border-bottom:1px solid var(--border)">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.3rem">' +
+          '<span style="font-size:.84rem;font-weight:600">' + (i+1) + '. ' + t.title + '</span>' +
+          '<span style="font-size:.82rem;color:var(--teal);font-weight:700">' + streams + '</span>' +
+        '</div>' +
+        '<div style="display:flex;align-items:center;gap:.5rem">' +
+          '<div style="flex:1;height:5px;background:var(--bg4);border-radius:4px">' +
+            '<div style="width:' + pct + '%;height:5px;background:var(--teal);border-radius:4px;transition:width .4s"></div>' +
+          '</div>' +
+          '<span style="font-size:.7rem;color:var(--muted);min-width:28px">' + pct + '%</span>' +
+        '</div>' +
+        '<div style="font-size:.72rem;color:var(--muted)">' + artistName + '</div>' +
+      '</div>';
+    });
+    topHtml += '</div>';
+
+    // Recent stream events
+    var evRes = await _sb.from('stream_events')
+      .select('id,listened_at,user_tier,track_id,tracks(title)')
+      .order('listened_at', { ascending: false })
+      .limit(20);
+
+    var recentHtml = '<div><div class="admin-section-label">Recent Streams</div>';
+    if (evRes.data && evRes.data.length) {
+      var tierColor = { native:'var(--orange)', insider:'var(--gold)', explorer:'var(--muted)' };
+      var tierLabel = { native:'🔥 Native', insider:'⭐ Insider', explorer:'Explorer' };
+      evRes.data.forEach(function(e) {
+        var title = e.tracks ? e.tracks.title : 'Unknown Track';
+        var tier = e.user_tier || 'explorer';
+        var d = new Date(e.listened_at);
+        var timeStr = d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true}) +
+                      ' · ' + d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+        recentHtml += '<div style="display:flex;align-items:center;gap:.6rem;padding:.45rem 0;border-bottom:1px solid var(--border);font-size:.82rem">' +
+          '<span>🎵</span>' +
+          '<span style="flex:1;font-weight:500">' + title + '</span>' +
+          '<span style="color:' + (tierColor[tier]||'var(--muted)') + ';font-size:.74rem;font-weight:600;white-space:nowrap">' + (tierLabel[tier]||tier) + '</span>' +
+          '<span style="color:var(--muted);font-size:.7rem;white-space:nowrap;margin-left:.4rem">' + timeStr + '</span>' +
+        '</div>';
+      });
+    } else {
+      recentHtml += '<div style="color:var(--muted);font-size:.83rem;padding:.75rem 0">No stream events recorded yet.</div>';
+    }
+    recentHtml += '</div>';
+
+    feed.innerHTML = topHtml + recentHtml;
+  } else {
+    feed.innerHTML = '<span style="color:var(--red);font-size:.84rem">Error loading data.</span>';
+  }
+}
 
 // Load live stream counts from Supabase
 loadStreamCounts();

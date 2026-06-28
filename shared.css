@@ -372,3 +372,122 @@ body { padding-bottom: 52px; }
     font-size: clamp(3.5rem, 20vw, 5rem) !important;
   }
 }
+
+/* ── APP.HTML MOBILE — New elements ───────────────────────────── */
+@media (max-width: 768px) {
+
+  /* Topbar: shrink CTA text on small screens */
+  #topbar-cta { font-size: .76rem !important; padding: .4rem .7rem !important; }
+  #plays-left-badge { font-size: .72rem !important; padding: .3rem .55rem !important; }
+  .topbar-right { gap: .4rem !important; }
+
+  /* Music stats bar: stack to 1-col */
+  .music-stats-bar {
+    grid-template-columns: 1fr !important;
+    gap: .6rem !important;
+  }
+  .mstat { padding: .75rem 1rem !important; }
+
+  /* Expanded player: stack art + info vertically */
+  .music-player-expanded {
+    padding: 1rem !important;
+  }
+  .np-body {
+    flex-direction: column !important;
+    align-items: center !important;
+    text-align: center !important;
+    gap: .75rem !important;
+  }
+  .np-art-big {
+    width: 130px !important;
+    height: 130px !important;
+    font-size: 3.5rem !important;
+    flex-shrink: 0 !important;
+  }
+  .np-details { min-width: unset !important; width: 100% !important; }
+  .np-side-actions {
+    flex-direction: row !important;
+    justify-content: center !important;
+    gap: 1rem !important;
+  }
+  .np-title-big { font-size: 1.2rem !important; }
+
+  /* Controls: larger tap targets */
+  .np-controls { gap: .3rem !important; flex-wrap: wrap !important; justify-content: center !important; }
+  .ctrl-btn { min-width: 44px !important; min-height: 44px !important; font-size: 1rem !important; }
+  .ctrl-btn.play { min-width: 54px !important; min-height: 54px !important; font-size: 1.4rem !important; }
+
+  /* Queue: tighter on mobile */
+  .queue-section { margin-top: .75rem !important; padding: .75rem !important; }
+  .track-row { padding: .65rem .5rem !important; }
+  .track-time { display: none !important; } /* hide duration, show streams */
+
+  /* Fan payout card */
+  .fan-payout-card { padding: 1rem !important; }
+  .fan-payout-title { font-size: .9rem !important; }
+
+  /* Artist stat grid: 2-col on tablet */
+  .a-stat-grid { grid-template-columns: repeat(2, 1fr) !important; }
+
+  /* Track management rows: hide earnings col */
+  .tm-earnings { display: none !important; }
+
+  /* Admin KPI grid: 2-col */
+  .admin-kpi-grid { grid-template-columns: repeat(2, 1fr) !important; }
+  .admin-kpi-val { font-size: 1.4rem !important; }
+
+  /* System settings: stack value above button */
+  .sys-setting-row { flex-wrap: wrap !important; gap: .5rem !important; }
+  .sys-setting-val { margin-right: 0 !important; }
+
+  /* Submit form */
+  .submit-form-card { padding: 1rem !important; }
+  .upload-zone { padding: 1.2rem !important; }
+
+  /* Earnings hero */
+  .earnings-main { font-size: 2rem !important; }
+
+  /* Artist spotlight on music view */
+  .artist-banner { flex-direction: column !important; align-items: flex-start !important; }
+
+  /* Pass chip in sidebar */
+  .pass-chip { margin: .6rem .8rem !important; }
+
+  /* Demo bar: smaller chips, horizontally scrollable */
+  #demo-nav .demo-nav-inner {
+    padding: .4rem .6rem !important;
+    gap: .3rem !important;
+  }
+  .demo-nav-btn, .demo-role-btn {
+    font-size: .72rem !important;
+    padding: .3rem .55rem !important;
+  }
+  .demo-nav-label { display: none !important; }
+
+  /* Mini player: ensure full-width */
+  .mini-player {
+    padding: .5rem .75rem !important;
+  }
+  .mp-time { display: none !important; }
+
+  /* Upgrade gate card */
+  .upgrade-gate-card { padding: 1.2rem !important; }
+}
+
+@media (max-width: 480px) {
+  /* Single col everything on phone */
+  .admin-kpi-grid { grid-template-columns: 1fr !important; }
+  .a-stat-grid { grid-template-columns: 1fr !important; }
+
+  /* Topbar: hide bell, just show CTA */
+  .topbar-right .tb-btn:not(#topbar-cta):not(#plays-left-badge) { display: none !important; }
+
+  /* Music player: even tighter */
+  .np-art-big { width: 100px !important; height: 100px !important; font-size: 2.8rem !important; }
+  .music-player-expanded { padding: .75rem !important; border-radius: 12px !important; }
+  .np-controls .ctrl-skip { display: none !important; } /* hide ±15s on tiny screens — too crowded */
+
+  /* Artist stats: stack */
+  .a-stat-grid { gap: .6rem !important; }
+  .a-stat-val { font-size: 1.4rem !important; }
+}
