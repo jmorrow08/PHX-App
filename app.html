@@ -261,6 +261,88 @@ body{background:#07070F;color:#F1F1F8;font-family:'Inter',-apple-system,sans-ser
 /* Stream tracking pulse */
 @keyframes stream-pulse{0%,100%{opacity:1}50%{opacity:.4}}
 .stream-live{animation:stream-pulse 2s infinite}
+
+/* ── ROLE SYSTEM ──────────────────────────────────────────────────── */
+/* Explorer lock gate */
+.track-row.locked{opacity:.55;cursor:default}
+.track-row.locked .track-art{position:relative}
+.track-row.locked .track-art::after{content:'🔒';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:.9rem;background:rgba(7,7,15,.7);border-radius:6px}
+.lock-badge{font-size:.6rem;background:rgba(107,114,128,.18);border:1px solid rgba(107,114,128,.3);color:var(--muted);padding:.12rem .4rem;border-radius:100px;margin-left:.4rem}
+.play-limit-banner{background:rgba(249,115,22,.06);border:1px solid rgba(249,115,22,.2);border-radius:10px;padding:.75rem 1rem;display:flex;align-items:center;gap:.75rem;font-size:.82rem;margin-bottom:1rem}
+.upgrade-gate-card{background:var(--bg3);border:1px solid rgba(249,115,22,.25);border-radius:16px;padding:1.8rem;text-align:center;margin-bottom:1.2rem}
+.upgrade-gate-title{font-size:1.1rem;font-weight:700;margin-bottom:.4rem}
+.upgrade-gate-sub{font-size:.84rem;color:var(--muted);margin-bottom:1.3rem;line-height:1.6}
+.upgrade-btn{background:linear-gradient(135deg,var(--orange-d),var(--orange));border:none;color:#fff;font-weight:700;font-size:.9rem;padding:.75rem 1.6rem;border-radius:10px;cursor:pointer;width:100%;transition:opacity .18s}
+.upgrade-btn:hover{opacity:.9}
+/* Insider gold chip override */
+.pass-chip.chip-insider{background:linear-gradient(135deg,#92400E,#EAB308)}
+/* Admin/Artist chip */
+.pass-chip.chip-admin{background:linear-gradient(135deg,#1E3A5F,#2563EB)}
+.pass-chip.chip-super{background:linear-gradient(135deg,#4C1D95,#7C3AED)}
+.pass-chip.chip-artist{background:linear-gradient(135deg,#064E3B,#059669)}
+
+/* ── ARTIST DASHBOARD ─────────────────────────────────────────────── */
+.a-stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1.5rem}
+.a-stat{background:var(--bg3);border:1px solid var(--border);border-radius:14px;padding:1.2rem;text-align:center}
+.a-stat-val{font-size:1.7rem;font-weight:800;line-height:1;margin-bottom:.25rem}
+.a-stat-label{font-size:.75rem;color:var(--muted)}
+.track-manage-row{display:flex;align-items:center;gap:1rem;background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:.9rem 1rem;margin-bottom:.6rem;transition:border-color .2s}
+.track-manage-row:hover{border-color:rgba(249,115,22,.3)}
+.tm-art{width:40px;height:40px;border-radius:8px;background:linear-gradient(135deg,var(--bg4),var(--bg3));display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0}
+.tm-info{flex:1}
+.tm-title{font-size:.92rem;font-weight:600}
+.tm-meta{font-size:.74rem;color:var(--muted);margin-top:.1rem}
+.tm-streams{font-size:.82rem;font-weight:600;color:var(--teal);min-width:50px;text-align:right}
+.tm-earnings{font-size:.82rem;font-weight:600;color:var(--green);min-width:65px;text-align:right}
+.earnings-hero{background:linear-gradient(135deg,rgba(34,197,94,.08),rgba(20,184,166,.05));border:1px solid rgba(34,197,94,.2);border-radius:16px;padding:1.6rem;margin-bottom:1.2rem}
+.earnings-main{font-size:2.6rem;font-weight:900;color:var(--green);line-height:1;margin-bottom:.4rem}
+.earnings-sub{font-size:.82rem;color:var(--muted)}
+.payout-row-item{display:flex;justify-content:space-between;align-items:center;padding:.8rem 1rem;background:var(--bg3);border:1px solid var(--border);border-radius:10px;margin-bottom:.5rem}
+.payout-month{font-size:.88rem;font-weight:600}
+.payout-amount{font-size:.9rem;font-weight:700;color:var(--green)}
+.payout-status{font-size:.68rem;padding:.15rem .5rem;border-radius:100px;font-weight:700}
+.ps-paid{background:rgba(34,197,94,.1);color:var(--green);border:1px solid rgba(34,197,94,.25)}
+.ps-pending{background:rgba(249,115,22,.1);color:var(--orange);border:1px solid rgba(249,115,22,.25)}
+.submit-form-card{background:var(--bg3);border:1px solid var(--border);border-radius:16px;padding:1.6rem}
+.form-field{margin-bottom:1.1rem}
+.form-label{font-size:.78rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:.4rem;display:block}
+.form-input{width:100%;background:var(--bg4);border:1px solid var(--border);border-radius:8px;padding:.65rem .9rem;color:var(--white);font-size:.88rem;outline:none;transition:border-color .18s}
+.form-input:focus{border-color:var(--orange)}
+.form-select{width:100%;background:var(--bg4);border:1px solid var(--border);border-radius:8px;padding:.65rem .9rem;color:var(--white);font-size:.88rem;outline:none}
+.upload-zone{border:2px dashed rgba(249,115,22,.3);border-radius:12px;padding:2rem;text-align:center;cursor:pointer;transition:all .18s}
+.upload-zone:hover{border-color:var(--orange);background:rgba(249,115,22,.04)}
+.upload-icon{font-size:2rem;margin-bottom:.6rem}
+.upload-text{font-size:.84rem;color:var(--muted)}
+
+/* ── ADMIN / SUPER OS ─────────────────────────────────────────────── */
+.admin-kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:1.5rem}
+.admin-kpi{background:var(--bg3);border:1px solid var(--border);border-radius:14px;padding:1.2rem}
+.admin-kpi-val{font-size:1.8rem;font-weight:800;line-height:1;margin-bottom:.25rem}
+.admin-kpi-label{font-size:.75rem;color:var(--muted)}
+.admin-kpi-change{font-size:.72rem;margin-top:.2rem}
+.data-table{width:100%;border-collapse:collapse}
+.data-table th{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);text-align:left;padding:.6rem .8rem;border-bottom:1px solid var(--border)}
+.data-table td{font-size:.83rem;padding:.75rem .8rem;border-bottom:1px solid rgba(255,255,255,.04);vertical-align:middle}
+.data-table tr:hover td{background:rgba(249,115,22,.025)}
+.status-chip{font-size:.68rem;padding:.15rem .5rem;border-radius:100px;font-weight:700}
+.sc-active{background:rgba(34,197,94,.1);color:var(--green);border:1px solid rgba(34,197,94,.2)}
+.sc-pending{background:rgba(249,115,22,.1);color:var(--orange);border:1px solid rgba(249,115,22,.2)}
+.sc-flagged{background:rgba(239,68,68,.1);color:var(--red);border:1px solid rgba(239,68,68,.2)}
+.sc-native{background:rgba(249,115,22,.12);color:var(--orange);border:1px solid rgba(249,115,22,.2);font-size:.65rem}
+.sc-insider{background:rgba(234,179,8,.12);color:var(--gold);border:1px solid rgba(234,179,8,.2);font-size:.65rem}
+.sc-explorer{background:rgba(107,114,128,.12);color:var(--muted);border:1px solid rgba(107,114,128,.2);font-size:.65rem}
+.sys-setting-row{display:flex;justify-content:space-between;align-items:center;padding:1rem 0;border-bottom:1px solid var(--border)}
+.sys-setting-info{flex:1}
+.sys-setting-label{font-size:.9rem;font-weight:600;margin-bottom:.2rem}
+.sys-setting-sub{font-size:.75rem;color:var(--muted)}
+.sys-setting-val{font-size:1rem;font-weight:800;color:var(--orange);margin-right:.75rem}
+.sys-edit-btn{font-size:.72rem;padding:.25rem .7rem;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer}
+.fin-row{display:flex;justify-content:space-between;align-items:center;padding:.8rem 0;border-bottom:1px solid var(--border);font-size:.88rem}
+.fin-label{color:var(--muted)}
+.fin-val{font-weight:700}
+.section-tag{font-size:.68rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:.2rem .6rem;border-radius:100px;margin-left:.4rem}
+.tag-super{background:rgba(124,58,237,.15);color:var(--purple-l);border:1px solid rgba(124,58,237,.25)}
+.admin-alert{background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.2);border-radius:10px;padding:.8rem 1rem;display:flex;align-items:center;gap:.75rem;font-size:.82rem;margin-bottom:1rem;color:var(--red)}
 </style>
   <link rel="stylesheet" href="shared.css">
 </head>
@@ -271,14 +353,18 @@ body{background:#07070F;color:#F1F1F8;font-family:'Inter',-apple-system,sans-ser
 <aside class="sidebar">
   <div class="sb-top">
     <div class="sb-logo">PHX</div>
-    <div class="sb-tagline">602 Culture. One App.</div>
+    <div class="sb-tagline" id="sb-tagline">602 Culture. One App.</div>
   </div>
-  <div class="pass-chip">
-    <div class="pass-chip-tier">PHX Pass · Native</div>
-    <div class="pass-chip-name">Alex Rivera</div>
-    <div class="pass-chip-sub">Member since April 2026</div>
+
+  <!-- Pass chip — member & artist show this; admin/super get their own -->
+  <div class="pass-chip" id="pass-chip">
+    <div class="pass-chip-tier" id="chip-tier">PHX Pass · Native</div>
+    <div class="pass-chip-name" id="chip-name">Alex Rivera</div>
+    <div class="pass-chip-sub" id="chip-sub">Member since April 2026</div>
   </div>
-  <nav class="sb-nav">
+
+  <!-- ── MEMBER NAV (explorer / native / insider) ── -->
+  <nav class="sb-nav" id="nav-member">
     <div class="sb-section">Explore</div>
     <button class="nav-item active" onclick="showView('home')"><span class="icon">🏙️</span>City Feed</button>
     <button class="nav-item" onclick="showView('discover')"><span class="icon">🔍</span>Discover</button>
@@ -294,12 +380,50 @@ body{background:#07070F;color:#F1F1F8;font-family:'Inter',-apple-system,sans-ser
     <button class="nav-item" onclick="showView('mypass')"><span class="icon">💳</span>My Pass</button>
     <button class="nav-item" onclick="showView('profile')"><span class="icon">👤</span>Profile</button>
   </nav>
-  <div class="sb-bottom">
+
+  <!-- ── ARTIST NAV ── -->
+  <nav class="sb-nav" id="nav-artist" style="display:none">
+    <div class="sb-section">My Music</div>
+    <button class="nav-item active" onclick="showView('artist-tracks')"><span class="icon">🎵</span>My Tracks</button>
+    <button class="nav-item" onclick="showView('artist-analytics')"><span class="icon">📊</span>Analytics</button>
+    <button class="nav-item" onclick="showView('artist-earnings')"><span class="icon">💚</span>Earnings</button>
+    <div class="sb-section">Tools</div>
+    <button class="nav-item" onclick="showView('artist-submit')"><span class="icon">➕</span>Submit Track</button>
+    <div class="sb-section">Account</div>
+    <button class="nav-item" onclick="showView('artist-profile')"><span class="icon">👤</span>Artist Profile</button>
+  </nav>
+
+  <!-- ── ADMIN / SUPER NAV ── -->
+  <nav class="sb-nav" id="nav-admin" style="display:none">
+    <div class="sb-section">Platform OS</div>
+    <button class="nav-item active" onclick="showView('admin-dashboard')"><span class="icon">📊</span>Dashboard</button>
+    <button class="nav-item" onclick="showView('admin-members')"><span class="icon">👥</span>Members</button>
+    <button class="nav-item" onclick="showView('admin-artists')"><span class="icon">🎤</span>Artists</button>
+    <button class="nav-item" onclick="showView('admin-content')"><span class="icon">🎵</span>Content</button>
+    <div class="sb-section">Finance</div>
+    <button class="nav-item" onclick="showView('admin-financials')"><span class="icon">💰</span>Financials<span id="admin-fin-tag" class="section-tag tag-super" style="display:none">SUPER</span></button>
+    <div class="sb-section">System</div>
+    <button class="nav-item" onclick="showView('admin-system')"><span class="icon">⚙️</span>Settings<span id="admin-sys-tag" class="section-tag tag-super" style="display:none">SUPER</span></button>
+  </nav>
+
+  <!-- Member bottom row -->
+  <div class="sb-bottom" id="sb-bottom-member">
     <div class="profile-row">
-      <div class="profile-ava">A</div>
+      <div class="profile-ava" id="profile-ava-initial">A</div>
       <div>
-        <div class="profile-name">Alex Rivera</div>
-        <div class="profile-tier">PHX Native Member</div>
+        <div class="profile-name" id="sb-profile-name">Alex Rivera</div>
+        <div class="profile-tier" id="sb-profile-tier">PHX Native Member</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Artist / Admin bottom row -->
+  <div class="sb-bottom" id="sb-bottom-other" style="display:none">
+    <div class="profile-row">
+      <div class="profile-ava" id="sb-other-ava" style="background:linear-gradient(135deg,var(--teal),var(--purple))">M</div>
+      <div>
+        <div class="profile-name" id="sb-other-name">Murkemz</div>
+        <div class="profile-tier" id="sb-other-role" style="color:var(--teal)">PHX Artist</div>
       </div>
     </div>
   </div>
@@ -310,8 +434,9 @@ body{background:#07070F;color:#F1F1F8;font-family:'Inter',-apple-system,sans-ser
   <div class="topbar">
     <div class="topbar-title" id="page-title">City Feed</div>
     <div class="topbar-right">
-      <button class="tb-btn">🔔 <span style="position:relative"><span class="notif-dot"></span></span></button>
-      <button class="tb-btn primary" onclick="showView('mypass')">💳 Native Pass</button>
+      <span id="plays-left-badge" style="display:none;font-size:.78rem;color:var(--muted);background:var(--bg3);border:1px solid var(--border);padding:.35rem .75rem;border-radius:8px">5 free plays left</span>
+      <button class="tb-btn">🔔</button>
+      <button class="tb-btn primary" id="topbar-cta" onclick="showView('mypass')">💳 Native Pass</button>
     </div>
   </div>
 
@@ -664,6 +789,15 @@ body{background:#07070F;color:#F1F1F8;font-family:'Inter',-apple-system,sans-ser
             </div>
           </div>
 
+          <!-- Explorer upgrade gate — shown instead of payout card for free tier -->
+          <div id="payout-upgrade-gate" style="display:none" class="upgrade-gate-card">
+            <div style="font-size:2rem;margin-bottom:.5rem">💚</div>
+            <div class="upgrade-gate-title">Fan-Powered Payouts</div>
+            <div class="upgrade-gate-sub">Every $15 you pay goes directly to the artists you listen to — not into a shared pool. Murkemz earns <strong>$10.32/mo</strong> from a single Native subscriber who listens mostly to him.</div>
+            <button class="upgrade-btn" onclick="setRole('native')">Upgrade to Native — $15/mo</button>
+            <div style="margin-top:.75rem;font-size:.75rem;color:var(--muted)">Simulating Native tier ↑ to see the full payout breakdown</div>
+          </div>
+
           <!-- PHX Roster -->
           <div class="sh"><h3>PHX Roster</h3><a href="#">All Artists</a></div>
           <div class="artist-card" onclick="void(0)">
@@ -882,6 +1016,498 @@ body{background:#07070F;color:#F1F1F8;font-family:'Inter',-apple-system,sans-ser
       </div>
     </div>
 
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- ARTIST VIEWS                                                    -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+
+    <!-- ARTIST — MY TRACKS -->
+    <div class="view" id="v-artist-tracks">
+      <div class="a-stat-grid">
+        <div class="a-stat"><div class="a-stat-val" style="color:var(--teal)" id="artist-total-streams">822K</div><div class="a-stat-label">Total Streams</div></div>
+        <div class="a-stat"><div class="a-stat-val" style="color:var(--orange)">27.2K</div><div class="a-stat-label">Monthly Listeners</div></div>
+        <div class="a-stat"><div class="a-stat-val" style="color:var(--green)">$847</div><div class="a-stat-label">Earned This Month</div></div>
+      </div>
+      <div class="sh"><h3>Your Catalog</h3><span class="badge badge-teal">5 tracks live</span></div>
+      <div class="track-manage-row">
+        <div class="tm-art">🎵</div>
+        <div class="tm-info"><div class="tm-title">PHX <span class="badge badge-orange" style="font-size:.6rem">EXCLUSIVE</span></div><div class="tm-meta">Recess EP · Prod. PA. Dre · 3:24</div></div>
+        <div class="tm-streams">15.2K</div>
+        <div class="tm-earnings">$182</div>
+        <span class="status-chip sc-active">Live</span>
+      </div>
+      <div class="track-manage-row">
+        <div class="tm-art">🎵</div>
+        <div class="tm-info"><div class="tm-title">Against All Odds</div><div class="tm-meta">ft. Freeway (Roc-A-Fella) · Recess EP · 3:47</div></div>
+        <div class="tm-streams">8.9K</div>
+        <div class="tm-earnings">$107</div>
+        <span class="status-chip sc-active">Live</span>
+      </div>
+      <div class="track-manage-row">
+        <div class="tm-art">🎵</div>
+        <div class="tm-info"><div class="tm-title">Hadouken RMX</div><div class="tm-meta">ft. Chris Webby · All-time high · 4:12</div></div>
+        <div class="tm-streams">541K</div>
+        <div class="tm-earnings">$6,492</div>
+        <span class="status-chip sc-active">Live</span>
+      </div>
+      <div class="track-manage-row">
+        <div class="tm-art">🎵</div>
+        <div class="tm-info"><div class="tm-title">Survive</div><div class="tm-meta">ft. Inspectah Deck (Wu-Tang) · 3:58</div></div>
+        <div class="tm-streams">244K</div>
+        <div class="tm-earnings">$2,928</div>
+        <span class="status-chip sc-active">Live</span>
+      </div>
+      <div class="track-manage-row">
+        <div class="tm-art">🎵</div>
+        <div class="tm-info"><div class="tm-title">The Ayatollah</div><div class="tm-meta">Flagship Album · 4:33</div></div>
+        <div class="tm-streams">12.8K</div>
+        <div class="tm-earnings">$154</div>
+        <span class="status-chip sc-active">Live</span>
+      </div>
+      <div style="margin-top:1.2rem;text-align:center">
+        <button class="upgrade-btn" style="max-width:240px" onclick="showView('artist-submit')">➕ Submit New Track</button>
+      </div>
+    </div>
+
+    <!-- ARTIST — ANALYTICS -->
+    <div class="view" id="v-artist-analytics">
+      <div class="a-stat-grid">
+        <div class="a-stat"><div class="a-stat-val" style="color:var(--teal)">+12%</div><div class="a-stat-label">Streams vs Last Month</div></div>
+        <div class="a-stat"><div class="a-stat-val" style="color:var(--orange)">73%</div><div class="a-stat-label">Native+ Listeners</div></div>
+        <div class="a-stat"><div class="a-stat-val" style="color:var(--green)">$0.012</div><div class="a-stat-label">Your Rate / Stream</div></div>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Streams Last 6 Months</div>
+          <canvas id="artist-streams-chart" height="180"></canvas>
+        </div>
+        <div class="card">
+          <div class="card-title">Listener Breakdown by Tier</div>
+          <div style="display:flex;flex-direction:column;gap:.75rem;margin-top:.5rem">
+            <div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:.3rem;font-size:.82rem"><span>Native ($15/mo)</span><span style="color:var(--orange);font-weight:700">61%</span></div>
+              <div style="background:var(--bg4);border-radius:4px;height:6px"><div style="width:61%;background:var(--orange);height:6px;border-radius:4px"></div></div>
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:.3rem;font-size:.82rem"><span>Insider ($29/mo)</span><span style="color:var(--gold);font-weight:700">12%</span></div>
+              <div style="background:var(--bg4);border-radius:4px;height:6px"><div style="width:12%;background:var(--gold);height:6px;border-radius:4px"></div></div>
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:.3rem;font-size:.82rem"><span>Explorer (Free)</span><span style="color:var(--muted);font-weight:700">27%</span></div>
+              <div style="background:var(--bg4);border-radius:4px;height:6px"><div style="width:27%;background:var(--muted);height:6px;border-radius:4px"></div></div>
+            </div>
+          </div>
+          <div style="margin-top:1.2rem;padding:.8rem;background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.15);border-radius:8px;font-size:.78rem;color:var(--muted)">
+            Only Native and Insider listeners generate payouts. Free listeners build your stream count but don't pay out until they subscribe.
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">Top Cities</div>
+          <div style="display:flex;flex-direction:column;gap:.6rem;font-size:.84rem">
+            <div style="display:flex;justify-content:space-between"><span>Phoenix, AZ</span><span style="color:var(--orange);font-weight:700">68%</span></div>
+            <div style="display:flex;justify-content:space-between"><span>Tempe / Mesa</span><span style="color:var(--white);font-weight:600">11%</span></div>
+            <div style="display:flex;justify-content:space-between"><span>Scottsdale</span><span style="color:var(--white);font-weight:600">8%</span></div>
+            <div style="display:flex;justify-content:space-between"><span>Los Angeles</span><span style="color:var(--white);font-weight:600">5%</span></div>
+            <div style="display:flex;justify-content:space-between"><span>Other</span><span style="color:var(--muted)">8%</span></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">Top Track This Month</div>
+          <div style="text-align:center;padding:1rem 0">
+            <div style="font-size:2.5rem;margin-bottom:.5rem">🎵</div>
+            <div style="font-size:1.1rem;font-weight:800;margin-bottom:.25rem">Hadouken RMX</div>
+            <div style="font-size:.82rem;color:var(--muted);margin-bottom.75rem">ft. Chris Webby</div>
+            <div style="font-size:1.6rem;font-weight:800;color:var(--teal);margin-top:.75rem">541K</div>
+            <div style="font-size:.75rem;color:var(--muted)">all-time streams</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ARTIST — EARNINGS -->
+    <div class="view" id="v-artist-earnings">
+      <div class="earnings-hero">
+        <div style="font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:rgba(34,197,94,.7);margin-bottom:.5rem">June 2026 — Estimated</div>
+        <div class="earnings-main">$847.23</div>
+        <div class="earnings-sub">Fan-powered. Direct. No label cut.</div>
+        <div style="display:flex;gap:1.5rem;margin-top:1rem;font-size:.82rem">
+          <div><span style="color:var(--muted)">Rate</span> <span style="font-weight:700;color:var(--green)">$0.012/stream</span></div>
+          <div><span style="color:var(--muted)">Streams</span> <span style="font-weight:700">70,603</span></div>
+          <div><span style="color:var(--muted)">Next payout</span> <span style="font-weight:700">Jul 1</span></div>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div>
+          <div class="sh"><h3>Payout History</h3></div>
+          <div class="payout-row-item"><span class="payout-month">May 2026</span><span class="payout-amount">$731.44</span><span class="payout-status ps-paid">Paid</span></div>
+          <div class="payout-row-item"><span class="payout-month">Apr 2026</span><span class="payout-amount">$614.88</span><span class="payout-status ps-paid">Paid</span></div>
+          <div class="payout-row-item"><span class="payout-month">Mar 2026</span><span class="payout-amount">$480.12</span><span class="payout-status ps-paid">Paid</span></div>
+          <div class="payout-row-item"><span class="payout-month">Feb 2026</span><span class="payout-amount">$312.50</span><span class="payout-status ps-paid">Paid</span></div>
+          <div class="payout-row-item"><span class="payout-month">Jan 2026</span><span class="payout-amount">$198.22</span><span class="payout-status ps-paid">Paid</span></div>
+          <div style="margin-top:1rem;text-align:right;font-size:.78rem;color:var(--muted)">All time: <strong style="color:var(--green)">$3,184.39</strong></div>
+        </div>
+        <div>
+          <div class="sh"><h3>How Your Payout Is Calculated</h3></div>
+          <div class="fan-payout-card">
+            <div class="fan-payout-title">Fan-Powered Math</div>
+            <div class="fan-payout-row"><span class="fan-payout-label">Platform MRR (subs)</span><span class="fan-payout-val">$1,240/mo</span></div>
+            <div class="fan-payout-row"><span class="fan-payout-label">Platform keeps (20%)</span><span class="fan-payout-val">$248</span></div>
+            <div class="fan-payout-row"><span class="fan-payout-label">Artist pool (80%)</span><span class="fan-payout-val green">$992</span></div>
+            <div class="fan-payout-row"><span class="fan-payout-label">Your stream share</span><span class="fan-payout-val">85.4% of all streams</span></div>
+            <div class="fan-payout-row" style="color:var(--green)"><span class="fan-payout-label">Your cut</span><span class="fan-payout-val green" style="font-size:.95rem">$847 / mo</span></div>
+            <div class="fan-payout-vs">Each subscriber's $15 goes <em>only</em> to artists they actually listened to. You earn from fans who listen to you — not from a shared pool you compete against Drake for.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ARTIST — SUBMIT TRACK -->
+    <div class="view" id="v-artist-submit">
+      <div class="grid-2">
+        <div>
+          <div class="submit-form-card">
+            <div class="sh" style="margin-bottom:1.2rem"><h3>Submit a New Track</h3></div>
+            <div class="form-field">
+              <label class="form-label">Track Title *</label>
+              <input class="form-input" type="text" placeholder="e.g. PHX (Part 2)">
+            </div>
+            <div class="form-field">
+              <label class="form-label">Featuring (optional)</label>
+              <input class="form-input" type="text" placeholder="e.g. Freeway, Chris Webby">
+            </div>
+            <div class="form-field">
+              <label class="form-label">Produced By</label>
+              <input class="form-input" type="text" placeholder="e.g. PA. Dre">
+            </div>
+            <div class="form-field">
+              <label class="form-label">Album / EP (optional)</label>
+              <input class="form-input" type="text" placeholder="e.g. Recess EP">
+            </div>
+            <div class="form-field">
+              <label class="form-label">Release Type</label>
+              <select class="form-select">
+                <option>Single</option>
+                <option>Album track</option>
+                <option>EP track</option>
+                <option>Exclusive drop</option>
+              </select>
+            </div>
+            <div class="form-field">
+              <label class="form-label">Tier Gate</label>
+              <select class="form-select">
+                <option>Free — all members</option>
+                <option>Native+ only ($15/mo)</option>
+                <option>Insider only ($29/mo)</option>
+                <option>Time-locked exclusive (48hr)</option>
+              </select>
+            </div>
+            <div class="form-field">
+              <label class="form-label">Audio File</label>
+              <div class="upload-zone">
+                <div class="upload-icon">🎵</div>
+                <div class="upload-text">Drop .mp3 or .wav here<br><span style="color:var(--orange)">or click to browse</span></div>
+              </div>
+            </div>
+            <button class="upgrade-btn">Submit for Review</button>
+          </div>
+        </div>
+        <div>
+          <div class="card">
+            <div class="card-title">Track Review Process</div>
+            <div style="display:flex;flex-direction:column;gap:1rem;margin-top:.5rem;font-size:.84rem">
+              <div style="display:flex;gap:.75rem;align-items:flex-start"><span style="font-size:1.2rem">1️⃣</span><div><div style="font-weight:600;margin-bottom:.2rem">Submit your track</div><div style="color:var(--muted)">Upload the audio file and fill in metadata. All file formats accepted.</div></div></div>
+              <div style="display:flex;gap:.75rem;align-items:flex-start"><span style="font-size:1.2rem">2️⃣</span><div><div style="font-weight:600;margin-bottom:.2rem">Review (24-48 hrs)</div><div style="color:var(--muted)">PHX team reviews for audio quality and community guidelines. You'll get a notification either way.</div></div></div>
+              <div style="display:flex;gap:.75rem;align-items:flex-start"><span style="font-size:1.2rem">3️⃣</span><div><div style="font-weight:600;margin-bottom:.2rem">Goes live</div><div style="color:var(--muted)">Your track appears in the PHX Music catalog immediately on approval. Streams start counting right away.</div></div></div>
+              <div style="display:flex;gap:.75rem;align-items:flex-start"><span style="font-size:1.2rem">4️⃣</span><div><div style="font-weight:600;margin-bottom:.2rem">Get paid on the 1st</div><div style="color:var(--muted)">Fan-powered payouts run every month on the 1st. No minimum threshold — every stream earns.</div></div></div>
+            </div>
+          </div>
+          <div class="card" style="margin-top:1.2rem">
+            <div class="card-title">Royalty Rate</div>
+            <div style="font-size:2rem;font-weight:900;color:var(--green);margin-bottom:.3rem">$0.012</div>
+            <div style="font-size:.8rem;color:var(--muted);margin-bottom:.8rem">per stream — 3× Spotify's rate</div>
+            <div style="font-size:.78rem;color:var(--muted);line-height:1.6">PHX pays out 80% of subscription revenue directly to artists, proportional to how much each subscriber listens to you. No pool. No competition with megastars.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ARTIST — PROFILE -->
+    <div class="view" id="v-artist-profile">
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Artist Profile</div>
+          <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1.5rem">
+            <div style="width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,var(--orange),var(--purple));display:flex;align-items:center;justify-content:center;font-size:2rem;font-weight:700;flex-shrink:0">M</div>
+            <div>
+              <div style="font-size:1.1rem;font-weight:800">Murkemz</div>
+              <div style="font-size:.82rem;color:var(--orange)">PHX Founder · Verified Artist</div>
+              <div style="font-size:.76rem;color:var(--muted)">@murkemz</div>
+            </div>
+          </div>
+          <div class="form-field"><label class="form-label">Display Name</label><input class="form-input" type="text" value="Murkemz"></div>
+          <div class="form-field"><label class="form-label">Genre</label><input class="form-input" type="text" value="PHX Hip-Hop"></div>
+          <div class="form-field"><label class="form-label">Bio</label><textarea class="form-input" rows="3" style="resize:vertical">Phoenix-based rapper, founder of PHX App. Known for collabs with Freeway (Roc-A-Fella), Inspectah Deck (Wu-Tang), and Chris Webby.</textarea></div>
+          <div class="form-field"><label class="form-label">City</label><input class="form-input" type="text" value="Phoenix, AZ"></div>
+          <button class="upgrade-btn">Save Changes</button>
+        </div>
+        <div class="card">
+          <div class="card-title">Social Links</div>
+          <div class="form-field"><label class="form-label">Instagram</label><input class="form-input" type="text" placeholder="@handle"></div>
+          <div class="form-field"><label class="form-label">Twitter / X</label><input class="form-input" type="text" placeholder="@handle"></div>
+          <div class="form-field"><label class="form-label">Spotify</label><input class="form-input" type="text" placeholder="Artist URL"></div>
+          <div class="form-field"><label class="form-label">Apple Music</label><input class="form-input" type="text" placeholder="Artist URL"></div>
+          <div class="form-field"><label class="form-label">Website</label><input class="form-input" type="text" placeholder="https://"></div>
+          <button class="upgrade-btn">Save Links</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- ADMIN / SUPER OS VIEWS                                         -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+
+    <!-- ADMIN — DASHBOARD -->
+    <div class="view" id="v-admin-dashboard">
+      <div class="admin-alert" id="admin-super-alert" style="display:none">⚡ Super Admin Mode — Full system access. Changes take effect immediately.</div>
+      <div class="admin-kpi-grid">
+        <div class="admin-kpi"><div class="admin-kpi-val" style="color:var(--orange)">247</div><div class="admin-kpi-label">Total Members</div><div class="admin-kpi-change up">↑ +18 this week</div></div>
+        <div class="admin-kpi"><div class="admin-kpi-val" style="color:var(--green)">$3,705</div><div class="admin-kpi-label">MRR</div><div class="admin-kpi-change up">↑ +$420 vs last month</div></div>
+        <div class="admin-kpi"><div class="admin-kpi-val" style="color:var(--teal)" id="admin-streams-today">822K</div><div class="admin-kpi-label">Total Streams</div><div class="admin-kpi-change up">↑ +1,240 today</div></div>
+        <div class="admin-kpi"><div class="admin-kpi-val" style="color:var(--purple-l)">14</div><div class="admin-kpi-label">Active Artists</div><div class="admin-kpi-change" style="color:var(--muted)">3 pending approval</div></div>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Platform Revenue Breakdown</div>
+          <div class="fin-row"><span class="fin-label">Gross MRR</span><span class="fin-val">$3,705</span></div>
+          <div class="fin-row"><span class="fin-label">Artist payouts (80%)</span><span class="fin-val" style="color:var(--green)">$2,964</span></div>
+          <div class="fin-row"><span class="fin-label">Platform net (20%)</span><span class="fin-val" style="color:var(--orange)">$741</span></div>
+          <div class="fin-row"><span class="fin-label">Stripe fees (~3%)</span><span class="fin-val" style="color:var(--muted)">−$111</span></div>
+          <div class="fin-row" style="border:none"><span class="fin-label" style="font-weight:700">Net platform profit</span><span class="fin-val" style="color:var(--green);font-size:1.1rem">$630/mo</span></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Member Tier Split</div>
+          <div style="display:flex;flex-direction:column;gap:.7rem;margin-top:.4rem">
+            <div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:.3rem;font-size:.83rem"><span>Explorer (Free) <span class="status-chip sc-explorer">89</span></span><span style="color:var(--muted)">36%</span></div>
+              <div style="background:var(--bg4);border-radius:4px;height:7px"><div style="width:36%;background:var(--muted);height:7px;border-radius:4px"></div></div>
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:.3rem;font-size:.83rem"><span>Native ($15) <span class="status-chip sc-native">143</span></span><span style="color:var(--orange)">58%</span></div>
+              <div style="background:var(--bg4);border-radius:4px;height:7px"><div style="width:58%;background:var(--orange);height:7px;border-radius:4px"></div></div>
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:.3rem;font-size:.83rem"><span>Insider ($29) <span class="status-chip sc-insider">15</span></span><span style="color:var(--gold)">6%</span></div>
+              <div style="background:var(--bg4);border-radius:4px;height:7px"><div style="width:6%;background:var(--gold);height:7px;border-radius:4px"></div></div>
+            </div>
+          </div>
+          <div style="margin-top:1rem;font-size:.78rem;color:var(--muted)">158 paying members · $3,705 MRR</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ADMIN — MEMBERS -->
+    <div class="view" id="v-admin-members">
+      <div class="card">
+        <div class="sh" style="margin-bottom:1rem"><h3>Recent Members</h3><span class="badge badge-teal">247 total</span></div>
+        <table class="data-table">
+          <thead><tr><th>Name</th><th>Email</th><th>Tier</th><th>Joined</th><th>Streams</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Alex Rivera</strong></td><td style="color:var(--muted)">alex@gmail.com</td><td><span class="status-chip sc-native">Native</span></td><td style="color:var(--muted)">Apr 12</td><td style="color:var(--teal)">847</td><td><span class="status-chip sc-active">Active</span></td></tr>
+            <tr><td><strong>Marcus Webb</strong></td><td style="color:var(--muted)">mwebb@email.com</td><td><span class="status-chip sc-insider">Insider</span></td><td style="color:var(--muted)">Apr 8</td><td style="color:var(--teal)">2,314</td><td><span class="status-chip sc-active">Active</span></td></tr>
+            <tr><td><strong>Jordan Kim</strong></td><td style="color:var(--muted)">jordankim@me.com</td><td><span class="status-chip sc-explorer">Explorer</span></td><td style="color:var(--muted)">Jun 2</td><td style="color:var(--muted)">12</td><td><span class="status-chip sc-active">Active</span></td></tr>
+            <tr><td><strong>Destiny Reyes</strong></td><td style="color:var(--muted)">dreyes@yahoo.com</td><td><span class="status-chip sc-native">Native</span></td><td style="color:var(--muted)">May 19</td><td style="color:var(--teal)">423</td><td><span class="status-chip sc-active">Active</span></td></tr>
+            <tr><td><strong>Carlos Mendez</strong></td><td style="color:var(--muted)">cmen@gmail.com</td><td><span class="status-chip sc-native">Native</span></td><td style="color:var(--muted)">May 28</td><td style="color:var(--teal)">198</td><td><span class="status-chip sc-active">Active</span></td></tr>
+            <tr><td><strong>Aaliyah Brooks</strong></td><td style="color:var(--muted)">ali.brooks@me.com</td><td><span class="status-chip sc-insider">Insider</span></td><td style="color:var(--muted)">Apr 3</td><td style="color:var(--teal)">3,102</td><td><span class="status-chip sc-active">Active</span></td></tr>
+            <tr><td><strong>Tyrese Williams</strong></td><td style="color:var(--muted)">twill@gmail.com</td><td><span class="status-chip sc-explorer">Explorer</span></td><td style="color:var(--muted)">Jun 20</td><td style="color:var(--muted)">3</td><td><span class="status-chip sc-pending">New</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ADMIN — ARTISTS -->
+    <div class="view" id="v-admin-artists">
+      <div class="grid-2">
+        <div class="card">
+          <div class="sh" style="margin-bottom:1rem"><h3>Active Artists</h3><span class="badge badge-teal">14 live</span></div>
+          <table class="data-table">
+            <thead><tr><th>Artist</th><th>Streams</th><th>Earnings</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Murkemz</strong> <span class="badge badge-orange" style="font-size:.6rem">Founder</span></td><td style="color:var(--teal)">822K</td><td style="color:var(--green)">$847</td><td><span class="status-chip sc-active">Live</span></td></tr>
+              <tr><td><strong>Futuristic</strong></td><td style="color:var(--teal)">41K</td><td style="color:var(--green)">$92</td><td><span class="status-chip sc-active">Live</span></td></tr>
+              <tr><td><strong>Mega Ran</strong></td><td style="color:var(--teal)">28K</td><td style="color:var(--green)">$63</td><td><span class="status-chip sc-active">Live</span></td></tr>
+              <tr><td style="color:var(--muted)">+11 more</td><td style="color:var(--muted)">—</td><td style="color:var(--muted)">—</td><td><span class="status-chip sc-active">Live</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="card">
+          <div class="sh" style="margin-bottom:1rem"><h3>Pending Submissions</h3><span class="status-chip sc-pending">3 waiting</span></div>
+          <div style="display:flex;flex-direction:column;gap:.75rem">
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:.8rem;background:var(--bg4);border-radius:10px;border:1px solid var(--border)">
+              <div><div style="font-size:.88rem;font-weight:600">LeSean Alston</div><div style="font-size:.74rem;color:var(--muted)">PHX R&B · Applied Jun 22</div></div>
+              <div style="display:flex;gap:.5rem"><button class="tb-btn" style="font-size:.72rem;padding:.3rem .6rem;color:var(--green);border-color:rgba(34,197,94,.3)">✓ Approve</button><button class="tb-btn" style="font-size:.72rem;padding:.3rem .6rem;color:var(--red);border-color:rgba(239,68,68,.3)">✕</button></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:.8rem;background:var(--bg4);border-radius:10px;border:1px solid var(--border)">
+              <div><div style="font-size:.88rem;font-weight:600">Xena Calloway</div><div style="font-size:.74rem;color:var(--muted)">PHX Afrobeats · Applied Jun 25</div></div>
+              <div style="display:flex;gap:.5rem"><button class="tb-btn" style="font-size:.72rem;padding:.3rem .6rem;color:var(--green);border-color:rgba(34,197,94,.3)">✓ Approve</button><button class="tb-btn" style="font-size:.72rem;padding:.3rem .6rem;color:var(--red);border-color:rgba(239,68,68,.3)">✕</button></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:.8rem;background:var(--bg4);border-radius:10px;border:1px solid var(--border)">
+              <div><div style="font-size:.88rem;font-weight:600">DJ Saguaro</div><div style="font-size:.74rem;color:var(--muted)">PHX Electronic · Applied Jun 27</div></div>
+              <div style="display:flex;gap:.5rem"><button class="tb-btn" style="font-size:.72rem;padding:.3rem .6rem;color:var(--green);border-color:rgba(34,197,94,.3)">✓ Approve</button><button class="tb-btn" style="font-size:.72rem;padding:.3rem .6rem;color:var(--red);border-color:rgba(239,68,68,.3)">✕</button></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ADMIN — CONTENT -->
+    <div class="view" id="v-admin-content">
+      <div class="card">
+        <div class="sh" style="margin-bottom:1rem"><h3>Track Catalog</h3><span class="badge badge-teal">5 live</span></div>
+        <table class="data-table">
+          <thead><tr><th>Title</th><th>Artist</th><th>Tier Gate</th><th>Streams</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><strong>PHX</strong></td><td>Murkemz</td>
+              <td><span class="status-chip sc-native">Native+</span></td>
+              <td style="color:var(--teal)">15.2K</td>
+              <td><span class="status-chip sc-active">Live</span></td>
+              <td><button class="sys-edit-btn">Edit</button></td>
+            </tr>
+            <tr>
+              <td><strong>Against All Odds</strong></td><td>Murkemz</td>
+              <td><span class="status-chip sc-explorer">Free</span></td>
+              <td style="color:var(--teal)">8.9K</td>
+              <td><span class="status-chip sc-active">Live</span></td>
+              <td><button class="sys-edit-btn">Edit</button></td>
+            </tr>
+            <tr>
+              <td><strong>Hadouken RMX</strong></td><td>Murkemz</td>
+              <td><span class="status-chip sc-explorer">Free</span></td>
+              <td style="color:var(--teal)">541K</td>
+              <td><span class="status-chip sc-active">Live</span></td>
+              <td><button class="sys-edit-btn">Edit</button></td>
+            </tr>
+            <tr>
+              <td><strong>Survive</strong></td><td>Murkemz</td>
+              <td><span class="status-chip sc-explorer">Free</span></td>
+              <td style="color:var(--teal)">244K</td>
+              <td><span class="status-chip sc-active">Live</span></td>
+              <td><button class="sys-edit-btn">Edit</button></td>
+            </tr>
+            <tr>
+              <td><strong>The Ayatollah</strong></td><td>Murkemz</td>
+              <td><span class="status-chip sc-explorer">Free</span></td>
+              <td style="color:var(--teal)">12.8K</td>
+              <td><span class="status-chip sc-active">Live</span></td>
+              <td><button class="sys-edit-btn">Edit</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ADMIN — FINANCIALS (Super Admin only full view) -->
+    <div class="view" id="v-admin-financials">
+      <div class="admin-alert" id="fin-super-alert" style="display:none">⚡ Super Admin — Financial data visible. Treat as confidential.</div>
+      <div class="admin-kpi-grid">
+        <div class="admin-kpi"><div class="admin-kpi-val" style="color:var(--green)">$3,705</div><div class="admin-kpi-label">Gross MRR</div><div class="admin-kpi-change up">↑ +$420 MoM</div></div>
+        <div class="admin-kpi"><div class="admin-kpi-val" style="color:var(--orange)">$741</div><div class="admin-kpi-label">Platform Revenue (20%)</div><div class="admin-kpi-change up">↑ +$84 MoM</div></div>
+        <div class="admin-kpi"><div class="admin-kpi-val" style="color:var(--teal)">$2,964</div><div class="admin-kpi-label">Artist Payouts (80%)</div><div class="admin-kpi-change" style="color:var(--muted)">Due Jul 1</div></div>
+        <div class="admin-kpi"><div class="admin-kpi-val" style="color:var(--purple-l)">$630</div><div class="admin-kpi-label">Net Platform Profit</div><div class="admin-kpi-change up">After Stripe fees</div></div>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">July 1 Payout Queue</div>
+          <table class="data-table">
+            <thead><tr><th>Artist</th><th>Streams</th><th>Amount</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Murkemz</strong></td><td style="color:var(--teal)">70.6K</td><td style="color:var(--green);font-weight:700">$847.23</td><td><span class="status-chip sc-pending">Queued</span></td></tr>
+              <tr><td><strong>Futuristic</strong></td><td style="color:var(--teal)">7.7K</td><td style="color:var(--green);font-weight:700">$92.40</td><td><span class="status-chip sc-pending">Queued</span></td></tr>
+              <tr><td><strong>Mega Ran</strong></td><td style="color:var(--teal)">5.2K</td><td style="color:var(--green);font-weight:700">$62.40</td><td><span class="status-chip sc-pending">Queued</span></td></tr>
+              <tr><td style="color:var(--muted)">11 others</td><td style="color:var(--muted)">8.1K</td><td style="color:var(--green);font-weight:700">$97.20</td><td><span class="status-chip sc-pending">Queued</span></td></tr>
+            </tbody>
+          </table>
+          <div style="margin-top:1rem;display:flex;justify-content:space-between;align-items:center">
+            <span style="font-size:.84rem;color:var(--muted)">Total queued</span>
+            <span style="font-size:1.1rem;font-weight:800;color:var(--green)">$1,099.23</span>
+          </div>
+          <button class="upgrade-btn" style="margin-top:1rem" id="release-payouts-btn">Release All Payouts</button>
+        </div>
+        <div class="card">
+          <div class="card-title">Revenue History</div>
+          <div class="fin-row"><span class="fin-label">Jun 2026 (current)</span><span class="fin-val" style="color:var(--orange)">$3,705 est.</span></div>
+          <div class="fin-row"><span class="fin-label">May 2026</span><span class="fin-val">$3,285</span></div>
+          <div class="fin-row"><span class="fin-label">Apr 2026</span><span class="fin-val">$2,865</span></div>
+          <div class="fin-row"><span class="fin-label">Mar 2026</span><span class="fin-val">$2,100</span></div>
+          <div class="fin-row"><span class="fin-label">Feb 2026</span><span class="fin-val">$1,440</span></div>
+          <div class="fin-row" style="border:none"><span class="fin-label">Jan 2026</span><span class="fin-val">$720</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ADMIN — SYSTEM SETTINGS (Super Admin full control) -->
+    <div class="view" id="v-admin-system">
+      <div class="admin-alert" id="sys-super-alert" style="display:none">⚡ Super Admin — System changes affect all users immediately.</div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Subscription Tiers</div>
+          <div class="sys-setting-row">
+            <div class="sys-setting-info"><div class="sys-setting-label">Explorer (Free)</div><div class="sys-setting-sub">Basic access — no payouts generated</div></div>
+            <span class="sys-setting-val">$0</span>
+            <button class="sys-edit-btn" id="edit-explorer-btn">Edit</button>
+          </div>
+          <div class="sys-setting-row">
+            <div class="sys-setting-info"><div class="sys-setting-label">Native</div><div class="sys-setting-sub">Full music access · fan-powered payouts</div></div>
+            <span class="sys-setting-val">$15/mo</span>
+            <button class="sys-edit-btn" id="edit-native-btn">Edit</button>
+          </div>
+          <div class="sys-setting-row">
+            <div class="sys-setting-info"><div class="sys-setting-label">Insider</div><div class="sys-setting-sub">All-access · exclusive drops · early releases</div></div>
+            <span class="sys-setting-val">$29/mo</span>
+            <button class="sys-edit-btn" id="edit-insider-btn">Edit</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">Royalty Engine</div>
+          <div class="sys-setting-row">
+            <div class="sys-setting-info"><div class="sys-setting-label">Stream Rate</div><div class="sys-setting-sub">Paid per qualifying 30-second stream</div></div>
+            <span class="sys-setting-val">$0.012</span>
+            <button class="sys-edit-btn" id="edit-rate-btn">Edit</button>
+          </div>
+          <div class="sys-setting-row">
+            <div class="sys-setting-info"><div class="sys-setting-label">Artist Payout Split</div><div class="sys-setting-sub">% of subscription revenue to artists</div></div>
+            <span class="sys-setting-val">80%</span>
+            <button class="sys-edit-btn" id="edit-split-btn">Edit</button>
+          </div>
+          <div class="sys-setting-row">
+            <div class="sys-setting-info"><div class="sys-setting-label">Stream Threshold</div><div class="sys-setting-sub">Seconds before stream counts</div></div>
+            <span class="sys-setting-val">30s</span>
+            <button class="sys-edit-btn" id="edit-threshold-btn">Edit</button>
+          </div>
+          <div class="sys-setting-row" style="border:none">
+            <div class="sys-setting-info"><div class="sys-setting-label">Payout Day</div><div class="sys-setting-sub">When monthly payouts are released</div></div>
+            <span class="sys-setting-val">1st</span>
+            <button class="sys-edit-btn" id="edit-payday-btn">Edit</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">Platform Health</div>
+          <div class="fin-row"><span class="fin-label">Database</span><span class="fin-val" style="color:var(--green)">● Healthy</span></div>
+          <div class="fin-row"><span class="fin-label">Supabase</span><span class="fin-val" style="color:var(--green)">● us-west-1 · online</span></div>
+          <div class="fin-row"><span class="fin-label">Stripe</span><span class="fin-val" style="color:var(--orange)">○ Test mode</span></div>
+          <div class="fin-row"><span class="fin-label">Vercel CDN</span><span class="fin-val" style="color:var(--green)">● Global · live</span></div>
+          <div class="fin-row" style="border:none"><span class="fin-label">Stream tracking</span><span class="fin-val" style="color:var(--green)">● Active</span></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Danger Zone</div>
+          <div style="display:flex;flex-direction:column;gap:.75rem;margin-top:.3rem">
+            <button class="tb-btn" style="width:100%;color:var(--orange);border-color:rgba(249,115,22,.3);text-align:left">🔄 Force Payout Recalculation</button>
+            <button class="tb-btn" style="width:100%;color:var(--blue);border-color:rgba(59,130,246,.3);text-align:left">📤 Export Member CSV</button>
+            <button class="tb-btn" style="width:100%;color:var(--red);border-color:rgba(239,68,68,.3);text-align:left">🔒 Maintenance Mode</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </div><!-- /content -->
 </div><!-- /main -->
 </div><!-- /app-shell -->
@@ -905,7 +1531,12 @@ body{background:#07070F;color:#F1F1F8;font-family:'Inter',-apple-system,sans-ser
 var titles = {
   home:'City Feed', discover:'Discover PHX', music:'PHX Music',
   events:'PHX Events', eats:'PHX Eats', audio:'PHX Audio',
-  drops:'PHX Drops', cuts:'PHX Cuts', mypass:'My PHX Pass', profile:'My Profile'
+  drops:'PHX Drops', cuts:'PHX Cuts', mypass:'My PHX Pass', profile:'My Profile',
+  'artist-tracks':'My Tracks', 'artist-analytics':'Analytics',
+  'artist-earnings':'Earnings', 'artist-submit':'Submit Track', 'artist-profile':'Artist Profile',
+  'admin-dashboard':'Platform Dashboard', 'admin-members':'Members',
+  'admin-artists':'Artists', 'admin-content':'Content',
+  'admin-financials':'Financials', 'admin-system':'System Settings',
 };
 
 function showView(id) {
@@ -917,6 +1548,214 @@ function showView(id) {
   if (btn && !btn.classList.contains('nav-soon-item')) btn.classList.add('active');
   var titleEl = document.getElementById('page-title');
   if (titleEl) titleEl.textContent = titles[id] || id;
+}
+
+// ── ROLE SYSTEM ─────────────────────────────────────────────────────────
+var currentRole = 'native';
+
+var ROLES = {
+  explorer: {
+    chipClass: '',
+    chipTier: 'Explorer Pass · Free',
+    chipName: 'Jordan Kim',
+    chipSub: 'Joined June 2026',
+    sbTagline: '602 Culture. One App.',
+    profileAva: 'J', profileName: 'Jordan Kim', profileTier: 'PHX Explorer · Free',
+    topbarCta: '⬆️ Upgrade to Native', topbarCtaAct: "showView('mypass')",
+    playsLeftVisible: true,
+    navId: 'nav-member', bottomId: 'sb-bottom-member',
+    otherName: '', otherRole: '', otherAva: '',
+    defaultView: 'music',
+  },
+  native: {
+    chipClass: '',
+    chipTier: 'PHX Pass · Native',
+    chipName: 'Alex Rivera',
+    chipSub: 'Member since April 2026',
+    sbTagline: '602 Culture. One App.',
+    profileAva: 'A', profileName: 'Alex Rivera', profileTier: 'PHX Native Member',
+    topbarCta: '💳 Native Pass', topbarCtaAct: "showView('mypass')",
+    playsLeftVisible: false,
+    navId: 'nav-member', bottomId: 'sb-bottom-member',
+    otherName: '', otherRole: '', otherAva: '',
+    defaultView: 'home',
+  },
+  insider: {
+    chipClass: 'chip-insider',
+    chipTier: 'Insider Pass · All Access',
+    chipName: 'Marcus Webb',
+    chipSub: 'Member since April 2026',
+    sbTagline: '602 Culture. One App.',
+    profileAva: 'M', profileName: 'Marcus Webb', profileTier: 'PHX Insider · All Access',
+    topbarCta: '⭐ Insider Pass', topbarCtaAct: "showView('mypass')",
+    playsLeftVisible: false,
+    navId: 'nav-member', bottomId: 'sb-bottom-member',
+    otherName: '', otherRole: '', otherAva: '',
+    defaultView: 'home',
+  },
+  artist: {
+    chipClass: 'chip-artist',
+    chipTier: 'PHX Artist · Verified',
+    chipName: 'Murkemz',
+    chipSub: 'PHX Founder · Since 2026',
+    sbTagline: 'Artist Dashboard',
+    profileAva: 'M', profileName: '', profileTier: '',
+    topbarCta: '➕ Submit Track', topbarCtaAct: "showView('artist-submit')",
+    playsLeftVisible: false,
+    navId: 'nav-artist', bottomId: 'sb-bottom-other',
+    otherName: 'Murkemz', otherRole: 'PHX Artist · Verified', otherAva: 'M',
+    defaultView: 'artist-tracks',
+  },
+  admin: {
+    chipClass: 'chip-admin',
+    chipTier: 'City OS · Admin',
+    chipName: 'Platform Admin',
+    chipSub: 'PHX App Operations',
+    sbTagline: 'City OS',
+    profileAva: '⚙', profileName: '', profileTier: '',
+    topbarCta: '⚙️ Admin', topbarCtaAct: "showView('admin-dashboard')",
+    playsLeftVisible: false,
+    navId: 'nav-admin', bottomId: 'sb-bottom-other',
+    otherName: 'Admin', otherRole: 'PHX Admin', otherAva: '⚙',
+    defaultView: 'admin-dashboard',
+    finTagVisible: false, sysTagVisible: false,
+  },
+  super: {
+    chipClass: 'chip-super',
+    chipTier: 'City OS · Super Admin',
+    chipName: 'Jaye Mali',
+    chipSub: 'PHX App Founder',
+    sbTagline: 'City OS — Full Access',
+    profileAva: 'J', profileName: '', profileTier: '',
+    topbarCta: '⚡ Super Admin', topbarCtaAct: "showView('admin-system')",
+    playsLeftVisible: false,
+    navId: 'nav-admin', bottomId: 'sb-bottom-other',
+    otherName: 'Jaye Mali', otherRole: 'Super Admin · PHX Founder', otherAva: 'J',
+    defaultView: 'admin-dashboard',
+    finTagVisible: true, sysTagVisible: true,
+  },
+};
+
+function setRole(role) {
+  var r = ROLES[role];
+  if (!r) return;
+  currentRole = role;
+
+  // Chip
+  var chip = document.getElementById('pass-chip');
+  chip.className = 'pass-chip' + (r.chipClass ? ' ' + r.chipClass : '');
+  document.getElementById('chip-tier').textContent = r.chipTier;
+  document.getElementById('chip-name').textContent = r.chipName;
+  document.getElementById('chip-sub').textContent = r.chipSub;
+
+  // Sidebar tagline
+  document.getElementById('sb-tagline').textContent = r.sbTagline;
+
+  // Show correct nav
+  ['nav-member','nav-artist','nav-admin'].forEach(function(id) {
+    document.getElementById(id).style.display = id === r.navId ? '' : 'none';
+  });
+  // Reset active state within the newly shown nav
+  document.querySelectorAll('#' + r.navId + ' .nav-item').forEach(function(b){ b.classList.remove('active'); });
+  var firstBtn = document.querySelector('#' + r.navId + ' .nav-item:not(.nav-soon-item)');
+  if (firstBtn) firstBtn.classList.add('active');
+
+  // Show correct bottom
+  ['sb-bottom-member','sb-bottom-other'].forEach(function(id) {
+    document.getElementById(id).style.display = id === r.bottomId ? '' : 'none';
+  });
+
+  // Member bottom
+  if (r.bottomId === 'sb-bottom-member') {
+    document.getElementById('profile-ava-initial').textContent = r.profileAva;
+    document.getElementById('sb-profile-name').textContent = r.profileName;
+    document.getElementById('sb-profile-tier').textContent = r.profileTier;
+  } else {
+    document.getElementById('sb-other-ava').textContent = r.otherAva;
+    document.getElementById('sb-other-name').textContent = r.otherName;
+    document.getElementById('sb-other-role').textContent = r.otherRole;
+  }
+
+  // Topbar CTA
+  var cta = document.getElementById('topbar-cta');
+  cta.textContent = r.topbarCta;
+  cta.setAttribute('onclick', r.topbarCtaAct);
+
+  // Plays left badge (Explorer only)
+  var playsEl = document.getElementById('plays-left-badge');
+  if (playsEl) playsEl.style.display = r.playsLeftVisible ? '' : 'none';
+
+  // Super Admin extras
+  var finTag = document.getElementById('admin-fin-tag');
+  var sysTag = document.getElementById('admin-sys-tag');
+  if (finTag) finTag.style.display = (role === 'super') ? '' : 'none';
+  if (sysTag) sysTag.style.display = (role === 'super') ? '' : 'none';
+  var superAlert = document.getElementById('admin-super-alert');
+  var finAlert = document.getElementById('fin-super-alert');
+  var sysAlert = document.getElementById('sys-super-alert');
+  if (superAlert) superAlert.style.display = (role === 'super') ? 'flex' : 'none';
+  if (finAlert) finAlert.style.display = (role === 'super') ? 'flex' : 'none';
+  if (sysAlert) sysAlert.style.display = (role === 'super') ? 'flex' : 'none';
+
+  // Explorer music gating
+  applyMusicGating(role);
+
+  // Fan payout card update
+  updatePayoutCard(role);
+
+  // Navigate to default view for this role
+  showView(r.defaultView);
+
+  // Update demo bar active chip
+  var chips = document.querySelectorAll('.demo-role-btn');
+  chips.forEach(function(c){ c.classList.toggle('active', c.dataset.role === role); });
+}
+
+function applyMusicGating(role) {
+  // PHX track is exclusive — locked for Explorer
+  var phxRow = document.querySelector('.track-row[onclick*="\'phx\'"]');
+  if (!phxRow) return;
+  if (role === 'explorer') {
+    phxRow.classList.add('locked');
+    phxRow.setAttribute('onclick', "alert('Upgrade to Native to unlock exclusive tracks')");
+    var excBadge = phxRow.querySelector('.track-exclusive');
+    if (excBadge) { excBadge.textContent = 'LOCKED'; excBadge.style.background = 'rgba(107,114,128,.2)'; excBadge.style.color = 'var(--muted)'; }
+  } else {
+    phxRow.classList.remove('locked');
+    phxRow.setAttribute('onclick', "playTrack(this,'PHX','Murkemz','Recess EP · 2026','Prod. PA. Dre','3:24','phx',15247,'🎵')");
+    var excBadge2 = phxRow.querySelector('.track-exclusive');
+    if (excBadge2) { excBadge2.textContent = 'EXCLUSIVE'; excBadge2.style.background = ''; excBadge2.style.color = ''; }
+  }
+  // Hide/show fan payout upgrade gate vs card
+  var payoutCard = document.querySelector('.fan-payout-card');
+  var upgradeGate = document.getElementById('payout-upgrade-gate');
+  if (payoutCard && upgradeGate) {
+    payoutCard.style.display = (role === 'explorer') ? 'none' : '';
+    upgradeGate.style.display = (role === 'explorer') ? '' : 'none';
+  }
+}
+
+function updatePayoutCard(role) {
+  var titleEl = document.querySelector('.fan-payout-title');
+  var rows = document.querySelectorAll('.fan-payout-row');
+  if (!titleEl || rows.length < 5) return;
+  if (role === 'insider') {
+    titleEl.textContent = 'Your $29/mo — Where It Goes';
+    rows[0].querySelector('.fan-payout-val').textContent = '$29.00 / mo';
+    rows[1].querySelector('.fan-payout-val').textContent = '89% Murkemz · 11% others';
+    rows[2].querySelector('.fan-payout-val').textContent = '$5.80';
+    rows[3].querySelector('.fan-payout-val').textContent = '$23.20';
+    rows[4].querySelector('.fan-payout-val').textContent = '$20.65 / mo';
+    rows[4].querySelector('.fan-payout-label').textContent = 'Murkemz earns from you';
+  } else {
+    titleEl.textContent = 'Your $15/mo — Where It Goes';
+    rows[0].querySelector('.fan-payout-val').textContent = '$15.00 / mo';
+    rows[1].querySelector('.fan-payout-val').textContent = '86% Murkemz · 14% others';
+    rows[2].querySelector('.fan-payout-val').textContent = '$3.00';
+    rows[3].querySelector('.fan-payout-val').textContent = '$12.00';
+    rows[4].querySelector('.fan-payout-val').textContent = '$10.32 / mo';
+    rows[4].querySelector('.fan-payout-label').textContent = 'Murkemz earns from you';
+  }
 }
 
 // ── SUPABASE ────────────────────────────────────────────────────────────
@@ -1176,7 +2015,7 @@ document.querySelectorAll('.cs-notify-btn').forEach(function(btn) {
   });
 });
 </script>
-<script src="shared.js"></script>
-<script src="tour.js"></script>
+<script src="shared.js?v=3"></script>
+<script src="tour.js?v=3"></script>
 </body>
 </html>
