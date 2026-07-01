@@ -731,29 +731,29 @@ body{background:#07070F;color:#F1F1F8;font-family:'Inter',-apple-system,sans-ser
           <!-- Fan-Powered Payouts explainer -->
           <div class="sh"><h3>Fan-Powered Payouts</h3><span class="badge badge-teal">PHX Difference</span></div>
           <div class="fan-payout-card">
-            <div class="fan-payout-title">Your $15/mo — Where It Goes</div>
-            <div class="fan-payout-row">
-              <span class="fan-payout-label">Your subscription</span>
-              <span class="fan-payout-val">$15.00 / mo</span>
+            <div class="fan-payout-title">Your Monthly Impact</div>
+            <!-- Artist breakdown bars -->
+            <div style="margin:.6rem 0 .9rem">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.25rem;font-size:.82rem">
+                <span style="font-weight:600">Murkemz</span>
+                <span style="color:var(--green);font-weight:700" id="payout-artist-1-amt">$10.32 / mo</span>
+              </div>
+              <div style="background:rgba(255,255,255,.07);border-radius:6px;height:8px">
+                <div style="width:86%;background:linear-gradient(90deg,var(--orange),var(--green));height:8px;border-radius:6px"></div>
+              </div>
+              <div style="font-size:.72rem;color:var(--muted);margin-top:.2rem">86% of your listening this month</div>
             </div>
-            <div class="fan-payout-row">
-              <span class="fan-payout-label">Your listening split</span>
-              <span class="fan-payout-val">86% Murkemz · 14% others</span>
-            </div>
-            <div class="fan-payout-row">
-              <span class="fan-payout-label">Platform share (ops)</span>
-              <span class="fan-payout-val">$3.00</span>
-            </div>
-            <div class="fan-payout-row">
-              <span class="fan-payout-label">Goes to artists you played</span>
-              <span class="fan-payout-val green">$12.00</span>
-            </div>
-            <div class="fan-payout-row" style="color:var(--green)">
-              <span class="fan-payout-label">Murkemz earns from you</span>
-              <span class="fan-payout-val green" style="font-size:.95rem">$10.32 / mo</span>
+            <div style="margin:.4rem 0 .9rem">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.25rem;font-size:.82rem">
+                <span style="font-weight:600;color:var(--muted)">2 other artists</span>
+                <span style="color:var(--teal);font-weight:700">$1.68 / mo</span>
+              </div>
+              <div style="background:rgba(255,255,255,.07);border-radius:6px;height:8px">
+                <div style="width:14%;background:var(--teal);height:8px;border-radius:6px"></div>
+              </div>
             </div>
             <div class="fan-payout-vs">
-              <b>On Spotify:</b> your $10.99 goes into a pool with 640M listeners. Murkemz's cut depends on his share of <em>all streams on Earth</em> — he competes with Drake, Taylor Swift, everyone. He earns fractions of a cent per stream regardless of how much you personally listen.
+              On Spotify, your $10.99 goes into a pool with 640M listeners. Murkemz competes with Drake and Taylor Swift for fractions of a cent. On PHX, <strong>your $15 goes only to artists you actually listen to.</strong>
             </div>
           </div>
 
@@ -1116,13 +1116,12 @@ body{background:#07070F;color:#F1F1F8;font-family:'Inter',-apple-system,sans-ser
         <div>
           <div class="sh"><h3>How Your Payout Is Calculated</h3></div>
           <div class="fan-payout-card">
-            <div class="fan-payout-title">Fan-Powered Math</div>
-            <div class="fan-payout-row"><span class="fan-payout-label">Platform MRR (subs)</span><span class="fan-payout-val">$1,240/mo</span></div>
-            <div class="fan-payout-row"><span class="fan-payout-label">Platform keeps (20%)</span><span class="fan-payout-val">$248</span></div>
-            <div class="fan-payout-row"><span class="fan-payout-label">Artist pool (80%)</span><span class="fan-payout-val green">$992</span></div>
-            <div class="fan-payout-row"><span class="fan-payout-label">Your stream share</span><span class="fan-payout-val">85.4% of all streams</span></div>
-            <div class="fan-payout-row" style="color:var(--green)"><span class="fan-payout-label">Your cut</span><span class="fan-payout-val green" style="font-size:.95rem">$847 / mo</span></div>
-            <div class="fan-payout-vs">Each subscriber's $15 goes <em>only</em> to artists they actually listened to. You earn from fans who listen to you — not from a shared pool you compete against Drake for.</div>
+            <div class="fan-payout-title">How Your Earnings Are Calculated</div>
+            <div class="fan-payout-row"><span class="fan-payout-label">Paying subscribers</span><span class="fan-payout-val">158 members</span></div>
+            <div class="fan-payout-row"><span class="fan-payout-label">Your share of all streams</span><span class="fan-payout-val">85.4%</span></div>
+            <div class="fan-payout-row"><span class="fan-payout-label">Rate per qualifying stream</span><span class="fan-payout-val">$0.012</span></div>
+            <div class="fan-payout-row" style="margin-top:.3rem"><span class="fan-payout-label" style="font-weight:700">Your estimated payout</span><span class="fan-payout-val green" style="font-size:.95rem;font-weight:700">$847 / mo</span></div>
+            <div class="fan-payout-vs">Your earnings come only from subscribers who actually listen to you — not from a shared pool where you compete against Drake for fractions of a cent.</div>
           </div>
         </div>
       </div>
@@ -1520,6 +1519,50 @@ body{background:#07070F;color:#F1F1F8;font-family:'Inter',-apple-system,sans-ser
 </div><!-- /main -->
 </div><!-- /app-shell -->
 
+<!-- BOTTOM TAB BAR — mobile only, swaps per role -->
+<nav class="bottom-tabs" id="bt-member" aria-label="Member navigation">
+  <button class="bt-item active" data-view="home" onclick="btNav('home',this)">
+    <span class="bt-icon">🏙️</span><span class="bt-lbl">Home</span>
+  </button>
+  <button class="bt-item" data-view="music" onclick="btNav('music',this)">
+    <span class="bt-icon">🎵</span><span class="bt-lbl">Music</span>
+  </button>
+  <button class="bt-item" data-view="discover" onclick="btNav('discover',this)">
+    <span class="bt-icon">🔍</span><span class="bt-lbl">Discover</span>
+  </button>
+  <button class="bt-item" data-view="mypass" onclick="btNav('mypass',this)">
+    <span class="bt-icon">💳</span><span class="bt-lbl">My Pass</span>
+  </button>
+</nav>
+<nav class="bottom-tabs" id="bt-artist" style="display:none" aria-label="Artist navigation">
+  <button class="bt-item active" data-view="artist-tracks" onclick="btNav('artist-tracks',this)">
+    <span class="bt-icon">🎵</span><span class="bt-lbl">Tracks</span>
+  </button>
+  <button class="bt-item" data-view="artist-analytics" onclick="btNav('artist-analytics',this)">
+    <span class="bt-icon">📊</span><span class="bt-lbl">Stats</span>
+  </button>
+  <button class="bt-item" data-view="artist-earnings" onclick="btNav('artist-earnings',this)">
+    <span class="bt-icon">💰</span><span class="bt-lbl">Earnings</span>
+  </button>
+  <button class="bt-item" data-view="artist-submit" onclick="btNav('artist-submit',this)">
+    <span class="bt-icon">➕</span><span class="bt-lbl">Submit</span>
+  </button>
+</nav>
+<nav class="bottom-tabs" id="bt-admin" style="display:none" aria-label="Admin navigation">
+  <button class="bt-item active" data-view="admin-dashboard" onclick="btNav('admin-dashboard',this)">
+    <span class="bt-icon">📊</span><span class="bt-lbl">Overview</span>
+  </button>
+  <button class="bt-item" data-view="admin-members" onclick="btNav('admin-members',this)">
+    <span class="bt-icon">👥</span><span class="bt-lbl">Members</span>
+  </button>
+  <button class="bt-item" data-view="admin-content" onclick="btNav('admin-content',this)">
+    <span class="bt-icon">🎵</span><span class="bt-lbl">Content</span>
+  </button>
+  <button class="bt-item" data-view="admin-system" onclick="btNav('admin-system',this)">
+    <span class="bt-icon">⚙️</span><span class="bt-lbl">Settings</span>
+  </button>
+</nav>
+
 <!-- MINI PLAYER -->
 <div class="mini-player">
   <div class="mp-art">🎵</div>
@@ -1559,6 +1602,20 @@ function showView(id) {
   if (id === 'admin-dashboard') loadAdminStreamData();
   if (id === 'admin-content') loadPendingTracks();
   if (id === 'home') loadCityFeed();
+
+  // Sync bottom tab active state
+  document.querySelectorAll('.bottom-tabs .bt-item').forEach(function(b) {
+    b.classList.toggle('active', b.dataset.view === id);
+  });
+
+  // Scroll content back to top on view change
+  var contentEl = document.querySelector('.content');
+  if (contentEl) contentEl.scrollTop = 0;
+}
+
+function btNav(viewId, btn) {
+  showView(viewId);
+  // btItem active state already handled by showView's loop above
 }
 
 // ── ROLE SYSTEM ─────────────────────────────────────────────────────────
@@ -1714,6 +1771,15 @@ function setRole(role) {
   // Fan payout card update
   updatePayoutCard(role);
 
+  // Swap bottom tab bar to match role group
+  var btGroupMap = { explorer:'bt-member', native:'bt-member', insider:'bt-member', artist:'bt-artist', admin:'bt-admin', super:'bt-admin' };
+  ['bt-member','bt-artist','bt-admin'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
+  var activeBt = document.getElementById(btGroupMap[role]);
+  if (activeBt) activeBt.style.display = '';
+
   // Navigate to default view for this role
   showView(r.defaultView);
 
@@ -1786,6 +1852,48 @@ var TRACK_IDS = {
 
 // UUID → audio URL (populated on page load from Supabase)
 var TRACK_AUDIO_URLS = {};
+
+// ── DEVICE FINGERPRINT ────────────────────────────────────────────────
+// Canvas fingerprint = much harder to fake than a UUID alone.
+// Combined with the localStorage UUID, this gives two independent signals.
+var DEVICE_FP = (function() {
+  try {
+    var c = document.createElement('canvas');
+    var g = c.getContext('2d');
+    g.textBaseline = 'top';
+    g.font = '14px Arial';
+    g.fillStyle = '#F97316';
+    g.fillText('PHX☃', 2, 2);
+    g.fillStyle = 'rgba(20,184,166,.5)';
+    g.fillRect(125, 1, 62, 20);
+    return c.toDataURL().slice(-32);
+  } catch(e) { return 'nofp'; }
+}());
+
+// Combine localStorage UUID with canvas FP for the stream user_id seed
+function getDeviceId() {
+  var uid = getGuestId();
+  // XOR the canvas FP into the UUID so spoofing one alone isn't enough
+  return uid + ':' + DEVICE_FP;
+}
+
+// ── BEHAVIORAL EVENT TRACKING ─────────────────────────────────────────
+// All events land in user_events table. Powers future recommendations + fraud ML.
+function trackEvent(eventType, entityType, entityId, metadata) {
+  if (!_sb) return;
+  var payload = {
+    user_id:     getGuestId(),
+    session_id:  SESSION_ID,
+    event_type:  eventType,
+    entity_type: entityType || null,
+    entity_id:   entityId   || null,
+    metadata:    Object.assign({ role: currentRole || 'unknown', fp: DEVICE_FP }, metadata || {})
+  };
+  // Fire and forget — don't block UI
+  _sb.from('user_events').insert(payload).then(function(res) {
+    if (res.error) console.warn('event track err:', res.error.message);
+  });
+}
 
 // Hidden audio element for real playback
 var PHX_AUDIO = (function() {
@@ -1883,16 +1991,22 @@ function countStream(trackId) {
     setTimeout(function(){ indicator.style.display = 'none'; }, 2000);
   }
 
-  // Write to Supabase
+  // Behavioral event for analytics + fraud ML
   var uuid = TRACK_IDS[trackId];
+  trackEvent('play_30s', 'track', uuid || trackId, { track_key: trackId, fp: DEVICE_FP });
+
+  // Write to Supabase
   if (uuid) {
     _sb.rpc('record_stream', {
       p_track_id:   uuid,
       p_user_id:    getGuestId(),
       p_session_id: SESSION_ID + '-' + trackId,
-      p_user_tier:  'native'
+      p_user_tier:  currentRole || 'native'
     }).then(function(res) {
       if (res.error) console.warn('stream RPC error:', res.error.message);
+      else if (res.data && res.data.reason === 'rate_limited') {
+        console.warn('Stream rate-limited by server');
+      }
     });
   }
 }
@@ -2012,6 +2126,9 @@ function playTrack(el, title, artist, feat, album, duration, trackId, streamCoun
     PHX_AUDIO.src = '';
   }
 
+  // Track play start for behavioral analytics
+  trackEvent('play_start', 'track', TRACK_IDS[trackId] || trackId, { track_key: trackId, title: title });
+
   // Start stream timer (30s threshold)
   startStreamTimer(trackId);
 }
@@ -2114,6 +2231,14 @@ async function loadAdminStreamData() {
 // Load live stream counts + city feed on startup
 loadStreamCounts();
 loadCityFeed();
+
+// Session start event — powers DAU tracking and session analytics
+trackEvent('session_start', null, null, {
+  screen: window.innerWidth + 'x' + window.innerHeight,
+  tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
+  lang: navigator.language,
+  ua_short: navigator.userAgent.slice(0,80)
+});
 
 // ── CITY FEED (from Supabase feed_posts) ────────────────────────────────
 var _cityFeedLoaded = false;

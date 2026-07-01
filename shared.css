@@ -453,25 +453,114 @@ body { padding-bottom: 52px; }
   /* Pass chip in sidebar */
   .pass-chip { margin: .6rem .8rem !important; }
 
-  /* Demo bar: smaller chips, horizontally scrollable */
+  /* Demo bar: move to TOP on mobile so it doesn't conflict with bottom tabs */
+  #demo-nav {
+    top: 0 !important;
+    bottom: auto !important;
+    border-top: none !important;
+    border-bottom: 1px solid rgba(249,115,22,.2) !important;
+  }
+  body {
+    padding-bottom: 0 !important;
+    padding-top: 48px !important;  /* demo nav height */
+  }
   #demo-nav .demo-nav-inner {
-    padding: .4rem .6rem !important;
+    padding: .35rem .6rem !important;
     gap: .3rem !important;
   }
   .demo-nav-btn, .demo-role-btn {
-    font-size: .72rem !important;
-    padding: .3rem .55rem !important;
+    font-size: .7rem !important;
+    padding: .28rem .5rem !important;
   }
   .demo-nav-label { display: none !important; }
 
-  /* Mini player: ensure full-width */
+  /* Mini player: full-width, sits above bottom tabs */
   .mini-player {
-    padding: .5rem .75rem !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 60px !important;
+    padding: .6rem 1rem !important;
+    border-radius: 14px 14px 0 0 !important;
   }
   .mp-time { display: none !important; }
 
+  /* Content: space for mini player + bottom tabs */
+  .content, .main > .content {
+    padding-bottom: 150px !important;
+  }
+
   /* Upgrade gate card */
   .upgrade-gate-card { padding: 1.2rem !important; }
+}
+
+/* ── BOTTOM TAB BAR — mobile only ─────────────────────────────── */
+.bottom-tabs { display: none; }
+
+@media (max-width: 768px) {
+  .bottom-tabs {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    background: var(--bg2, #0D0D1A);
+    border-top: 1px solid rgba(249,115,22,.14);
+    z-index: 400;
+    /* safe area for iPhone home indicator */
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .bt-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    cursor: pointer;
+    color: #6B7280;
+    border: none;
+    background: transparent;
+    padding: .5rem 0 .4rem;
+    transition: color .15s, transform .1s;
+    -webkit-tap-highlight-color: transparent;
+    position: relative;
+  }
+
+  .bt-item .bt-icon {
+    font-size: 1.25rem;
+    line-height: 1;
+  }
+
+  .bt-item .bt-lbl {
+    font-size: .6rem;
+    font-weight: 600;
+    letter-spacing: .02em;
+    line-height: 1;
+  }
+
+  .bt-item.active {
+    color: #F97316;
+  }
+
+  /* Active indicator dot under icon */
+  .bt-item.active::after {
+    content: '';
+    position: absolute;
+    bottom: 6px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 4px;
+    height: 4px;
+    background: #F97316;
+    border-radius: 50%;
+  }
+
+  .bt-item:active {
+    transform: scale(.88);
+    color: #F97316;
+  }
 }
 
 @media (max-width: 480px) {
@@ -482,10 +571,10 @@ body { padding-bottom: 52px; }
   /* Topbar: hide bell, just show CTA */
   .topbar-right .tb-btn:not(#topbar-cta):not(#plays-left-badge) { display: none !important; }
 
-  /* Music player: even tighter */
-  .np-art-big { width: 100px !important; height: 100px !important; font-size: 2.8rem !important; }
+  /* Music player: bigger art on small screen */
+  .np-art-big { width: 120px !important; height: 120px !important; font-size: 3rem !important; }
   .music-player-expanded { padding: .75rem !important; border-radius: 12px !important; }
-  .np-controls .ctrl-skip { display: none !important; } /* hide ±15s on tiny screens — too crowded */
+  .np-controls .ctrl-skip { display: none !important; }
 
   /* Artist stats: stack */
   .a-stat-grid { gap: .6rem !important; }
