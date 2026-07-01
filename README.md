@@ -74,8 +74,11 @@ A stream only counts after the user has listened for 30 continuous seconds. The 
 **Deduplication**  
 The `record_stream()` Postgres function uses a unique index on `(track_id, session_id)` — one count per session per track. Session ID is generated fresh each page load.
 
-**Device UUID**  
-Each browser gets a persistent UUID stored in localStorage (`phx_guest_id`). This UUID is sent as `p_user_id` to rate-limit streams per device.
+**Device UUID + Fingerprint**  
+Each browser gets a persistent UUID stored in localStorage (`phx_guest_id`). This UUID is sent as `p_user_id` to rate-limit streams per device. A canvas-based device fingerprint (`DEVICE_FP`) is computed alongside it and attached to every behavioral event — harder to spoof than a UUID alone since clearing localStorage doesn't change it.
+
+**Behavioral Analytics**  
+Every `session_start`, `play_start`, and `play_30s` event writes to the `user_events` table via `trackEvent()`, with metadata (screen size, timezone, language, role, device fingerprint). This is the raw data future recommendation and fraud-detection systems will read from — nothing consumes it yet, but it's being collected from day one.
 
 **Fraud Rate Limit**  
 DB-level: `record_stream()` checks that the device UUID hasn't streamed more than 60 unique tracks in the past hour. Returns `{ok: false, reason: 'rate_limited'}` if exceeded.
@@ -84,6 +87,20 @@ DB-level: `record_stream()` checks that the device UUID hasn't streamed more tha
 On qualifying stream: inserts into `stream_events`, increments `tracks.stream_count` and `artists.total_streams` atomically. Only works on `status = 'live'` tracks.
 
 ---
+
+## Search
+
+Search bar lives in the Discover tab. Debounced 300ms, queries Supabase directly:
+- Matches track title (`ilike`) OR artist name (`ilike`), merged and de-duped client-side
+- **Search is available to every tier** — Explorer, Native, Insider can all search and see results, including exclusive tracks (shown with a tier badge)
+- **Playback is what's gated**, not search — clicking a locked result shows an upgrade toast instead of playing, matching how Spotify/Apple Music handle free-tier search
+- Results are stored in `_lastSearchResults` and referenced by index in click handlers (avoids injecting track data into `onclick` HTML attributes, which would break on titles containing quotes/apostrophes)
+
+## Playback Controls
+
+- **Previous / Next**: cycles through `TRACK_META` (the 5 legacy catalog tracks) in order. Tracks played via search don't currently have next/prev context — falls back to the first catalog track.
+- **±15s skip**: seeks real `<audio>` currentTime when a track has an `audio_url`; nudges the demo progress bar percentage otherwise.
+- **Media Session API**: registers `play`, `pause`, `previoustrack`, `nexttrack`, `seekbackward`, `seekforward` handlers once on page load. `updateMediaSessionMetadata()` runs on every track change to update the lock-screen/Bluetooth display (title, artist, artwork). `setPositionState()` keeps the OS scrubber in sync via the `<audio>` `timeupdate` event.
 
 ## Fan-Powered Royalties
 
@@ -188,20 +205,39 @@ git push origin main
 | Fan-powered royalty display | ✅ Live (calculation pending) |
 | Real audio playback | ✅ (plays from audio_url when present) |
 | Stream tracking → Supabase | ✅ Live |
-| Fraud protection (60/hr rate limit) | ✅ DB-enforced |
+| Fraud protection (60/hr rate limit + device fingerprint) | ✅ DB-enforced |
 | Admin stream activity dashboard | ✅ Live (real Supabase data) |
 | Track submission + Storage upload | ✅ Live |
 | Admin approve/reject submissions | ✅ Live |
 | City Feed from DB | ✅ Live |
 | Mobile responsive (all 6 roles) | ✅ Live |
+| Bottom tab navigation (role-aware) | ✅ Live |
+| Behavioral event tracking (user_events) | ✅ Live |
+| Media Session API (lock screen + Bluetooth controls) | ✅ Live |
+| Prev/Next/±15s player controls | ✅ Live |
+| Music search (title + artist) | ✅ Live, all tiers |
+| PWA install prompt (Android) + iOS instructions | ✅ Live |
+| Service worker (installability) | ✅ Live |
 | Supabase Auth (real login) | 🔲 Planned |
 | Stripe subscriptions (live mode) | 🔲 Planned |
 | Payout calculation job | 🔲 Planned |
 | Audio upload cover art | 🔲 Planned |
 | City Feed admin post UI | 🔲 Planned |
 | Push notifications | 🔲 Planned |
+| Recommendation engine (reads user_events) | 🔲 Planned |
 | PHX Eats / Cuts / Drops verticals | 🔲 Q3 2026 |
 | Events calendar | 🔲 Q3 2026 |
+
+---
+
+## Background Playback — Known Limitation
+
+PHX is a web app, not a native app, which has a real ceiling:
+
+- **Android (Chrome):** Media Session API + service worker gets audio to survive screen lock and app switching reliably, especially once installed to home screen.
+- **iOS (Safari):** Apple suspends `<audio>` in background browser tabs aggressively. Media Session API helps once the app is **added to Home Screen** (standalone mode) — a plain Safari tab will still get suspended. We show iOS users a one-time banner with manual "Add to Home Screen" instructions since Safari doesn't support the `beforeinstallprompt` API Android/Chrome use.
+- **Bluetooth / hardware media keys (AirPods, car stereo):** Wired via `navigator.mediaSession.setActionHandler()` for play/pause/next/previous/seek — these will work once the OS considers PHX the active media app, which requires the metadata + action handlers we've set up.
+- **True parity with Spotify/Apple Music** (bulletproof background audio in every scenario) requires a native app wrapper (Capacitor/React Native). Not needed yet, but the ceiling to know about.
 
 ---
 
@@ -219,6 +255,7 @@ git push origin main
 | 012 | Track submission + storage | status/release_type columns, track-audio bucket, insert/update policies |
 | 013 | record_stream rate limit + jsonb return | 60 unique tracks/hr cap, only counts live tracks |
 | 014 | feed_posts table | City Feed from DB, seeded 2 posts |
+| 015 | user_events analytics table | Behavioral event log (session_start, play_start, play_30s) + indexes; profiles gets device_fingerprints/genre_affinities columns for future personalization |
 
 ---
 

@@ -511,6 +511,14 @@ body{background:#07070F;color:#F1F1F8;font-family:'Inter',-apple-system,sans-ser
 
     <!-- DISCOVER -->
     <div class="view" id="v-discover">
+      <!-- Search — free for all tiers; playback itself is what's gated -->
+      <div style="position:relative;margin-bottom:1.5rem">
+        <input type="text" id="music-search-input" class="form-input" placeholder="🔍 Search tracks or artists…"
+          style="padding-left:1rem;font-size:.95rem" oninput="handleSearchInput(this.value)">
+        <div id="search-lock-toast" style="display:none;position:absolute;top:100%;left:0;right:0;margin-top:.4rem;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);border-radius:8px;padding:.5rem .8rem;font-size:.8rem;color:var(--red)"></div>
+      </div>
+      <div id="search-results-container" style="display:none;margin-bottom:1.5rem"></div>
+      <div id="discover-default-content">
       <p style="color:var(--muted);margin-bottom:1.5rem;font-size:.9rem">PHX Music is live now. More verticals launching Q3–Q4 2026.</p>
       <div class="grid-3" style="grid-template-columns:repeat(4,1fr)">
         <div class="card" style="text-align:center;cursor:pointer;transition:all .2s;border-color:rgba(249,115,22,.3);background:rgba(249,115,22,.05)" onclick="showView('music')">
@@ -564,6 +572,7 @@ body{background:#07070F;color:#F1F1F8;font-family:'Inter',-apple-system,sans-ser
         <span class="badge badge-teal" style="font-size:.82rem;padding:.4rem .9rem">Futuristic · PHX Hip-Hop</span>
         <span class="badge badge-green" style="font-size:.82rem;padding:.4rem .9rem">Mega Ran · PHX Legend</span>
       </div>
+      </div><!-- /discover-default-content -->
     </div>
 
     <!-- PHX MUSIC — FULLY LIVE -->
@@ -619,11 +628,11 @@ body{background:#07070F;color:#F1F1F8;font-family:'Inter',-apple-system,sans-ser
         </div>
         <div class="np-controls">
           <button class="ctrl-btn" title="Shuffle">⇄</button>
-          <button class="ctrl-btn" title="Previous">⏮</button>
-          <button class="ctrl-btn ctrl-skip" title="-15s">«15</button>
+          <button class="ctrl-btn" title="Previous" onclick="prevTrack()">⏮</button>
+          <button class="ctrl-btn ctrl-skip" title="-15s" onclick="skipSeconds(-15)">«15</button>
           <button class="ctrl-btn play" id="play-btn" onclick="togglePlay()">▶</button>
-          <button class="ctrl-btn ctrl-skip" title="+15s">15»</button>
-          <button class="ctrl-btn" title="Next">⏭</button>
+          <button class="ctrl-btn ctrl-skip" title="+15s" onclick="skipSeconds(15)">15»</button>
+          <button class="ctrl-btn" title="Next" onclick="nextTrack()">⏭</button>
           <button class="ctrl-btn" title="Repeat">↺</button>
         </div>
 
@@ -1563,14 +1572,21 @@ body{background:#07070F;color:#F1F1F8;font-family:'Inter',-apple-system,sans-ser
   </button>
 </nav>
 
+<!-- INSTALL BANNER — dismissible, addresses background playback limits -->
+<div id="install-banner" style="display:none;position:fixed;top:52px;left:0;right:0;z-index:390;background:rgba(249,115,22,.12);border-bottom:1px solid rgba(249,115,22,.3);backdrop-filter:blur(10px);padding:.6rem 1rem;font-size:.78rem;align-items:center;gap:.6rem">
+  <span style="flex:1" id="install-banner-text">📲 Add PHX to your home screen for uninterrupted background playback.</span>
+  <button id="install-banner-action" style="background:var(--orange);color:#fff;border:none;border-radius:6px;padding:.3rem .7rem;font-size:.74rem;font-weight:700;cursor:pointer;white-space:nowrap">Install</button>
+  <button onclick="dismissInstallBanner()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:.9rem">✕</button>
+</div>
+
 <!-- MINI PLAYER -->
 <div class="mini-player">
   <div class="mp-art">🎵</div>
   <div class="mp-info"><div class="mp-title" id="mp-title">PHX</div><div class="mp-artist" id="mp-artist">Murkemz · Recess EP</div></div>
   <div class="mp-controls">
-    <button class="mp-btn">⏮</button>
+    <button class="mp-btn" onclick="prevTrack()">⏮</button>
     <button class="mp-btn play" id="mp-play-btn" onclick="togglePlay()">▶</button>
-    <button class="mp-btn">⏭</button>
+    <button class="mp-btn" onclick="nextTrack()">⏭</button>
   </div>
   <div class="mp-bar"><div class="mp-fill" id="mp-fill"></div></div>
   <div class="mp-time" id="mp-time">1:12 / 3:24</div>
@@ -1992,8 +2008,8 @@ function countStream(trackId) {
   }
 
   // Behavioral event for analytics + fraud ML
-  var uuid = TRACK_IDS[trackId];
-  trackEvent('play_30s', 'track', uuid || trackId, { track_key: trackId, fp: DEVICE_FP });
+  var uuid = TRACK_IDS[trackId] || trackId;
+  trackEvent('play_30s', 'track', uuid, { track_key: trackId, fp: DEVICE_FP });
 
   // Write to Supabase
   if (uuid) {
@@ -2044,21 +2060,98 @@ function formatCount(n) {
 var prog = 35;
 var totalSeconds = 204; // 3:24
 
+// Track metadata for legacy demo tracks — used for prev/next cycling and
+// Media Session lock-screen display since these tracks aren't in Supabase-loaded search state.
+var TRACK_META = {
+  'phx':               { title:'PHX', artist:'Murkemz', feat:'', album:'Recess EP · 2026 · Prod. PA. Dre', duration:'3:24', streamCount:15247 },
+  'against-all-odds':  { title:'Against All Odds', artist:'Murkemz', feat:'ft. Freeway (Roc-A-Fella)', album:'Recess EP · 2026', duration:'3:47', streamCount:8934 },
+  'hadouken':          { title:'Hadouken RMX', artist:'Murkemz', feat:'ft. Chris Webby', album:'2026', duration:'4:12', streamCount:541000 },
+  'survive':           { title:'Survive', artist:'Murkemz', feat:'ft. Inspectah Deck (Wu-Tang)', album:'2025', duration:'3:58', streamCount:244000 },
+  'ayatollah':         { title:'The Ayatollah', artist:'Murkemz', feat:'Flagship Album', album:'2025', duration:'4:33', streamCount:12800 }
+};
+
+function playAudio() {
+  streamData.playing = true;
+  document.querySelectorAll('.ctrl-btn.play, .mp-btn.play').forEach(function(b){ b.textContent = '⏸'; });
+  startStreamTimer(streamData.currentTrack);
+  if (PHX_AUDIO && PHX_AUDIO.src) PHX_AUDIO.play().catch(function(){});
+  if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
+}
+
+function pauseAudio() {
+  streamData.playing = false;
+  document.querySelectorAll('.ctrl-btn.play, .mp-btn.play').forEach(function(b){ b.textContent = '▶'; });
+  clearStreamTimer();
+  if (PHX_AUDIO) PHX_AUDIO.pause();
+  if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';
+}
+
 function togglePlay() {
-  streamData.playing = !streamData.playing;
-  var isPlaying = streamData.playing;
+  if (streamData.playing) pauseAudio(); else playAudio();
+}
 
-  document.querySelectorAll('.ctrl-btn.play, .mp-btn.play').forEach(function(b){
-    b.textContent = isPlaying ? '⏸' : '▶';
-  });
-
-  if (isPlaying) {
-    startStreamTimer(streamData.currentTrack);
-    if (PHX_AUDIO && PHX_AUDIO.src) PHX_AUDIO.play().catch(function(){});
+function skipSeconds(delta) {
+  if (PHX_AUDIO && PHX_AUDIO.src && !isNaN(PHX_AUDIO.duration)) {
+    PHX_AUDIO.currentTime = Math.max(0, Math.min(PHX_AUDIO.duration, PHX_AUDIO.currentTime + delta));
   } else {
-    clearStreamTimer();
-    if (PHX_AUDIO) PHX_AUDIO.pause();
+    var deltaPct = (delta / (totalSeconds || 1)) * 100;
+    prog = Math.max(0, Math.min(100, prog + deltaPct));
   }
+}
+
+function playTrackByKey(key) {
+  var m = TRACK_META[key];
+  if (!m) return;
+  var row = document.querySelector('.track-row[onclick*="\'' + key + '\'"]');
+  playTrack(row, m.title, m.artist, m.feat, m.album, m.duration, key, m.streamCount, '🎵');
+}
+
+function nextTrack() {
+  var order = Object.keys(TRACK_META);
+  var idx = order.indexOf(streamData.currentTrack);
+  playTrackByKey(order[(idx + 1) % order.length]);
+}
+
+function prevTrack() {
+  var order = Object.keys(TRACK_META);
+  var idx = order.indexOf(streamData.currentTrack);
+  playTrackByKey(order[(idx - 1 + order.length) % order.length]);
+}
+
+// ── MEDIA SESSION API ────────────────────────────────────────────────
+// Wires lock-screen controls + Bluetooth/headphone hardware buttons (play,
+// pause, skip) directly to our player. Without this, hardware media keys
+// (AirPods, car stereo, lock screen widget) have no way to reach the page.
+if ('mediaSession' in navigator) {
+  navigator.mediaSession.setActionHandler('play',  playAudio);
+  navigator.mediaSession.setActionHandler('pause', pauseAudio);
+  navigator.mediaSession.setActionHandler('previoustrack', prevTrack);
+  navigator.mediaSession.setActionHandler('nexttrack', nextTrack);
+  navigator.mediaSession.setActionHandler('seekbackward', function(d){ skipSeconds(-(d.seekOffset || 15)); });
+  navigator.mediaSession.setActionHandler('seekforward',  function(d){ skipSeconds(d.seekOffset || 15); });
+  PHX_AUDIO.addEventListener('timeupdate', function() {
+    if (PHX_AUDIO.duration && !isNaN(PHX_AUDIO.duration)) {
+      try {
+        navigator.mediaSession.setPositionState({
+          duration: PHX_AUDIO.duration,
+          playbackRate: 1,
+          position: PHX_AUDIO.currentTime
+        });
+      } catch (e) {}
+    }
+  });
+}
+
+function updateMediaSessionMetadata(title, artist, feat, album) {
+  if (!('mediaSession' in navigator)) return;
+  navigator.mediaSession.metadata = new MediaMetadata({
+    title: title,
+    artist: artist + (feat ? ' ' + feat : ''),
+    album: album || 'PHX Music',
+    artwork: [
+      { src: 'https://murkmerch.com/cdn/shop/files/AAB814A5-32E3-4FF1-A00C-0DF47B57E8DA.png', sizes: '512x512', type: 'image/png' }
+    ]
+  });
 }
 
 setInterval(function() {
@@ -2080,9 +2173,11 @@ setInterval(function() {
 function playTrack(el, title, artist, feat, album, duration, trackId, streamCount, artIcon) {
   // Update track rows
   document.querySelectorAll('.track-row').forEach(function(r){ r.classList.remove('playing'); });
-  el.classList.add('playing');
-  var numEl = el.querySelector('.track-num');
-  if (numEl) numEl.textContent = '▶';
+  if (el) {
+    el.classList.add('playing');
+    var numEl = el.querySelector('.track-num');
+    if (numEl) numEl.textContent = '▶';
+  }
 
   // Update current track state
   streamData.currentTrack = trackId;
@@ -2111,26 +2206,21 @@ function playTrack(el, title, artist, feat, album, duration, trackId, streamCoun
   var streamEl = document.getElementById('current-stream-count');
   if (streamEl) streamEl.textContent = formatCount(streamCount || 0);
 
-  // Auto-play
-  streamData.playing = true;
-  document.querySelectorAll('.ctrl-btn.play, .mp-btn.play').forEach(function(b){ b.textContent = '⏸'; });
+  // Lock-screen / Bluetooth metadata
+  updateMediaSessionMetadata(title, artist, feat, album);
 
-  // Real audio if available for this track
-  var uuid = TRACK_IDS[trackId];
-  var audioUrl = uuid ? TRACK_AUDIO_URLS[uuid] : null;
-  if (audioUrl && PHX_AUDIO) {
-    PHX_AUDIO.src = audioUrl;
-    PHX_AUDIO.play().catch(function(e){ console.log('Audio blocked:', e.message); });
-  } else if (PHX_AUDIO) {
-    PHX_AUDIO.pause();
-    PHX_AUDIO.src = '';
+  // Real audio if available for this track (falls back to demo progress animation)
+  var uuid = TRACK_IDS[trackId] || trackId;
+  var audioUrl = TRACK_AUDIO_URLS[uuid];
+  if (PHX_AUDIO) {
+    PHX_AUDIO.src = audioUrl || '';
   }
 
   // Track play start for behavioral analytics
-  trackEvent('play_start', 'track', TRACK_IDS[trackId] || trackId, { track_key: trackId, title: title });
+  trackEvent('play_start', 'track', uuid, { track_key: trackId, title: title });
 
-  // Start stream timer (30s threshold)
-  startStreamTimer(trackId);
+  // Auto-play (handles UI state, real audio, stream timer, and Media Session state together)
+  playAudio();
 }
 
 // ── ACTIVITY CHART ─────────────────────────────────────────────────────
@@ -2231,6 +2321,68 @@ async function loadAdminStreamData() {
 // Load live stream counts + city feed on startup
 loadStreamCounts();
 loadCityFeed();
+
+// ── PWA INSTALL PROMPT ───────────────────────────────────────────────
+// A plain browser tab gets suspended by iOS/Android when backgrounded or
+// the screen locks. Installing as a standalone app is the only way a web
+// app gets OS-level trust to keep audio alive. We prompt for it here.
+function isIOSDevice() {
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+}
+function isStandaloneMode() {
+  return window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+}
+
+var _deferredInstallPrompt = null;
+
+if (!isStandaloneMode()) {
+  if (isIOSDevice()) {
+    // iOS never fires beforeinstallprompt — show manual instructions instead
+    setTimeout(function() {
+      if (localStorage.getItem('phx_install_dismissed') === '1') return;
+      var banner = document.getElementById('install-banner');
+      var text = document.getElementById('install-banner-text');
+      var btn = document.getElementById('install-banner-action');
+      if (text) text.textContent = '📲 On iPhone: tap Share → Add to Home Screen to prevent playback from stopping in the background.';
+      if (btn) btn.style.display = 'none';
+      if (banner) banner.style.display = 'flex';
+    }, 3000);
+  } else {
+    window.addEventListener('beforeinstallprompt', function(e) {
+      e.preventDefault();
+      _deferredInstallPrompt = e;
+      if (localStorage.getItem('phx_install_dismissed') === '1') return;
+      var banner = document.getElementById('install-banner');
+      if (banner) banner.style.display = 'flex';
+    });
+  }
+}
+
+function dismissInstallBanner() {
+  var banner = document.getElementById('install-banner');
+  if (banner) banner.style.display = 'none';
+  localStorage.setItem('phx_install_dismissed', '1');
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  var btn = document.getElementById('install-banner-action');
+  if (btn) {
+    btn.addEventListener('click', function() {
+      if (!_deferredInstallPrompt) return;
+      _deferredInstallPrompt.prompt();
+      _deferredInstallPrompt.userChoice.then(function() {
+        _deferredInstallPrompt = null;
+        dismissInstallBanner();
+      });
+    });
+  }
+});
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(function(e) {
+    console.warn('SW registration failed:', e.message);
+  });
+}
 
 // Session start event — powers DAU tracking and session analytics
 trackEvent('session_start', null, null, {
@@ -2509,6 +2661,119 @@ async function rejectTrack(id, btn) {
     if (approveBtn) approveBtn.style.display = 'none';
   }
   loadPendingTracks();
+}
+
+// ── MUSIC SEARCH ─────────────────────────────────────────────────────────
+// Search is available to every tier — Spotify/Apple gate playback, not search.
+var _searchDebounceTimer = null;
+var _lastSearchResults = []; // indexed lookup avoids escaping track data into onclick HTML attrs
+
+function handleSearchInput(query) {
+  clearTimeout(_searchDebounceTimer);
+  var resultsEl   = document.getElementById('search-results-container');
+  var defaultEl   = document.getElementById('discover-default-content');
+  query = query.trim();
+
+  if (!query) {
+    resultsEl.style.display = 'none';
+    defaultEl.style.display = '';
+    return;
+  }
+  defaultEl.style.display = 'none';
+  resultsEl.style.display = '';
+  resultsEl.innerHTML = '<div style="color:var(--muted);font-size:.84rem;padding:.5rem 0">Searching…</div>';
+
+  _searchDebounceTimer = setTimeout(function() { runMusicSearch(query); }, 300);
+}
+
+async function runMusicSearch(query) {
+  var resultsEl = document.getElementById('search-results-container');
+  var like = '%' + query + '%';
+
+  var artistRes = await _sb.from('artists').select('id,name').ilike('name', like).limit(10);
+  var artistIds = (artistRes.data || []).map(function(a){ return a.id; });
+
+  var titleRes = await _sb
+    .from('tracks')
+    .select('id,title,featuring,producer,duration_seconds,audio_url,exclusive_tier,stream_count,artist_id,artists(name)')
+    .eq('status', 'live')
+    .ilike('title', like)
+    .limit(15);
+
+  var byArtistRes = artistIds.length
+    ? await _sb
+        .from('tracks')
+        .select('id,title,featuring,producer,duration_seconds,audio_url,exclusive_tier,stream_count,artist_id,artists(name)')
+        .eq('status', 'live')
+        .in('artist_id', artistIds)
+        .limit(15)
+    : { data: [] };
+
+  var seen = {};
+  var tracks = [];
+  (titleRes.data || []).concat(byArtistRes.data || []).forEach(function(t) {
+    if (!seen[t.id]) { seen[t.id] = true; tracks.push(t); }
+  });
+
+  _lastSearchResults = tracks;
+
+  if (!tracks.length) {
+    resultsEl.innerHTML = '<div style="color:var(--muted);font-size:.84rem;padding:.5rem 0">No results for "' + escapeHtml(query) + '".</div>';
+    return;
+  }
+
+  resultsEl.innerHTML = '<div class="sh" style="margin-bottom:.5rem"><h3>Search Results</h3></div>' +
+    tracks.map(function(t, i) { return renderSearchResultRow(t, i); }).join('');
+}
+
+function escapeHtml(s) {
+  var d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+// Tier hierarchy for gating playback (not search itself)
+function tierRank(role) {
+  return { explorer:0, native:1, insider:2, artist:3, admin:3, super:3 }[role] || 0;
+}
+function requiredTierRank(exclusiveTier) {
+  return { native:1, insider:2 }[exclusiveTier] || 0;
+}
+function canPlayTrack(exclusiveTier) {
+  return tierRank(currentRole) >= requiredTierRank(exclusiveTier);
+}
+
+function renderSearchResultRow(t, idx) {
+  var artistName = t.artists ? t.artists.name : 'Unknown Artist';
+  var locked = !canPlayTrack(t.exclusive_tier);
+  var tierBadge = t.exclusive_tier === 'insider' ? '<span class="status-chip sc-insider" style="font-size:.6rem">Insider</span>' :
+                  t.exclusive_tier === 'native'  ? '<span class="status-chip sc-native" style="font-size:.6rem">Native+</span>' : '';
+  var streams = formatCount(t.stream_count || 0);
+  return '<div class="track-row' + (locked ? ' locked' : '') + '" onclick="playSearchResultByIndex(this, ' + idx + ')">' +
+    '<div class="track-num">▶</div>' +
+    '<div class="track-art">🎵</div>' +
+    '<div class="track-info"><div class="track-title">' + escapeHtml(t.title) + ' ' + tierBadge + '</div>' +
+      '<div class="track-feat">' + escapeHtml(artistName) + (t.featuring ? ' ft. ' + escapeHtml(t.featuring) : '') + '</div></div>' +
+    '<div class="track-streams">' + streams + '</div>' +
+  '</div>';
+}
+
+function playSearchResultByIndex(el, idx) {
+  var track = _lastSearchResults[idx];
+  if (!track) return;
+  if (!canPlayTrack(track.exclusive_tier)) {
+    var toast = document.getElementById('search-lock-toast');
+    var need = track.exclusive_tier === 'insider' ? 'an Insider Pass' : 'a Native Pass';
+    toast.textContent = '🔒 This track requires ' + need + '. Upgrade to unlock.';
+    toast.style.display = 'block';
+    setTimeout(function(){ toast.style.display = 'none'; }, 3000);
+    return;
+  }
+  var artistName = track.artists ? track.artists.name : 'Unknown Artist';
+  var mins = Math.floor((track.duration_seconds || 0) / 60);
+  var secs = (track.duration_seconds || 0) % 60;
+  var duration = (track.duration_seconds ? mins + ':' + (secs < 10 ? '0' : '') + secs : '0:00');
+  playTrack(el, track.title, artistName, track.featuring ? 'ft. ' + track.featuring : '', '', duration, track.id, track.stream_count || 0, '🎵');
 }
 
 // ── NOTIFY ME BUTTONS ──────────────────────────────────────────────────
