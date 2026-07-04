@@ -533,6 +533,11 @@ body{background:#07070F;color:#F1F1F8;font-family:'Inter',-apple-system,sans-ser
         <div class="sh" style="margin-bottom:.6rem"><h3>✨ For You</h3><span style="font-size:.7rem;color:var(--muted)">Based on your listening</span></div>
         <div id="for-you-rail"><span style="color:var(--muted);font-size:.82rem">Play some tracks and we’ll learn your taste…</span></div>
       </div>
+      <!-- For You: posts from across the city — artists, brands, members (IG Explore pattern) -->
+      <div class="card" style="margin-bottom:1.5rem">
+        <div class="sh" style="margin-bottom:.6rem"><h3>🌆 Around the City</h3><span style="font-size:.7rem;color:var(--muted)">Posts you might like</span></div>
+        <div id="for-you-posts"><span style="color:var(--muted);font-size:.82rem">Loading…</span></div>
+      </div>
       <p style="color:var(--muted);margin-bottom:1.5rem;font-size:.9rem">PHX Music is live now. More verticals launching Q3–Q4 2026.</p>
       <div class="grid-3" style="grid-template-columns:repeat(4,1fr)">
         <div class="card" style="text-align:center;cursor:pointer;transition:all .2s;border-color:rgba(249,115,22,.3);background:rgba(249,115,22,.05)" onclick="showView('music')">
@@ -2639,16 +2644,21 @@ async function loadCityFeed(force) {
     (sharedRes.data || []).forEach(function(p){ _feedPosts[p.id] = p; });
   }
 
-  // Engagement ranking for "Top": likes×2 + comments×3, decayed by age
-  // (simple heuristic until the real recommendation engine lands)
+  // Report counts per post — negative signals demote in ranking
+  // (Instagram value-model pattern: score subtracts P(negative feedback))
+  var reportCounts = {};
+  var repRes = await _sb.from('reports').select('target_id').eq('target_type', 'post');
+  (repRes.data || []).forEach(function(r) {
+    reportCounts[r.target_id] = (reportCounts[r.target_id] || 0) + 1;
+  });
+
   var sorted = data.slice();
-  if (_feedSort === 'top') {
+  if (_feedSort === 'tracks') {
+    sorted = sorted.filter(function(p){ return p.track_id; });
+  }
+  if (_feedSort === 'top' || _feedSort === 'tracks') {
     sorted.sort(function(a, b) {
-      var score = function(p) {
-        var ageHours = (Date.now() - new Date(p.created_at).getTime()) / 3600000;
-        return ((p.likes_count||0) * 2 + (p.comments_count||0) * 3 + 1) / Math.pow(ageHours + 2, 1.2);
-      };
-      return score(b) - score(a);
+      return feedScore(b, reportCounts) - feedScore(a, reportCounts);
     });
   }
 
@@ -2676,21 +2686,101 @@ function renderComposer() {
         '<option value="">🎵 Attach a track (optional)</option>' +
       '</select>' +
       '<input type="file" id="composer-media" accept="video/mp4,video/webm,video/quicktime,image/jpeg,image/png,image/webp,image/gif" style="display:none" onchange="handleComposerMedia(this)">' +
-      '<button class="tb-btn" id="composer-media-btn" style="font-size:.78rem" onclick="document.getElementById(\'composer-media\').click()">📹 Video/Photo</button>' +
+      '<input type="file" id="composer-camera" accept="image/*,video/*" capture="environment" style="display:none" onchange="handleComposerMedia(this)">' +
+      '<button class="tb-btn" style="font-size:.78rem" title="Record with camera" onclick="document.getElementById(\'composer-camera\').click()">📷 Camera</button>' +
+      '<button class="tb-btn" id="composer-media-btn" style="font-size:.78rem" title="Upload from library" onclick="document.getElementById(\'composer-media\').click()">🖼️ Upload</button>' +
       '<button class="upgrade-btn" style="width:auto;padding:.5rem 1.2rem;font-size:.82rem;margin:0" id="composer-post-btn" onclick="submitFeedPost()">Post</button>' +
     '</div>' +
     '<div id="composer-media-name" style="display:none;font-size:.74rem;color:var(--green);margin-top:.4rem"></div>' +
+    '<div id="composer-media-preview" style="display:none;margin-top:.6rem"></div>' +
     '<div id="composer-error" style="display:none;color:var(--red);font-size:.78rem;margin-top:.4rem"></div>' +
   '</div>' +
-  // Latest / Top toggle — chronological by default, engagement-ranked on demand
+  // Feed views — Popular is the default (IG/TikTok pattern); Latest and Music alternates
   '<div style="display:flex;gap:.5rem;margin-bottom:.8rem">' +
-    '<button class="tb-btn" id="feed-sort-latest" style="font-size:.76rem;' + (_feedSort === 'latest' ? 'color:var(--orange);border-color:rgba(249,115,22,.4)' : '') + '" onclick="setFeedSort(\'latest\')">🕐 Latest</button>' +
-    '<button class="tb-btn" id="feed-sort-top" style="font-size:.76rem;' + (_feedSort === 'top' ? 'color:var(--orange);border-color:rgba(249,115,22,.4)' : '') + '" onclick="setFeedSort(\'top\')">🔥 Top</button>' +
+    ['top:🔥 Popular', 'latest:🕐 Latest', 'tracks:🎵 Music'].map(function(v) {
+      var parts = v.split(':');
+      var active = _feedSort === parts[0];
+      return '<button class="tb-btn" style="font-size:.76rem;' + (active ? 'color:var(--orange);border-color:rgba(249,115,22,.4)' : '') + '" onclick="setFeedSort(\'' + parts[0] + '\')">' + parts[1] + '</button>';
+    }).join('') +
   '</div>';
 }
 
-var _feedSort = 'latest';
+var _feedSort = 'top'; // most-popular default, per IG/TikTok convention
 var _composerMediaFile = null;
+var _composerFilter = 'none';
+
+// Feed ranking (Instagram value-model shape):
+// engagement (likes×2 + comments×3) with age-decay gravity,
+// + freshness bonus for <24h posts (YouTube example-age lesson),
+// − heavy penalty per report (negative signals demote, not just moderate)
+function feedScore(p, reportCounts) {
+  var ageHours = (Date.now() - new Date(p.created_at).getTime()) / 3600000;
+  var engagement = (p.likes_count||0) * 2 + (p.comments_count||0) * 3 + 1;
+  var freshBonus = ageHours < 24 ? 3 : 0;
+  var reportPenalty = (reportCounts[p.id] || 0) * 5;
+  return (engagement + freshBonus - reportPenalty) / Math.pow(ageHours + 2, 1.2);
+}
+
+// Photo filters — CSS filter strings applied via canvas re-encode on post
+var PHOTO_FILTERS = {
+  none:  { label: 'Normal', css: 'none' },
+  warm:  { label: 'PHX Heat', css: 'sepia(.28) saturate(1.45) contrast(1.05) brightness(1.03)' },
+  vivid: { label: 'Vivid', css: 'saturate(1.8) contrast(1.15)' },
+  bw:    { label: 'Mono', css: 'grayscale(1) contrast(1.12)' },
+  fade:  { label: 'Fade', css: 'contrast(.88) brightness(1.12) saturate(.75)' }
+};
+
+function renderMediaPreview() {
+  var box = document.getElementById('composer-media-preview');
+  if (!box || !_composerMediaFile) { if (box) box.style.display = 'none'; return; }
+  var url = URL.createObjectURL(_composerMediaFile);
+  var isImage = _composerMediaFile.type.indexOf('image/') === 0;
+  if (isImage) {
+    box.innerHTML =
+      '<img id="composer-preview-img" src="' + url + '" style="width:100%;max-height:260px;object-fit:cover;border-radius:10px;filter:' + PHOTO_FILTERS[_composerFilter].css + '">' +
+      '<div style="display:flex;gap:.4rem;margin-top:.5rem;flex-wrap:wrap">' +
+        Object.keys(PHOTO_FILTERS).map(function(k) {
+          var active = k === _composerFilter;
+          return '<button class="tb-btn" style="font-size:.7rem;padding:.25rem .6rem;' + (active ? 'color:var(--orange);border-color:rgba(249,115,22,.4)' : '') + '" onclick="setComposerFilter(\'' + k + '\')">' + PHOTO_FILTERS[k].label + '</button>';
+        }).join('') +
+      '</div>';
+  } else {
+    box.innerHTML = '<video src="' + url + '" controls playsinline style="width:100%;max-height:260px;border-radius:10px;background:#000"></video>' +
+      '<div style="font-size:.7rem;color:var(--muted);margin-top:.3rem">Video posts as recorded — trim &amp; filters coming soon.</div>';
+  }
+  box.style.display = 'block';
+}
+
+function setComposerFilter(key) {
+  _composerFilter = key;
+  var img = document.getElementById('composer-preview-img');
+  if (img) img.style.filter = PHOTO_FILTERS[key].css;
+  // refresh chip highlight
+  renderMediaPreview();
+}
+
+// Re-encode a photo through canvas with the chosen filter baked in
+function applyFilterToImage(file, filterCss) {
+  return new Promise(function(resolve) {
+    if (filterCss === 'none') { resolve(file); return; }
+    var img = new Image();
+    img.onload = function() {
+      var maxW = 1920;
+      var scale = Math.min(1, maxW / img.naturalWidth);
+      var canvas = document.createElement('canvas');
+      canvas.width = Math.round(img.naturalWidth * scale);
+      canvas.height = Math.round(img.naturalHeight * scale);
+      var ctx = canvas.getContext('2d');
+      ctx.filter = filterCss;
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob(function(blob) {
+        resolve(blob ? new File([blob], 'filtered.jpg', { type: 'image/jpeg' }) : file);
+      }, 'image/jpeg', 0.9);
+    };
+    img.onerror = function() { resolve(file); };
+    img.src = URL.createObjectURL(file);
+  });
+}
 
 function setFeedSort(sort) {
   _feedSort = sort;
@@ -2700,7 +2790,7 @@ function setFeedSort(sort) {
 function handleComposerMedia(input) {
   var file = input.files[0];
   var nameEl = document.getElementById('composer-media-name');
-  if (!file) { _composerMediaFile = null; if (nameEl) nameEl.style.display = 'none'; return; }
+  if (!file) { _composerMediaFile = null; if (nameEl) nameEl.style.display = 'none'; renderMediaPreview(); return; }
   if (file.size > 52428800) {
     if (nameEl) { nameEl.textContent = '⚠️ File too large — 50MB max.'; nameEl.style.color = 'var(--red)'; nameEl.style.display = 'block'; }
     _composerMediaFile = null;
@@ -2708,11 +2798,13 @@ function handleComposerMedia(input) {
     return;
   }
   _composerMediaFile = file;
+  _composerFilter = 'none';
   if (nameEl) {
     nameEl.textContent = '✓ ' + file.name + ' (' + (file.size / 1048576).toFixed(1) + ' MB)';
     nameEl.style.color = 'var(--green)';
     nameEl.style.display = 'block';
   }
+  renderMediaPreview();
 }
 
 async function populateComposerTracks() {
@@ -2793,9 +2885,16 @@ function renderFeedPost(p) {
       '<button class="fp-act" onclick="toggleShareMenu(\'' + p.id + '\')">↗ Share</button>' +
     '</div>' +
     '<div id="share-menu-' + p.id + '" style="display:none;margin-top:.5rem;display:none;gap:.5rem;flex-wrap:wrap">' +
-      '<button class="tb-btn" style="font-size:.74rem" onclick="repostToFeed(\'' + p.id + '\')">🔁 Repost to City Feed</button>' +
+      '<button class="tb-btn" style="font-size:.74rem" onclick="showRepostBox(\'' + p.id + '\')">🔁 Repost to City Feed</button>' +
       '<button class="tb-btn" style="font-size:.74rem" onclick="copyPostLink(\'' + p.id + '\', this)">🔗 Copy Link</button>' +
       '<button class="tb-btn" style="font-size:.74rem" onclick="shareFeedPost(\'' + p.id + '\')">📲 More…</button>' +
+    '</div>' +
+    '<div id="repost-box-' + p.id + '" style="display:none;margin-top:.5rem">' +
+      '<textarea class="form-input" id="repost-comment-' + p.id + '" rows="2" maxlength="1000" placeholder="Add your take (optional)…" style="resize:none;width:100%;font-family:inherit;margin-bottom:.4rem"></textarea>' +
+      '<div style="display:flex;gap:.5rem">' +
+        '<button class="upgrade-btn" style="margin:0;width:auto;padding:.45rem 1rem;font-size:.78rem" onclick="repostToFeed(\'' + p.id + '\')">🔁 Repost</button>' +
+        '<button class="tb-btn" style="font-size:.78rem" onclick="document.getElementById(\'repost-box-' + p.id + '\').style.display=\'none\'">Cancel</button>' +
+      '</div>' +
     '</div>' +
     '<div id="comments-' + p.id + '" style="display:none;margin-top:.75rem;border-top:1px solid var(--border);padding-top:.75rem"></div>' +
   '</div>';
@@ -2890,13 +2989,17 @@ async function submitFeedPost() {
   var persona = currentPersona();
   var postBtn = document.getElementById('composer-post-btn');
 
-  // Upload attached video/photo to Storage first
+  // Upload attached video/photo to Storage first (bake photo filter in via canvas)
   var mediaUrl = null;
   if (_composerMediaFile) {
     if (postBtn) { postBtn.textContent = 'Uploading…'; postBtn.disabled = true; }
-    var ext = _composerMediaFile.name.split('.').pop().toLowerCase();
+    var uploadFile = _composerMediaFile;
+    if (_composerMediaFile.type.indexOf('image/') === 0 && _composerFilter !== 'none') {
+      uploadFile = await applyFilterToImage(_composerMediaFile, PHOTO_FILTERS[_composerFilter].css);
+    }
+    var ext = uploadFile.name.split('.').pop().toLowerCase();
     var path = getGuestId().slice(0,8) + '/' + Date.now() + '.' + ext;
-    var up = await _sb.storage.from('post-media').upload(path, _composerMediaFile, { contentType: _composerMediaFile.type });
+    var up = await _sb.storage.from('post-media').upload(path, uploadFile, { contentType: uploadFile.type });
     if (postBtn) { postBtn.textContent = 'Post'; postBtn.disabled = false; }
     if (up.error) {
       if (errEl) { errEl.textContent = 'Media upload failed: ' + up.error.message; errEl.style.display = 'block'; }
@@ -2927,6 +3030,7 @@ async function submitFeedPost() {
   if (errEl) errEl.style.display = 'none';
   trackEvent('post_create', 'post', data.id, { has_track: !!(trackSel && trackSel.value), has_media: !!mediaUrl });
   _composerMediaFile = null;
+  _composerFilter = 'none';
   loadCityFeed(true).then(populateComposerTracks);
 }
 
@@ -3010,14 +3114,26 @@ function toggleShareMenu(postId) {
   menu.style.display = (menu.style.display === 'flex') ? 'none' : 'flex';
 }
 
+function showRepostBox(postId) {
+  toggleShareMenu(postId); // close the share menu
+  var box = document.getElementById('repost-box-' + postId);
+  if (box) {
+    box.style.display = 'block';
+    var ta = document.getElementById('repost-comment-' + postId);
+    if (ta) ta.focus();
+  }
+}
+
 async function repostToFeed(postId) {
   var persona = currentPersona();
+  var commentEl = document.getElementById('repost-comment-' + postId);
+  var comment = (commentEl ? commentEl.value : '').trim();
   var { data, error } = await _sb.rpc('create_feed_post', {
     p_user_id: getGuestId(),
     p_author_name: persona.name,
     p_author_role: persona.role,
     p_author_avatar: persona.avatar,
-    p_content: '🔁',
+    p_content: comment || '🔁',
     p_track_id: null,
     p_page_id: persona.page_id || null,
     p_shared_post_id: postId
@@ -3355,6 +3471,7 @@ async function createPage() {
 // artists first, then platform-wide top tracks. The real engine (from the
 // recommendation research) replaces this scoring later — same data inputs.
 async function loadForYou() {
+  loadForYouPosts(); // fire the posts rail in parallel
   var rail = document.getElementById('for-you-rail');
   if (!rail) return;
 
@@ -3362,8 +3479,13 @@ async function loadForYou() {
   var results = await Promise.all([
     _sb.from('track_likes').select('track_id').eq('user_id', gid),
     _sb.from('user_events').select('target_id').eq('user_id', gid).eq('event_type', 'play_30s').limit(200),
-    _sb.from('tracks').select('id,title,featuring,exclusive_tier,stream_count,duration_seconds,audio_url,artist_id,artists(name)').eq('status','live')
+    _sb.from('tracks').select('id,title,featuring,exclusive_tier,stream_count,duration_seconds,audio_url,artist_id,created_at,artists(name)').eq('status','live'),
+    _sb.rpc('get_cooccurrence_recs', { p_user_id: gid, p_limit: 10 })
   ]);
+  // Co-listening recommendations (rung-1 SQL recommender): tracks that other
+  // people played in the same sessions as YOUR tracks. Boosts affinity scoring.
+  var coScores = {};
+  (results[3].data || []).forEach(function(r){ coScores[r.track_id] = Number(r.score) || 0; });
 
   var likedIds = {};
   (results[0].data || []).forEach(function(l){ likedIds[l.track_id] = true; });
@@ -3378,11 +3500,14 @@ async function loadForYou() {
     if (w > 0) affinity[t.artist_id] = (affinity[t.artist_id] || 0) + w;
   });
 
-  // Score unheard tracks: artist affinity first, popularity as tiebreaker
+  // Score unheard tracks: co-listening signal strongest, then artist
+  // affinity, popularity as tiebreaker, freshness bonus for new drops
   var candidates = tracks
     .filter(function(t){ return !playedIds[t.id] && !likedIds[t.id]; })
     .map(function(t) {
-      return { t: t, score: (affinity[t.artist_id] || 0) * 1000 + Math.log(1 + (t.stream_count||0)) };
+      var ageDays = t.created_at ? (Date.now() - new Date(t.created_at).getTime()) / 86400000 : 999;
+      var freshBonus = ageDays < 14 ? 500 : 0;
+      return { t: t, score: (coScores[t.id] || 0) * 5000 + (affinity[t.artist_id] || 0) * 1000 + freshBonus + Math.log(1 + (t.stream_count||0)) };
     })
     .sort(function(a,b){ return b.score - a.score; })
     .slice(0, 5);
@@ -3414,6 +3539,61 @@ async function loadForYou() {
       '<div class="track-streams">' + formatCount(t.stream_count || 0) + '</div>' +
     '</div>';
   }).join('');
+}
+
+// "Around the City" — recommended posts, IG Explore style: engagement-ranked
+// with author diversity (max 2 per author so one loud account can't own it)
+async function loadForYouPosts() {
+  var box = document.getElementById('for-you-posts');
+  if (!box) return;
+  var res = await _sb.from('feed_posts')
+    .select('id,author_name,author_avatar,author_role,content,likes_count,comments_count,created_at,track_id,media_url')
+    .order('created_at', { ascending: false })
+    .limit(40);
+  var posts = res.data || [];
+  if (!posts.length) {
+    box.innerHTML = '<span style="color:var(--muted);font-size:.82rem">Nothing yet — check back soon.</span>';
+    return;
+  }
+  var scored = posts.map(function(p) {
+    var ageHours = (Date.now() - new Date(p.created_at).getTime()) / 3600000;
+    var engagement = (p.likes_count||0) * 2 + (p.comments_count||0) * 3 + 1;
+    var mediaBonus = (p.track_id || p.media_url) ? 2 : 0;
+    return { p: p, score: (engagement + mediaBonus) / Math.pow(ageHours + 2, 1.1) };
+  }).sort(function(a,b){ return b.score - a.score; });
+
+  // Diversity pass: cap 2 posts per author
+  var perAuthor = {}, picked = [];
+  for (var i = 0; i < scored.length && picked.length < 6; i++) {
+    var author = scored[i].p.author_name;
+    perAuthor[author] = (perAuthor[author] || 0) + 1;
+    if (perAuthor[author] <= 2) picked.push(scored[i].p);
+  }
+
+  var roleBadge = { admin: 'PHX', artist: 'Artist', member: '' };
+  box.innerHTML = picked.map(function(p) {
+    var excerpt = (p.content||'').slice(0, 90) + ((p.content||'').length > 90 ? '…' : '');
+    var meta = [];
+    if (p.track_id) meta.push('🎵');
+    if (p.media_url) meta.push(/\.(mp4|webm|mov)/i.test(p.media_url) ? '📹' : '🖼️');
+    var badge = roleBadge[p.author_role] ? ' <span class="badge badge-orange" style="font-size:.58rem">' + roleBadge[p.author_role] + '</span>' : '';
+    return '<div style="display:flex;gap:.6rem;padding:.55rem 0;border-bottom:1px solid var(--border);cursor:pointer" onclick="openPostFromDiscover(\'' + p.id + '\')">' +
+      '<span style="font-size:1.2rem">' + (p.author_avatar||'👤') + '</span>' +
+      '<div style="flex:1;min-width:0">' +
+        '<div style="font-size:.8rem;font-weight:600">' + escapeHtml(p.author_name) + badge + ' ' + meta.join(' ') + '</div>' +
+        '<div style="font-size:.78rem;color:var(--muted)">' + escapeHtml(excerpt) + '</div>' +
+      '</div>' +
+      '<div style="font-size:.72rem;color:var(--muted);white-space:nowrap">❤️ ' + (p.likes_count||0) + '</div>' +
+    '</div>';
+  }).join('');
+}
+
+async function openPostFromDiscover(postId) {
+  showView('home');
+  if (!_cityFeedLoaded) await loadCityFeed();
+  var el = document.getElementById('post-' + postId);
+  if (!el) { await loadCityFeed(true); }
+  scrollToPost(postId);
 }
 
 var _forYouTracks = [];

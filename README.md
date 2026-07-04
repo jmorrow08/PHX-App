@@ -223,11 +223,18 @@ First visit prompts "Claim your @username" (3–20 chars, unique, reserved handl
 
 Composer has a 📹 Video/Photo button — uploads to the `post-media` Storage bucket (50MB cap; mp4/webm/mov/jpg/png/webp/gif) and renders inline in the feed (`<video controls>` or `<img>`). No dedicated Reels-style vertical swipe feed yet — that's a roadmap item; PHX Audio (Q4) is podcasts, not short video.
 
-## Feed Ranking & For You (v1 heuristics)
+## Feed Ranking & For You
 
-- **City Feed**: Latest (chronological, default) / **Top** toggle — Top scores posts by likes×2 + comments×3 with an age-decay curve (Hacker News-style gravity).
-- **Discover → For You**: artist-affinity recommender — your track likes (weight 3) and 30s streams (weight 1) build an artist affinity score; unheard live tracks from your top artists rank first, popularity breaks ties, platform top tracks cover cold start.
-- Both are deliberate v1 SQL/JS heuristics running on the `user_events`/`track_likes` data already being collected. The deep-research report on TikTok/Spotify/IG recommendation architecture defines the real engine roadmap (collaborative filtering → two-tower models).
+- **City Feed views**: 🔥 **Popular (default)** / 🕐 Latest / 🎵 Music (track-attached posts only). Popular implements the Instagram value-model shape: engagement (likes×2 + comments×3) with age-decay gravity, **+3 freshness bonus for <24h posts** (YouTube example-age lesson), **−5 per report** (negative signals demote in ranking, not just flag for review).
+- **Discover → For You (tracks)**: layered scoring — **session co-listening strongest** (via `get_cooccurrence_recs()`, the RecSys-2018-pattern SQL recommender: "sessions that played your tracks also played these"), then artist affinity (likes ×3, 30s plays ×1), then a freshness boost for tracks <14 days old, popularity as tiebreaker.
+- **Discover → Around the City (posts)**: IG Explore pattern — engagement-ranked posts with media bonus and an **author-diversity cap (max 2 per author)** so one loud account can't own the rail. Tapping opens the post in the feed.
+- All heuristics run on `user_events`/`track_likes`/`stream_events` data; the ladder to matrix factorization and two-tower models is documented in `docs/recommendation-engine-research.md`.
+
+## Composer: Camera, Filters, Quote Reposts
+
+- **📷 Camera** button uses the HTML `capture` attribute — on phones it opens the camera directly for live photo/video; on desktop it falls back to a file picker. **🖼️ Upload** picks from the library.
+- **Photo filters**: live preview with 5 filters (Normal / PHX Heat / Vivid / Mono / Fade); the chosen filter is baked in via canvas re-encode (JPEG, max 1920px) before upload. Video posts as recorded — trim/filters are roadmap.
+- **Quote reposts**: Repost opens a comment box first ("Add your take") — Twitter quote-RT flow, not instant repost. Empty comment falls back to a plain 🔁 repost.
 
 ## Stream-Count Indicator Visibility
 
@@ -347,6 +354,7 @@ PHX is a web app, not a native app, which has a real ceiling:
 | 017 | Notifications, pages, reports, moderation | notifications + pages + reports tables; feed_posts gets page_id/shared_post_id (reposts); moderate_content() extreme-content filter wired into posting/commenting RPCs; notifications auto-generated on like/comment/repost; submit_report/resolve_report/create_page/mark_notifications_read RPCs |
 | 018 | Like actor names | toggle_post_like carries the liker's display name into the notification |
 | 019 | Usernames + video posts | member_profiles table (@handles, claim_username RPC, reserved names), pages.slug, post-media Storage bucket (50MB video/image), create_feed_post gains p_media_url |
+| 020 | Co-occurrence recommender | get_cooccurrence_recs() — session co-listening SQL function (RecSys 2018 rung-1 pattern) powering Discover For You |
 
 ---
 
