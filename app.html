@@ -1048,9 +1048,11 @@ body{background:#07070F;color:#F1F1F8;font-family:'Inter',-apple-system,sans-ser
               <input class="form-input" id="new-page-name" maxlength="50" placeholder="Page name (e.g. Desert Threads AZ)" style="margin-bottom:.5rem">
               <select class="form-select" id="new-page-type" style="margin-bottom:.5rem">
                 <option value="artist">🎤 Artist</option>
+                <option value="creator">📸 Creator (podcast / photo / video / chef)</option>
                 <option value="restaurant">🍽️ Restaurant / Food</option>
                 <option value="clothing">👕 Clothing / Brand</option>
                 <option value="venue">🏟️ Venue</option>
+                <option value="promoter">🎟️ Event Promoter</option>
                 <option value="brand">💼 Business</option>
                 <option value="other">⭐ Other</option>
               </select>
@@ -3476,7 +3478,7 @@ async function loadMyPages() {
   _myPages = res.data || [];
   if (!list) return;
   var activeId = localStorage.getItem('phx_active_page');
-  var typeIcons = { artist:'🎤', restaurant:'🍽️', clothing:'👕', venue:'🏟️', brand:'💼', other:'⭐' };
+  var typeIcons = { artist:'🎤', creator:'📸', restaurant:'🍽️', clothing:'👕', venue:'🏟️', promoter:'🎟️', brand:'💼', other:'⭐' };
 
   var personalRow = '<div style="display:flex;align-items:center;gap:.6rem;padding:.55rem .6rem;border-radius:8px;margin-bottom:.35rem;' +
     (!activeId ? 'background:rgba(249,115,22,.1);border:1px solid rgba(249,115,22,.3)' : 'border:1px solid transparent') + '">' +
@@ -3519,7 +3521,7 @@ async function createPage() {
     if (errEl) { errEl.textContent = 'Page name must be at least 2 characters.'; errEl.style.display = 'block'; }
     return;
   }
-  var typeIcons = { artist:'🎤', restaurant:'🍽️', clothing:'👕', venue:'🏟️', brand:'💼', other:'⭐' };
+  var typeIcons = { artist:'🎤', creator:'📸', restaurant:'🍽️', clothing:'👕', venue:'🏟️', promoter:'🎟️', brand:'💼', other:'⭐' };
   var ptype = typeEl ? typeEl.value : 'other';
   var { data, error } = await _sb.rpc('create_page', {
     p_owner_id: getGuestId(), p_name: name, p_page_type: ptype, p_avatar: typeIcons[ptype] || '⭐'
