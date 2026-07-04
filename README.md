@@ -215,6 +215,20 @@ The artist role's sidebar has a Community section (City Feed / Discover / PHX Mu
 
 **Automated filter** (`moderate_content()` in Postgres): runs on every post and comment *before* insert. Extreme cases only, matching how the big platforms draw the line — direct violent threats, mass-violence threats, self-harm encouragement ("kys"), sexual content involving minors, hate slurs, doxxing patterns. **Normal profanity passes** — "this beat is fucking incredible" is fine; "I'm going to kill you" is not. Blocked content returns a community-guidelines message and never touches the feed. The regex blocklist is a stopgap: swap in a managed moderation API (e.g. OpenAI moderation endpoint or Google Perspective) before public launch.
 
+## Usernames
+
+First visit prompts "Claim your @username" (3–20 chars, unique, reserved handles blocked). Posts and comments author as **@username** — real names stay private in the profile unless shared. Stored in `member_profiles` keyed by device UUID until real auth; pages get URL slugs for future page URLs. Active page identity still overrides the personal @handle when posting.
+
+## Video & Photo Posts
+
+Composer has a 📹 Video/Photo button — uploads to the `post-media` Storage bucket (50MB cap; mp4/webm/mov/jpg/png/webp/gif) and renders inline in the feed (`<video controls>` or `<img>`). No dedicated Reels-style vertical swipe feed yet — that's a roadmap item; PHX Audio (Q4) is podcasts, not short video.
+
+## Feed Ranking & For You (v1 heuristics)
+
+- **City Feed**: Latest (chronological, default) / **Top** toggle — Top scores posts by likes×2 + comments×3 with an age-decay curve (Hacker News-style gravity).
+- **Discover → For You**: artist-affinity recommender — your track likes (weight 3) and 30s streams (weight 1) build an artist affinity score; unheard live tracks from your top artists rank first, popularity breaks ties, platform top tracks cover cold start.
+- Both are deliberate v1 SQL/JS heuristics running on the `user_events`/`track_likes` data already being collected. The deep-research report on TikTok/Spotify/IG recommendation architecture defines the real engine roadmap (collaborative filtering → two-tower models).
+
 ## Stream-Count Indicator Visibility
 
 The "● 30s counting / ✓ Stream counted" indicator in the player is internal telemetry — regular members (Explorer/Native/Insider) never see it. Only Artist, Admin, and Super Admin roles do.
@@ -275,6 +289,14 @@ git push origin main
 | Automated extreme-content filter (threats/hate/CSAM) | ✅ Live |
 | Artists get full member access (feed/discover/music) | ✅ Live |
 | Stream indicator hidden from members | ✅ Live |
+| @usernames (claim flow, posts author as handle) | ✅ Live |
+| Video/photo posts (Storage upload, inline player) | ✅ Live |
+| Feed Latest/Top ranking toggle | ✅ Live |
+| Discover "For You" recommendations (v1 heuristic) | ✅ Live |
+| Admin browses feed as PHX App | ✅ Live |
+| Reels-style vertical video feed | 🔲 Roadmap |
+| ML recommendation engine (research in progress) | 🔲 Roadmap |
+| Ads / free-tier monetization | 🔲 Decision pending |
 | Mobile responsive (all 6 roles) | ✅ Live |
 | Bottom tab navigation (role-aware) | ✅ Live |
 | Behavioral event tracking (user_events) | ✅ Live |
@@ -324,6 +346,7 @@ PHX is a web app, not a native app, which has a real ceiling:
 | 016 | Social layer | post_likes, post_comments, track_likes tables; feed_posts gets track_id/comments_count/is_hidden/user_id; RPCs: toggle_post_like, toggle_track_like, add_post_comment (10/min limit), create_feed_post (5/10min limit), set_post_hidden |
 | 017 | Notifications, pages, reports, moderation | notifications + pages + reports tables; feed_posts gets page_id/shared_post_id (reposts); moderate_content() extreme-content filter wired into posting/commenting RPCs; notifications auto-generated on like/comment/repost; submit_report/resolve_report/create_page/mark_notifications_read RPCs |
 | 018 | Like actor names | toggle_post_like carries the liker's display name into the notification |
+| 019 | Usernames + video posts | member_profiles table (@handles, claim_username RPC, reserved names), pages.slug, post-media Storage bucket (50MB video/image), create_feed_post gains p_media_url |
 
 ---
 

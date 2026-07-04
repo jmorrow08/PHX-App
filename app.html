@@ -398,8 +398,12 @@ body{background:#07070F;color:#F1F1F8;font-family:'Inter',-apple-system,sans-ser
     <button class="nav-item" onclick="showView('artist-profile')"><span class="icon">👤</span>Artist Profile</button>
   </nav>
 
-  <!-- ── ADMIN / SUPER NAV ── -->
+  <!-- ── ADMIN / SUPER NAV — browses the community as PHX App ── -->
   <nav class="sb-nav" id="nav-admin" style="display:none">
+    <div class="sb-section">Community</div>
+    <button class="nav-item" onclick="showView('home')"><span class="icon">🏙️</span>City Feed</button>
+    <button class="nav-item" onclick="showView('discover')"><span class="icon">🔍</span>Discover</button>
+    <button class="nav-item" onclick="showView('music')"><span class="icon">🎵</span>PHX Music</button>
     <div class="sb-section">Platform OS</div>
     <button class="nav-item active" onclick="showView('admin-dashboard')"><span class="icon">📊</span>Dashboard</button>
     <button class="nav-item" onclick="showView('admin-members')"><span class="icon">👥</span>Members</button>
@@ -524,6 +528,11 @@ body{background:#07070F;color:#F1F1F8;font-family:'Inter',-apple-system,sans-ser
       </div>
       <div id="search-results-container" style="display:none;margin-bottom:1.5rem"></div>
       <div id="discover-default-content">
+      <!-- FOR YOU — v1 recommendation rail (heuristic; ML engine on roadmap) -->
+      <div class="card" style="margin-bottom:1.5rem">
+        <div class="sh" style="margin-bottom:.6rem"><h3>✨ For You</h3><span style="font-size:.7rem;color:var(--muted)">Based on your listening</span></div>
+        <div id="for-you-rail"><span style="color:var(--muted);font-size:.82rem">Play some tracks and we’ll learn your taste…</span></div>
+      </div>
       <p style="color:var(--muted);margin-bottom:1.5rem;font-size:.9rem">PHX Music is live now. More verticals launching Q3–Q4 2026.</p>
       <div class="grid-3" style="grid-template-columns:repeat(4,1fr)">
         <div class="card" style="text-align:center;cursor:pointer;transition:all .2s;border-color:rgba(249,115,22,.3);background:rgba(249,115,22,.05)" onclick="showView('music')">
@@ -1245,8 +1254,8 @@ body{background:#07070F;color:#F1F1F8;font-family:'Inter',-apple-system,sans-ser
           <div class="card" style="margin-top:1.2rem">
             <div class="card-title">Royalty Rate</div>
             <div style="font-size:2rem;font-weight:900;color:var(--green);margin-bottom:.3rem">$0.012</div>
-            <div style="font-size:.8rem;color:var(--muted);margin-bottom:.8rem">per stream — 3× Spotify's rate</div>
-            <div style="font-size:.78rem;color:var(--muted);line-height:1.6">PHX pays out 80% of subscription revenue directly to artists, proportional to how much each subscriber listens to you. No pool. No competition with megastars.</div>
+            <div style="font-size:.8rem;color:var(--muted);margin-bottom:.8rem">avg per stream — ~3× Spotify's rate</div>
+            <div style="font-size:.78rem;color:var(--muted);line-height:1.6">PHX pays out 80% of each subscriber's payment directly to the artists they actually listened to, split proportionally. The per-stream figure is the platform average — your real rate depends on how much your fans listen. No pool. No competition with megastars.</div>
           </div>
         </div>
       </div>
@@ -1626,6 +1635,25 @@ body{background:#07070F;color:#F1F1F8;font-family:'Inter',-apple-system,sans-ser
   <div id="notif-list"><div style="padding:1rem;color:var(--muted);font-size:.82rem">Loading…</div></div>
 </div>
 
+<!-- USERNAME ONBOARDING MODAL -->
+<div id="username-modal" style="display:none;position:fixed;inset:0;z-index:510;background:rgba(7,7,15,.85);backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:1rem">
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;max-width:400px;width:100%;padding:1.5rem">
+    <div style="font-size:1.5rem;margin-bottom:.3rem">👋</div>
+    <div style="font-size:1.05rem;font-weight:800;margin-bottom:.3rem">Claim your @username</div>
+    <div style="font-size:.8rem;color:var(--muted);margin-bottom:1rem">This is how you'll appear when you post and comment. Your real name stays private in your profile unless you share it.</div>
+    <div style="display:flex;align-items:center;gap:.4rem;margin-bottom:.6rem">
+      <span style="color:var(--orange);font-weight:800">@</span>
+      <input class="form-input" id="username-input" maxlength="20" placeholder="desertrat602" style="flex:1" oninput="this.value=this.value.toLowerCase().replace(/[^a-z0-9_.]/g,'')">
+    </div>
+    <input class="form-input" id="displayname-input" maxlength="40" placeholder="Display name (optional)" style="margin-bottom:.8rem">
+    <div id="username-error" style="display:none;color:var(--red);font-size:.76rem;margin-bottom:.6rem"></div>
+    <div style="display:flex;gap:.6rem">
+      <button class="upgrade-btn" style="margin:0;flex:1" onclick="claimUsername()">Claim It</button>
+      <button class="tb-btn" onclick="dismissUsernameModal()">Later</button>
+    </div>
+  </div>
+</div>
+
 <!-- REPORT MODAL -->
 <div id="report-modal" style="display:none;position:fixed;inset:0;z-index:500;background:rgba(7,7,15,.8);backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:1rem">
   <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;max-width:420px;width:100%;padding:1.4rem">
@@ -1691,6 +1719,7 @@ function showView(id) {
   if (id === 'admin-reports') loadReports();
   if (id === 'home') loadCityFeed();
   if (id === 'profile') loadMyPages();
+  if (id === 'discover') loadForYou();
 
   // Sync bottom tab active state
   document.querySelectorAll('.bottom-tabs .bt-item').forEach(function(b) {
@@ -2402,9 +2431,9 @@ async function loadAdminStreamData() {
   }
 }
 
-// Load live stream counts + city feed + liked songs + pages + notifs on startup
+// Load live stream counts + profile + city feed + liked songs + pages + notifs on startup
 loadStreamCounts();
-loadMyPages().then(function(){ loadCityFeed(); });
+Promise.all([loadMyPages(), loadMyProfile()]).then(function(){ loadCityFeed(); });
 loadMyTrackLikes();
 loadNotifications();
 
@@ -2499,6 +2528,8 @@ function activePage() {
   return null;
 }
 
+var _myProfile = null; // {username, display_name} from member_profiles
+
 function currentPersona() {
   var page = activePage();
   if (page) {
@@ -2512,6 +2543,15 @@ function currentPersona() {
   if (currentRole === 'admin' || currentRole === 'super') {
     return { name: 'PHX App', role: 'admin', avatar: '🏙️', page_id: null };
   }
+  // Personal identity: @username once claimed — real names stay private
+  if (_myProfile && _myProfile.username) {
+    return {
+      name: '@' + _myProfile.username,
+      role: currentRole === 'artist' ? 'artist' : 'member',
+      avatar: currentRole === 'artist' ? '🎤' : '👤',
+      page_id: null
+    };
+  }
   var r = ROLES[currentRole] || {};
   return {
     name: r.chipName || 'PHX Member',
@@ -2519,6 +2559,52 @@ function currentPersona() {
     avatar: currentRole === 'artist' ? '🎤' : '👤',
     page_id: null
   };
+}
+
+// ── USERNAME ONBOARDING ──────────────────────────────────────────────────
+async function loadMyProfile() {
+  var res = await _sb.from('member_profiles').select('*').eq('device_id', getGuestId()).maybeSingle();
+  _myProfile = res.data || null;
+  // First visit with no username → prompt once
+  if (!_myProfile && !localStorage.getItem('phx_username_prompted')) {
+    setTimeout(function() {
+      var m = document.getElementById('username-modal');
+      if (m) m.style.display = 'flex';
+    }, 2500);
+  }
+}
+
+async function claimUsername() {
+  var input = document.getElementById('username-input');
+  var dispInput = document.getElementById('displayname-input');
+  var errEl = document.getElementById('username-error');
+  var uname = (input ? input.value : '').trim().toLowerCase();
+  if (uname.length < 3) {
+    if (errEl) { errEl.textContent = 'Username must be 3–20 characters (letters, numbers, _ or .).'; errEl.style.display = 'block'; }
+    return;
+  }
+  var { data, error } = await _sb.rpc('claim_username', {
+    p_device_id: getGuestId(),
+    p_username: uname,
+    p_display_name: (dispInput ? dispInput.value : '') || null
+  });
+  if (error || !data || !data.ok) {
+    var msg = (data && data.reason === 'taken') ? '@' + uname + ' is already taken — try another.' :
+              (data && data.reason === 'reserved') ? 'That username is reserved.' :
+              'Invalid username — 3–20 chars, letters/numbers/_/. only.';
+    if (errEl) { errEl.textContent = msg; errEl.style.display = 'block'; }
+    return;
+  }
+  _myProfile = { username: data.username, display_name: (dispInput ? dispInput.value : '') || null };
+  localStorage.setItem('phx_username_prompted', '1');
+  document.getElementById('username-modal').style.display = 'none';
+  trackEvent('username_claim', 'profile', getGuestId(), { username: data.username });
+  loadCityFeed(true); // composer identity updates
+}
+
+function dismissUsernameModal() {
+  localStorage.setItem('phx_username_prompted', '1');
+  document.getElementById('username-modal').style.display = 'none';
 }
 
 async function loadCityFeed(force) {
@@ -2553,8 +2639,21 @@ async function loadCityFeed(force) {
     (sharedRes.data || []).forEach(function(p){ _feedPosts[p.id] = p; });
   }
 
+  // Engagement ranking for "Top": likes×2 + comments×3, decayed by age
+  // (simple heuristic until the real recommendation engine lands)
+  var sorted = data.slice();
+  if (_feedSort === 'top') {
+    sorted.sort(function(a, b) {
+      var score = function(p) {
+        var ageHours = (Date.now() - new Date(p.created_at).getTime()) / 3600000;
+        return ((p.likes_count||0) * 2 + (p.comments_count||0) * 3 + 1) / Math.pow(ageHours + 2, 1.2);
+      };
+      return score(b) - score(a);
+    });
+  }
+
   container.innerHTML = renderComposer() +
-    (data.map(renderFeedPost).join('') ||
+    (sorted.map(renderFeedPost).join('') ||
      '<div style="color:var(--muted);font-size:.84rem;padding:1rem 0">No posts yet — be the first.</div>');
   _cityFeedLoaded = true;
   populateComposerTracks();
@@ -2576,10 +2675,44 @@ function renderComposer() {
       '<select id="composer-track" class="form-select" style="flex:1;min-width:150px;font-size:.8rem;padding:.4rem .6rem">' +
         '<option value="">🎵 Attach a track (optional)</option>' +
       '</select>' +
-      '<button class="upgrade-btn" style="width:auto;padding:.5rem 1.2rem;font-size:.82rem;margin:0" onclick="submitFeedPost()">Post</button>' +
+      '<input type="file" id="composer-media" accept="video/mp4,video/webm,video/quicktime,image/jpeg,image/png,image/webp,image/gif" style="display:none" onchange="handleComposerMedia(this)">' +
+      '<button class="tb-btn" id="composer-media-btn" style="font-size:.78rem" onclick="document.getElementById(\'composer-media\').click()">📹 Video/Photo</button>' +
+      '<button class="upgrade-btn" style="width:auto;padding:.5rem 1.2rem;font-size:.82rem;margin:0" id="composer-post-btn" onclick="submitFeedPost()">Post</button>' +
     '</div>' +
+    '<div id="composer-media-name" style="display:none;font-size:.74rem;color:var(--green);margin-top:.4rem"></div>' +
     '<div id="composer-error" style="display:none;color:var(--red);font-size:.78rem;margin-top:.4rem"></div>' +
+  '</div>' +
+  // Latest / Top toggle — chronological by default, engagement-ranked on demand
+  '<div style="display:flex;gap:.5rem;margin-bottom:.8rem">' +
+    '<button class="tb-btn" id="feed-sort-latest" style="font-size:.76rem;' + (_feedSort === 'latest' ? 'color:var(--orange);border-color:rgba(249,115,22,.4)' : '') + '" onclick="setFeedSort(\'latest\')">🕐 Latest</button>' +
+    '<button class="tb-btn" id="feed-sort-top" style="font-size:.76rem;' + (_feedSort === 'top' ? 'color:var(--orange);border-color:rgba(249,115,22,.4)' : '') + '" onclick="setFeedSort(\'top\')">🔥 Top</button>' +
   '</div>';
+}
+
+var _feedSort = 'latest';
+var _composerMediaFile = null;
+
+function setFeedSort(sort) {
+  _feedSort = sort;
+  loadCityFeed(true);
+}
+
+function handleComposerMedia(input) {
+  var file = input.files[0];
+  var nameEl = document.getElementById('composer-media-name');
+  if (!file) { _composerMediaFile = null; if (nameEl) nameEl.style.display = 'none'; return; }
+  if (file.size > 52428800) {
+    if (nameEl) { nameEl.textContent = '⚠️ File too large — 50MB max.'; nameEl.style.color = 'var(--red)'; nameEl.style.display = 'block'; }
+    _composerMediaFile = null;
+    input.value = '';
+    return;
+  }
+  _composerMediaFile = file;
+  if (nameEl) {
+    nameEl.textContent = '✓ ' + file.name + ' (' + (file.size / 1048576).toFixed(1) + ' MB)';
+    nameEl.style.color = 'var(--green)';
+    nameEl.style.display = 'block';
+  }
 }
 
 async function populateComposerTracks() {
@@ -2634,6 +2767,15 @@ function renderFeedPost(p) {
     }
   }
 
+  // Video / image attachment
+  var mediaEmbed = '';
+  if (p.media_url) {
+    var isVideo = /\.(mp4|webm|mov)(\?|$)/i.test(p.media_url);
+    mediaEmbed = isVideo
+      ? '<video controls playsinline preload="metadata" style="width:100%;max-height:420px;border-radius:10px;margin-top:.6rem;background:#000" src="' + p.media_url + '"></video>'
+      : '<img loading="lazy" style="width:100%;max-height:420px;object-fit:cover;border-radius:10px;margin-top:.6rem" src="' + p.media_url + '">';
+  }
+
   return '<div class="feed-post" id="post-' + p.id + '">' +
     '<div class="fp-header">' +
       '<div class="fp-ava" style="background:' + bg + '">' + (p.author_avatar||'?') + '</div>' +
@@ -2643,7 +2785,7 @@ function renderFeedPost(p) {
         : '<button class="fp-act" style="margin-left:auto" title="Report post" onclick="openReportModal(\'post\',\'' + p.id + '\')">⚠️</button>') +
     '</div>' +
     '<div class="fp-body">' + escapeHtml(p.content) + '</div>' +
-    trackCard + repostEmbed +
+    mediaEmbed + trackCard + repostEmbed +
     '<div class="fp-actions" style="margin-top:.6rem">' +
       '<button class="fp-act" id="like-btn-' + p.id + '" style="' + (liked ? 'color:var(--orange)' : '') + '" onclick="togglePostLike(\'' + p.id + '\')">' +
         (liked ? '❤️' : '🤍') + ' <span id="like-count-' + p.id + '">' + (p.likes_count||0) + '</span></button>' +
@@ -2746,6 +2888,24 @@ async function submitFeedPost() {
     return;
   }
   var persona = currentPersona();
+  var postBtn = document.getElementById('composer-post-btn');
+
+  // Upload attached video/photo to Storage first
+  var mediaUrl = null;
+  if (_composerMediaFile) {
+    if (postBtn) { postBtn.textContent = 'Uploading…'; postBtn.disabled = true; }
+    var ext = _composerMediaFile.name.split('.').pop().toLowerCase();
+    var path = getGuestId().slice(0,8) + '/' + Date.now() + '.' + ext;
+    var up = await _sb.storage.from('post-media').upload(path, _composerMediaFile, { contentType: _composerMediaFile.type });
+    if (postBtn) { postBtn.textContent = 'Post'; postBtn.disabled = false; }
+    if (up.error) {
+      if (errEl) { errEl.textContent = 'Media upload failed: ' + up.error.message; errEl.style.display = 'block'; }
+      return;
+    }
+    var urlRes = _sb.storage.from('post-media').getPublicUrl(path);
+    mediaUrl = urlRes.data ? urlRes.data.publicUrl : null;
+  }
+
   var { data, error } = await _sb.rpc('create_feed_post', {
     p_user_id: getGuestId(),
     p_author_name: persona.name,
@@ -2754,7 +2914,8 @@ async function submitFeedPost() {
     p_content: content,
     p_track_id: (trackSel && trackSel.value) || null,
     p_page_id: persona.page_id || null,
-    p_shared_post_id: null
+    p_shared_post_id: null,
+    p_media_url: mediaUrl
   });
   if (error || !data || !data.ok) {
     var msg = (data && data.reason === 'rate_limited') ? 'Rate limited — max 5 posts per 10 minutes.' :
@@ -2764,7 +2925,8 @@ async function submitFeedPost() {
     return;
   }
   if (errEl) errEl.style.display = 'none';
-  trackEvent('post_create', 'post', data.id, { has_track: !!(trackSel && trackSel.value) });
+  trackEvent('post_create', 'post', data.id, { has_track: !!(trackSel && trackSel.value), has_media: !!mediaUrl });
+  _composerMediaFile = null;
   loadCityFeed(true).then(populateComposerTracks);
 }
 
@@ -3185,6 +3347,89 @@ async function createPage() {
   trackEvent('page_create', 'page', data.id, { page_type: ptype });
   await loadMyPages();
   setActivePage(data.id); // new page becomes active immediately
+}
+
+// ── FOR YOU — v1 recommendations ─────────────────────────────────────────
+// Heuristic collaborative-lite: your liked tracks + your 30s-stream history
+// define your artist affinity; recommend unheard live tracks from those
+// artists first, then platform-wide top tracks. The real engine (from the
+// recommendation research) replaces this scoring later — same data inputs.
+async function loadForYou() {
+  var rail = document.getElementById('for-you-rail');
+  if (!rail) return;
+
+  var gid = getGuestId();
+  var results = await Promise.all([
+    _sb.from('track_likes').select('track_id').eq('user_id', gid),
+    _sb.from('user_events').select('target_id').eq('user_id', gid).eq('event_type', 'play_30s').limit(200),
+    _sb.from('tracks').select('id,title,featuring,exclusive_tier,stream_count,duration_seconds,audio_url,artist_id,artists(name)').eq('status','live')
+  ]);
+
+  var likedIds = {};
+  (results[0].data || []).forEach(function(l){ likedIds[l.track_id] = true; });
+  var playedIds = {};
+  (results[1].data || []).forEach(function(e){ if (e.target_id) playedIds[e.target_id] = (playedIds[e.target_id]||0) + 1; });
+  var tracks = results[2].data || [];
+
+  // Artist affinity: likes weigh 3, each 30s play weighs 1
+  var affinity = {};
+  tracks.forEach(function(t) {
+    var w = (likedIds[t.id] ? 3 : 0) + (playedIds[t.id] || 0);
+    if (w > 0) affinity[t.artist_id] = (affinity[t.artist_id] || 0) + w;
+  });
+
+  // Score unheard tracks: artist affinity first, popularity as tiebreaker
+  var candidates = tracks
+    .filter(function(t){ return !playedIds[t.id] && !likedIds[t.id]; })
+    .map(function(t) {
+      return { t: t, score: (affinity[t.artist_id] || 0) * 1000 + Math.log(1 + (t.stream_count||0)) };
+    })
+    .sort(function(a,b){ return b.score - a.score; })
+    .slice(0, 5);
+
+  // Cold start: nothing played yet → show top tracks
+  if (!Object.keys(affinity).length && !candidates.length) {
+    candidates = tracks
+      .map(function(t){ return { t: t, score: t.stream_count||0 }; })
+      .sort(function(a,b){ return b.score - a.score; })
+      .slice(0, 5);
+  }
+
+  if (!candidates.length) {
+    rail.innerHTML = '<span style="color:var(--muted);font-size:.82rem">You\'ve heard everything live on PHX — new drops coming.</span>';
+    return;
+  }
+
+  _forYouTracks = candidates.map(function(c){ return c.t; });
+  rail.innerHTML = _forYouTracks.map(function(t, i) {
+    var artistName = t.artists ? t.artists.name : 'Unknown Artist';
+    var locked = !canPlayTrack(t.exclusive_tier);
+    var tierBadge = t.exclusive_tier === 'insider' ? '<span class="status-chip sc-insider" style="font-size:.6rem">Insider</span>' :
+                    t.exclusive_tier === 'native'  ? '<span class="status-chip sc-native" style="font-size:.6rem">Native+</span>' : '';
+    return '<div class="track-row' + (locked ? ' locked' : '') + '" onclick="playForYouTrack(' + i + ', this)">' +
+      '<div class="track-num">▶</div>' +
+      '<div class="track-art">🎵</div>' +
+      '<div class="track-info"><div class="track-title">' + escapeHtml(t.title) + ' ' + tierBadge + '</div>' +
+        '<div class="track-feat">' + escapeHtml(artistName) + (t.featuring ? ' ft. ' + escapeHtml(t.featuring) : '') + '</div></div>' +
+      '<div class="track-streams">' + formatCount(t.stream_count || 0) + '</div>' +
+    '</div>';
+  }).join('');
+}
+
+var _forYouTracks = [];
+function playForYouTrack(idx, el) {
+  var t = _forYouTracks[idx];
+  if (!t) return;
+  if (!canPlayTrack(t.exclusive_tier)) {
+    alert('🔒 This track requires ' + (t.exclusive_tier === 'insider' ? 'an Insider' : 'a Native') + ' Pass.');
+    return;
+  }
+  var artistName = t.artists ? t.artists.name : '';
+  var mins = Math.floor((t.duration_seconds || 0) / 60);
+  var secs = (t.duration_seconds || 0) % 60;
+  var duration = t.duration_seconds ? mins + ':' + (secs < 10 ? '0' : '') + secs : '0:00';
+  playTrack(el, t.title, artistName, t.featuring ? 'ft. ' + t.featuring : '', '', duration, t.id, t.stream_count || 0, '🎵');
+  trackEvent('foryou_play', 'track', t.id, {});
 }
 
 // ── DEEP LINK: /app?post=<id> opens straight to that post ───────────────
