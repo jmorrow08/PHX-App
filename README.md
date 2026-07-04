@@ -102,20 +102,43 @@ Search bar lives in the Discover tab. Debounced 300ms, queries Supabase directly
 - **±15s skip**: seeks real `<audio>` currentTime when a track has an `audio_url`; nudges the demo progress bar percentage otherwise.
 - **Media Session API**: registers `play`, `pause`, `previoustrack`, `nexttrack`, `seekbackward`, `seekforward` handlers once on page load. `updateMediaSessionMetadata()` runs on every track change to update the lock-screen/Bluetooth display (title, artist, artwork). `setPositionState()` keeps the OS scrubber in sync via the `<audio>` `timeupdate` event.
 
-## Fan-Powered Royalties
+## Royalty Model — Wallet + Pot (INTERNAL ONLY — never shown in UI)
+
+Decided 2026-07-04. The split is company knowledge; member/artist UI shows listening
+percentages and dollar earnings, never the formula. The pass funds the whole city
+platform (music + eats + events + drops perks), not just streaming.
 
 ```
 Subscriber pays $15/mo
-  └─ 20% platform ($3) → operating costs
-  └─ 80% to artists ($12) → proportional to that subscriber's listening
-       └─ If you listened 86% Murkemz → Murkemz gets $10.32 of your $12
-       └─ If you listened 14% other artists → they split $1.68
+  └─ 50% platform share ($7.50) → funds the whole PHX platform
+  └─ 50% artist WALLET ($7.50) → drawn per qualifying stream
+       ├─ Each stream draws min($0.0075, wallet ÷ their total streams)
+       │    · 1 stream all month → artist gets ~1¢ (NOT $7.50 — no
+       │      single stream can take a wallet)
+       │    · 1,000 streams → full wallet drawn at 0.75¢/stream
+       │    · 5,000 streams → auto-prorates to 0.15¢/stream
+       └─ Unused wallet balance → COMMUNITY POT at month end
+            ├─ 50% free-tier fund → pays artists for Explorer streams
+            │    (capped at 100 streams/user/artist — bot protection)
+            └─ 50% platform
 ```
 
-**Rate:** $0.012 / qualifying stream (3× Spotify's ~$0.0038)  
-**Payout day:** 1st of every month  
-**Tables:** `payout_periods` → `payout_allocations` → `artist_payouts`  
-**Status:** Schema exists, automated calculation job not yet built
+**Fraud posture:** a self-streamer can only drain their own wallet (pay $15, extract
+≤$7.50 — always negative ROI). The pot's free-tier fund caps per-user-per-artist
+counts so free-account bot farms can't drain it. Plus the existing 30s threshold,
+session dedup, and 60-tracks/hour rate limit at record time.
+
+**Engine:** `run_monthly_payout(period_start, period_end)` — SECURITY DEFINER,
+idempotent (recalcs pending periods, refuses paid ones), writes the full ledger:
+`payout_periods` (incl. pot columns) → `payout_allocations` (per subscriber per
+artist; NULL user_id = free-tier fund rows) → `artist_payouts` (aggregates).
+Knobs live in `payout_settings` (platform %, rate cap, pot split, free-stream cap)
+via `update_payout_settings()`. **Verified by simulation:** 2 subs ($30 gross) →
+$15 platform, $1.51 streamed to artists, $13.49 pot, free-tier fund paid 2
+Explorer streams, remainder platform.
+
+**Payout day:** 1st of every month. **Status:** engine live; Stripe billing +
+transfer execution still pending.
 
 ---
 
@@ -301,9 +324,13 @@ git push origin main
 | Feed Latest/Top ranking toggle | ✅ Live |
 | Discover "For You" recommendations (v1 heuristic) | ✅ Live |
 | Admin browses feed as PHX App | ✅ Live |
+| Wallet + Pot payout engine (verified by simulation) | ✅ Live |
+| Free-tier streams paid from Community Pot | ✅ Live (via pot fund) |
+| Split copy removed from all member/artist UI | ✅ Live (internal only) |
 | Reels-style vertical video feed | 🔲 Roadmap |
-| ML recommendation engine (research in progress) | 🔲 Roadmap |
-| Ads / free-tier monetization | 🔲 Decision pending |
+| ML recommendation engine (research done, ladder documented) | 🔲 Roadmap |
+| Ads | 🔲 Revisit at ~5K MAU |
+| Payout transfer execution (Stripe Connect) | 🔲 Blocked on Stripe live mode |
 | Mobile responsive (all 6 roles) | ✅ Live |
 | Bottom tab navigation (role-aware) | ✅ Live |
 | Behavioral event tracking (user_events) | ✅ Live |
@@ -355,6 +382,8 @@ PHX is a web app, not a native app, which has a real ceiling:
 | 018 | Like actor names | toggle_post_like carries the liker's display name into the notification |
 | 019 | Usernames + video posts | member_profiles table (@handles, claim_username RPC, reserved names), pages.slug, post-media Storage bucket (50MB video/image), create_feed_post gains p_media_url |
 | 020 | Co-occurrence recommender | get_cooccurrence_recs() — session co-listening SQL function (RecSys 2018 rung-1 pattern) powering Discover For You |
+| 021 | Wallet + Pot payout engine | payout_settings (50% platform, 0.75¢ rate cap, pot split knobs), run_monthly_payout() full ledger calculation, pot columns on payout_periods |
+| 022–025 | Payout engine fixes | Drop auth FKs on subscriptions/payout_allocations (device-UUID phase), nullable columns for free-tier fund rows |
 
 ---
 

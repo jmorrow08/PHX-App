@@ -457,7 +457,7 @@ body{background:#07070F;color:#F1F1F8;font-family:'Inter',-apple-system,sans-ser
       <div class="kpi-row">
         <div class="kpi"><div class="kpi-val" style="color:var(--orange)" id="kpi-streams">15.2K</div><div class="kpi-label">PHX Music Streams</div><div class="kpi-change up stream-live">● Live counting</div></div>
         <div class="kpi"><div class="kpi-val">14</div><div class="kpi-label">PHX Artists on Platform</div><div class="kpi-change up">3 added this month</div></div>
-        <div class="kpi"><div class="kpi-val" style="color:var(--teal)">$0.012</div><div class="kpi-label">Per-Stream Rate</div><div class="kpi-change up">3× Spotify's rate</div></div>
+        <div class="kpi"><div class="kpi-val" style="color:var(--teal)">100%</div><div class="kpi-label">Phoenix Artists</div><div class="kpi-change up">Local only. Always.</div></div>
         <div class="kpi"><div class="kpi-val" style="color:var(--green)">$47</div><div class="kpi-label">Saved with PHX Pass</div><div class="kpi-change up">this month</div></div>
       </div>
 
@@ -616,8 +616,8 @@ body{background:#07070F;color:#F1F1F8;font-family:'Inter',-apple-system,sans-ser
         <div class="mstat">
           <div class="mstat-icon">💚</div>
           <div>
-            <div class="mstat-val" style="color:var(--green)">$0.012</div>
-            <div class="mstat-label">Fan-Powered Rate / Stream</div>
+            <div class="mstat-val" style="color:var(--green)">Monthly</div>
+            <div class="mstat-label">Artists Paid From Your Listening</div>
           </div>
         </div>
       </div>
@@ -756,42 +756,42 @@ body{background:#07070F;color:#F1F1F8;font-family:'Inter',-apple-system,sans-ser
         </div>
 
         <div>
-          <!-- Fan-Powered Payouts explainer -->
-          <div class="sh"><h3>Fan-Powered Payouts</h3><span class="badge badge-teal">PHX Difference</span></div>
+          <!-- Your Listening Impact — no dollar amounts or splits shown to members -->
+          <div class="sh"><h3>Your Listening Impact</h3><span class="badge badge-teal">PHX Difference</span></div>
           <div class="fan-payout-card">
-            <div class="fan-payout-title">Your Monthly Impact</div>
-            <!-- Artist breakdown bars -->
+            <div class="fan-payout-title">Where Your Listening Went</div>
+            <!-- Artist listening-share bars (percentages only) -->
             <div style="margin:.6rem 0 .9rem">
               <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.25rem;font-size:.82rem">
                 <span style="font-weight:600">Murkemz</span>
-                <span style="color:var(--green);font-weight:700" id="payout-artist-1-amt">$10.32 / mo</span>
+                <span style="color:var(--green);font-weight:700" id="payout-artist-1-amt">86%</span>
               </div>
               <div style="background:rgba(255,255,255,.07);border-radius:6px;height:8px">
                 <div style="width:86%;background:linear-gradient(90deg,var(--orange),var(--green));height:8px;border-radius:6px"></div>
               </div>
-              <div style="font-size:.72rem;color:var(--muted);margin-top:.2rem">86% of your listening this month</div>
+              <div style="font-size:.72rem;color:var(--muted);margin-top:.2rem">of your listening this month</div>
             </div>
             <div style="margin:.4rem 0 .9rem">
               <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.25rem;font-size:.82rem">
                 <span style="font-weight:600;color:var(--muted)">2 other artists</span>
-                <span style="color:var(--teal);font-weight:700">$1.68 / mo</span>
+                <span style="color:var(--teal);font-weight:700">14%</span>
               </div>
               <div style="background:rgba(255,255,255,.07);border-radius:6px;height:8px">
                 <div style="width:14%;background:var(--teal);height:8px;border-radius:6px"></div>
               </div>
             </div>
             <div class="fan-payout-vs">
-              On Spotify, your $10.99 goes into a pool with 640M listeners. Murkemz competes with Drake and Taylor Swift for fractions of a cent. On PHX, <strong>your $15 goes only to artists you actually listen to.</strong>
+              On the big platforms, local artists compete with global megastars for fractions of a cent. On PHX, <strong>your listening directly supports the Phoenix artists you play</strong> — and your pass unlocks the whole city: music now, eats, events, drops and more as they launch.
             </div>
           </div>
 
-          <!-- Explorer upgrade gate — shown instead of payout card for free tier -->
+          <!-- Explorer upgrade gate — shown instead of impact card for free tier -->
           <div id="payout-upgrade-gate" style="display:none" class="upgrade-gate-card">
             <div style="font-size:2rem;margin-bottom:.5rem">💚</div>
-            <div class="upgrade-gate-title">Fan-Powered Payouts</div>
-            <div class="upgrade-gate-sub">Every $15 you pay goes directly to the artists you listen to — not into a shared pool. Murkemz earns <strong>$10.32/mo</strong> from a single Native subscriber who listens mostly to him.</div>
+            <div class="upgrade-gate-title">Support Phoenix Artists</div>
+            <div class="upgrade-gate-sub">Your listening directly supports the local artists you play — not a global pool where megastars take everything. Plus city perks as PHX Eats, Drops &amp; Events launch.</div>
             <button class="upgrade-btn" onclick="setRole('native')">Upgrade to Native — $15/mo</button>
-            <div style="margin-top:.75rem;font-size:.75rem;color:var(--muted)">Simulating Native tier ↑ to see the full payout breakdown</div>
+            <div style="margin-top:.75rem;font-size:.75rem;color:var(--muted)">Simulating Native tier ↑ to see your listening impact</div>
           </div>
 
           <!-- PHX Roster -->
@@ -944,13 +944,13 @@ body{background:#07070F;color:#F1F1F8;font-family:'Inter',-apple-system,sans-ser
             </div>
           </div>
           <div class="card">
-            <div class="card-title">Your Subscription Impact</div>
+            <div class="card-title">Your Pass Impact</div>
             <div style="display:flex;justify-content:space-between;margin-bottom:1rem">
-              <div><div style="font-size:1.8rem;font-weight:800;color:var(--teal)">$10.32</div><div style="font-size:.78rem;color:var(--muted)">Goes to Murkemz / mo</div></div>
-              <div><div style="font-size:1.8rem;font-weight:800;color:var(--orange)">$1.68</div><div style="font-size:.78rem;color:var(--muted)">Other artists / mo</div></div>
+              <div><div style="font-size:1.8rem;font-weight:800;color:var(--teal)">86%</div><div style="font-size:.78rem;color:var(--muted)">Listening → Murkemz</div></div>
+              <div><div style="font-size:1.8rem;font-weight:800;color:var(--orange)">3</div><div style="font-size:.78rem;color:var(--muted)">Artists supported</div></div>
               <div><div style="font-size:1.8rem;font-weight:800;color:var(--green)">$47</div><div style="font-size:.78rem;color:var(--muted)">Saved in perks</div></div>
             </div>
-            <div style="font-size:.78rem;color:var(--muted);line-height:1.5">Your $15/mo subscription goes directly to the artists you listen to — not into a shared pool with 640M other listeners.</div>
+            <div style="font-size:.78rem;color:var(--muted);line-height:1.5">Your pass supports the Phoenix artists you actually listen to — and unlocks the whole city as Eats, Drops &amp; Events launch.</div>
           </div>
         </div>
         <div>
@@ -997,7 +997,7 @@ body{background:#07070F;color:#F1F1F8;font-family:'Inter',-apple-system,sans-ser
             <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Member Since</span><span>April 2026</span></div>
             <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Pass Level</span><span style="color:var(--orange)">PHX Native</span></div>
             <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Monthly Billing</span><span>$15/mo</span></div>
-            <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Artist Share / mo</span><span style="color:var(--teal)">$12.00</span></div>
+            <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Artists Supported</span><span style="color:var(--teal)">3 this month</span></div>
             <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Top Artist</span><span style="color:var(--white)">Murkemz</span></div>
             <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">PHX Streams (session)</span><span style="color:var(--green)" id="profile-stream-count">0</span></div>
           </div>
@@ -1094,7 +1094,7 @@ body{background:#07070F;color:#F1F1F8;font-family:'Inter',-apple-system,sans-ser
       <div class="a-stat-grid">
         <div class="a-stat"><div class="a-stat-val" style="color:var(--teal)">+12%</div><div class="a-stat-label">Streams vs Last Month</div></div>
         <div class="a-stat"><div class="a-stat-val" style="color:var(--orange)">73%</div><div class="a-stat-label">Native+ Listeners</div></div>
-        <div class="a-stat"><div class="a-stat-val" style="color:var(--green)">$0.012</div><div class="a-stat-label">Your Rate / Stream</div></div>
+        <div class="a-stat"><div class="a-stat-val" style="color:var(--green)">135</div><div class="a-stat-label">Listeners Paying You</div></div>
       </div>
       <div class="grid-2">
         <div class="card">
@@ -1151,7 +1151,7 @@ body{background:#07070F;color:#F1F1F8;font-family:'Inter',-apple-system,sans-ser
         <div class="earnings-main">$847.23</div>
         <div class="earnings-sub">Fan-powered. Direct. No label cut.</div>
         <div style="display:flex;gap:1.5rem;margin-top:1rem;font-size:.82rem">
-          <div><span style="color:var(--muted)">Rate</span> <span style="font-weight:700;color:var(--green)">$0.012/stream</span></div>
+          <div><span style="color:var(--muted)">Listeners</span> <span style="font-weight:700;color:var(--green)">135</span></div>
           <div><span style="color:var(--muted)">Streams</span> <span style="font-weight:700">70,603</span></div>
           <div><span style="color:var(--muted)">Next payout</span> <span style="font-weight:700">Jul 1</span></div>
         </div>
@@ -1170,9 +1170,9 @@ body{background:#07070F;color:#F1F1F8;font-family:'Inter',-apple-system,sans-ser
           <div class="sh"><h3>How Your Payout Is Calculated</h3></div>
           <div class="fan-payout-card">
             <div class="fan-payout-title">How Your Earnings Are Calculated</div>
-            <div class="fan-payout-row"><span class="fan-payout-label">Paying subscribers</span><span class="fan-payout-val">158 members</span></div>
-            <div class="fan-payout-row"><span class="fan-payout-label">Your share of all streams</span><span class="fan-payout-val">85.4%</span></div>
-            <div class="fan-payout-row"><span class="fan-payout-label">Rate per qualifying stream</span><span class="fan-payout-val">$0.012</span></div>
+            <div class="fan-payout-row"><span class="fan-payout-label">Listeners who played you</span><span class="fan-payout-val">135 members</span></div>
+            <div class="fan-payout-row"><span class="fan-payout-label">Your qualifying streams (June)</span><span class="fan-payout-val">70.6K</span></div>
+            <div class="fan-payout-row"><span class="fan-payout-label">Your share of their listening</span><span class="fan-payout-val">85.4%</span></div>
             <div class="fan-payout-row" style="margin-top:.3rem"><span class="fan-payout-label" style="font-weight:700">Your estimated payout</span><span class="fan-payout-val green" style="font-size:.95rem;font-weight:700">$847 / mo</span></div>
             <div class="fan-payout-vs">Your earnings come only from subscribers who actually listen to you — not from a shared pool where you compete against Drake for fractions of a cent.</div>
           </div>
@@ -1257,10 +1257,10 @@ body{background:#07070F;color:#F1F1F8;font-family:'Inter',-apple-system,sans-ser
             </div>
           </div>
           <div class="card" style="margin-top:1.2rem">
-            <div class="card-title">Royalty Rate</div>
-            <div style="font-size:2rem;font-weight:900;color:var(--green);margin-bottom:.3rem">$0.012</div>
-            <div style="font-size:.8rem;color:var(--muted);margin-bottom:.8rem">avg per stream — ~3× Spotify's rate</div>
-            <div style="font-size:.78rem;color:var(--muted);line-height:1.6">PHX pays out 80% of each subscriber's payment directly to the artists they actually listened to, split proportionally. The per-stream figure is the platform average — your real rate depends on how much your fans listen. No pool. No competition with megastars.</div>
+            <div class="card-title">How You Get Paid</div>
+            <div style="font-size:2rem;font-weight:900;color:var(--green);margin-bottom:.3rem">Monthly</div>
+            <div style="font-size:.8rem;color:var(--muted);margin-bottom:.8rem">paid on the 1st — no minimum threshold</div>
+            <div style="font-size:.78rem;color:var(--muted);line-height:1.6">Your earnings come from the listening of the fans who actually play your music — not a global pool where megastars take everything. The more your fans listen, the more you earn. Every qualifying stream counts.</div>
           </div>
         </div>
       </div>
@@ -1312,12 +1312,14 @@ body{background:#07070F;color:#F1F1F8;font-family:'Inter',-apple-system,sans-ser
       </div>
       <div class="grid-2">
         <div class="card">
-          <div class="card-title">Platform Revenue Breakdown</div>
+          <div class="card-title">Platform Revenue Breakdown <span style="font-size:.62rem;color:var(--red);font-weight:700;margin-left:.4rem">INTERNAL ONLY</span></div>
           <div class="fin-row"><span class="fin-label">Gross MRR</span><span class="fin-val">$3,705</span></div>
-          <div class="fin-row"><span class="fin-label">Artist payouts (80%)</span><span class="fin-val" style="color:var(--green)">$2,964</span></div>
-          <div class="fin-row"><span class="fin-label">Platform net (20%)</span><span class="fin-val" style="color:var(--orange)">$741</span></div>
+          <div class="fin-row"><span class="fin-label">Platform share (50%)</span><span class="fin-val" style="color:var(--orange)">$1,852</span></div>
+          <div class="fin-row"><span class="fin-label">Artist wallets (50%)</span><span class="fin-val" style="color:var(--green)">$1,852</span></div>
+          <div class="fin-row"><span class="fin-label">└ Streams drawn (est.)</span><span class="fin-val" style="color:var(--teal)">$1,240</span></div>
+          <div class="fin-row"><span class="fin-label">└ Unused → Community Pot</span><span class="fin-val" style="color:var(--purple-l)">$612</span></div>
           <div class="fin-row"><span class="fin-label">Stripe fees (~3%)</span><span class="fin-val" style="color:var(--muted)">−$111</span></div>
-          <div class="fin-row" style="border:none"><span class="fin-label" style="font-weight:700">Net platform profit</span><span class="fin-val" style="color:var(--green);font-size:1.1rem">$630/mo</span></div>
+          <div class="fin-row" style="border:none"><span class="fin-label" style="font-weight:700">Net platform (before pot share)</span><span class="fin-val" style="color:var(--green);font-size:1.1rem">$1,741/mo</span></div>
         </div>
         <div class="card">
           <div class="card-title">Member Tier Split</div>
@@ -1482,9 +1484,9 @@ body{background:#07070F;color:#F1F1F8;font-family:'Inter',-apple-system,sans-ser
       <div class="admin-alert" id="fin-super-alert" style="display:none">⚡ Super Admin — Financial data visible. Treat as confidential.</div>
       <div class="admin-kpi-grid">
         <div class="admin-kpi"><div class="admin-kpi-val" style="color:var(--green)">$3,705</div><div class="admin-kpi-label">Gross MRR</div><div class="admin-kpi-change up">↑ +$420 MoM</div></div>
-        <div class="admin-kpi"><div class="admin-kpi-val" style="color:var(--orange)">$741</div><div class="admin-kpi-label">Platform Revenue (20%)</div><div class="admin-kpi-change up">↑ +$84 MoM</div></div>
-        <div class="admin-kpi"><div class="admin-kpi-val" style="color:var(--teal)">$2,964</div><div class="admin-kpi-label">Artist Payouts (80%)</div><div class="admin-kpi-change" style="color:var(--muted)">Due Jul 1</div></div>
-        <div class="admin-kpi"><div class="admin-kpi-val" style="color:var(--purple-l)">$630</div><div class="admin-kpi-label">Net Platform Profit</div><div class="admin-kpi-change up">After Stripe fees</div></div>
+        <div class="admin-kpi"><div class="admin-kpi-val" style="color:var(--orange)">$1,852</div><div class="admin-kpi-label">Platform Share (50%)</div><div class="admin-kpi-change up">↑ +$210 MoM</div></div>
+        <div class="admin-kpi"><div class="admin-kpi-val" style="color:var(--teal)">$1,240</div><div class="admin-kpi-label">Artist Payouts (streamed)</div><div class="admin-kpi-change" style="color:var(--muted)">Due Jul 1</div></div>
+        <div class="admin-kpi"><div class="admin-kpi-val" style="color:var(--purple-l)">$612</div><div class="admin-kpi-label">Community Pot</div><div class="admin-kpi-change" style="color:var(--muted)">Free-tier fund + platform</div></div>
       </div>
       <div class="grid-2">
         <div class="card">
@@ -1539,16 +1541,26 @@ body{background:#07070F;color:#F1F1F8;font-family:'Inter',-apple-system,sans-ser
           </div>
         </div>
         <div class="card">
-          <div class="card-title">Royalty Engine</div>
+          <div class="card-title">Royalty Engine <span style="font-size:.62rem;color:var(--red);font-weight:700;margin-left:.4rem">INTERNAL ONLY</span></div>
           <div class="sys-setting-row">
-            <div class="sys-setting-info"><div class="sys-setting-label">Stream Rate</div><div class="sys-setting-sub">Paid per qualifying 30-second stream</div></div>
-            <span class="sys-setting-val">$0.012</span>
+            <div class="sys-setting-info"><div class="sys-setting-label">Platform Share</div><div class="sys-setting-sub">% of subscription revenue off the top — funds the whole city platform</div></div>
+            <span class="sys-setting-val" id="sys-platform-share">50%</span>
+            <button class="sys-edit-btn" id="edit-split-btn">Edit</button>
+          </div>
+          <div class="sys-setting-row">
+            <div class="sys-setting-info"><div class="sys-setting-label">Stream Rate Cap</div><div class="sys-setting-sub">Max drawn per qualifying stream from the listener's wallet; prorates down for heavy listeners</div></div>
+            <span class="sys-setting-val" id="sys-rate-cap">$0.0075</span>
             <button class="sys-edit-btn" id="edit-rate-btn">Edit</button>
           </div>
           <div class="sys-setting-row">
-            <div class="sys-setting-info"><div class="sys-setting-label">Artist Payout Split</div><div class="sys-setting-sub">% of subscription revenue to artists</div></div>
-            <span class="sys-setting-val">80%</span>
-            <button class="sys-edit-btn" id="edit-split-btn">Edit</button>
+            <div class="sys-setting-info"><div class="sys-setting-label">Pot Split — Free-Tier Fund</div><div class="sys-setting-sub">% of unused wallet balances that pays artists for free-tier streams</div></div>
+            <span class="sys-setting-val" id="sys-pot-free">50%</span>
+            <button class="sys-edit-btn" id="edit-pot-free-btn">Edit</button>
+          </div>
+          <div class="sys-setting-row">
+            <div class="sys-setting-info"><div class="sys-setting-label">Pot Split — Platform</div><div class="sys-setting-sub">% of unused wallet balances retained by PHX</div></div>
+            <span class="sys-setting-val" id="sys-pot-platform">50%</span>
+            <button class="sys-edit-btn" id="edit-pot-platform-btn">Edit</button>
           </div>
           <div class="sys-setting-row">
             <div class="sys-setting-info"><div class="sys-setting-label">Stream Threshold</div><div class="sys-setting-sub">Seconds before stream counts</div></div>
@@ -1939,26 +1951,8 @@ function applyMusicGating(role) {
 }
 
 function updatePayoutCard(role) {
-  var titleEl = document.querySelector('.fan-payout-title');
-  var rows = document.querySelectorAll('.fan-payout-row');
-  if (!titleEl || rows.length < 5) return;
-  if (role === 'insider') {
-    titleEl.textContent = 'Your $29/mo — Where It Goes';
-    rows[0].querySelector('.fan-payout-val').textContent = '$29.00 / mo';
-    rows[1].querySelector('.fan-payout-val').textContent = '89% Murkemz · 11% others';
-    rows[2].querySelector('.fan-payout-val').textContent = '$5.80';
-    rows[3].querySelector('.fan-payout-val').textContent = '$23.20';
-    rows[4].querySelector('.fan-payout-val').textContent = '$20.65 / mo';
-    rows[4].querySelector('.fan-payout-label').textContent = 'Murkemz earns from you';
-  } else {
-    titleEl.textContent = 'Your $15/mo — Where It Goes';
-    rows[0].querySelector('.fan-payout-val').textContent = '$15.00 / mo';
-    rows[1].querySelector('.fan-payout-val').textContent = '86% Murkemz · 14% others';
-    rows[2].querySelector('.fan-payout-val').textContent = '$3.00';
-    rows[3].querySelector('.fan-payout-val').textContent = '$12.00';
-    rows[4].querySelector('.fan-payout-val').textContent = '$10.32 / mo';
-    rows[4].querySelector('.fan-payout-label').textContent = 'Murkemz earns from you';
-  }
+  // Intentionally a no-op: dollar splits are internal-only now.
+  // Members see listening percentages, never money flow.
 }
 
 // ── SUPABASE ────────────────────────────────────────────────────────────
