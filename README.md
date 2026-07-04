@@ -324,6 +324,17 @@ git push origin main
 | Feed Latest/Top ranking toggle | ✅ Live |
 | Discover "For You" recommendations (v1 heuristic) | ✅ Live |
 | Admin browses feed as PHX App | ✅ Live |
+| Supabase Auth (email/password, session → identity swap) | ✅ Live |
+| Server-side hardening (admin RPCs guarded, bootstrap mode) | ✅ Live |
+| Follows (artists/pages/users) + Following feed | ✅ Live |
+| Web push (VAPID + edge function + pg_net trigger) | ✅ Live |
+| Reels vertical video feed (snap-scroll, autoplay) | ✅ Live |
+| LightFM rung-2 pipeline (ml/train_lightfm.py → recommendations) | ✅ Ready (run at ~1mo data) |
+| Super Admin View-As (preview any user experience) | ✅ Live |
+| Royalty Engine settings editable (super-only) | ✅ Live |
+| Net-60 payout terms | ✅ Live |
+| Legal center (ToS/Privacy/DMCA/Artist Agreement + clickwrap) | ✅ Live |
+| Capacitor native wrapper guide | ✅ Documented |
 | Wallet + Pot payout engine (verified by simulation) | ✅ Live |
 | Free-tier streams paid from Community Pot | ✅ Live (via pot fund) |
 | Split copy removed from all member/artist UI | ✅ Live (internal only) |
@@ -384,6 +395,10 @@ PHX is a web app, not a native app, which has a real ceiling:
 | 020 | Co-occurrence recommender | get_cooccurrence_recs() — session co-listening SQL function (RecSys 2018 rung-1 pattern) powering Discover For You |
 | 021 | Wallet + Pot payout engine | payout_settings (50% platform, 0.75¢ rate cap, pot split knobs), run_monthly_payout() full ledger calculation, pot columns on payout_periods |
 | 022–025 | Payout engine fixes | Drop auth FKs on subscriptions/payout_allocations (device-UUID phase), nullable columns for free-tier fund rows |
+| 026 | Auth roles + hardening + follows + push + recs | profiles.role, is_admin()/in_bootstrap()/require_admin() guarding set_post_hidden/resolve_report/update_payout_settings/approve_track/reject_track (open tracks_update policy dropped, run_monthly_payout EXECUTE revoked from anon), follows + toggle_follow, push_subscriptions, recommendations table, payout_delay_days=60 |
+| 027–028 | Push pipeline | pg_net extension + notifications-insert trigger → send-push edge function (verified 200 end-to-end) |
+
+**Security model (bootstrap mode):** until the first `super` profile exists, admin RPCs stay open so the platform can be set up. The moment Jaye signs up and is promoted (`SELECT set_user_role('<his-auth-uid>','super')`), every admin/money RPC requires an authenticated admin JWT — the anon key alone can no longer moderate content, approve tracks, or touch payout settings.
 
 ---
 

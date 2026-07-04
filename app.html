@@ -344,6 +344,19 @@ body{background:#07070F;color:#F1F1F8;font-family:'Inter',-apple-system,sans-ser
 .tag-super{background:rgba(124,58,237,.15);color:var(--purple-l);border:1px solid rgba(124,58,237,.25)}
 .admin-alert{background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.2);border-radius:10px;padding:.8rem 1rem;display:flex;align-items:center;gap:.75rem;font-size:.82rem;margin-bottom:1rem;color:var(--red)}
 .admin-section-label{font-size:.7rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:.5rem}
+
+/* REELS — vertical snap-scroll video feed */
+.reels-wrap{height:calc(100vh - 180px);min-height:420px;overflow-y:auto;scroll-snap-type:y mandatory;border-radius:16px;background:#000;-webkit-overflow-scrolling:touch}
+.reel{position:relative;height:100%;min-height:420px;scroll-snap-align:start;scroll-snap-stop:always;display:flex;align-items:center;justify-content:center;background:#000}
+.reel video{width:100%;height:100%;object-fit:contain;background:#000}
+.reel-overlay{position:absolute;left:0;right:0;bottom:0;padding:1rem;background:linear-gradient(transparent,rgba(0,0,0,.75));display:flex;align-items:flex-end;gap:.75rem}
+.reel-info{flex:1;min-width:0}
+.reel-author{font-size:.9rem;font-weight:700;color:#fff;margin-bottom:.2rem}
+.reel-caption{font-size:.8rem;color:rgba(255,255,255,.85);overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.reel-actions{display:flex;flex-direction:column;gap:.9rem;align-items:center}
+.reel-act{background:none;border:none;color:#fff;cursor:pointer;font-size:1.5rem;display:flex;flex-direction:column;align-items:center;gap:.15rem;text-shadow:0 2px 8px rgba(0,0,0,.6)}
+.reel-act span{font-size:.66rem;font-weight:700}
+.reels-empty{color:var(--muted);text-align:center;padding:3rem 1rem;font-size:.9rem}
 </style>
   <link rel="stylesheet" href="shared.css?v=2">
 </head>
@@ -369,6 +382,7 @@ body{background:#07070F;color:#F1F1F8;font-family:'Inter',-apple-system,sans-ser
     <div class="sb-section">Explore</div>
     <button class="nav-item active" onclick="showView('home')"><span class="icon">🏙️</span>City Feed</button>
     <button class="nav-item" onclick="showView('discover')"><span class="icon">🔍</span>Discover</button>
+    <button class="nav-item" onclick="showView('reels')"><span class="icon">🎬</span>Reels</button>
     <div class="sb-section">Live Now</div>
     <button class="nav-item" onclick="showView('music')"><span class="icon">🎵</span>PHX Music<span class="badge-teal badge" style="margin-left:auto;font-size:.58rem;padding:.1rem .45rem">LIVE</span></button>
     <div class="sb-section">Coming Soon</div>
@@ -387,6 +401,7 @@ body{background:#07070F;color:#F1F1F8;font-family:'Inter',-apple-system,sans-ser
     <div class="sb-section">Community</div>
     <button class="nav-item" onclick="showView('home')"><span class="icon">🏙️</span>City Feed</button>
     <button class="nav-item" onclick="showView('discover')"><span class="icon">🔍</span>Discover</button>
+    <button class="nav-item" onclick="showView('reels')"><span class="icon">🎬</span>Reels</button>
     <button class="nav-item" onclick="showView('music')"><span class="icon">🎵</span>PHX Music</button>
     <div class="sb-section">My Music</div>
     <button class="nav-item active" onclick="showView('artist-tracks')"><span class="icon">🎼</span>My Tracks</button>
@@ -445,6 +460,15 @@ body{background:#07070F;color:#F1F1F8;font-family:'Inter',-apple-system,sans-ser
     <div class="topbar-title" id="page-title">City Feed</div>
     <div class="topbar-right">
       <span id="plays-left-badge" style="display:none;font-size:.78rem;color:var(--muted);background:var(--bg3);border:1px solid var(--border);padding:.35rem .75rem;border-radius:8px">5 free plays left</span>
+      <select id="viewas-select" style="display:none;background:var(--bg3);color:var(--white);border:1px solid rgba(124,58,237,.4);border-radius:8px;font-size:.76rem;padding:.35rem .5rem" onchange="viewAsRole(this.value)" title="Super Admin: preview any user's experience">
+        <option value="">👁 View as…</option>
+        <option value="explorer">Explorer (free)</option>
+        <option value="native">Native member</option>
+        <option value="insider">Insider member</option>
+        <option value="artist">Artist</option>
+        <option value="admin">Admin (limited)</option>
+      </select>
+      <button class="tb-btn" id="auth-btn" onclick="openAuthModal()">Log In</button>
       <button class="tb-btn" id="notif-bell" onclick="toggleNotifPanel()" style="position:relative">🔔<span id="notif-badge" style="display:none;position:absolute;top:-4px;right:-4px;background:var(--red);color:#fff;font-size:.62rem;font-weight:800;min-width:16px;height:16px;border-radius:100px;padding:0 4px;line-height:16px;text-align:center">0</span></button>
       <button class="tb-btn primary" id="topbar-cta" onclick="showView('mypass')">💳 Native Pass</button>
     </div>
@@ -454,12 +478,10 @@ body{background:#07070F;color:#F1F1F8;font-family:'Inter',-apple-system,sans-ser
 
     <!-- HOME / CITY FEED -->
     <div class="view active" id="v-home">
-      <div class="kpi-row">
-        <div class="kpi"><div class="kpi-val" style="color:var(--orange)" id="kpi-streams">15.2K</div><div class="kpi-label">PHX Music Streams</div><div class="kpi-change up stream-live">● Live counting</div></div>
-        <div class="kpi"><div class="kpi-val">14</div><div class="kpi-label">PHX Artists on Platform</div><div class="kpi-change up">3 added this month</div></div>
-        <div class="kpi"><div class="kpi-val" style="color:var(--teal)">100%</div><div class="kpi-label">Phoenix Artists</div><div class="kpi-change up">Local only. Always.</div></div>
-        <div class="kpi"><div class="kpi-val" style="color:var(--green)">$47</div><div class="kpi-label">Saved with PHX Pass</div><div class="kpi-change up">this month</div></div>
-      </div>
+      <!-- KPI stats row removed from member view (owner decision 2026-07-04):
+           platform stats belong on the landing page, not the daily feed —
+           especially on mobile. kpi-streams id preserved invisibly for JS. -->
+      <span id="kpi-streams" style="display:none"></span>
 
       <div class="grid-2">
         <div>
@@ -592,6 +614,13 @@ body{background:#07070F;color:#F1F1F8;font-family:'Inter',-apple-system,sans-ser
         <span class="badge badge-green" style="font-size:.82rem;padding:.4rem .9rem">Mega Ran · PHX Legend</span>
       </div>
       </div><!-- /discover-default-content -->
+    </div>
+
+    <!-- REELS — vertical video feed -->
+    <div class="view" id="v-reels">
+      <div class="reels-wrap" id="reels-container">
+        <div class="reels-empty">Loading reels…</div>
+      </div>
     </div>
 
     <!-- PHX MUSIC — FULLY LIVE -->
@@ -1153,7 +1182,7 @@ body{background:#07070F;color:#F1F1F8;font-family:'Inter',-apple-system,sans-ser
         <div style="display:flex;gap:1.5rem;margin-top:1rem;font-size:.82rem">
           <div><span style="color:var(--muted)">Listeners</span> <span style="font-weight:700;color:var(--green)">135</span></div>
           <div><span style="color:var(--muted)">Streams</span> <span style="font-weight:700">70,603</span></div>
-          <div><span style="color:var(--muted)">Next payout</span> <span style="font-weight:700">Jul 1</span></div>
+          <div><span style="color:var(--muted)">Pays out (net-60)</span> <span style="font-weight:700">Aug 30</span></div>
         </div>
       </div>
       <div class="grid-2">
@@ -1242,6 +1271,10 @@ body{background:#07070F;color:#F1F1F8;font-family:'Inter',-apple-system,sans-ser
                 <div id="upload-progress-label" style="font-size:.74rem;color:var(--muted);margin-top:.3rem">Uploading…</div>
               </div>
             </div>
+            <div style="display:flex;gap:.6rem;align-items:flex-start;margin-bottom:.8rem;padding:.7rem;background:var(--bg4);border-radius:10px;border:1px solid var(--border)">
+              <input type="checkbox" id="artist-agreement-check" style="margin-top:.15rem;accent-color:var(--orange)">
+              <label for="artist-agreement-check" style="font-size:.76rem;color:var(--muted);line-height:1.5;cursor:pointer">I own or control the rights to this music and agree to the <a href="legal.html#artist-agreement" target="_blank" style="color:var(--orange)">PHX Artist Distribution Agreement</a> — non-exclusive license to stream, net-60 payouts, DMCA takedown policy.</label>
+            </div>
             <div id="submit-error-msg" style="display:none;color:var(--red);font-size:.82rem;margin-bottom:.75rem"></div>
             <button class="upgrade-btn" id="track-submit-btn" onclick="submitTrack()">Submit for Review</button>
           </div>
@@ -1253,13 +1286,13 @@ body{background:#07070F;color:#F1F1F8;font-family:'Inter',-apple-system,sans-ser
               <div style="display:flex;gap:.75rem;align-items:flex-start"><span style="font-size:1.2rem">1️⃣</span><div><div style="font-weight:600;margin-bottom:.2rem">Submit your track</div><div style="color:var(--muted)">Upload the audio file and fill in metadata. All file formats accepted.</div></div></div>
               <div style="display:flex;gap:.75rem;align-items:flex-start"><span style="font-size:1.2rem">2️⃣</span><div><div style="font-weight:600;margin-bottom:.2rem">Review (24-48 hrs)</div><div style="color:var(--muted)">PHX team reviews for audio quality and community guidelines. You'll get a notification either way.</div></div></div>
               <div style="display:flex;gap:.75rem;align-items:flex-start"><span style="font-size:1.2rem">3️⃣</span><div><div style="font-weight:600;margin-bottom:.2rem">Goes live</div><div style="color:var(--muted)">Your track appears in the PHX Music catalog immediately on approval. Streams start counting right away.</div></div></div>
-              <div style="display:flex;gap:.75rem;align-items:flex-start"><span style="font-size:1.2rem">4️⃣</span><div><div style="font-weight:600;margin-bottom:.2rem">Get paid on the 1st</div><div style="color:var(--muted)">Fan-powered payouts run every month on the 1st. No minimum threshold — every stream earns.</div></div></div>
+              <div style="display:flex;gap:.75rem;align-items:flex-start"><span style="font-size:1.2rem">4️⃣</span><div><div style="font-weight:600;margin-bottom:.2rem">Get paid — net-60</div><div style="color:var(--muted)">Earnings for each month finalize 60 days after the month closes (industry-standard fraud &amp; chargeback protection), then pay out automatically. No minimum threshold — every qualifying stream earns.</div></div></div>
             </div>
           </div>
           <div class="card" style="margin-top:1.2rem">
             <div class="card-title">How You Get Paid</div>
             <div style="font-size:2rem;font-weight:900;color:var(--green);margin-bottom:.3rem">Monthly</div>
-            <div style="font-size:.8rem;color:var(--muted);margin-bottom:.8rem">paid on the 1st — no minimum threshold</div>
+            <div style="font-size:.8rem;color:var(--muted);margin-bottom:.8rem">net-60 — each month finalizes 60 days after close, no minimum</div>
             <div style="font-size:.78rem;color:var(--muted);line-height:1.6">Your earnings come from the listening of the fans who actually play your music — not a global pool where megastars take everything. The more your fans listen, the more you earn. Every qualifying stream counts.</div>
           </div>
         </div>
@@ -1604,6 +1637,9 @@ body{background:#07070F;color:#F1F1F8;font-family:'Inter',-apple-system,sans-ser
   <button class="bt-item" data-view="music" onclick="btNav('music',this)">
     <span class="bt-icon">🎵</span><span class="bt-lbl">Music</span>
   </button>
+  <button class="bt-item" data-view="reels" onclick="btNav('reels',this)">
+    <span class="bt-icon">🎬</span><span class="bt-lbl">Reels</span>
+  </button>
   <button class="bt-item" data-view="discover" onclick="btNav('discover',this)">
     <span class="bt-icon">🔍</span><span class="bt-lbl">Discover</span>
   </button>
@@ -1645,11 +1681,32 @@ body{background:#07070F;color:#F1F1F8;font-family:'Inter',-apple-system,sans-ser
 
 <!-- NOTIFICATION PANEL -->
 <div id="notif-panel" style="display:none;position:fixed;top:60px;right:12px;width:340px;max-width:calc(100vw - 24px);max-height:70vh;overflow-y:auto;background:var(--bg2);border:1px solid var(--border);border-radius:14px;z-index:450;box-shadow:0 12px 40px rgba(0,0,0,.5)">
-  <div style="display:flex;justify-content:space-between;align-items:center;padding:.8rem 1rem;border-bottom:1px solid var(--border)">
+  <div style="display:flex;justify-content:space-between;align-items:center;padding:.8rem 1rem;border-bottom:1px solid var(--border);gap:.5rem">
     <strong style="font-size:.9rem">Notifications</strong>
+    <button class="tb-btn" style="font-size:.68rem;padding:.25rem .6rem;margin-left:auto" onclick="enablePushNotifications(this)">🔔 Enable push</button>
     <button onclick="toggleNotifPanel()" style="background:none;border:none;color:var(--muted);cursor:pointer">✕</button>
   </div>
   <div id="notif-list"><div style="padding:1rem;color:var(--muted);font-size:.82rem">Loading…</div></div>
+</div>
+
+<!-- AUTH MODAL — Supabase email/password -->
+<div id="auth-modal" style="display:none;position:fixed;inset:0;z-index:520;background:rgba(7,7,15,.88);backdrop-filter:blur(5px);align-items:center;justify-content:center;padding:1rem">
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;max-width:400px;width:100%;padding:1.5rem">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+      <div style="font-size:1.4rem;font-weight:900;background:linear-gradient(135deg,#F97316,#EAB308);-webkit-background-clip:text;-webkit-text-fill-color:transparent">PHX</div>
+      <button onclick="closeAuthModal()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem">✕</button>
+    </div>
+    <div style="display:flex;gap:.5rem;margin-bottom:1rem">
+      <button class="tb-btn" id="auth-tab-signin" style="flex:1;color:var(--orange);border-color:rgba(249,115,22,.4)" onclick="setAuthTab('signin')">Sign In</button>
+      <button class="tb-btn" id="auth-tab-signup" style="flex:1" onclick="setAuthTab('signup')">Create Account</button>
+    </div>
+    <input class="form-input" id="auth-email" type="email" placeholder="you@email.com" style="margin-bottom:.6rem" autocomplete="email">
+    <input class="form-input" id="auth-password" type="password" placeholder="Password (8+ characters)" style="margin-bottom:.8rem" autocomplete="current-password">
+    <div id="auth-error" style="display:none;color:var(--red);font-size:.78rem;margin-bottom:.6rem"></div>
+    <div id="auth-info" style="display:none;color:var(--green);font-size:.78rem;margin-bottom:.6rem"></div>
+    <button class="upgrade-btn" id="auth-submit-btn" style="margin:0;width:100%" onclick="submitAuth()">Sign In</button>
+    <div style="margin-top:.8rem;font-size:.7rem;color:var(--muted);line-height:1.5">By continuing you agree to the <a href="legal.html" target="_blank" style="color:var(--orange)">PHX Terms of Service &amp; Privacy Policy</a>.</div>
+  </div>
 </div>
 
 <!-- USERNAME ONBOARDING MODAL -->
@@ -1712,7 +1769,7 @@ body{background:#07070F;color:#F1F1F8;font-family:'Inter',-apple-system,sans-ser
 <script>
 // ── VIEW SWITCHING ─────────────────────────────────────────────────────
 var titles = {
-  home:'City Feed', discover:'Discover PHX', music:'PHX Music',
+  home:'City Feed', discover:'Discover PHX', music:'PHX Music', reels:'Reels',
   events:'PHX Events', eats:'PHX Eats', audio:'PHX Audio',
   drops:'PHX Drops', cuts:'PHX Cuts', mypass:'My PHX Pass', profile:'My Profile',
   'artist-tracks':'My Tracks', 'artist-analytics':'Analytics',
@@ -1737,6 +1794,8 @@ function showView(id) {
   if (id === 'home') loadCityFeed();
   if (id === 'profile') loadMyPages();
   if (id === 'discover') loadForYou();
+  if (id === 'reels') loadReels();
+  else pauseAllReels();
 
   // Sync bottom tab active state
   document.querySelectorAll('.bottom-tabs .bt-item').forEach(function(b) {
@@ -2432,9 +2491,10 @@ async function loadAdminStreamData() {
 
 // Load live stream counts + profile + city feed + liked songs + pages + notifs on startup
 loadStreamCounts();
-Promise.all([loadMyPages(), loadMyProfile()]).then(function(){ loadCityFeed(); });
+Promise.all([loadMyPages(), loadMyProfile(), loadMyFollows()]).then(function(){ loadCityFeed(); });
 loadMyTrackLikes();
 loadNotifications();
+attachArtistFollowButtons();
 
 // ── PWA INSTALL PROMPT ───────────────────────────────────────────────
 // A plain browser tab gets suspended by iOS/Android when backgrounded or
@@ -2614,7 +2674,7 @@ async function loadCityFeed(force) {
   // Posts + this device's likes, in parallel
   var results = await Promise.all([
     _sb.from('feed_posts')
-      .select('*, tracks(id,title,featuring,exclusive_tier,stream_count,duration_seconds,audio_url,artists(name))')
+      .select('*, tracks(id,title,featuring,exclusive_tier,stream_count,duration_seconds,audio_url,artist_id,artists(name))')
       .order('created_at', { ascending: false })
       .limit(30),
     _sb.from('post_likes').select('post_id').eq('user_id', getGuestId())
@@ -2649,6 +2709,22 @@ async function loadCityFeed(force) {
   var sorted = data.slice();
   if (_feedSort === 'tracks') {
     sorted = sorted.filter(function(p){ return p.track_id; });
+  }
+  if (_feedSort === 'following') {
+    sorted = sorted.filter(function(p) {
+      return (p.page_id && _myFollows['page:' + p.page_id]) ||
+             (p.user_id && _myFollows['user:' + p.user_id]) ||
+             (p.tracks && p.tracks.artists && _myFollows['artist:' + (p.track_artist_id || '')]) ||
+             (p.track_id && p.tracks && _myFollows['artist:' + (p.tracks.artist_id || '')]);
+    });
+    if (!sorted.length) {
+      var container2 = document.getElementById('city-feed-container');
+      container2.innerHTML = renderComposer() +
+        '<div style="color:var(--muted);font-size:.84rem;padding:1.5rem 0;text-align:center">⭐ You\'re not following anyone yet.<br>Follow artists from the Music roster or tap + Follow on posts.</div>';
+      _cityFeedLoaded = true;
+      populateComposerTracks();
+      return;
+    }
   }
   if (_feedSort === 'top' || _feedSort === 'tracks') {
     sorted.sort(function(a, b) {
@@ -2689,9 +2765,9 @@ function renderComposer() {
     '<div id="composer-media-preview" style="display:none;margin-top:.6rem"></div>' +
     '<div id="composer-error" style="display:none;color:var(--red);font-size:.78rem;margin-top:.4rem"></div>' +
   '</div>' +
-  // Feed views — Popular is the default (IG/TikTok pattern); Latest and Music alternates
-  '<div style="display:flex;gap:.5rem;margin-bottom:.8rem">' +
-    ['top:🔥 Popular', 'latest:🕐 Latest', 'tracks:🎵 Music'].map(function(v) {
+  // Feed views — Popular is the default (IG/TikTok pattern)
+  '<div style="display:flex;gap:.5rem;margin-bottom:.8rem;flex-wrap:wrap">' +
+    ['top:🔥 Popular', 'latest:🕐 Latest', 'following:⭐ Following', 'tracks:🎵 Music'].map(function(v) {
       var parts = v.split(':');
       var active = _feedSort === parts[0];
       return '<button class="tb-btn" style="font-size:.76rem;' + (active ? 'color:var(--orange);border-color:rgba(249,115,22,.4)' : '') + '" onclick="setFeedSort(\'' + parts[0] + '\')">' + parts[1] + '</button>';
@@ -2865,7 +2941,11 @@ function renderFeedPost(p) {
   return '<div class="feed-post" id="post-' + p.id + '">' +
     '<div class="fp-header">' +
       '<div class="fp-ava" style="background:' + bg + '">' + (p.author_avatar||'?') + '</div>' +
-      '<div class="fp-meta"><h4>' + escapeHtml(p.author_name) + ' ' + badge + '</h4><span>' + when + (p.shared_post_id ? ' · 🔁 reposted' : '') + '</span></div>' +
+      '<div class="fp-meta"><h4>' + escapeHtml(p.author_name) + ' ' + badge +
+        // Follow the author: pages > users; skip self + official PHX
+        (p.page_id ? followBtnHtml('page', p.page_id) :
+         (p.user_id && p.user_id !== getGuestId() && p.author_role !== 'admin') ? followBtnHtml('user', p.user_id) : '') +
+      '</h4><span>' + when + (p.shared_post_id ? ' · 🔁 reposted' : '') + '</span></div>' +
       (isAdminRole
         ? '<button class="fp-act" style="margin-left:auto" title="Hide post" onclick="hideFeedPost(\'' + p.id + '\')">🚫</button>'
         : '<button class="fp-act" style="margin-left:auto" title="Report post" onclick="openReportModal(\'post\',\'' + p.id + '\')">⚠️</button>') +
@@ -3474,12 +3554,16 @@ async function loadForYou() {
     _sb.from('track_likes').select('track_id').eq('user_id', gid),
     _sb.from('user_events').select('target_id').eq('user_id', gid).eq('event_type', 'play_30s').limit(200),
     _sb.from('tracks').select('id,title,featuring,exclusive_tier,stream_count,duration_seconds,audio_url,artist_id,created_at,artists(name)').eq('status','live'),
-    _sb.rpc('get_cooccurrence_recs', { p_user_id: gid, p_limit: 10 })
+    _sb.rpc('get_cooccurrence_recs', { p_user_id: gid, p_limit: 10 }),
+    _sb.from('recommendations').select('track_id,score').eq('user_id', gid).eq('model','lightfm')
   ]);
   // Co-listening recommendations (rung-1 SQL recommender): tracks that other
   // people played in the same sessions as YOUR tracks. Boosts affinity scoring.
   var coScores = {};
   (results[3].data || []).forEach(function(r){ coScores[r.track_id] = Number(r.score) || 0; });
+  // Rung-2: LightFM model output (ml/train_lightfm.py) — strongest signal when present
+  var mlScores = {};
+  (results[4].data || []).forEach(function(r){ mlScores[r.track_id] = Number(r.score) || 0; });
 
   var likedIds = {};
   (results[0].data || []).forEach(function(l){ likedIds[l.track_id] = true; });
@@ -3501,7 +3585,7 @@ async function loadForYou() {
     .map(function(t) {
       var ageDays = t.created_at ? (Date.now() - new Date(t.created_at).getTime()) / 86400000 : 999;
       var freshBonus = ageDays < 14 ? 500 : 0;
-      return { t: t, score: (coScores[t.id] || 0) * 5000 + (affinity[t.artist_id] || 0) * 1000 + freshBonus + Math.log(1 + (t.stream_count||0)) };
+      return { t: t, score: (mlScores[t.id] ? 100000 + mlScores[t.id] : 0) + (coScores[t.id] || 0) * 5000 + (affinity[t.artist_id] || 0) * 1000 + freshBonus + Math.log(1 + (t.stream_count||0)) };
     })
     .sort(function(a,b){ return b.score - a.score; })
     .slice(0, 5);
@@ -3645,6 +3729,8 @@ async function submitTrack() {
   title = title.trim();
   if (!title) { showSubmitError('Track title is required.'); return; }
   if (!file)  { showSubmitError('Please select an audio file.'); return; }
+  var agreeEl = document.getElementById('artist-agreement-check');
+  if (agreeEl && !agreeEl.checked) { showSubmitError('You must agree to the Artist Distribution Agreement to submit.'); return; }
   if (errEl) errEl.style.display = 'none';
 
   btn.textContent = 'Uploading…';
@@ -3956,6 +4042,373 @@ function playSearchResultByIndex(el, idx) {
   var secs = (track.duration_seconds || 0) % 60;
   var duration = (track.duration_seconds ? mins + ':' + (secs < 10 ? '0' : '') + secs : '0:00');
   playTrack(el, track.title, artistName, track.featuring ? 'ft. ' + track.featuring : '', '', duration, track.id, track.stream_count || 0, '🎵');
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// AUTH — Supabase email/password sessions
+// ═══════════════════════════════════════════════════════════════════════
+var _authUser = null;
+var _authTab = 'signin';
+
+// Identity resolution: authenticated user id wins; device UUID is the
+// anonymous fallback. Everything keyed on getGuestId() migrates to the
+// real account the moment someone signs in.
+function getGuestId() {
+  if (_authUser) return _authUser.id;
+  var key = 'phx_guest_id';
+  var id = localStorage.getItem(key);
+  if (!id) { id = uuidv4(); localStorage.setItem(key, id); }
+  return id;
+}
+
+function openAuthModal() {
+  if (_authUser) { // already signed in → this button is "Log Out"
+    _sb.auth.signOut();
+    return;
+  }
+  document.getElementById('auth-modal').style.display = 'flex';
+}
+function closeAuthModal() {
+  document.getElementById('auth-modal').style.display = 'none';
+}
+function setAuthTab(tab) {
+  _authTab = tab;
+  var si = document.getElementById('auth-tab-signin');
+  var su = document.getElementById('auth-tab-signup');
+  var active = 'color:var(--orange);border-color:rgba(249,115,22,.4)';
+  si.style.cssText = 'flex:1;' + (tab === 'signin' ? active : '');
+  su.style.cssText = 'flex:1;' + (tab === 'signup' ? active : '');
+  document.getElementById('auth-submit-btn').textContent = tab === 'signin' ? 'Sign In' : 'Create Account';
+}
+
+async function submitAuth() {
+  var email = (document.getElementById('auth-email') || {}).value || '';
+  var password = (document.getElementById('auth-password') || {}).value || '';
+  var errEl = document.getElementById('auth-error');
+  var infoEl = document.getElementById('auth-info');
+  errEl.style.display = 'none'; infoEl.style.display = 'none';
+  if (!email || password.length < 8) {
+    errEl.textContent = 'Enter a valid email and a password of 8+ characters.';
+    errEl.style.display = 'block';
+    return;
+  }
+  var btn = document.getElementById('auth-submit-btn');
+  btn.disabled = true;
+  var res;
+  if (_authTab === 'signup') {
+    res = await _sb.auth.signUp({ email: email, password: password });
+    if (!res.error && res.data.user && !res.data.session) {
+      infoEl.textContent = '✓ Check your email to confirm your account, then sign in.';
+      infoEl.style.display = 'block';
+      btn.disabled = false;
+      return;
+    }
+  } else {
+    res = await _sb.auth.signInWithPassword({ email: email, password: password });
+  }
+  btn.disabled = false;
+  if (res.error) {
+    errEl.textContent = res.error.message;
+    errEl.style.display = 'block';
+    return;
+  }
+  closeAuthModal();
+}
+
+// Session lifecycle: swap identity, refresh everything identity-scoped
+_sb.auth.onAuthStateChange(function(event, session) {
+  var wasUser = _authUser;
+  _authUser = session ? session.user : null;
+  var btn = document.getElementById('auth-btn');
+  if (btn) btn.textContent = _authUser ? '👤 ' + (_authUser.email || '').split('@')[0] + ' · Log Out' : 'Log In';
+  if ((!!wasUser) !== (!!_authUser)) {
+    _myProfile = null;
+    loadMyProfile().then(function() {
+      // Fresh account with no @username → claim it now
+      if (_authUser && !_myProfile) {
+        var m = document.getElementById('username-modal');
+        if (m) m.style.display = 'flex';
+      }
+    });
+    loadMyPages();
+    loadMyTrackLikes();
+    loadMyFollows().then(function(){ loadCityFeed(true); });
+    loadNotifications();
+    trackEvent(_authUser ? 'auth_signin' : 'auth_signout', 'auth', null, {});
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════════════
+// FOLLOWS
+// ═══════════════════════════════════════════════════════════════════════
+var _myFollows = {}; // 'type:id' -> true
+
+async function loadMyFollows() {
+  var res = await _sb.from('follows').select('followee_type,followee_id').eq('follower_id', getGuestId());
+  _myFollows = {};
+  (res.data || []).forEach(function(f){ _myFollows[f.followee_type + ':' + f.followee_id] = true; });
+}
+
+async function toggleFollowUI(type, id, btn) {
+  if (btn) btn.disabled = true;
+  var { data, error } = await _sb.rpc('toggle_follow', {
+    p_follower_id: getGuestId(), p_followee_type: type, p_followee_id: id,
+    p_follower_name: currentPersona().name
+  });
+  if (btn) btn.disabled = false;
+  if (error || !data) return;
+  _myFollows[type + ':' + id] = data.following;
+  if (btn) {
+    btn.textContent = data.following ? '✓ Following' : '+ Follow';
+    btn.style.color = data.following ? 'var(--green)' : '';
+  }
+  trackEvent('follow_toggle', type, id, { following: data.following });
+}
+
+function followBtnHtml(type, id) {
+  var following = !!_myFollows[type + ':' + id];
+  return '<button class="tb-btn" style="font-size:.68rem;padding:.2rem .55rem;margin-left:.5rem;' +
+    (following ? 'color:var(--green)' : '') + '" onclick="event.stopPropagation();toggleFollowUI(\'' + type + '\',\'' + id + '\',this)">' +
+    (following ? '✓ Following' : '+ Follow') + '</button>';
+}
+
+// Follow buttons on the artist roster cards (music view) — resolved from DB
+async function attachArtistFollowButtons() {
+  var res = await _sb.from('artists').select('id,name');
+  var artists = res.data || [];
+  document.querySelectorAll('.artist-card').forEach(function(card) {
+    if (card.querySelector('.artist-follow-btn')) return;
+    var nameEl = card.querySelector('.artist-card-name');
+    if (!nameEl) return;
+    var cardName = nameEl.textContent.trim().toLowerCase();
+    artists.forEach(function(a) {
+      if (cardName.indexOf(a.name.toLowerCase()) === 0) {
+        var span = document.createElement('span');
+        span.className = 'artist-follow-btn';
+        span.innerHTML = followBtnHtml('artist', a.id);
+        nameEl.appendChild(span);
+      }
+    });
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// PUSH NOTIFICATIONS (Web Push / VAPID)
+// ═══════════════════════════════════════════════════════════════════════
+var PUSH_PUBLIC_KEY = 'BE4MIUP0n3nN6XQD2MHXoOCJwQnz4NTDw987srpOFtVRPAzTUyreht-OHQtfHcfRhd1w0FzDB15hfjAKcX5KwGc';
+
+function urlBase64ToUint8Array(base64String) {
+  var padding = '='.repeat((4 - base64String.length % 4) % 4);
+  var base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
+  var rawData = window.atob(base64);
+  var outputArray = new Uint8Array(rawData.length);
+  for (var i = 0; i < rawData.length; ++i) outputArray[i] = rawData.charCodeAt(i);
+  return outputArray;
+}
+
+async function enablePushNotifications(btn) {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    if (btn) btn.textContent = 'Not supported';
+    return;
+  }
+  var perm = await Notification.requestPermission();
+  if (perm !== 'granted') {
+    if (btn) btn.textContent = 'Blocked in browser';
+    return;
+  }
+  var reg = await navigator.serviceWorker.ready;
+  var sub = await reg.pushManager.subscribe({
+    userVisibleOnly: true,
+    applicationServerKey: urlBase64ToUint8Array(PUSH_PUBLIC_KEY)
+  });
+  var raw = sub.toJSON();
+  await _sb.from('push_subscriptions').upsert({
+    user_id: getGuestId(),
+    endpoint: sub.endpoint,
+    p256dh: raw.keys.p256dh,
+    auth_key: raw.keys.auth
+  }, { onConflict: 'endpoint' });
+  if (btn) { btn.textContent = '✓ Push enabled'; btn.style.color = 'var(--green)'; }
+  trackEvent('push_enabled', 'push', null, {});
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// REELS — vertical video feed
+// ═══════════════════════════════════════════════════════════════════════
+var _reelsObserver = null;
+
+async function loadReels() {
+  var container = document.getElementById('reels-container');
+  if (!container) return;
+  var res = await _sb.from('feed_posts')
+    .select('id,author_name,author_avatar,content,likes_count,comments_count,media_url,created_at')
+    .not('media_url', 'is', null)
+    .order('created_at', { ascending: false })
+    .limit(30);
+  var videos = (res.data || []).filter(function(p){ return /\.(mp4|webm|mov)(\?|$)/i.test(p.media_url || ''); });
+
+  if (!videos.length) {
+    container.innerHTML = '<div class="reels-empty">🎬 No video posts yet.<br><br>Post a video from the City Feed composer — camera or upload — and it lands here.</div>';
+    return;
+  }
+
+  container.innerHTML = videos.map(function(p) {
+    var liked = !!_myPostLikes[p.id];
+    return '<div class="reel" data-post="' + p.id + '">' +
+      '<video src="' + p.media_url + '" loop playsinline preload="metadata" onclick="this.paused?this.play():this.pause()"></video>' +
+      '<div class="reel-overlay">' +
+        '<div class="reel-info">' +
+          '<div class="reel-author">' + (p.author_avatar||'👤') + ' ' + escapeHtml(p.author_name) + '</div>' +
+          '<div class="reel-caption">' + escapeHtml(p.content||'') + '</div>' +
+        '</div>' +
+        '<div class="reel-actions">' +
+          '<button class="reel-act" id="reel-like-' + p.id + '" onclick="reelLike(\'' + p.id + '\')">' + (liked ? '❤️' : '🤍') + '<span id="reel-like-count-' + p.id + '">' + (p.likes_count||0) + '</span></button>' +
+          '<button class="reel-act" onclick="openPostFromDiscover(\'' + p.id + '\')">💬<span>' + (p.comments_count||0) + '</span></button>' +
+          '<button class="reel-act" onclick="shareFeedPost(\'' + p.id + '\')">↗<span>Share</span></button>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+
+  // Autoplay whichever reel fills the viewport; pause the rest
+  if (_reelsObserver) _reelsObserver.disconnect();
+  _reelsObserver = new IntersectionObserver(function(entries) {
+    entries.forEach(function(entry) {
+      var vid = entry.target.querySelector('video');
+      if (!vid) return;
+      if (entry.isIntersecting && entry.intersectionRatio > 0.6) {
+        vid.play().catch(function(){});
+        trackEvent('reel_view', 'post', entry.target.dataset.post, {});
+      } else {
+        vid.pause();
+      }
+    });
+  }, { root: container, threshold: [0, 0.6, 1] });
+  container.querySelectorAll('.reel').forEach(function(r){ _reelsObserver.observe(r); });
+}
+
+function pauseAllReels() {
+  document.querySelectorAll('#reels-container video').forEach(function(v){ v.pause(); });
+}
+
+async function reelLike(postId) {
+  var { data, error } = await _sb.rpc('toggle_post_like', { p_post_id: postId, p_user_id: getGuestId(), p_actor_name: currentPersona().name });
+  if (error || !data) return;
+  _myPostLikes[postId] = data.liked;
+  var btn = document.getElementById('reel-like-' + postId);
+  var cnt = document.getElementById('reel-like-count-' + postId);
+  if (btn) btn.childNodes[0].textContent = data.liked ? '❤️' : '🤍';
+  if (cnt) cnt.textContent = data.count;
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// SUPER ADMIN: VIEW-AS + WORKING SETTINGS CONTROLS
+// ═══════════════════════════════════════════════════════════════════════
+var _viewAsActive = false;
+var _setRoleCore = setRole;
+setRole = function(role) {
+  _setRoleCore(role);
+  // View-As selector: super only
+  var sel = document.getElementById('viewas-select');
+  if (sel) {
+    sel.style.display = (role === 'super') ? '' : 'none';
+    sel.value = '';
+  }
+  // Settings Edit buttons: super only
+  document.querySelectorAll('.sys-edit-btn').forEach(function(b) {
+    b.style.display = (role === 'super') ? '' : 'none';
+  });
+  // Return chip management
+  var chip = document.getElementById('viewas-return');
+  if (role === 'super') {
+    _viewAsActive = false;
+    if (chip) chip.remove();
+  }
+};
+
+function viewAsRole(role) {
+  if (!role) return;
+  _viewAsActive = true;
+  setRole(role);
+  if (!document.getElementById('viewas-return')) {
+    var chip = document.createElement('button');
+    chip.id = 'viewas-return';
+    chip.textContent = '↩ Back to Super Admin';
+    chip.style.cssText = 'position:fixed;bottom:76px;left:50%;transform:translateX(-50%);z-index:460;background:var(--purple);color:#fff;border:none;border-radius:100px;padding:.5rem 1.1rem;font-size:.78rem;font-weight:700;cursor:pointer;box-shadow:0 4px 16px rgba(124,58,237,.5)';
+    chip.onclick = function(){ setRole('super'); };
+    document.body.appendChild(chip);
+  }
+}
+
+// Wire the Royalty Engine edit buttons to the guarded RPC
+async function editPayoutSetting(kind) {
+  var current = {
+    share: (document.getElementById('sys-platform-share')||{}).textContent,
+    rate:  (document.getElementById('sys-rate-cap')||{}).textContent,
+    free:  (document.getElementById('sys-pot-free')||{}).textContent
+  };
+  var val, params = {};
+  if (kind === 'share') {
+    val = prompt('Platform share % (currently ' + current.share + '):');
+    if (val === null) return; params.p_platform_share = parseFloat(val);
+  } else if (kind === 'rate') {
+    val = prompt('Stream rate cap in CENTS (currently ' + current.rate + ' → e.g. 0.75):');
+    if (val === null) return; params.p_rate_cap_cents = parseFloat(val);
+  } else if (kind === 'potfree') {
+    val = prompt('Community Pot % to free-tier fund (currently ' + current.free + '; platform gets the rest):');
+    if (val === null) return; params.p_pot_free_pct = parseFloat(val);
+  }
+  var { data, error } = await _sb.rpc('update_payout_settings', params);
+  if (error) { alert('Denied: ' + error.message + '\n(Requires an admin login once auth accounts exist.)'); return; }
+  refreshPayoutSettingsUI(data);
+}
+
+function refreshPayoutSettingsUI(s) {
+  if (!s) return;
+  var el;
+  if ((el = document.getElementById('sys-platform-share'))) el.textContent = Number(s.platform_share_pct) + '%';
+  if ((el = document.getElementById('sys-rate-cap')))       el.textContent = '$' + (Number(s.stream_rate_cap_cents)/100).toFixed(4);
+  if ((el = document.getElementById('sys-pot-free')))       el.textContent = Number(s.pot_free_tier_pct) + '%';
+  if ((el = document.getElementById('sys-pot-platform')))   el.textContent = Number(s.pot_platform_pct) + '%';
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  var m = {
+    'edit-split-btn': 'share', 'edit-rate-btn': 'rate',
+    'edit-pot-free-btn': 'potfree', 'edit-pot-platform-btn': 'potfree'
+  };
+  Object.keys(m).forEach(function(id) {
+    var b = document.getElementById(id);
+    if (b) b.onclick = function(){ editPayoutSetting(m[id]); };
+  });
+  ['edit-threshold-btn','edit-payday-btn','edit-explorer-btn','edit-native-btn','edit-insider-btn'].forEach(function(id) {
+    var b = document.getElementById(id);
+    if (b) b.onclick = function(){ alert('This setting changes via database migration for safety — ask your developer.'); };
+  });
+  // Load live settings into the panel
+  _sb.from('payout_settings').select('*').eq('id',1).maybeSingle().then(function(res) {
+    if (res.data) refreshPayoutSettingsUI(res.data);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════
+// HARDENED TRACK APPROVAL — direct table updates are closed; RPCs only
+// ═══════════════════════════════════════════════════════════════════════
+async function approveTrack(id, btn) {
+  btn.disabled = true;
+  btn.textContent = 'Approving…';
+  var { data, error } = await _sb.rpc('approve_track', { p_track_id: id });
+  if (error || !data || !data.ok) { btn.textContent = 'Denied'; return; }
+  loadPendingTracks();
+}
+
+async function rejectTrack(id, btn) {
+  var reason = prompt('Reason for rejection (optional, shown to artist):') || '';
+  btn.disabled = true;
+  btn.textContent = 'Rejecting…';
+  var { data, error } = await _sb.rpc('reject_track', { p_track_id: id, p_reason: reason || null });
+  if (error || !data || !data.ok) { btn.textContent = 'Denied'; return; }
+  loadPendingTracks();
 }
 
 // ── NOTIFY ME BUTTONS ──────────────────────────────────────────────────
