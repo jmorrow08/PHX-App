@@ -185,6 +185,40 @@ Powered by `feed_posts` + `post_likes` + `post_comments` + `track_likes`. Follow
 
 All social writes flow through SECURITY DEFINER RPCs (never direct table writes from the client), so rate limits and validation can't be bypassed by calling the REST API directly with the anon key.
 
+## Notifications
+
+`notifications` table + 🔔 bell in the topbar with an unread badge (polls every 45s). Generated automatically inside the RPCs: someone likes your post (once per person per post — no toggle spam), comments on it, or reposts it. Clicking a notification deep-links to the exact post — scrolls to it, highlights it, and auto-opens the comment thread for comment notifications. Opening the panel marks all read after a beat (IG pattern). Until real auth, "you" = this device's guest UUID.
+
+## In-App Sharing
+
+- **Repost** (↗ Share → 🔁 Repost to City Feed): creates a post with `shared_post_id`; renders the original as an embedded quote card (Twitter quote-RT pattern). Original author gets a notification. Clicking the embed scrolls to the original.
+- **Song share** (↗ button in the player): jumps to the City Feed composer with that track pre-attached — say something and post.
+- **Copy Link** and **native share sheet** remain for sharing outside the app; `/app?post=<id>` deep-links open straight to the post.
+
+## Pages — Multi-Identity Accounts
+
+One human can run up to 5 pages (artist / restaurant / clothing / venue / brand / other) from one account — Facebook Pages model. Managed from Profile → My Pages: create a page, hit "Use" to switch identities, and everything you post afterward is authored as that page. "Personal" switches back. Active page is remembered per device (`phx_active_page` in localStorage). Artists posting music, running a merch line, and co-owning a venue never need three logins.
+
+## Official PHX Account
+
+Admin and Super Admin post as **PHX App** 🏙️ with an "Official" badge automatically — the composer shows "Posting as PHX App · Official" when they're in the feed. No one else can author official posts (the persona is derived from the role, and roles will map to real auth claims later).
+
+## Roles: Artists Are Members Too
+
+The artist role's sidebar has a Community section (City Feed / Discover / PHX Music) above their My Music tools, and the mobile bottom bar gains a Home tab. Artists never need a second account to browse the feed, discover music, or post.
+
+## Reporting & Moderation
+
+**User reporting**: ⚠️ on every post (hidden for admins, who get 🚫 hide instead) opens a category sheet modeled on mainstream platform policies — spam, hate speech, violence/threats, harassment, sexual content, scams, false information, self-harm, illegal goods. Reports are anonymous, deduped per user per target, rate-limited (10/hr), and land in a queue.
+
+**Admin queue**: Admin → Reports shows pending reports with category, reported content preview, and author. Actions: **Hide Content** (hides the post/comment for everyone via RLS and closes every report on that target) or **Dismiss**. Nav badge shows the pending count.
+
+**Automated filter** (`moderate_content()` in Postgres): runs on every post and comment *before* insert. Extreme cases only, matching how the big platforms draw the line — direct violent threats, mass-violence threats, self-harm encouragement ("kys"), sexual content involving minors, hate slurs, doxxing patterns. **Normal profanity passes** — "this beat is fucking incredible" is fine; "I'm going to kill you" is not. Blocked content returns a community-guidelines message and never touches the feed. The regex blocklist is a stopgap: swap in a managed moderation API (e.g. OpenAI moderation endpoint or Google Perspective) before public launch.
+
+## Stream-Count Indicator Visibility
+
+The "● 30s counting / ✓ Stream counted" indicator in the player is internal telemetry — regular members (Explorer/Native/Insider) never see it. Only Artist, Admin, and Super Admin roles do.
+
 ---
 
 ## Environment Variables
@@ -233,6 +267,14 @@ git push origin main
 | Post sharing (native sheet / clipboard) | ✅ Live |
 | Persistent song hearts (track_likes) | ✅ Live |
 | Admin post moderation (hide/unhide) | ✅ Live |
+| Notifications w/ deep links (like/comment/repost) | ✅ Live |
+| In-app reposts (quote-embed) + song sharing to feed | ✅ Live |
+| Multi-page accounts (artist/restaurant/brand, up to 5) | ✅ Live |
+| Official PHX posting (admin-only) | ✅ Live |
+| User reporting + admin review queue | ✅ Live |
+| Automated extreme-content filter (threats/hate/CSAM) | ✅ Live |
+| Artists get full member access (feed/discover/music) | ✅ Live |
+| Stream indicator hidden from members | ✅ Live |
 | Mobile responsive (all 6 roles) | ✅ Live |
 | Bottom tab navigation (role-aware) | ✅ Live |
 | Behavioral event tracking (user_events) | ✅ Live |
@@ -280,6 +322,8 @@ PHX is a web app, not a native app, which has a real ceiling:
 | 014 | feed_posts table | City Feed from DB, seeded 2 posts |
 | 015 | user_events analytics table | Behavioral event log (session_start, play_start, play_30s) + indexes; profiles gets device_fingerprints/genre_affinities columns for future personalization |
 | 016 | Social layer | post_likes, post_comments, track_likes tables; feed_posts gets track_id/comments_count/is_hidden/user_id; RPCs: toggle_post_like, toggle_track_like, add_post_comment (10/min limit), create_feed_post (5/10min limit), set_post_hidden |
+| 017 | Notifications, pages, reports, moderation | notifications + pages + reports tables; feed_posts gets page_id/shared_post_id (reposts); moderate_content() extreme-content filter wired into posting/commenting RPCs; notifications auto-generated on like/comment/repost; submit_report/resolve_report/create_page/mark_notifications_read RPCs |
+| 018 | Like actor names | toggle_post_like carries the liker's display name into the notification |
 
 ---
 

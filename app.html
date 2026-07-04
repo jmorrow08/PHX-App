@@ -382,10 +382,14 @@ body{background:#07070F;color:#F1F1F8;font-family:'Inter',-apple-system,sans-ser
     <button class="nav-item" onclick="showView('profile')"><span class="icon">👤</span>Profile</button>
   </nav>
 
-  <!-- ── ARTIST NAV ── -->
+  <!-- ── ARTIST NAV — artists are members too: full community access ── -->
   <nav class="sb-nav" id="nav-artist" style="display:none">
+    <div class="sb-section">Community</div>
+    <button class="nav-item" onclick="showView('home')"><span class="icon">🏙️</span>City Feed</button>
+    <button class="nav-item" onclick="showView('discover')"><span class="icon">🔍</span>Discover</button>
+    <button class="nav-item" onclick="showView('music')"><span class="icon">🎵</span>PHX Music</button>
     <div class="sb-section">My Music</div>
-    <button class="nav-item active" onclick="showView('artist-tracks')"><span class="icon">🎵</span>My Tracks</button>
+    <button class="nav-item active" onclick="showView('artist-tracks')"><span class="icon">🎼</span>My Tracks</button>
     <button class="nav-item" onclick="showView('artist-analytics')"><span class="icon">📊</span>Analytics</button>
     <button class="nav-item" onclick="showView('artist-earnings')"><span class="icon">💚</span>Earnings</button>
     <div class="sb-section">Tools</div>
@@ -401,6 +405,7 @@ body{background:#07070F;color:#F1F1F8;font-family:'Inter',-apple-system,sans-ser
     <button class="nav-item" onclick="showView('admin-members')"><span class="icon">👥</span>Members</button>
     <button class="nav-item" onclick="showView('admin-artists')"><span class="icon">🎤</span>Artists</button>
     <button class="nav-item" onclick="showView('admin-content')"><span class="icon">🎵</span>Content</button>
+    <button class="nav-item" onclick="showView('admin-reports')"><span class="icon">🚨</span>Reports<span class="nav-badge" id="reports-nav-badge" style="display:none">0</span></button>
     <div class="sb-section">Finance</div>
     <button class="nav-item" onclick="showView('admin-financials')"><span class="icon">💰</span>Financials<span id="admin-fin-tag" class="section-tag tag-super" style="display:none">SUPER</span></button>
     <div class="sb-section">System</div>
@@ -436,7 +441,7 @@ body{background:#07070F;color:#F1F1F8;font-family:'Inter',-apple-system,sans-ser
     <div class="topbar-title" id="page-title">City Feed</div>
     <div class="topbar-right">
       <span id="plays-left-badge" style="display:none;font-size:.78rem;color:var(--muted);background:var(--bg3);border:1px solid var(--border);padding:.35rem .75rem;border-radius:8px">5 free plays left</span>
-      <button class="tb-btn">🔔</button>
+      <button class="tb-btn" id="notif-bell" onclick="toggleNotifPanel()" style="position:relative">🔔<span id="notif-badge" style="display:none;position:absolute;top:-4px;right:-4px;background:var(--red);color:#fff;font-size:.62rem;font-weight:800;min-width:16px;height:16px;border-radius:100px;padding:0 4px;line-height:16px;text-align:center">0</span></button>
       <button class="tb-btn primary" id="topbar-cta" onclick="showView('mypass')">💳 Native Pass</button>
     </div>
   </div>
@@ -619,7 +624,7 @@ body{background:#07070F;color:#F1F1F8;font-family:'Inter',-apple-system,sans-ser
           <div class="np-side-actions">
             <button class="np-side-btn" id="np-like-btn" title="Like" onclick="toggleCurrentTrackLike()">♥</button>
             <button class="np-side-btn" title="Add to queue">+</button>
-            <button class="np-side-btn" title="Share">↗</button>
+            <button class="np-side-btn" title="Share to City Feed" onclick="shareCurrentTrackToFeed()">↗</button>
           </div>
         </div>
         <div class="np-progress-area">
@@ -986,9 +991,34 @@ body{background:#07070F;color:#F1F1F8;font-family:'Inter',-apple-system,sans-ser
           <button class="tb-btn" style="width:100%;margin-bottom:.6rem">Edit Profile</button>
           <button class="tb-btn primary" style="width:100%">Upgrade to PHX Insider — $29/mo</button>
         </div>
-        <div class="card">
-          <div class="card-title">Listening Activity</div>
-          <canvas id="activity-chart" height="180"></canvas>
+        <div>
+          <div class="card">
+            <div class="card-title">Listening Activity</div>
+            <canvas id="activity-chart" height="180"></canvas>
+          </div>
+          <!-- MY PAGES — one account, many identities (FB Pages model) -->
+          <div class="card" style="margin-top:1.2rem">
+            <div class="sh" style="margin-bottom:.75rem"><h3>My Pages</h3><span style="font-size:.72rem;color:var(--muted)">Post as your brand</span></div>
+            <div style="font-size:.78rem;color:var(--muted);margin-bottom:.8rem">Run an artist page, restaurant, clothing line and more — all from this one account. Switch which identity you post as anytime.</div>
+            <div id="my-pages-list"><span style="color:var(--muted);font-size:.82rem">Loading…</span></div>
+            <div id="create-page-form" style="display:none;margin-top:.8rem;padding-top:.8rem;border-top:1px solid var(--border)">
+              <input class="form-input" id="new-page-name" maxlength="50" placeholder="Page name (e.g. Desert Threads AZ)" style="margin-bottom:.5rem">
+              <select class="form-select" id="new-page-type" style="margin-bottom:.5rem">
+                <option value="artist">🎤 Artist</option>
+                <option value="restaurant">🍽️ Restaurant / Food</option>
+                <option value="clothing">👕 Clothing / Brand</option>
+                <option value="venue">🏟️ Venue</option>
+                <option value="brand">💼 Business</option>
+                <option value="other">⭐ Other</option>
+              </select>
+              <div style="display:flex;gap:.5rem">
+                <button class="upgrade-btn" style="margin:0;flex:1;padding:.55rem" onclick="createPage()">Create Page</button>
+                <button class="tb-btn" onclick="document.getElementById('create-page-form').style.display='none'">Cancel</button>
+              </div>
+              <div id="create-page-error" style="display:none;color:var(--red);font-size:.76rem;margin-top:.4rem"></div>
+            </div>
+            <button class="tb-btn" id="add-page-btn" style="width:100%;margin-top:.8rem" onclick="document.getElementById('create-page-form').style.display='block'">➕ Add a Page</button>
+          </div>
         </div>
       </div>
     </div>
@@ -1421,6 +1451,18 @@ body{background:#07070F;color:#F1F1F8;font-family:'Inter',-apple-system,sans-ser
       </div>
     </div>
 
+    <!-- ADMIN — REPORTS QUEUE -->
+    <div class="view" id="v-admin-reports">
+      <div class="card">
+        <div class="sh" style="margin-bottom:.75rem">
+          <h3>Reported Content</h3>
+          <span class="badge badge-orange" id="reports-count-badge">…</span>
+          <button class="tb-btn" style="margin-left:auto;font-size:.76rem;padding:.3rem .65rem" onclick="loadReports()">↻ Refresh</button>
+        </div>
+        <div id="reports-feed"><span style="color:var(--muted);font-size:.84rem">Loading…</span></div>
+      </div>
+    </div>
+
     <!-- ADMIN — FINANCIALS (Super Admin only full view) -->
     <div class="view" id="v-admin-financials">
       <div class="admin-alert" id="fin-super-alert" style="display:none">⚡ Super Admin — Financial data visible. Treat as confidential.</div>
@@ -1544,6 +1586,9 @@ body{background:#07070F;color:#F1F1F8;font-family:'Inter',-apple-system,sans-ser
   </button>
 </nav>
 <nav class="bottom-tabs" id="bt-artist" style="display:none" aria-label="Artist navigation">
+  <button class="bt-item" data-view="home" onclick="btNav('home',this)">
+    <span class="bt-icon">🏙️</span><span class="bt-lbl">Home</span>
+  </button>
   <button class="bt-item active" data-view="artist-tracks" onclick="btNav('artist-tracks',this)">
     <span class="bt-icon">🎵</span><span class="bt-lbl">Tracks</span>
   </button>
@@ -1571,6 +1616,32 @@ body{background:#07070F;color:#F1F1F8;font-family:'Inter',-apple-system,sans-ser
     <span class="bt-icon">⚙️</span><span class="bt-lbl">Settings</span>
   </button>
 </nav>
+
+<!-- NOTIFICATION PANEL -->
+<div id="notif-panel" style="display:none;position:fixed;top:60px;right:12px;width:340px;max-width:calc(100vw - 24px);max-height:70vh;overflow-y:auto;background:var(--bg2);border:1px solid var(--border);border-radius:14px;z-index:450;box-shadow:0 12px 40px rgba(0,0,0,.5)">
+  <div style="display:flex;justify-content:space-between;align-items:center;padding:.8rem 1rem;border-bottom:1px solid var(--border)">
+    <strong style="font-size:.9rem">Notifications</strong>
+    <button onclick="toggleNotifPanel()" style="background:none;border:none;color:var(--muted);cursor:pointer">✕</button>
+  </div>
+  <div id="notif-list"><div style="padding:1rem;color:var(--muted);font-size:.82rem">Loading…</div></div>
+</div>
+
+<!-- REPORT MODAL -->
+<div id="report-modal" style="display:none;position:fixed;inset:0;z-index:500;background:rgba(7,7,15,.8);backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:1rem">
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;max-width:420px;width:100%;padding:1.4rem">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.4rem">
+      <strong style="font-size:1rem">Report this post</strong>
+      <button onclick="closeReportModal()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem">✕</button>
+    </div>
+    <div style="font-size:.78rem;color:var(--muted);margin-bottom:1rem">Your report is anonymous. If someone is in immediate danger, call local emergency services.</div>
+    <div id="report-categories" style="display:flex;flex-direction:column;gap:.4rem"></div>
+    <div id="report-confirm" style="display:none;text-align:center;padding:1rem 0">
+      <div style="font-size:2rem;margin-bottom:.4rem">✅</div>
+      <div style="font-size:.9rem;font-weight:600;margin-bottom:.2rem">Thanks for reporting</div>
+      <div style="font-size:.78rem;color:var(--muted)">Our team will review this within 24 hours.</div>
+    </div>
+  </div>
+</div>
 
 <!-- INSTALL BANNER — dismissible, addresses background playback limits -->
 <div id="install-banner" style="display:none;position:fixed;top:52px;left:0;right:0;z-index:390;background:rgba(249,115,22,.12);border-bottom:1px solid rgba(249,115,22,.3);backdrop-filter:blur(10px);padding:.6rem 1rem;font-size:.78rem;align-items:center;gap:.6rem">
@@ -1602,7 +1673,7 @@ var titles = {
   'artist-tracks':'My Tracks', 'artist-analytics':'Analytics',
   'artist-earnings':'Earnings', 'artist-submit':'Submit Track', 'artist-profile':'Artist Profile',
   'admin-dashboard':'Platform Dashboard', 'admin-members':'Members',
-  'admin-artists':'Artists', 'admin-content':'Content',
+  'admin-artists':'Artists', 'admin-content':'Content', 'admin-reports':'Reports',
   'admin-financials':'Financials', 'admin-system':'System Settings',
 };
 
@@ -1617,7 +1688,9 @@ function showView(id) {
   if (titleEl) titleEl.textContent = titles[id] || id;
   if (id === 'admin-dashboard') loadAdminStreamData();
   if (id === 'admin-content') loadPendingTracks();
+  if (id === 'admin-reports') loadReports();
   if (id === 'home') loadCityFeed();
+  if (id === 'profile') loadMyPages();
 
   // Sync bottom tab active state
   document.querySelectorAll('.bottom-tabs .bt-item').forEach(function(b) {
@@ -1978,10 +2051,15 @@ function loadStreamCounts() {
     });
 }
 
+// Stream-count indicator is internal telemetry — members shouldn't see it
+function canSeeStreamIndicator() {
+  return currentRole === 'admin' || currentRole === 'super' || currentRole === 'artist';
+}
+
 function startStreamTimer(trackId) {
   clearStreamTimer();
   var indicator = document.getElementById('mp-stream-indicator');
-  if (indicator) indicator.style.display = 'block';
+  if (indicator) indicator.style.display = canSeeStreamIndicator() ? 'block' : 'none';
 
   streamData.streamTimer = setTimeout(function() {
     countStream(trackId);
@@ -2005,9 +2083,11 @@ function countStream(trackId) {
   updateStreamDisplays(trackId);
 
   var indicator = document.getElementById('mp-stream-indicator');
-  if (indicator) {
+  if (indicator && canSeeStreamIndicator()) {
     indicator.textContent = '✓ Stream counted';
     setTimeout(function(){ indicator.style.display = 'none'; }, 2000);
+  } else if (indicator) {
+    indicator.style.display = 'none';
   }
 
   // Behavioral event for analytics + fraud ML
@@ -2322,10 +2402,11 @@ async function loadAdminStreamData() {
   }
 }
 
-// Load live stream counts + city feed + liked songs on startup
+// Load live stream counts + city feed + liked songs + pages + notifs on startup
 loadStreamCounts();
-loadCityFeed();
+loadMyPages().then(function(){ loadCityFeed(); });
 loadMyTrackLikes();
+loadNotifications();
 
 // ── PWA INSTALL PROMPT ───────────────────────────────────────────────
 // A plain browser tab gets suspended by iOS/Android when backgrounded or
@@ -2405,15 +2486,38 @@ var _cityFeedLoaded = false;
 var _myPostLikes = {};   // post_id -> true (this device's likes)
 var _feedPosts = {};     // post_id -> post row (for share text / track play)
 
-// Persona for posting — until real auth, derive from current demo role
+// Persona for posting — until real auth, derive from current demo role.
+// Admin/Super post as the official PHX App account (only they can).
+// If the user has activated one of their Pages, that identity wins.
+var _myPages = [];
+function activePage() {
+  var pid = localStorage.getItem('phx_active_page');
+  if (!pid) return null;
+  for (var i = 0; i < _myPages.length; i++) {
+    if (_myPages[i].id === pid) return _myPages[i];
+  }
+  return null;
+}
+
 function currentPersona() {
+  var page = activePage();
+  if (page) {
+    return {
+      name: page.name,
+      role: page.page_type === 'artist' ? 'artist' : 'member',
+      avatar: page.avatar || '⭐',
+      page_id: page.id
+    };
+  }
+  if (currentRole === 'admin' || currentRole === 'super') {
+    return { name: 'PHX App', role: 'admin', avatar: '🏙️', page_id: null };
+  }
   var r = ROLES[currentRole] || {};
   return {
     name: r.chipName || 'PHX Member',
-    role: (currentRole === 'admin' || currentRole === 'super') ? 'admin' :
-          currentRole === 'artist' ? 'artist' : 'member',
-    avatar: currentRole === 'artist' ? '🎤' :
-            (currentRole === 'admin' || currentRole === 'super') ? '🏙️' : '👤'
+    role: currentRole === 'artist' ? 'artist' : 'member',
+    avatar: currentRole === 'artist' ? '🎤' : '👤',
+    page_id: null
   };
 }
 
@@ -2438,6 +2542,17 @@ async function loadCityFeed(force) {
   _feedPosts = {};
   data.forEach(function(p){ _feedPosts[p.id] = p; });
 
+  // Fetch any reposted originals not already in this batch
+  var missingShared = data
+    .filter(function(p){ return p.shared_post_id && !_feedPosts[p.shared_post_id]; })
+    .map(function(p){ return p.shared_post_id; });
+  if (missingShared.length) {
+    var sharedRes = await _sb.from('feed_posts')
+      .select('*, tracks(id,title,featuring,exclusive_tier,stream_count,duration_seconds,audio_url,artists(name))')
+      .in('id', missingShared);
+    (sharedRes.data || []).forEach(function(p){ _feedPosts[p.id] = p; });
+  }
+
   container.innerHTML = renderComposer() +
     (data.map(renderFeedPost).join('') ||
      '<div style="color:var(--muted);font-size:.84rem;padding:1rem 0">No posts yet — be the first.</div>');
@@ -2446,8 +2561,14 @@ async function loadCityFeed(force) {
 }
 
 function renderComposer() {
-  var isAdminRole = (currentRole === 'admin' || currentRole === 'super');
+  var persona = currentPersona();
+  var identityChip = '<div style="display:flex;align-items:center;gap:.45rem;margin-bottom:.5rem;font-size:.76rem;color:var(--muted)">' +
+    'Posting as <strong style="color:var(--white)">' + persona.avatar + ' ' + escapeHtml(persona.name) + '</strong>' +
+    (persona.role === 'admin' ? ' <span class="badge badge-orange" style="font-size:.6rem">Official</span>' : '') +
+    (_myPages.length ? ' · <a href="#" style="color:var(--orange)" onclick="showView(\'profile\');return false">switch</a>' : '') +
+  '</div>';
   return '<div class="feed-post" style="margin-bottom:1rem">' +
+    identityChip +
     '<textarea id="composer-text" class="form-input" rows="2" maxlength="1000" ' +
       'placeholder="What\'s happening in the city?" ' +
       'style="resize:none;width:100%;font-family:inherit;margin-bottom:.6rem"></textarea>' +
@@ -2498,19 +2619,41 @@ function renderFeedPost(p) {
     '</div>';
   }
 
+  // Embedded original for reposts (Twitter quote-RT pattern)
+  var repostEmbed = '';
+  if (p.shared_post_id) {
+    var orig = _feedPosts[p.shared_post_id];
+    if (orig) {
+      repostEmbed = '<div style="border:1px solid var(--border);border-radius:10px;padding:.7rem .8rem;margin-top:.6rem;background:var(--bg4);cursor:pointer" onclick="scrollToPost(\'' + orig.id + '\')">' +
+        '<div style="font-size:.76rem;font-weight:700;margin-bottom:.25rem">' + (orig.author_avatar||'?') + ' ' + escapeHtml(orig.author_name) + '</div>' +
+        '<div style="font-size:.8rem;color:var(--muted)">' + escapeHtml((orig.content||'').slice(0,180)) + ((orig.content||'').length > 180 ? '…' : '') + '</div>' +
+        (orig.tracks ? '<div style="font-size:.74rem;color:var(--teal);margin-top:.3rem">🎵 ' + escapeHtml(orig.tracks.title) + '</div>' : '') +
+      '</div>';
+    } else {
+      repostEmbed = '<div style="border:1px solid var(--border);border-radius:10px;padding:.7rem .8rem;margin-top:.6rem;background:var(--bg4);font-size:.78rem;color:var(--muted)">Original post unavailable</div>';
+    }
+  }
+
   return '<div class="feed-post" id="post-' + p.id + '">' +
     '<div class="fp-header">' +
       '<div class="fp-ava" style="background:' + bg + '">' + (p.author_avatar||'?') + '</div>' +
-      '<div class="fp-meta"><h4>' + escapeHtml(p.author_name) + ' ' + badge + '</h4><span>' + when + '</span></div>' +
-      (isAdminRole ? '<button class="fp-act" style="margin-left:auto" title="Hide post" onclick="hideFeedPost(\'' + p.id + '\')">🚫</button>' : '') +
+      '<div class="fp-meta"><h4>' + escapeHtml(p.author_name) + ' ' + badge + '</h4><span>' + when + (p.shared_post_id ? ' · 🔁 reposted' : '') + '</span></div>' +
+      (isAdminRole
+        ? '<button class="fp-act" style="margin-left:auto" title="Hide post" onclick="hideFeedPost(\'' + p.id + '\')">🚫</button>'
+        : '<button class="fp-act" style="margin-left:auto" title="Report post" onclick="openReportModal(\'post\',\'' + p.id + '\')">⚠️</button>') +
     '</div>' +
     '<div class="fp-body">' + escapeHtml(p.content) + '</div>' +
-    trackCard +
+    trackCard + repostEmbed +
     '<div class="fp-actions" style="margin-top:.6rem">' +
       '<button class="fp-act" id="like-btn-' + p.id + '" style="' + (liked ? 'color:var(--orange)' : '') + '" onclick="togglePostLike(\'' + p.id + '\')">' +
         (liked ? '❤️' : '🤍') + ' <span id="like-count-' + p.id + '">' + (p.likes_count||0) + '</span></button>' +
       '<button class="fp-act" onclick="toggleComments(\'' + p.id + '\')">💬 <span id="comment-count-' + p.id + '">' + (p.comments_count||0) + '</span></button>' +
-      '<button class="fp-act" onclick="shareFeedPost(\'' + p.id + '\')">🔁 Share</button>' +
+      '<button class="fp-act" onclick="toggleShareMenu(\'' + p.id + '\')">↗ Share</button>' +
+    '</div>' +
+    '<div id="share-menu-' + p.id + '" style="display:none;margin-top:.5rem;display:none;gap:.5rem;flex-wrap:wrap">' +
+      '<button class="tb-btn" style="font-size:.74rem" onclick="repostToFeed(\'' + p.id + '\')">🔁 Repost to City Feed</button>' +
+      '<button class="tb-btn" style="font-size:.74rem" onclick="copyPostLink(\'' + p.id + '\', this)">🔗 Copy Link</button>' +
+      '<button class="tb-btn" style="font-size:.74rem" onclick="shareFeedPost(\'' + p.id + '\')">📲 More…</button>' +
     '</div>' +
     '<div id="comments-' + p.id + '" style="display:none;margin-top:.75rem;border-top:1px solid var(--border);padding-top:.75rem"></div>' +
   '</div>';
@@ -2522,7 +2665,7 @@ async function togglePostLike(postId) {
   var countEl = document.getElementById('like-count-' + postId);
   if (!btn) return;
   btn.disabled = true;
-  var { data, error } = await _sb.rpc('toggle_post_like', { p_post_id: postId, p_user_id: getGuestId() });
+  var { data, error } = await _sb.rpc('toggle_post_like', { p_post_id: postId, p_user_id: getGuestId(), p_actor_name: currentPersona().name });
   btn.disabled = false;
   if (error || !data) return;
   _myPostLikes[postId] = data.liked;
@@ -2580,7 +2723,9 @@ async function submitComment(postId) {
   });
   input.disabled = false;
   if (error || !data || !data.ok) {
-    input.placeholder = (data && data.reason === 'rate_limited') ? 'Slow down — try again in a minute' : 'Error — try again';
+    input.placeholder = (data && data.reason === 'rate_limited') ? 'Slow down — try again in a minute' :
+                        (data && data.reason === 'content_blocked') ? '🚫 Comment violates community guidelines' :
+                        'Error — try again';
     input.value = '';
     return;
   }
@@ -2607,10 +2752,13 @@ async function submitFeedPost() {
     p_author_role: persona.role,
     p_author_avatar: persona.avatar,
     p_content: content,
-    p_track_id: (trackSel && trackSel.value) || null
+    p_track_id: (trackSel && trackSel.value) || null,
+    p_page_id: persona.page_id || null,
+    p_shared_post_id: null
   });
   if (error || !data || !data.ok) {
     var msg = (data && data.reason === 'rate_limited') ? 'Rate limited — max 5 posts per 10 minutes.' :
+              (data && data.reason === 'content_blocked') ? '🚫 This post violates PHX community guidelines and can\'t be published.' :
               'Could not post. Try again.';
     if (errEl) { errEl.textContent = msg; errEl.style.display = 'block'; }
     return;
@@ -2692,6 +2840,364 @@ async function toggleCurrentTrackLike() {
   updateNpLikeButton();
   trackEvent('track_like', 'track', uuid, { liked: data.liked });
 }
+
+// ── SHARE MENU + REPOSTS ─────────────────────────────────────────────────
+function toggleShareMenu(postId) {
+  var menu = document.getElementById('share-menu-' + postId);
+  if (!menu) return;
+  menu.style.display = (menu.style.display === 'flex') ? 'none' : 'flex';
+}
+
+async function repostToFeed(postId) {
+  var persona = currentPersona();
+  var { data, error } = await _sb.rpc('create_feed_post', {
+    p_user_id: getGuestId(),
+    p_author_name: persona.name,
+    p_author_role: persona.role,
+    p_author_avatar: persona.avatar,
+    p_content: '🔁',
+    p_track_id: null,
+    p_page_id: persona.page_id || null,
+    p_shared_post_id: postId
+  });
+  if (error || !data || !data.ok) {
+    alert(data && data.reason === 'rate_limited' ? 'Rate limited — max 5 posts per 10 minutes.' : 'Could not repost.');
+    return;
+  }
+  trackEvent('post_repost', 'post', postId, {});
+  loadCityFeed(true);
+}
+
+async function copyPostLink(postId, btn) {
+  var url = 'https://phx-app.vercel.app/app?post=' + postId;
+  try {
+    await navigator.clipboard.writeText(url);
+    btn.textContent = '✓ Copied';
+    setTimeout(function(){ btn.textContent = '🔗 Copy Link'; }, 1500);
+  } catch (e) {
+    prompt('Copy this link:', url);
+  }
+}
+
+function scrollToPost(postId) {
+  var el = document.getElementById('post-' + postId);
+  if (!el) return;
+  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  el.style.transition = 'box-shadow .3s';
+  el.style.boxShadow = '0 0 0 2px var(--orange)';
+  setTimeout(function(){ el.style.boxShadow = ''; }, 2000);
+}
+
+// Share the currently playing song to the feed (composer pre-filled)
+function shareCurrentTrackToFeed() {
+  var uuid = currentTrackUuid();
+  if (!uuid) return;
+  showView('home');
+  setTimeout(function() {
+    var sel = document.getElementById('composer-track');
+    var txt = document.getElementById('composer-text');
+    if (sel) {
+      for (var i = 0; i < sel.options.length; i++) {
+        if (sel.options[i].value === uuid) { sel.selectedIndex = i; break; }
+      }
+    }
+    if (txt) { txt.focus(); txt.placeholder = 'Say something about this track…'; }
+    var composer = document.getElementById('composer-text');
+    if (composer) composer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, 300);
+}
+
+// ── NOTIFICATIONS ────────────────────────────────────────────────────────
+var _notifPanelOpen = false;
+
+async function loadNotifications() {
+  var res = await _sb.from('notifications')
+    .select('*')
+    .eq('recipient_id', getGuestId())
+    .order('created_at', { ascending: false })
+    .limit(30);
+  var items = res.data || [];
+  var unread = items.filter(function(n){ return !n.is_read; }).length;
+  var badge = document.getElementById('notif-badge');
+  if (badge) {
+    badge.style.display = unread > 0 ? 'block' : 'none';
+    badge.textContent = unread > 9 ? '9+' : unread;
+  }
+  if (_notifPanelOpen) renderNotifList(items);
+  return items;
+}
+
+function renderNotifList(items) {
+  var list = document.getElementById('notif-list');
+  if (!list) return;
+  if (!items.length) {
+    list.innerHTML = '<div style="padding:1.2rem;text-align:center;color:var(--muted);font-size:.82rem">No notifications yet.<br>Likes, comments and reposts on your posts show up here.</div>';
+    return;
+  }
+  var verbs = { like: 'liked your post', comment: 'commented on your post', repost: 'reposted your post', follow: 'followed you', track_share: 'shared your track', system: '', report_update: 'update on your report' };
+  list.innerHTML = items.map(function(n) {
+    var d = new Date(n.created_at);
+    var diff = Math.floor((Date.now() - d.getTime()) / 60000);
+    var when = diff < 1 ? 'now' : diff < 60 ? diff + 'm' : diff < 1440 ? Math.floor(diff/60) + 'h' : Math.floor(diff/1440) + 'd';
+    return '<div onclick="openNotification(\'' + n.id + '\',\'' + n.type + '\',\'' + (n.target_id||'') + '\')" ' +
+      'style="display:flex;gap:.6rem;padding:.7rem 1rem;border-bottom:1px solid var(--border);cursor:pointer;' + (n.is_read ? 'opacity:.6' : 'background:rgba(249,115,22,.05)') + '">' +
+      '<span style="font-size:1.1rem">' + (n.actor_avatar||'👤') + '</span>' +
+      '<div style="flex:1;min-width:0">' +
+        '<div style="font-size:.8rem"><strong>' + escapeHtml(n.actor_name) + '</strong> ' + (verbs[n.type]||'') + '</div>' +
+        (n.preview ? '<div style="font-size:.74rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">"' + escapeHtml(n.preview) + '"</div>' : '') +
+      '</div>' +
+      '<span style="font-size:.68rem;color:var(--muted);white-space:nowrap">' + when + (!n.is_read ? ' <span style="color:var(--orange)">●</span>' : '') + '</span>' +
+    '</div>';
+  }).join('');
+}
+
+async function toggleNotifPanel() {
+  var panel = document.getElementById('notif-panel');
+  if (!panel) return;
+  _notifPanelOpen = panel.style.display === 'none';
+  panel.style.display = _notifPanelOpen ? 'block' : 'none';
+  if (_notifPanelOpen) {
+    var items = await loadNotifications();
+    renderNotifList(items);
+    // Mark all read after a beat (IG pattern: badge clears once you look)
+    setTimeout(function() {
+      _sb.rpc('mark_notifications_read', { p_recipient_id: getGuestId() }).then(function() {
+        var badge = document.getElementById('notif-badge');
+        if (badge) badge.style.display = 'none';
+      });
+    }, 1200);
+  }
+}
+
+// Deep link: notification → the exact post, comments open if it's a comment
+async function openNotification(notifId, type, targetId) {
+  toggleNotifPanel();
+  if (!targetId) return;
+  showView('home');
+  if (!_cityFeedLoaded) await loadCityFeed();
+  var el = document.getElementById('post-' + targetId);
+  if (!el) {
+    await loadCityFeed(true);
+    el = document.getElementById('post-' + targetId);
+  }
+  if (!el) { alert('This post is no longer available.'); return; }
+  scrollToPost(targetId);
+  if (type === 'comment') {
+    var box = document.getElementById('comments-' + targetId);
+    if (box && box.style.display === 'none') toggleComments(targetId);
+  }
+}
+
+// Poll every 45s so the badge stays fresh without hammering the DB
+setInterval(loadNotifications, 45000);
+
+// ── REPORTS (user side) ──────────────────────────────────────────────────
+// Categories follow mainstream platform guidelines — extreme cases,
+// not language policing.
+var REPORT_CATEGORIES = [
+  { key: 'spam',          label: '🔁 Spam or misleading' },
+  { key: 'hate',          label: '🚫 Hate speech or discrimination' },
+  { key: 'violence',      label: '⚠️ Violence or dangerous threats' },
+  { key: 'harassment',    label: '💢 Harassment or bullying' },
+  { key: 'sexual',        label: '🔞 Nudity or sexual content' },
+  { key: 'scam',          label: '💸 Scam or fraud' },
+  { key: 'false_info',    label: '❗ False information' },
+  { key: 'self_harm',     label: '🆘 Self-harm or suicide' },
+  { key: 'illegal',       label: '⛔ Illegal goods or services' }
+];
+var _reportTarget = null;
+
+function openReportModal(targetType, targetId) {
+  _reportTarget = { type: targetType, id: targetId };
+  var modal = document.getElementById('report-modal');
+  var cats = document.getElementById('report-categories');
+  var confirm = document.getElementById('report-confirm');
+  if (cats) {
+    cats.style.display = 'flex';
+    cats.innerHTML = REPORT_CATEGORIES.map(function(c) {
+      return '<button class="tb-btn" style="text-align:left;font-size:.82rem;padding:.55rem .8rem" onclick="submitReportCategory(\'' + c.key + '\')">' + c.label + '</button>';
+    }).join('');
+  }
+  if (confirm) confirm.style.display = 'none';
+  if (modal) modal.style.display = 'flex';
+}
+
+function closeReportModal() {
+  var modal = document.getElementById('report-modal');
+  if (modal) modal.style.display = 'none';
+  _reportTarget = null;
+}
+
+async function submitReportCategory(category) {
+  if (!_reportTarget) return;
+  var cats = document.getElementById('report-categories');
+  var confirm = document.getElementById('report-confirm');
+  await _sb.rpc('submit_report', {
+    p_reporter_id: getGuestId(),
+    p_target_type: _reportTarget.type,
+    p_target_id: _reportTarget.id,
+    p_category: category
+  });
+  trackEvent('report_submit', _reportTarget.type, _reportTarget.id, { category: category });
+  if (cats) cats.style.display = 'none';
+  if (confirm) confirm.style.display = 'block';
+  setTimeout(closeReportModal, 2200);
+}
+
+// ── REPORTS (admin queue) ────────────────────────────────────────────────
+async function loadReports() {
+  var feed = document.getElementById('reports-feed');
+  var badge = document.getElementById('reports-count-badge');
+  var navBadge = document.getElementById('reports-nav-badge');
+  if (!feed) return;
+  feed.innerHTML = '<span style="color:var(--muted);font-size:.84rem">Loading…</span>';
+
+  var res = await _sb.from('reports')
+    .select('*')
+    .eq('status', 'pending')
+    .order('created_at', { ascending: true })
+    .limit(50);
+  var reports = res.data || [];
+
+  if (badge) badge.textContent = reports.length + ' pending';
+  if (navBadge) {
+    navBadge.style.display = reports.length ? '' : 'none';
+    navBadge.textContent = reports.length;
+  }
+  if (!reports.length) {
+    feed.innerHTML = '<div style="color:var(--muted);font-size:.84rem;padding:.5rem 0">✓ No pending reports. All clear.</div>';
+    return;
+  }
+
+  // Fetch reported content previews
+  var postIds = reports.filter(function(r){ return r.target_type === 'post'; }).map(function(r){ return r.target_id; });
+  var commentIds = reports.filter(function(r){ return r.target_type === 'comment'; }).map(function(r){ return r.target_id; });
+  var contentById = {};
+  if (postIds.length) {
+    var pr = await _sb.from('feed_posts').select('id,author_name,content,is_hidden').in('id', postIds);
+    (pr.data || []).forEach(function(p){ contentById[p.id] = p; });
+  }
+  if (commentIds.length) {
+    var cr = await _sb.from('post_comments').select('id,author_name,content,is_hidden').in('id', commentIds);
+    (cr.data || []).forEach(function(c){ contentById[c.id] = c; });
+  }
+
+  var catLabels = {};
+  REPORT_CATEGORIES.forEach(function(c){ catLabels[c.key] = c.label; });
+
+  feed.innerHTML = reports.map(function(r) {
+    var content = contentById[r.target_id];
+    var d = new Date(r.created_at);
+    var when = d.toLocaleDateString('en-US',{month:'short',day:'numeric'}) + ' ' + d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true});
+    return '<div style="padding:.8rem;background:var(--bg4);border-radius:10px;border:1px solid rgba(239,68,68,.25);margin-bottom:.6rem">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.4rem;flex-wrap:wrap;gap:.3rem">' +
+        '<span style="font-size:.78rem;font-weight:700;color:var(--red)">' + (catLabels[r.category] || r.category) + '</span>' +
+        '<span style="font-size:.7rem;color:var(--muted)">' + r.target_type + ' · reported ' + when + '</span>' +
+      '</div>' +
+      (content
+        ? '<div style="font-size:.8rem;padding:.5rem .7rem;background:var(--bg3);border-radius:8px;margin-bottom:.5rem">' +
+            '<strong>' + escapeHtml(content.author_name||'') + ':</strong> ' + escapeHtml((content.content||'').slice(0,200)) +
+            (content.is_hidden ? ' <span style="color:var(--red);font-size:.7rem">[already hidden]</span>' : '') +
+          '</div>'
+        : '<div style="font-size:.78rem;color:var(--muted);margin-bottom:.5rem">Content deleted or unavailable</div>') +
+      '<div style="display:flex;gap:.5rem">' +
+        '<button class="tb-btn" style="font-size:.74rem;color:var(--red);border-color:rgba(239,68,68,.3)" onclick="resolveReportAction(\'' + r.id + '\',\'hide_content\',this)">🚫 Hide Content</button>' +
+        '<button class="tb-btn" style="font-size:.74rem" onclick="resolveReportAction(\'' + r.id + '\',\'dismiss\',this)">✓ Dismiss</button>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+async function resolveReportAction(reportId, action, btn) {
+  btn.disabled = true;
+  btn.textContent = 'Working…';
+  var { error } = await _sb.rpc('resolve_report', { p_report_id: reportId, p_action: action });
+  if (error) { btn.textContent = 'Error'; return; }
+  loadReports();
+  if (action === 'hide_content') loadCityFeed(true);
+}
+
+// ── PAGES — multi-identity system ────────────────────────────────────────
+async function loadMyPages() {
+  var list = document.getElementById('my-pages-list');
+  var res = await _sb.from('pages').select('*').eq('owner_id', getGuestId()).order('created_at');
+  _myPages = res.data || [];
+  if (!list) return;
+  var activeId = localStorage.getItem('phx_active_page');
+  var typeIcons = { artist:'🎤', restaurant:'🍽️', clothing:'👕', venue:'🏟️', brand:'💼', other:'⭐' };
+
+  var personalRow = '<div style="display:flex;align-items:center;gap:.6rem;padding:.55rem .6rem;border-radius:8px;margin-bottom:.35rem;' +
+    (!activeId ? 'background:rgba(249,115,22,.1);border:1px solid rgba(249,115,22,.3)' : 'border:1px solid transparent') + '">' +
+    '<span style="font-size:1.2rem">👤</span>' +
+    '<div style="flex:1"><div style="font-size:.84rem;font-weight:600">Personal</div><div style="font-size:.7rem;color:var(--muted)">Your member identity</div></div>' +
+    (!activeId
+      ? '<span style="font-size:.7rem;color:var(--orange);font-weight:700">ACTIVE</span>'
+      : '<button class="tb-btn" style="font-size:.7rem;padding:.25rem .55rem" onclick="setActivePage(null)">Use</button>') +
+  '</div>';
+
+  var pageRows = _myPages.map(function(pg) {
+    var isActive = pg.id === activeId;
+    return '<div style="display:flex;align-items:center;gap:.6rem;padding:.55rem .6rem;border-radius:8px;margin-bottom:.35rem;' +
+      (isActive ? 'background:rgba(249,115,22,.1);border:1px solid rgba(249,115,22,.3)' : 'border:1px solid transparent') + '">' +
+      '<span style="font-size:1.2rem">' + (typeIcons[pg.page_type]||'⭐') + '</span>' +
+      '<div style="flex:1"><div style="font-size:.84rem;font-weight:600">' + escapeHtml(pg.name) + '</div>' +
+        '<div style="font-size:.7rem;color:var(--muted)">' + pg.page_type + ' page</div></div>' +
+      (isActive
+        ? '<span style="font-size:.7rem;color:var(--orange);font-weight:700">ACTIVE</span>'
+        : '<button class="tb-btn" style="font-size:.7rem;padding:.25rem .55rem" onclick="setActivePage(\'' + pg.id + '\')">Use</button>') +
+    '</div>';
+  }).join('');
+
+  list.innerHTML = personalRow + pageRows;
+}
+
+function setActivePage(pageId) {
+  if (pageId) localStorage.setItem('phx_active_page', pageId);
+  else localStorage.removeItem('phx_active_page');
+  loadMyPages();
+  loadCityFeed(true); // composer identity chip updates
+}
+
+async function createPage() {
+  var nameEl = document.getElementById('new-page-name');
+  var typeEl = document.getElementById('new-page-type');
+  var errEl = document.getElementById('create-page-error');
+  var name = (nameEl ? nameEl.value : '').trim();
+  if (name.length < 2) {
+    if (errEl) { errEl.textContent = 'Page name must be at least 2 characters.'; errEl.style.display = 'block'; }
+    return;
+  }
+  var typeIcons = { artist:'🎤', restaurant:'🍽️', clothing:'👕', venue:'🏟️', brand:'💼', other:'⭐' };
+  var ptype = typeEl ? typeEl.value : 'other';
+  var { data, error } = await _sb.rpc('create_page', {
+    p_owner_id: getGuestId(), p_name: name, p_page_type: ptype, p_avatar: typeIcons[ptype] || '⭐'
+  });
+  if (error || !data || !data.ok) {
+    if (errEl) {
+      errEl.textContent = (data && data.reason === 'max_pages') ? 'Limit reached — 5 pages per account.' : 'Could not create page.';
+      errEl.style.display = 'block';
+    }
+    return;
+  }
+  if (nameEl) nameEl.value = '';
+  if (errEl) errEl.style.display = 'none';
+  document.getElementById('create-page-form').style.display = 'none';
+  trackEvent('page_create', 'page', data.id, { page_type: ptype });
+  await loadMyPages();
+  setActivePage(data.id); // new page becomes active immediately
+}
+
+// ── DEEP LINK: /app?post=<id> opens straight to that post ───────────────
+(function() {
+  var params = new URLSearchParams(window.location.search);
+  var postId = params.get('post');
+  if (!postId) return;
+  setTimeout(async function() {
+    showView('home');
+    if (!_cityFeedLoaded) await loadCityFeed();
+    scrollToPost(postId);
+  }, 1200);
+}());
 
 // ── TRACK SUBMISSION ────────────────────────────────────────────────────
 function handleFileSelect(input) {
