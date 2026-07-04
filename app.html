@@ -617,7 +617,7 @@ body{background:#07070F;color:#F1F1F8;font-family:'Inter',-apple-system,sans-ser
             <div class="np-album" id="np-album">Recess EP · 2026 · Prod. PA. Dre</div>
           </div>
           <div class="np-side-actions">
-            <button class="np-side-btn" title="Like" onclick="this.style.color=this.style.color==='var(--orange)'?'var(--muted)':'var(--orange)'">♥</button>
+            <button class="np-side-btn" id="np-like-btn" title="Like" onclick="toggleCurrentTrackLike()">♥</button>
             <button class="np-side-btn" title="Add to queue">+</button>
             <button class="np-side-btn" title="Share">↗</button>
           </div>
@@ -1799,6 +1799,9 @@ function setRole(role) {
   // Navigate to default view for this role
   showView(r.defaultView);
 
+  // Re-render feed — persona and admin moderation controls depend on role
+  if (_cityFeedLoaded) loadCityFeed(true);
+
   // Update demo bar active chip
   var chips = document.querySelectorAll('.demo-role-btn');
   chips.forEach(function(c){ c.classList.toggle('active', c.dataset.role === role); });
@@ -2206,8 +2209,9 @@ function playTrack(el, title, artist, feat, album, duration, trackId, streamCoun
   var streamEl = document.getElementById('current-stream-count');
   if (streamEl) streamEl.textContent = formatCount(streamCount || 0);
 
-  // Lock-screen / Bluetooth metadata
+  // Lock-screen / Bluetooth metadata + heart state for this track
   updateMediaSessionMetadata(title, artist, feat, album);
+  updateNpLikeButton();
 
   // Real audio if available for this track (falls back to demo progress animation)
   var uuid = TRACK_IDS[trackId] || trackId;
@@ -2318,9 +2322,10 @@ async function loadAdminStreamData() {
   }
 }
 
-// Load live stream counts + city feed on startup
+// Load live stream counts + city feed + liked songs on startup
 loadStreamCounts();
 loadCityFeed();
+loadMyTrackLikes();
 
 // ── PWA INSTALL PROMPT ───────────────────────────────────────────────
 // A plain browser tab gets suspended by iOS/Android when backgrounded or
@@ -2392,48 +2397,300 @@ trackEvent('session_start', null, null, {
   ua_short: navigator.userAgent.slice(0,80)
 });
 
-// ── CITY FEED (from Supabase feed_posts) ────────────────────────────────
+// ── CITY FEED — full social layer ────────────────────────────────────────
+// Pros' playbook: per-user like toggles (IG), flat lazy-loaded comments (IG),
+// composer at top of feed (Twitter/FB), playable track cards in posts
+// (IG music stickers), native share sheet (all of them).
 var _cityFeedLoaded = false;
-async function loadCityFeed() {
-  if (_cityFeedLoaded) return;
-  var container = document.getElementById('city-feed-container');
-  if (!container || !_sb) return;
-  var { data, error } = await _sb
-    .from('feed_posts')
-    .select('*')
-    .order('created_at', { ascending: false })
-    .limit(20);
-  if (error || !data) return;
-  var postTypeIcon = { update:'📣', drop:'🔥', event:'📅', spotlight:'🎤', poll:'📊' };
-  var avatarBg = { admin:'linear-gradient(135deg,#F97316,#EAB308)', artist:'linear-gradient(135deg,#7C3AED,#F97316)', default:'linear-gradient(135deg,#3B82F6,#14B8A6)' };
-  var html = data.map(function(p) {
-    var d = new Date(p.created_at);
-    var diff = Math.floor((Date.now() - d.getTime()) / 60000);
-    var when = diff < 60 ? diff + 'm ago' : diff < 1440 ? Math.floor(diff/60) + 'h ago' : Math.floor(diff/1440) + 'd ago';
-    var bg = avatarBg[p.author_role] || avatarBg.default;
-    var badge = p.author_role === 'admin' ? '<span class="badge badge-orange" style="font-size:.65rem">PHX</span>' :
-                p.author_role === 'artist' ? '<span class="badge badge-orange" style="font-size:.65rem">Artist</span>' : '';
-    return '<div class="feed-post">' +
-      '<div class="fp-header">' +
-        '<div class="fp-ava" style="background:' + bg + '">' + (p.author_avatar||'?') + '</div>' +
-        '<div class="fp-meta"><h4>' + p.author_name + ' ' + badge + '</h4><span>' + when + '</span></div>' +
-      '</div>' +
-      '<div class="fp-body">' + p.content + '</div>' +
-      '<div class="fp-actions">' +
-        '<button class="fp-act" onclick="likeFeedPost(\'' + p.id + '\', this)">❤️ ' + p.likes_count + '</button>' +
-        '<button class="fp-act">🔁 Share</button>' +
-      '</div>' +
-    '</div>';
-  }).join('');
-  container.innerHTML = html || '<div style="color:var(--muted);font-size:.84rem;padding:1rem 0">No posts yet.</div>';
-  _cityFeedLoaded = true;
+var _myPostLikes = {};   // post_id -> true (this device's likes)
+var _feedPosts = {};     // post_id -> post row (for share text / track play)
+
+// Persona for posting — until real auth, derive from current demo role
+function currentPersona() {
+  var r = ROLES[currentRole] || {};
+  return {
+    name: r.chipName || 'PHX Member',
+    role: (currentRole === 'admin' || currentRole === 'super') ? 'admin' :
+          currentRole === 'artist' ? 'artist' : 'member',
+    avatar: currentRole === 'artist' ? '🎤' :
+            (currentRole === 'admin' || currentRole === 'super') ? '🏙️' : '👤'
+  };
 }
 
-async function likeFeedPost(postId, btn) {
+async function loadCityFeed(force) {
+  if (_cityFeedLoaded && !force) return;
+  var container = document.getElementById('city-feed-container');
+  if (!container || !_sb) return;
+
+  // Posts + this device's likes, in parallel
+  var results = await Promise.all([
+    _sb.from('feed_posts')
+      .select('*, tracks(id,title,featuring,exclusive_tier,stream_count,duration_seconds,audio_url,artists(name))')
+      .order('created_at', { ascending: false })
+      .limit(30),
+    _sb.from('post_likes').select('post_id').eq('user_id', getGuestId())
+  ]);
+  var data = results[0].data, error = results[0].error;
+  if (error || !data) return;
+
+  _myPostLikes = {};
+  (results[1].data || []).forEach(function(l){ _myPostLikes[l.post_id] = true; });
+  _feedPosts = {};
+  data.forEach(function(p){ _feedPosts[p.id] = p; });
+
+  container.innerHTML = renderComposer() +
+    (data.map(renderFeedPost).join('') ||
+     '<div style="color:var(--muted);font-size:.84rem;padding:1rem 0">No posts yet — be the first.</div>');
+  _cityFeedLoaded = true;
+  populateComposerTracks();
+}
+
+function renderComposer() {
+  var isAdminRole = (currentRole === 'admin' || currentRole === 'super');
+  return '<div class="feed-post" style="margin-bottom:1rem">' +
+    '<textarea id="composer-text" class="form-input" rows="2" maxlength="1000" ' +
+      'placeholder="What\'s happening in the city?" ' +
+      'style="resize:none;width:100%;font-family:inherit;margin-bottom:.6rem"></textarea>' +
+    '<div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap">' +
+      '<select id="composer-track" class="form-select" style="flex:1;min-width:150px;font-size:.8rem;padding:.4rem .6rem">' +
+        '<option value="">🎵 Attach a track (optional)</option>' +
+      '</select>' +
+      '<button class="upgrade-btn" style="width:auto;padding:.5rem 1.2rem;font-size:.82rem;margin:0" onclick="submitFeedPost()">Post</button>' +
+    '</div>' +
+    '<div id="composer-error" style="display:none;color:var(--red);font-size:.78rem;margin-top:.4rem"></div>' +
+  '</div>';
+}
+
+async function populateComposerTracks() {
+  var sel = document.getElementById('composer-track');
+  if (!sel || sel.options.length > 1) return;
+  var { data } = await _sb.from('tracks').select('id,title,artists(name)').eq('status','live').order('title');
+  (data || []).forEach(function(t) {
+    var opt = document.createElement('option');
+    opt.value = t.id;
+    opt.textContent = t.title + ' — ' + (t.artists ? t.artists.name : '');
+    sel.appendChild(opt);
+  });
+}
+
+function renderFeedPost(p) {
+  var d = new Date(p.created_at);
+  var diff = Math.floor((Date.now() - d.getTime()) / 60000);
+  var when = diff < 1 ? 'just now' : diff < 60 ? diff + 'm ago' : diff < 1440 ? Math.floor(diff/60) + 'h ago' : Math.floor(diff/1440) + 'd ago';
+  var avatarBg = { admin:'linear-gradient(135deg,#F97316,#EAB308)', artist:'linear-gradient(135deg,#7C3AED,#F97316)', member:'linear-gradient(135deg,#3B82F6,#14B8A6)' };
+  var bg = avatarBg[p.author_role] || avatarBg.member;
+  var badge = p.author_role === 'admin' ? '<span class="badge badge-orange" style="font-size:.65rem">PHX</span>' :
+              p.author_role === 'artist' ? '<span class="badge badge-orange" style="font-size:.65rem">Artist</span>' : '';
+  var liked = !!_myPostLikes[p.id];
+  var isAdminRole = (currentRole === 'admin' || currentRole === 'super');
+
+  // Attached track card — playable inline, IG-music-sticker style
+  var trackCard = '';
+  if (p.tracks) {
+    var t = p.tracks;
+    var artistName = t.artists ? t.artists.name : '';
+    trackCard = '<div class="track-row" style="background:var(--bg4);border:1px solid var(--border);margin-top:.6rem" ' +
+      'onclick="playPostTrack(\'' + p.id + '\')">' +
+      '<div class="track-art">🎵</div>' +
+      '<div class="track-info"><div class="track-title">' + escapeHtml(t.title) + '</div>' +
+        '<div class="track-feat">' + escapeHtml(artistName) + (t.featuring ? ' ft. ' + escapeHtml(t.featuring) : '') + '</div></div>' +
+      '<div class="track-streams">▶ ' + formatCount(t.stream_count || 0) + '</div>' +
+    '</div>';
+  }
+
+  return '<div class="feed-post" id="post-' + p.id + '">' +
+    '<div class="fp-header">' +
+      '<div class="fp-ava" style="background:' + bg + '">' + (p.author_avatar||'?') + '</div>' +
+      '<div class="fp-meta"><h4>' + escapeHtml(p.author_name) + ' ' + badge + '</h4><span>' + when + '</span></div>' +
+      (isAdminRole ? '<button class="fp-act" style="margin-left:auto" title="Hide post" onclick="hideFeedPost(\'' + p.id + '\')">🚫</button>' : '') +
+    '</div>' +
+    '<div class="fp-body">' + escapeHtml(p.content) + '</div>' +
+    trackCard +
+    '<div class="fp-actions" style="margin-top:.6rem">' +
+      '<button class="fp-act" id="like-btn-' + p.id + '" style="' + (liked ? 'color:var(--orange)' : '') + '" onclick="togglePostLike(\'' + p.id + '\')">' +
+        (liked ? '❤️' : '🤍') + ' <span id="like-count-' + p.id + '">' + (p.likes_count||0) + '</span></button>' +
+      '<button class="fp-act" onclick="toggleComments(\'' + p.id + '\')">💬 <span id="comment-count-' + p.id + '">' + (p.comments_count||0) + '</span></button>' +
+      '<button class="fp-act" onclick="shareFeedPost(\'' + p.id + '\')">🔁 Share</button>' +
+    '</div>' +
+    '<div id="comments-' + p.id + '" style="display:none;margin-top:.75rem;border-top:1px solid var(--border);padding-top:.75rem"></div>' +
+  '</div>';
+}
+
+// ── Likes: one per device, toggle on/off ──
+async function togglePostLike(postId) {
+  var btn = document.getElementById('like-btn-' + postId);
+  var countEl = document.getElementById('like-count-' + postId);
+  if (!btn) return;
   btn.disabled = true;
-  var cur = parseInt(btn.textContent.replace(/[^0-9]/g,'')) || 0;
-  await _sb.from('feed_posts').update({ likes_count: cur + 1 }).eq('id', postId);
-  btn.textContent = '❤️ ' + (cur + 1);
+  var { data, error } = await _sb.rpc('toggle_post_like', { p_post_id: postId, p_user_id: getGuestId() });
+  btn.disabled = false;
+  if (error || !data) return;
+  _myPostLikes[postId] = data.liked;
+  btn.style.color = data.liked ? 'var(--orange)' : '';
+  btn.childNodes[0].textContent = (data.liked ? '❤️' : '🤍') + ' ';
+  if (countEl) countEl.textContent = data.count;
+  trackEvent('post_like', 'post', postId, { liked: data.liked });
+}
+
+// ── Comments: lazy-load on expand, IG-style flat list ──
+async function toggleComments(postId) {
+  var box = document.getElementById('comments-' + postId);
+  if (!box) return;
+  if (box.style.display !== 'none') { box.style.display = 'none'; return; }
+  box.style.display = 'block';
+  box.innerHTML = '<div style="color:var(--muted);font-size:.8rem">Loading comments…</div>';
+  await loadComments(postId);
+}
+
+async function loadComments(postId) {
+  var box = document.getElementById('comments-' + postId);
+  if (!box) return;
+  var { data } = await _sb.from('post_comments')
+    .select('*').eq('post_id', postId)
+    .order('created_at', { ascending: true }).limit(50);
+  var listHtml = (data || []).map(function(c) {
+    var d = new Date(c.created_at);
+    var diff = Math.floor((Date.now() - d.getTime()) / 60000);
+    var when = diff < 1 ? 'now' : diff < 60 ? diff + 'm' : diff < 1440 ? Math.floor(diff/60) + 'h' : Math.floor(diff/1440) + 'd';
+    return '<div style="display:flex;gap:.5rem;margin-bottom:.55rem;font-size:.82rem">' +
+      '<strong style="white-space:nowrap">' + escapeHtml(c.author_name) + '</strong>' +
+      '<span style="flex:1">' + escapeHtml(c.content) + '</span>' +
+      '<span style="color:var(--muted);font-size:.7rem">' + when + '</span>' +
+    '</div>';
+  }).join('');
+  box.innerHTML = (listHtml || '<div style="color:var(--muted);font-size:.8rem;margin-bottom:.5rem">No comments yet.</div>') +
+    '<div style="display:flex;gap:.5rem;margin-top:.5rem">' +
+      '<input class="form-input" id="comment-input-' + postId + '" maxlength="500" placeholder="Add a comment…" ' +
+        'style="flex:1;font-size:.82rem;padding:.45rem .7rem" ' +
+        'onkeydown="if(event.key===\'Enter\')submitComment(\'' + postId + '\')">' +
+      '<button class="tb-btn" style="font-size:.78rem" onclick="submitComment(\'' + postId + '\')">Send</button>' +
+    '</div>';
+}
+
+async function submitComment(postId) {
+  var input = document.getElementById('comment-input-' + postId);
+  if (!input) return;
+  var content = input.value.trim();
+  if (!content) return;
+  input.disabled = true;
+  var persona = currentPersona();
+  var { data, error } = await _sb.rpc('add_post_comment', {
+    p_post_id: postId, p_user_id: getGuestId(),
+    p_author_name: persona.name, p_content: content
+  });
+  input.disabled = false;
+  if (error || !data || !data.ok) {
+    input.placeholder = (data && data.reason === 'rate_limited') ? 'Slow down — try again in a minute' : 'Error — try again';
+    input.value = '';
+    return;
+  }
+  var countEl = document.getElementById('comment-count-' + postId);
+  if (countEl) countEl.textContent = (parseInt(countEl.textContent)||0) + 1;
+  trackEvent('post_comment', 'post', postId, {});
+  await loadComments(postId);
+}
+
+// ── Posting ──
+async function submitFeedPost() {
+  var textEl = document.getElementById('composer-text');
+  var trackSel = document.getElementById('composer-track');
+  var errEl = document.getElementById('composer-error');
+  var content = (textEl ? textEl.value : '').trim();
+  if (!content) {
+    if (errEl) { errEl.textContent = 'Write something first.'; errEl.style.display = 'block'; }
+    return;
+  }
+  var persona = currentPersona();
+  var { data, error } = await _sb.rpc('create_feed_post', {
+    p_user_id: getGuestId(),
+    p_author_name: persona.name,
+    p_author_role: persona.role,
+    p_author_avatar: persona.avatar,
+    p_content: content,
+    p_track_id: (trackSel && trackSel.value) || null
+  });
+  if (error || !data || !data.ok) {
+    var msg = (data && data.reason === 'rate_limited') ? 'Rate limited — max 5 posts per 10 minutes.' :
+              'Could not post. Try again.';
+    if (errEl) { errEl.textContent = msg; errEl.style.display = 'block'; }
+    return;
+  }
+  if (errEl) errEl.style.display = 'none';
+  trackEvent('post_create', 'post', data.id, { has_track: !!(trackSel && trackSel.value) });
+  loadCityFeed(true).then(populateComposerTracks);
+}
+
+// ── Share: native sheet on mobile, clipboard on desktop ──
+async function shareFeedPost(postId) {
+  var p = _feedPosts[postId];
+  var text = p ? (p.author_name + ' on PHX: ' + p.content.slice(0, 140)) : 'Check out PHX App';
+  var url = 'https://phx-app.vercel.app/app?post=' + postId;
+  trackEvent('post_share', 'post', postId, {});
+  if (navigator.share) {
+    navigator.share({ title: 'PHX App', text: text, url: url }).catch(function(){});
+  } else {
+    try {
+      await navigator.clipboard.writeText(url);
+      alert('Link copied to clipboard');
+    } catch (e) {
+      prompt('Copy this link:', url);
+    }
+  }
+}
+
+// ── Play a track attached to a post ──
+function playPostTrack(postId) {
+  var p = _feedPosts[postId];
+  if (!p || !p.tracks) return;
+  var t = p.tracks;
+  if (!canPlayTrack(t.exclusive_tier)) {
+    alert('🔒 This track requires ' + (t.exclusive_tier === 'insider' ? 'an Insider' : 'a Native') + ' Pass.');
+    return;
+  }
+  var artistName = t.artists ? t.artists.name : '';
+  var mins = Math.floor((t.duration_seconds || 0) / 60);
+  var secs = (t.duration_seconds || 0) % 60;
+  var duration = t.duration_seconds ? mins + ':' + (secs < 10 ? '0' : '') + secs : '0:00';
+  playTrack(null, t.title, artistName, t.featuring ? 'ft. ' + t.featuring : '', '', duration, t.id, t.stream_count || 0, '🎵');
+}
+
+// ── Admin moderation ──
+async function hideFeedPost(postId) {
+  if (!confirm('Hide this post from the feed?')) return;
+  await _sb.rpc('set_post_hidden', { p_post_id: postId, p_hidden: true });
+  var el = document.getElementById('post-' + postId);
+  if (el) el.remove();
+}
+
+// ── TRACK LIKES — persistent "Liked Songs" per device ───────────────────
+var _myTrackLikes = {}; // track uuid -> true
+
+function loadMyTrackLikes() {
+  _sb.from('track_likes').select('track_id').eq('user_id', getGuestId()).then(function(res) {
+    _myTrackLikes = {};
+    (res.data || []).forEach(function(l){ _myTrackLikes[l.track_id] = true; });
+    updateNpLikeButton();
+  });
+}
+
+function currentTrackUuid() {
+  return TRACK_IDS[streamData.currentTrack] || streamData.currentTrack;
+}
+
+function updateNpLikeButton() {
+  var btn = document.getElementById('np-like-btn');
+  if (!btn) return;
+  btn.style.color = _myTrackLikes[currentTrackUuid()] ? 'var(--orange)' : '';
+}
+
+async function toggleCurrentTrackLike() {
+  var uuid = currentTrackUuid();
+  if (!uuid) return;
+  var { data, error } = await _sb.rpc('toggle_track_like', { p_track_id: uuid, p_user_id: getGuestId() });
+  if (error || !data) return;
+  _myTrackLikes[uuid] = data.liked;
+  updateNpLikeButton();
+  trackEvent('track_like', 'track', uuid, { liked: data.liked });
 }
 
 // ── TRACK SUBMISSION ────────────────────────────────────────────────────

@@ -165,9 +165,25 @@ Audio plays in the app via a hidden `<audio>` element. If `audio_url` is set on 
 
 ---
 
-## City Feed
+## City Feed — Social Layer
 
-Powered by `feed_posts` table. Posts load dynamically from Supabase on page load. Admin/artists post via Supabase dashboard (UI posting panel planned for v2). Supports `post_type`: update, drop, event, spotlight, poll.
+Powered by `feed_posts` + `post_likes` + `post_comments` + `track_likes`. Follows the patterns the big platforms converged on:
+
+**Posting** — Composer at the top of the feed (Twitter/FB style). Any role can post; persona (name/role/avatar) derives from the active demo role until real auth lands. Posts go through the `create_feed_post()` RPC — trims/validates length (1–1000 chars), rate-limits to 5 posts per 10 minutes per device.
+
+**Track attachments** — The composer has an "Attach a track" dropdown of all live tracks. Attached tracks render as a playable card inside the post (Instagram music-sticker pattern). Tapping the card plays the track through the normal player — tier gating still applies, stream still counts after 30s.
+
+**Likes** — One like per device per post, enforced by a unique constraint. Tap to like (❤️), tap again to unlike (🤍) — `toggle_post_like()` RPC recomputes the true count from real rows and updates the cached `likes_count`. No like spam possible.
+
+**Comments** — Flat list (IG-style), lazy-loaded only when the 💬 button is tapped. `add_post_comment()` RPC validates 1–500 chars and rate-limits to 10 comments/minute per device. Cached `comments_count` on the post row keeps feed rendering cheap.
+
+**Share** — `navigator.share()` native sheet on mobile, clipboard copy on desktop, with a deep link (`/app?post=<id>`).
+
+**Song hearts** — The ♥ button in the player persists to `track_likes` (one per device per track, toggleable) — the foundation for a "Liked Songs" playlist view.
+
+**Moderation** — Admin/Super roles see a 🚫 hide button on every post. `set_post_hidden()` flips `is_hidden`; the RLS SELECT policy filters hidden posts and comments out for everyone. Data is never deleted — hidden posts can be restored from the dashboard.
+
+All social writes flow through SECURITY DEFINER RPCs (never direct table writes from the client), so rate limits and validation can't be bypassed by calling the REST API directly with the anon key.
 
 ---
 
@@ -210,6 +226,13 @@ git push origin main
 | Track submission + Storage upload | ✅ Live |
 | Admin approve/reject submissions | ✅ Live |
 | City Feed from DB | ✅ Live |
+| Feed posting (composer, all roles, rate-limited) | ✅ Live |
+| Post likes (per-user toggle, no spam) | ✅ Live |
+| Post comments (lazy-loaded, rate-limited) | ✅ Live |
+| Track attachments in posts (playable cards) | ✅ Live |
+| Post sharing (native sheet / clipboard) | ✅ Live |
+| Persistent song hearts (track_likes) | ✅ Live |
+| Admin post moderation (hide/unhide) | ✅ Live |
 | Mobile responsive (all 6 roles) | ✅ Live |
 | Bottom tab navigation (role-aware) | ✅ Live |
 | Behavioral event tracking (user_events) | ✅ Live |
@@ -256,6 +279,7 @@ PHX is a web app, not a native app, which has a real ceiling:
 | 013 | record_stream rate limit + jsonb return | 60 unique tracks/hr cap, only counts live tracks |
 | 014 | feed_posts table | City Feed from DB, seeded 2 posts |
 | 015 | user_events analytics table | Behavioral event log (session_start, play_start, play_30s) + indexes; profiles gets device_fingerprints/genre_affinities columns for future personalization |
+| 016 | Social layer | post_likes, post_comments, track_likes tables; feed_posts gets track_id/comments_count/is_hidden/user_id; RPCs: toggle_post_like, toggle_track_like, add_post_comment (10/min limit), create_feed_post (5/10min limit), set_post_hidden |
 
 ---
 

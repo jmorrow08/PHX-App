@@ -481,8 +481,18 @@ body { padding-bottom: 52px; }
     bottom: 60px !important;
     padding: .6rem 1rem !important;
     border-radius: 14px 14px 0 0 !important;
+    gap: .7rem !important;
   }
   .mp-time { display: none !important; }
+  .mp-bar { display: none !important; }
+  /* Give title/artist real room; single line each, ellipsis overflow */
+  .mp-info { flex: 1 1 auto !important; min-width: 80px !important; }
+  .mp-artist {
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+  .mp-controls { gap: .6rem !important; flex-shrink: 0 !important; }
 
   /* Content: space for mini player + bottom tabs */
   .content, .main > .content {
