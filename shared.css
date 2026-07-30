@@ -514,8 +514,8 @@ body { padding-bottom: 52px; }
     left: 0;
     right: 0;
     height: 60px;
-    background: var(--bg2, #0D0D1A);
-    border-top: 1px solid rgba(249,115,22,.14);
+    background: var(--bg2, #0A0A12);
+    border-top: 1px solid rgba(241,241,248,.07);
     z-index: 400;
     /* safe area for iPhone home indicator */
     padding-bottom: env(safe-area-inset-bottom, 0px);
@@ -544,10 +544,21 @@ body { padding-bottom: 52px; }
   }
 
   .bt-item .bt-lbl {
+    font-family: 'Space Grotesk', sans-serif;
     font-size: .6rem;
     font-weight: 600;
     letter-spacing: .02em;
     line-height: 1;
+  }
+
+  .bt-item .bt-icon {
+    filter: grayscale(1) brightness(1.2);
+    opacity: .75;
+  }
+
+  .bt-item.active .bt-icon {
+    filter: none;
+    opacity: 1;
   }
 
   .bt-item.active {

@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>PHX — Payout Math (Admin Reference)</title>
+<style>
+:root{--bg:#07070F;--bg2:#0D0D18;--bg3:#12121F;--line:rgba(249,115,22,.14);--line2:rgba(255,255,255,.07);--orange:#F97316;--orange-l:#FB923C;--green:#22C55E;--gold:#EAB308;--red:#EF4444;--white:#F1F1F8;--muted:#9CA3AF;--faint:#6B7280;--mono:ui-monospace,'SF Mono',Menlo,monospace}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--white);font-family:'Space Grotesk',system-ui,sans-serif;line-height:1.6;padding:2.2rem 1.2rem 5rem}
+.wrap{max-width:880px;margin:0 auto}
+h1{font-size:1.7rem;letter-spacing:-.02em}
+h1 span{color:var(--orange)}
+.sub{color:var(--muted);font-size:.92rem;margin:.4rem 0 2rem;max-width:640px}
+h2{font-size:1.05rem;margin:2.6rem 0 .9rem;letter-spacing:.02em;color:var(--orange-l)}
+p{color:var(--muted);font-size:.9rem;margin-bottom:.8rem;max-width:700px}
+b{color:var(--white);font-weight:600}
+.card{background:var(--bg2);border:1px solid var(--line2);border-radius:14px;padding:1.3rem 1.4rem;margin-bottom:1rem}
+.settings{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.8rem}
+.set{background:var(--bg3);border:1px solid var(--line2);border-radius:10px;padding:.7rem .9rem}
+.set .k{font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
+.set .v{font-family:var(--mono);font-size:1.05rem;font-weight:600;margin-top:.15rem}
+.set .v em{font-style:normal;font-size:.68rem;color:var(--faint);font-weight:400}
+.flow{font-family:var(--mono);font-size:.78rem;line-height:1.9;background:var(--bg3);border:1px solid var(--line2);border-radius:10px;padding:1rem 1.2rem;overflow-x:auto;white-space:pre;color:var(--muted)}
+.flow b{color:var(--orange-l)}
+.flow .g{color:var(--green)}
+table{width:100%;border-collapse:collapse;font-size:.82rem}
+th{text-align:left;font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);padding:.45rem .6rem;border-bottom:1px solid var(--line2)}
+td{padding:.5rem .6rem;border-bottom:1px solid rgba(255,255,255,.04);color:var(--muted)}
+td.n{font-family:var(--mono);text-align:right;color:var(--white)}
+tr.hl td{color:var(--white);background:rgba(249,115,22,.06)}
+.warn{border-left:3px solid var(--gold);background:rgba(234,179,8,.06);border-radius:0 10px 10px 0;padding:.9rem 1.1rem;font-size:.85rem;color:var(--muted);margin:1rem 0}
+.warn b{color:var(--gold)}
+label{display:block;font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);margin-bottom:.3rem}
+input,select{width:100%;background:var(--bg3);border:1px solid var(--line2);border-radius:8px;color:var(--white);font-family:var(--mono);font-size:.95rem;padding:.55rem .7rem}
+input:focus,select:focus{outline:none;border-color:var(--orange)}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.9rem;margin-bottom:1rem}
+.result-row{display:flex;justify-content:space-between;align-items:baseline;padding:.5rem 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:.86rem}
+.result-row .lbl{color:var(--muted)}
+.result-row .val{font-family:var(--mono);font-weight:600}
+.result-row.big .val{color:var(--green);font-size:1.1rem}
+.bar{height:6px;border-radius:4px;background:rgba(255,255,255,.07);margin-top:.3rem;overflow:hidden}
+.bar>div{height:100%;background:var(--orange);border-radius:4px}
+code{font-family:var(--mono);font-size:.8em;background:var(--bg3);border:1px solid var(--line2);border-radius:5px;padding:.1em .4em;color:var(--orange-l)}
+pre{font-family:var(--mono);font-size:.74rem;line-height:1.7;background:var(--bg3);border:1px solid var(--line2);border-radius:10px;padding:1rem 1.2rem;overflow-x:auto;color:var(--muted);margin:.6rem 0 1rem}
+.tag{display:inline-block;font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;border:1px solid var(--line);color:var(--orange);border-radius:5px;padding:.15rem .5rem;margin-left:.5rem;vertical-align:middle}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>PHX <span>Payout Math</span> <span class="tag">Admin only</span></h1>
+<p class="sub">The exact formula the engine (<code>run_monthly_payout()</code>) runs on the 1st of every month, current live settings, a calculator that mirrors the SQL, and verification queries. This never ships to members or artists — their UI shows outcomes only.</p>
+
+<h2>Live engine settings (from payout_settings)</h2>
+<div class="card"><div class="settings">
+  <div class="set"><div class="k">Platform share</div><div class="v">50%</div></div>
+  <div class="set"><div class="k">Artist wallet</div><div class="v">50% <em>of each sub</em></div></div>
+  <div class="set"><div class="k">Rate cap / stream</div><div class="v">0.75¢</div></div>
+  <div class="set"><div class="k">Counted cap</div><div class="v">1,000 <em>/user/mo</em></div></div>
+  <div class="set"><div class="k">Pot → free-tier fund</div><div class="v">50%</div></div>
+  <div class="set"><div class="k">Free cap</div><div class="v">100 <em>/user/artist</em></div></div>
+  <div class="set"><div class="k">Payout terms</div><div class="v">Net-60 <em>monthly, 1st</em></div></div>
+</div></div>
+
+<h2>The formula, step by step</h2>
+<div class="flow">For EACH paying member, each month:
+
+  <b>wallet</b>        = 50% × what they paid          Native $15 → <b>$7.50</b> · Insider $29 → <b>$14.50</b>
+  <b>rate</b>          = MIN( 0.75¢ , wallet ÷ their counted streams )
+  <b>artist gets</b>   = rate × streams THAT member played of THAT artist
+  <b>leftover</b>      = wallet − everything drawn  →  goes to the COMMUNITY POT
+
+The POT at month end:
+  50% → <span class="g">free-tier fund</span>  — pays artists for Explorer (free) streams,
+         capped at 100 streams per free user per artist, same 0.75¢ ceiling
+  50% → platform</div>
+<p>So yes — it's your instinct with two safety valves: <b>50% of the member's fee, divided across the artists they streamed, weighted by play counts</b>. The 0.75¢-per-stream ceiling stops one play from grabbing a whole wallet, and proration kicks in for heavy listeners so a wallet can never overdraw.</p>
+
+<h2>How many streams = a dollar?</h2>
+<div class="card">
+<table>
+  <tr><th>Question</th><th style="text-align:right">Answer</th></tr>
+  <tr><td>One stream is worth (at the cap)</td><td class="n">$0.0075</td></tr>
+  <tr class="hl"><td><b>Streams from one fan that equal $1 to an artist</b></td><td class="n"><b>134</b></td></tr>
+  <tr><td>A Native fan's wallet fully drains at</td><td class="n">1,000 streams</td></tr>
+  <tr><td>One fan who plays ONLY you all month (Native, ≤1,000 streams)</td><td class="n">up to $7.50</td></tr>
+  <tr><td>Spotify pays per stream (for comparison, ~avg)</td><td class="n">~$0.003–0.004</td></tr>
+</table>
+<p style="margin-top:.8rem;font-size:.82rem">PHX's 0.75¢ is roughly <b>2× Spotify's per-stream rate</b> — but the real difference is concentration: a Spotify stream splits across 100M tracks; a PHX member's wallet splits across only the handful of local artists they actually play.</p>
+</div>
+
+<h2>Worked example — one Native member, one month</h2>
+<div class="card">
+<p style="font-size:.84rem">Member pays <b>$15</b> → wallet <b>$7.50</b>. They played <b>200 counted streams</b>: 172 Murkemz, 18 Futuristic, 10 Mega Ran.</p>
+<div class="flow">rate = MIN(0.75¢, $7.50 ÷ 200 = 3.75¢) = <b>0.75¢</b>   (cap wins — light listener)
+
+  Murkemz     172 × 0.75¢ = <span class="g">$1.29</span>
+  Futuristic   18 × 0.75¢ = <span class="g">$0.14</span>
+  Mega Ran     10 × 0.75¢ = <span class="g">$0.08</span>
+  ───────────────────────────────
+  drawn                  $1.50
+  leftover → pot         <b>$6.00</b>   (funds free-tier plays + platform)</div>
+<p style="font-size:.82rem">If the same member had played <b>2,000</b> streams: only 1,000 count (monthly cap), rate = $7.50 ÷ 1,000 = 0.75¢ — wallet fully drains, farms gain nothing past the cap.</p>
+</div>
+
+<h2>Try it — mirrors the engine's SQL exactly</h2>
+<div class="card">
+<div class="grid3">
+  <div><label>Tier</label><select id="tier"><option value="1500">Native — $15</option><option value="2900">Insider — $29</option></select></div>
+  <div><label>Total streams this month</label><input id="streams" type="number" value="200" min="0"></div>
+  <div><label>% of plays → Artist A</label><input id="pctA" type="number" value="86" min="0" max="100"></div>
+</div>
+<div id="calcout"></div>
+</div>
+
+<h2 id="insider">⚠ One thing to decide: the Insider gap</h2>
+<div class="warn"><b>Insider wallets can never fully drain under current settings.</b> Wallet is $14.50, but 1,000 counted streams × 0.75¢ caps the maximum draw at $7.50 — so at least <b>$7.00 of every Insider's wallet always goes to the pot</b>, not to the artists they streamed. That's fine if the intent is "Insiders feed the community pot harder." But the old marketing said Insiders send <i>more</i> to their artists. If that's the intent, make the rate cap tier-aware: <code>cap = wallet ÷ 1000</code> → Native 0.75¢ (unchanged), Insider 1.45¢. One-line change in <code>payout_settings</code>/engine — say the word and it's applied.</div>
+
+<h2>Verify a real period (run in Supabase SQL editor)</h2>
+<p>After the engine runs, these recompute the numbers independently — they should match <code>payout_periods</code> / <code>artist_payouts</code> to the cent.</p>
+<pre>-- 1. Expected wallet + drawn per subscriber for a period (dry run, writes nothing)
+WITH s AS (SELECT * FROM payout_settings WHERE id=1),
+subs AS (
+  SELECT sub.user_id, sub.amount_cents,
+         sub.amount_cents*(100-s.platform_share_pct)/100.0 AS wallet
+  FROM subscriptions sub, s
+  WHERE sub.status='active'
+    AND sub.current_period_start &lt; DATE '2026-09-01'
+    AND sub.current_period_end   &gt; DATE '2026-08-01'),
+st AS (
+  SELECT user_id, COUNT(*) AS n FROM stream_events
+  WHERE counted AND listened_at &gt;= '2026-08-01' AND listened_at &lt; '2026-09-01'
+  GROUP BY user_id)
+SELECT subs.user_id, wallet/100 AS wallet_usd, COALESCE(st.n,0) AS streams,
+       LEAST(s.stream_rate_cap_cents, wallet/NULLIF(st.n,0)) AS rate_cents,
+       ROUND(COALESCE(LEAST(s.stream_rate_cap_cents, wallet/st.n)*st.n,0))/100 AS drawn_usd,
+       ROUND(wallet - COALESCE(LEAST(s.stream_rate_cap_cents, wallet/st.n)*st.n,0))/100 AS to_pot_usd
+FROM subs LEFT JOIN st USING (user_id), s;
+
+-- 2. Engine's answer for the same period
+SELECT period_start, total_subscription_revenue_cents/100.0 AS gross,
+       streams_paid_cents/100.0 AS paid_to_artists,
+       pot_total_cents/100.0 AS pot, pot_free_tier_cents/100.0 AS free_fund
+FROM payout_periods ORDER BY period_start DESC LIMIT 3;
+
+-- 3. Per-artist totals the artists will see
+SELECT a.name, ap.total_streams, ap.unique_listeners,
+       ap.total_earnings_cents/100.0 AS earnings_usd, ap.per_stream_rate_cents
+FROM artist_payouts ap JOIN artists a ON a.id=ap.artist_id
+ORDER BY earnings_usd DESC;</pre>
+
+<h2>What each audience sees</h2>
+<div class="card"><table>
+  <tr><th>Audience</th><th>Sees</th><th>Never sees</th></tr>
+  <tr><td><b>Member</b></td><td>Their own receipt: dollars that reached each artist they streamed</td><td>The 50% split, rates, other members' money</td></tr>
+  <tr><td><b>Artist</b></td><td>Their earnings, streams, listener counts, top fans</td><td>The formula, any per-member identity or amounts</td></tr>
+  <tr><td><b>Public</b></td><td>Aggregate only: "PHX members have paid Phoenix artists $__"</td><td>Any individual artist's or member's numbers</td></tr>
+  <tr><td><b>Admin (you)</b></td><td>Everything — this page, financial dashboard, the knobs</td><td>—</td></tr>
+</table></div>
+
+</div>
+<script>
+function fmt(c){return '$'+(c/100).toFixed(2)}
+function calc(){
+  var amount=+document.getElementById('tier').value;
+  var streams=Math.max(0,+document.getElementById('streams').value||0);
+  var pctA=Math.min(100,Math.max(0,+document.getElementById('pctA').value||0));
+  var CAP_RATE=0.75, MONTHLY_CAP=1000, PLATFORM_PCT=50;
+  var wallet=amount*(100-PLATFORM_PCT)/100;            // cents
+  var counted=Math.min(streams,MONTHLY_CAP);
+  var rate=counted>0?Math.min(CAP_RATE,wallet/counted):0;   // cents/stream
+  var drawn=rate*counted, pot=wallet-drawn;
+  var sA=Math.round(counted*pctA/100), sB=counted-sA;
+  var h='';
+  h+='<div class="result-row"><span class="lbl">Artist wallet (50% of '+fmt(amount)+')</span><span class="val">'+fmt(wallet)+'</span></div>';
+  h+='<div class="result-row"><span class="lbl">Counted streams'+(streams>MONTHLY_CAP?' <span style="color:var(--gold)">(capped from '+streams.toLocaleString()+')</span>':'')+'</span><span class="val">'+counted.toLocaleString()+'</span></div>';
+  h+='<div class="result-row"><span class="lbl">Rate per stream '+(counted>0&&wallet/counted<CAP_RATE?'(prorated — heavy listener)':'(0.75¢ cap)')+'</span><span class="val">'+rate.toFixed(4)+'¢</span></div>';
+  if(counted>0){
+    h+='<div class="result-row big"><span class="lbl">Artist A gets ('+sA.toLocaleString()+' plays)</span><span class="val">'+fmt(Math.round(sA*rate))+'</span></div><div class="bar"><div style="width:'+pctA+'%"></div></div>';
+    h+='<div class="result-row big"><span class="lbl">Other artists get ('+sB.toLocaleString()+' plays)</span><span class="val">'+fmt(Math.round(sB*rate))+'</span></div>';
+  }
+  h+='<div class="result-row"><span class="lbl">Total drawn to artists</span><span class="val">'+fmt(Math.round(drawn))+'</span></div>';
+  h+='<div class="result-row"><span class="lbl">Leftover → community pot (50% free-tier fund / 50% platform)</span><span class="val" style="color:var(--gold)">'+fmt(Math.round(pot))+'</span></div>';
+  if(amount===2900 && pot>=699) h+='<p style="font-size:.78rem;color:var(--gold);margin-top:.6rem">⚠ Insider gap: at the 0.75¢ cap this wallet can never fully drain — see the note below.</p>';
+  document.getElementById('calcout').innerHTML=h;
+}
+['tier','streams','pctA'].forEach(function(id){document.getElementById(id).addEventListener('input',calc)});
+calc();
+</script>
+</body>
+</html>
