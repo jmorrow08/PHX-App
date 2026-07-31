@@ -589,8 +589,11 @@ body { padding-bottom: 52px; }
   .admin-kpi-grid { grid-template-columns: 1fr !important; }
   .a-stat-grid { grid-template-columns: 1fr !important; }
 
-  /* Topbar: hide bell, just show CTA */
-  .topbar-right .tb-btn:not(#topbar-cta):not(#plays-left-badge) { display: none !important; }
+  /* Topbar: compact — keep Log In/Out + bell, shrink labels */
+  .topbar-right .tb-btn:not(#topbar-cta):not(#plays-left-badge):not(#auth-btn):not(#notif-bell) { display: none !important; }
+  #auth-btn { max-width: 96px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .72rem !important; padding: .35rem .55rem !important; }
+  #notif-bell { font-size: .8rem !important; padding: .35rem .5rem !important; }
+  .topbar-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 
   /* Music player: bigger art on small screen */
   .np-art-big { width: 120px !important; height: 120px !important; font-size: 3rem !important; }
