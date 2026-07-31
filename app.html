@@ -1457,6 +1457,21 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
           </div>
         </div>
       </div>
+      <div class="card" style="margin-top:1.5rem">
+        <div class="card-title">Payout Formula Lab <span style="font-size:.62rem;color:var(--red);font-weight:700;margin-left:.4rem">INTERNAL ONLY</span></div>
+        <div style="font-size:.78rem;color:var(--muted);margin-bottom:.8rem">
+          Same month of real listening, split two ways: the current per-stream formula vs the proposed
+          time-weighted formula (each play weighted by seconds listened, capped at 4 min).
+          Plays recorded before time-tracking went live count as 30s. Compare here before deciding to switch —
+          nothing changes until you say so.
+        </div>
+        <table class="data-table">
+          <thead><tr><th>Artist</th><th>Streams</th><th>Listen Time</th><th>Per-Stream Share</th><th>Time-Weighted Share</th><th>Δ</th></tr></thead>
+          <tbody id="formula-lab-tbody">
+            <tr><td colspan="6" style="color:var(--muted)">No counted streams yet this month.</td></tr>
+          </tbody>
+        </table>
+      </div>
     </div>
 
     <!-- ADMIN — SYSTEM SETTINGS (Super Admin full control) -->
@@ -1655,6 +1670,17 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
 </div>
 
 <!-- INSTALL BANNER — dismissible, addresses background playback limits -->
+<div id="install-help-modal" role="dialog" aria-modal="true" aria-label="Install the PHX app" style="display:none;position:fixed;inset:0;z-index:530;background:rgba(7,7,15,.88);backdrop-filter:blur(5px);align-items:center;justify-content:center;padding:1rem">
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;max-width:400px;width:100%;padding:1.5rem">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.8rem">
+      <div style="font-size:1.05rem;font-weight:800">📲 Get the PHX App</div>
+      <button onclick="document.getElementById('install-help-modal').style.display='none'" aria-label="Close" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem">✕</button>
+    </div>
+    <div id="install-help-body" style="font-size:.86rem;color:var(--muted);line-height:1.7"></div>
+    <div style="margin-top:1rem;font-size:.74rem;color:var(--faint)">No app store or sideloading needed — PHX installs straight from the browser and works offline with background playback.</div>
+  </div>
+</div>
+
 <div id="install-banner" style="display:none;position:fixed;top:52px;left:0;right:0;z-index:390;background:rgba(249,115,22,.12);border-bottom:1px solid rgba(249,115,22,.3);backdrop-filter:blur(10px);padding:.6rem 1rem;font-size:.78rem;align-items:center;gap:.6rem">
   <span style="flex:1" id="install-banner-text">📲 Add PHX to your home screen for uninterrupted background playback.</span>
   <button id="install-banner-action" style="background:var(--orange);color:#fff;border:none;border-radius:6px;padding:.3rem .7rem;font-size:.74rem;font-weight:700;cursor:pointer;white-space:nowrap">Install</button>
@@ -2485,6 +2511,38 @@ function dismissInstallBanner() {
   localStorage.setItem('phx_install_dismissed', '1');
 }
 
+// "Get the App" entry point — landing links here with #install. Uses the
+// native install prompt when the browser offers it; otherwise walks the
+// user through Add to Home Screen. No sideloading or APK needed.
+function requestInstall() {
+  if (isStandaloneMode()) {
+    alert('✓ PHX is already installed — you\'re running the app right now.');
+    return;
+  }
+  if (_deferredInstallPrompt) {
+    _deferredInstallPrompt.prompt();
+    _deferredInstallPrompt.userChoice.then(function() {
+      _deferredInstallPrompt = null;
+      dismissInstallBanner();
+    });
+    return;
+  }
+  var m = document.getElementById('install-help-modal');
+  var body = document.getElementById('install-help-body');
+  if (body) {
+    body.innerHTML = isIOSDevice()
+      ? '<b>On iPhone / iPad:</b><br>1. Tap the <b>Share</b> button <span style="opacity:.8">(square with ↑)</span> in Safari.<br>2. Scroll and tap <b>Add to Home Screen</b>.<br>3. Tap <b>Add</b> — PHX installs like a regular app.'
+      : '<b>On Android / Chrome:</b><br>1. Tap the <b>⋮ menu</b> in the top corner.<br>2. Tap <b>Install app</b> (or <b>Add to Home screen</b>).<br>3. Confirm — PHX installs like a regular app.<br><br><b>On desktop Chrome/Edge:</b> click the install icon in the address bar.';
+  }
+  if (m) m.style.display = 'flex';
+}
+
+_whenDomReady(function() {
+  if (window.location.hash === '#install') {
+    setTimeout(requestInstall, 600);
+  }
+});
+
 document.addEventListener('DOMContentLoaded', function() {
   // Sync UI to the signed-out default; a restored session upgrades it
   // via applyAccountRole() when auth state resolves.
@@ -2613,16 +2671,45 @@ function currentPersona() {
 }
 
 // ── USERNAME ONBOARDING ──────────────────────────────────────────────────
+// Everyone gets a random @handle automatically so there's always an
+// identity; the modal is now just for customizing it. Uniqueness is
+// enforced by the DB (unique constraint → 'taken'), collisions retry.
+var _USERNAME_ADJ = ['desert','valley','sunset','copper','cactus','mesa','canyon','monsoon','saguaro','papago','camelback','sonoran','dusty','solar','neon'];
+var _USERNAME_NOUN = ['rat','hawk','coyote','wolf','fox','viper','sun','wave','rider','runner','native','local','soul','vibe','beat'];
+
+function _randomHandle() {
+  var a = _USERNAME_ADJ[Math.floor(Math.random() * _USERNAME_ADJ.length)];
+  var n = _USERNAME_NOUN[Math.floor(Math.random() * _USERNAME_NOUN.length)];
+  return a + n + (100 + Math.floor(Math.random() * 900));
+}
+
+async function _autoClaimUsername() {
+  for (var i = 0; i < 4; i++) {
+    var res = await _sb.rpc('claim_username', {
+      p_device_id: getGuestId(), p_username: _randomHandle(), p_display_name: null
+    });
+    if (!res.error && res.data && res.data.ok) {
+      return { username: res.data.username, display_name: null };
+    }
+  }
+  return null;
+}
+
 async function loadMyProfile() {
   var res = await _sb.from('member_profiles').select('*').eq('device_id', getGuestId()).maybeSingle();
   _myProfile = res.data || null;
-  // First visit with no username → prompt once
-  if (!_myProfile && !localStorage.getItem('phx_username_prompted')) {
-    setTimeout(function() {
-      var m = document.getElementById('username-modal');
-      if (m) m.style.display = 'flex';
-    }, 2500);
+  if (!_myProfile) {
+    _myProfile = await _autoClaimUsername();
+    if (_myProfile && _cityFeedLoaded) loadCityFeed(true);
   }
+}
+
+// Open the claim modal pre-filled for editing the current handle
+function editUsername() {
+  var input = document.getElementById('username-input');
+  if (input && _myProfile && _myProfile.username) input.value = _myProfile.username;
+  var m = document.getElementById('username-modal');
+  if (m) m.style.display = 'flex';
 }
 
 async function claimUsername() {
@@ -2746,10 +2833,12 @@ function renderComposer() {
         }).join('') +
       '</select>' +
       (persona.role === 'admin' ? ' <span class="badge badge-orange" style="font-size:.6rem">Official</span>' : '') +
+      ' <a href="#" style="color:var(--orange);font-size:.7rem" onclick="editUsername();return false" aria-label="Change username">✏️</a>' +
     '</div>';
   } else {
     identityChip = '<div style="display:flex;align-items:center;gap:.45rem;margin-bottom:.5rem;font-size:.76rem;color:var(--muted)">' +
       'Posting as <strong style="color:var(--white)">' + persona.avatar + ' ' + escapeHtml(persona.name) + '</strong>' +
+      ' <a href="#" style="color:var(--orange);font-size:.7rem" onclick="editUsername();return false" aria-label="Change username">✏️ change</a>' +
     '</div>';
   }
   return '<div class="feed-post" style="margin-bottom:1rem">' +
@@ -4791,6 +4880,44 @@ async function loadAdminOps() {
         return '<div class="fin-row"' + (i === periods.length-1 ? ' style="border:none"' : '') + '><span class="fin-label">' + label + '</span><span class="fin-val">' + fmtUsd(p.total_subscription_revenue_cents) + '</span></div>';
       }).join('');
     }
+
+    // Payout Formula Lab — per-stream vs capped time-weight on this
+    // month's real counted streams (see docs/phx-open-decisions.md #1)
+    var labEl = document.getElementById('formula-lab-tbody');
+    if (labEl) {
+      var monthStart2 = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
+      var labRes = await _sb.from('stream_events').select('artist_id,seconds_listened')
+        .eq('counted', true).gte('listened_at', monthStart2);
+      var labEvents = labRes.data || [];
+      if (labEvents.length) {
+        var byArtist = {};
+        var totalStreams = 0, totalWeight = 0;
+        labEvents.forEach(function(e) {
+          if (!e.artist_id) return;
+          var w = Math.min(e.seconds_listened == null ? 30 : e.seconds_listened, 240);
+          if (!byArtist[e.artist_id]) byArtist[e.artist_id] = { streams: 0, weight: 0, seconds: 0 };
+          byArtist[e.artist_id].streams++;
+          byArtist[e.artist_id].weight += w;
+          byArtist[e.artist_id].seconds += (e.seconds_listened == null ? 30 : e.seconds_listened);
+          totalStreams++; totalWeight += w;
+        });
+        var nameById2 = {};
+        artists.forEach(function(a){ nameById2[a.id] = a.name; });
+        labEl.innerHTML = Object.keys(byArtist).map(function(aid) {
+          var d = byArtist[aid];
+          var perStream = totalStreams ? d.streams / totalStreams * 100 : 0;
+          var timeWeight = totalWeight ? d.weight / totalWeight * 100 : 0;
+          var delta = timeWeight - perStream;
+          var mins = Math.round(d.seconds / 60);
+          return '<tr><td><strong>' + escapeHtml(nameById2[aid] || '—') + '</strong></td>' +
+            '<td style="color:var(--teal)">' + d.streams + '</td>' +
+            '<td style="color:var(--muted)">' + mins + ' min</td>' +
+            '<td>' + perStream.toFixed(1) + '%</td>' +
+            '<td style="color:var(--orange)">' + timeWeight.toFixed(1) + '%</td>' +
+            '<td style="color:' + (delta >= 0 ? 'var(--green)' : 'var(--red)') + '">' + (delta >= 0 ? '+' : '') + delta.toFixed(1) + '%</td></tr>';
+        }).join('');
+      }
+    }
   } finally {
     _adminOpsLoading = false;
   }
@@ -4801,7 +4928,7 @@ _whenDomReady(function(){ hydrateCatalogStats(); });
 // ── ACCESSIBILITY: Escape closes any open modal ─────────────────────────
 document.addEventListener('keydown', function(e) {
   if (e.key !== 'Escape') return;
-  ['auth-modal', 'username-modal', 'report-modal'].forEach(function(id) {
+  ['auth-modal', 'username-modal', 'report-modal', 'install-help-modal'].forEach(function(id) {
     var m = document.getElementById(id);
     if (m && m.style.display !== 'none' && m.style.display !== '') m.style.display = 'none';
   });
