@@ -5023,7 +5023,7 @@ async function showArtistPage(slug) {
   el.innerHTML =
     '<div style="margin-bottom:.8rem"><a href="#" style="color:var(--muted);font-size:.78rem" onclick="showArtistDirectory();return false">← All artists</a></div>' +
     '<div class="artist-spotlight">' +
-      '<div class="artist-banner">' +
+      '<div class="artist-banner" style="height:auto;min-height:96px;padding-bottom:1rem">' +
         '<div class="artist-avatar">' + initial + '</div>' +
         '<div style="flex:1">' +
           '<div class="artist-banner-name">' + escapeHtml(artist.name) +
