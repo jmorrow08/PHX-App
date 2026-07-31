@@ -4,6 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>PHX App — Member Dashboard</title>
+<meta name="description" content="PHX — the Phoenix scene membership. Stream local artists, and your pass pays the artists you actually play.">
+<meta property="og:title" content="PHX App — Phoenix scene membership">
+<meta property="og:description" content="Stream Phoenix artists. Your pass pays the artists you actually play — with a receipt to prove it.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://phx-app.vercel.app/app.html">
+<meta name="twitter:card" content="summary">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#F97316">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -392,7 +398,7 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
 .reel-act span{font-size:.66rem;font-weight:700}
 .reels-empty{color:var(--muted);text-align:center;padding:3rem 1rem;font-size:.9rem}
 </style>
-  <link rel="stylesheet" href="shared.css?v=2">
+  <link rel="stylesheet" href="shared.css?v=3">
 </head>
 <body>
 
@@ -407,7 +413,7 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
   <!-- Pass chip — member & artist show this; admin/super get their own -->
   <div class="pass-chip" id="pass-chip">
     <div class="pass-chip-tier" id="chip-tier">PHX Pass · Native</div>
-    <div class="pass-chip-name" id="chip-name">Alex Rivera</div>
+    <div class="pass-chip-name" id="chip-name">Guest</div>
     <div class="pass-chip-sub" id="chip-sub">Member since April 2026</div>
   </div>
 
@@ -470,7 +476,7 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
     <div class="profile-row">
       <div class="profile-ava" id="profile-ava-initial">A</div>
       <div>
-        <div class="profile-name" id="sb-profile-name">Alex Rivera</div>
+        <div class="profile-name" id="sb-profile-name">Guest</div>
         <div class="profile-tier" id="sb-profile-tier">PHX Native Member</div>
       </div>
     </div>
@@ -643,9 +649,8 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
         <span class="badge badge-orange" style="font-size:.82rem;padding:.4rem .9rem">PHX (Song) 🎵</span>
         <span class="badge badge-orange" style="font-size:.82rem;padding:.4rem .9rem">Murkemz 🎤</span>
         <span class="badge badge-gold" style="font-size:.82rem;padding:.4rem .9rem">Recess EP · 2026</span>
-        <span class="badge badge-purple" style="font-size:.82rem;padding:.4rem .9rem">Hadouken RMX · 541K</span>
-        <span class="badge badge-teal" style="font-size:.82rem;padding:.4rem .9rem">Futuristic · PHX Hip-Hop</span>
-        <span class="badge badge-green" style="font-size:.82rem;padding:.4rem .9rem">Mega Ran · PHX Legend</span>
+        <span class="badge badge-purple" style="font-size:.82rem;padding:.4rem .9rem">Hadouken RMX 🥊</span>
+        <span class="badge badge-teal" style="font-size:.82rem;padding:.4rem .9rem">South Phoenix Hip-Hop</span>
       </div>
       </div><!-- /discover-default-content -->
     </div>
@@ -853,8 +858,8 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
             <div style="font-size:2rem;margin-bottom:.5rem">💚</div>
             <div class="upgrade-gate-title">Support Phoenix Artists</div>
             <div class="upgrade-gate-sub">Your listening directly supports the local artists you play — not a global pool where megastars take everything. Plus city perks as PHX Eats, Drops &amp; Events launch.</div>
-            <button class="upgrade-btn" onclick="setRole('native')">Upgrade to Native — $15/mo</button>
-            <div style="margin-top:.75rem;font-size:.75rem;color:var(--muted)">Simulating Native tier ↑ to see your listening impact</div>
+            <button class="upgrade-btn" disabled style="opacity:.6;cursor:default" title="Membership billing is launching soon">Native Pass — coming soon</button>
+            <div style="margin-top:.75rem;font-size:.75rem;color:var(--muted)">Paid passes open at launch — everything is free to explore until then.</div>
           </div>
 
           <!-- PHX Roster -->
@@ -863,31 +868,14 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
             <div class="artist-card-ava" style="background:linear-gradient(135deg,var(--orange-d),var(--purple))">M</div>
             <div style="flex:1">
               <div class="artist-card-name">Murkemz <span class="badge badge-orange" style="font-size:.6rem">Founder</span></div>
-              <div class="artist-card-meta">27.2K listeners · PHX Hip-Hop · Recess EP Out Now</div>
+              <div class="artist-card-meta">PHX Hip-Hop · South Phoenix · Recess EP Out Now</div>
             </div>
-            <span class="badge badge-teal" style="font-size:.62rem">821K</span>
-          </div>
-          <div class="artist-card" onclick="void(0)">
-            <div class="artist-card-ava" style="background:linear-gradient(135deg,var(--teal),var(--blue))">F</div>
-            <div style="flex:1">
-              <div class="artist-card-name">Futuristic</div>
-              <div class="artist-card-meta">Phoenix Hip-Hop · PHX Creator Pro</div>
-            </div>
-            <button class="tb-btn" style="font-size:.72rem;padding:.3rem .7rem">Follow</button>
-          </div>
-          <div class="artist-card" onclick="void(0)">
-            <div class="artist-card-ava" style="background:linear-gradient(135deg,var(--purple),var(--gold))">R</div>
-            <div style="flex:1">
-              <div class="artist-card-name">Mega Ran</div>
-              <div class="artist-card-meta">Nerd-hop · Phoenix Legend · PHX Creator Pro</div>
-            </div>
-            <button class="tb-btn" style="font-size:.72rem;padding:.3rem .7rem">Follow</button>
           </div>
           <div class="artist-card" style="opacity:.5;cursor:default">
             <div class="artist-card-ava" style="background:linear-gradient(135deg,var(--red),var(--purple))">+</div>
             <div style="flex:1">
-              <div class="artist-card-name" style="color:var(--muted)">11 more artists joining soon</div>
-              <div class="artist-card-meta">Apply at phx-app.vercel.app/artist</div>
+              <div class="artist-card-name" style="color:var(--muted)">More Phoenix artists joining soon</div>
+              <div class="artist-card-meta">Artists list free — apply in the app</div>
             </div>
           </div>
         </div>
@@ -931,7 +919,7 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
         <div class="cs-title">PHX Eats</div>
         <div class="cs-subtitle">The best restaurants in Phoenix, with real member perks built in — not just a Yelp clone.</div>
         <div class="cs-features">
-          <div class="cs-feature"><span class="cs-feature-icon">🔥</span>Founding restaurants confirmed: Bacanora, Chilte, Valentine, Barrio Café, and more</div>
+          <div class="cs-feature"><span class="cs-feature-icon">🔥</span>Founding restaurant partnerships in the works — announced as they sign</div>
           <div class="cs-feature"><span class="cs-feature-icon">💳</span>PHX Native discounts and free items applied automatically at checkout</div>
           <div class="cs-feature"><span class="cs-feature-icon">📍</span>Near-you discovery with live perk availability</div>
           <div class="cs-feature"><span class="cs-feature-icon">🎵</span>Partner restaurants sponsor PHX Music — your dining funds local artists</div>
@@ -965,8 +953,7 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
         <div class="cs-title">PHX Drops</div>
         <div class="cs-subtitle">Local streetwear and fashion drops from brands that actually represent the desert. PHX Insider gets early access every time.</div>
         <div class="cs-features">
-          <div class="cs-feature"><span class="cs-feature-icon">👟</span>Manor PHX confirmed — Desert Pack Vol. 3 drops here first</div>
-          <div class="cs-feature"><span class="cs-feature-icon">👕</span>Onassis Krown "602 Forever" — Phoenix streetwear done right</div>
+          <div class="cs-feature"><span class="cs-feature-icon">👟</span>Local streetwear brand partnerships — announced as they sign</div>
           <div class="cs-feature"><span class="cs-feature-icon">🧢</span>PHX App Launch Cap × Murkemz Signed Edition — exclusive to Insider</div>
           <div class="cs-feature"><span class="cs-feature-icon">⏰</span>Drop alerts, countdown timers, and PHX Pass early access built in</div>
         </div>
@@ -982,8 +969,7 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
         <div class="cs-title">PHX Cuts</div>
         <div class="cs-subtitle">The city's best barbershops and salons, with PHX Pass member discounts and real-time booking.</div>
         <div class="cs-features">
-          <div class="cs-feature"><span class="cs-feature-icon">✂️</span>Cuts &amp; Culture PHX — Murkemz's go-to, Founding Partner</div>
-          <div class="cs-feature"><span class="cs-feature-icon">🪒</span>Desert Edge, 602 Fades, Uptown Cuts PHX — all confirmed</div>
+          <div class="cs-feature"><span class="cs-feature-icon">✂️</span>Phoenix's best barbershops and salons — founding partners announced as they sign</div>
           <div class="cs-feature"><span class="cs-feature-icon">💳</span>PHX Native: 15–20% off, PHX Insider: priority booking</div>
           <div class="cs-feature"><span class="cs-feature-icon">📅</span>Book directly in the app — no phone calls, no DMs</div>
         </div>
@@ -996,23 +982,23 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
     <div class="view" id="v-mypass">
       <div class="grid-2">
         <div>
-          <div class="my-pass-card" data-pass-num="847">
-            <div class="pass-logo">PHX Native · Founding</div>
-            <div class="pass-number-big">#847</div>
-            <div class="pass-holder">Alex Rivera</div>
+          <div class="my-pass-card" data-pass-num="preview">
+            <div class="pass-logo">PHX Native · Founding <span style="font-size:.6rem;opacity:.7">PREVIEW</span></div>
+            <div class="pass-number-big">#—</div>
+            <div class="pass-holder">Your Name Here</div>
             <div class="pass-tier-label">PHX Native — Member</div>
-            <div class="pass-since">Member since April 2026 · $15/mo</div>
+            <div class="pass-since">Your founding number is assigned when passes launch · $15/mo</div>
             <div class="pass-wallet-btns">
               <button class="wallet-btn">🍎 Apple Wallet</button>
               <button class="wallet-btn">🤖 Google Wallet</button>
             </div>
           </div>
-          <div style="font-size:.8rem;color:var(--faint);text-align:center;margin-top:.4rem">Founding numbers are permanent. Yours is #847 of 1000.</div>
+          <div style="font-size:.8rem;color:var(--faint);text-align:center;margin-top:.4rem">Founding numbers are permanent — 1,000 total, first come first served.</div>
         </div>
         <div>
           <!-- THE RECEIPT — where my money went this month -->
           <div class="receipt">
-            <div class="receipt-head"><span>THE RECEIPT</span><span>JUL 2026</span></div>
+            <div class="receipt-head"><span>THE RECEIPT · SAMPLE</span><span>JUL 2026</span></div>
             <div class="receipt-row receipt-divider" style="margin-top:.7rem;border-top:none;border-bottom:1px dashed rgba(36,27,16,.35)"><span>PHX NATIVE PASS</span><b>$15.00</b></div>
             <div class="receipt-row total"><span>TO PHOENIX ARTISTS</span><b style="color:#C2410C">$7.50</b></div>
             <div class="receipt-artist">
@@ -1020,20 +1006,16 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
               <div class="receipt-bar"><div class="receipt-bar-fill" style="width:86%"></div></div>
             </div>
             <div class="receipt-artist">
-              <div class="receipt-artist-line"><span>FUTURISTIC</span><span><span class="pct">&nbsp;9%</span><b>$0.68</b></span></div>
-              <div class="receipt-bar"><div class="receipt-bar-fill" style="width:9%"></div></div>
+              <div class="receipt-artist-line"><span>+ EVERY ARTIST YOU PLAY</span><span><span class="pct">14%</span><b>$1.05</b></span></div>
+              <div class="receipt-bar"><div class="receipt-bar-fill" style="width:14%"></div></div>
             </div>
-            <div class="receipt-artist">
-              <div class="receipt-artist-line"><span>MEGA RAN</span><span><span class="pct">&nbsp;5%</span><b>$0.37</b></span></div>
-              <div class="receipt-bar"><div class="receipt-bar-fill" style="width:5%"></div></div>
-            </div>
-            <div class="receipt-foot"><span>PASS #PHX-00847 · VERIFIED</span><span class="receipt-barcode"></span></div>
+            <div class="receipt-foot"><span>SAMPLE RECEIPT · YOURS ARRIVES MONTHLY</span><span class="receipt-barcode"></span></div>
           </div>
           <div class="receipt-actions">
-            <button class="receipt-share-btn" onclick="if(navigator.share)navigator.share({title:'My PHX Receipt',text:'My pass money reached 3 Phoenix artists this month. With receipts. — PHX'})">Share your receipt ↗</button>
+            <button class="receipt-share-btn" onclick="if(navigator.share)navigator.share({title:'PHX — With Receipts',text:'On PHX your pass pays the Phoenix artists you actually stream — with a receipt to prove it.'})">Share PHX ↗</button>
             <button class="receipt-ghost-btn">History</button>
           </div>
-          <div style="font-size:.78rem;color:var(--faint);text-align:center;margin-top:.9rem">Your money reached 3 Phoenix artists this month.</div>
+          <div style="font-size:.78rem;color:var(--faint);text-align:center;margin-top:.9rem">Sample receipt — yours is generated from your real listening each month.</div>
         </div>
       </div>
       <div class="grid-2" style="margin-top:.5rem">
@@ -1041,26 +1023,26 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
           <div class="sh"><h3>Perks — launching Q3 2026</h3></div>
           <div class="perks-list">
             <div class="perk-row" style="opacity:.6">
-              <div class="perk-icon">🔥</div>
-              <div><div class="perk-biz">Bacanora</div><div class="perk-offer">Free appetizer — PHX Native</div></div>
-              <span class="perk-status used">Q3 2026</span>
-            </div>
-            <div class="perk-row" style="opacity:.6">
-              <div class="perk-icon">🌮</div>
-              <div><div class="perk-biz">Chilte</div><div class="perk-offer">15% off total bill</div></div>
+              <div class="perk-icon">🍽️</div>
+              <div><div class="perk-biz">Phoenix restaurants</div><div class="perk-offer">Member discounts — partners announced as they sign</div></div>
               <span class="perk-status used">Q3 2026</span>
             </div>
             <div class="perk-row" style="opacity:.6">
               <div class="perk-icon">✂️</div>
-              <div><div class="perk-biz">Cuts &amp; Culture PHX</div><div class="perk-offer">20% off any cut — PHX Native</div></div>
+              <div><div class="perk-biz">Barbershops &amp; salons</div><div class="perk-offer">PHX Native discounts + priority booking</div></div>
               <span class="perk-status used">Q4 2026</span>
+            </div>
+            <div class="perk-row" style="opacity:.6">
+              <div class="perk-icon">👕</div>
+              <div><div class="perk-biz">Local streetwear drops</div><div class="perk-offer">Early access for Insider passes</div></div>
+              <span class="perk-status used">Q3 2026</span>
             </div>
           </div>
         </div>
         <div>
-          <div class="sh"><h3>Your pass impact</h3></div>
+          <div class="sh"><h3>Your pass impact <span style="font-size:.62rem;color:var(--faint);font-weight:500">SAMPLE</span></h3></div>
           <div style="display:flex;gap:2rem;padding:.4rem 0 1rem">
-            <div><div style="font-family:var(--disp);font-size:1.7rem;font-weight:700;letter-spacing:-.03em">86%</div><div style="font-size:.74rem;color:var(--faint);margin-top:.2rem">listening → Murkemz</div></div>
+            <div><div style="font-family:var(--disp);font-size:1.7rem;font-weight:700;letter-spacing:-.03em">86%</div><div style="font-size:.74rem;color:var(--faint);margin-top:.2rem">listening → your top artist</div></div>
             <div><div style="font-family:var(--disp);font-size:1.7rem;font-weight:700;letter-spacing:-.03em">3</div><div style="font-size:.74rem;color:var(--faint);margin-top:.2rem">artists supported</div></div>
             <div><div style="font-family:var(--disp);font-size:1.7rem;font-weight:700;letter-spacing:-.03em;color:var(--orange-l)">$47</div><div style="font-size:.74rem;color:var(--faint);margin-top:.2rem">saved in perks</div></div>
           </div>
@@ -1075,8 +1057,8 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
         <div class="card">
           <div class="card-title">My Profile</div>
           <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1.5rem">
-            <div style="width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,var(--orange),var(--purple));display:flex;align-items:center;justify-content:center;font-size:1.8rem;font-weight:700">A</div>
-            <div><div style="font-size:1.1rem;font-weight:700">Alex Rivera</div><div style="font-size:.82rem;color:var(--orange)">PHX Native Member</div><div style="font-size:.78rem;color:var(--muted)">@alexrivera602</div></div>
+            <div style="width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,var(--orange),var(--purple));display:flex;align-items:center;justify-content:center;font-size:1.8rem;font-weight:700">👤</div>
+            <div><div style="font-size:1.1rem;font-weight:700">PHX Member</div><div style="font-size:.82rem;color:var(--orange)">Explorer Pass</div><div style="font-size:.78rem;color:var(--muted)">Claim your @username in the feed</div></div>
           </div>
           <div style="display:flex;flex-direction:column;gap:.8rem;font-size:.88rem">
             <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Member Since</span><span>April 2026</span></div>
@@ -1088,7 +1070,7 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
           </div>
           <br>
           <button class="tb-btn" style="width:100%;margin-bottom:.6rem">Edit Profile</button>
-          <button class="tb-btn primary" style="width:100%">Upgrade to PHX Insider — $29/mo</button>
+          <button class="tb-btn primary" style="width:100%;opacity:.6;cursor:default" disabled title="Membership billing is launching soon">Insider Pass — coming soon</button>
         </div>
         <div>
           <div class="card">
@@ -1762,6 +1744,7 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
     <div id="auth-error" style="display:none;color:var(--red);font-size:.78rem;margin-bottom:.6rem"></div>
     <div id="auth-info" style="display:none;color:var(--green);font-size:.78rem;margin-bottom:.6rem"></div>
     <button class="upgrade-btn" id="auth-submit-btn" style="margin:0;width:100%" onclick="submitAuth()">Sign In</button>
+    <button onclick="sendPasswordReset()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:.74rem;margin-top:.7rem;text-decoration:underline;padding:0">Forgot password?</button>
     <div style="margin-top:.8rem;font-size:.7rem;color:var(--muted);line-height:1.5">By continuing you agree to the <a href="legal.html" target="_blank" style="color:var(--orange)">PHX Terms of Service &amp; Privacy Policy</a>.</div>
   </div>
 </div>
@@ -1870,29 +1853,31 @@ function btNav(viewId, btn) {
 }
 
 // ── ROLE SYSTEM ─────────────────────────────────────────────────────────
-var currentRole = 'native';
+// Role is derived from the signed-in account (profiles.role + tier).
+// Signed-out visitors browse as Explorer.
+var currentRole = 'explorer';
 
 var ROLES = {
   explorer: {
     chipClass: '',
     chipTier: 'Explorer Pass · Free',
-    chipName: 'Jordan Kim',
-    chipSub: 'Joined June 2026',
+    chipName: 'Guest',
+    chipSub: 'Browsing the scene',
     sbTagline: '602 Culture. One App.',
-    profileAva: 'J', profileName: 'Jordan Kim', profileTier: 'PHX Explorer · Free',
-    topbarCta: '⬆️ Upgrade to Native', topbarCtaAct: "showView('mypass')",
-    playsLeftVisible: true,
+    profileAva: '👤', profileName: 'Guest', profileTier: 'PHX Explorer · Free',
+    topbarCta: '⬆️ Go Native', topbarCtaAct: "showView('mypass')",
+    playsLeftVisible: false,
     navId: 'nav-member', bottomId: 'sb-bottom-member',
     otherName: '', otherRole: '', otherAva: '',
-    defaultView: 'music',
+    defaultView: 'home',
   },
   native: {
     chipClass: '',
     chipTier: 'PHX Pass · Native',
-    chipName: 'Alex Rivera',
-    chipSub: 'Member since April 2026',
+    chipName: 'PHX Member',
+    chipSub: 'Native Pass',
     sbTagline: '602 Culture. One App.',
-    profileAva: 'A', profileName: 'Alex Rivera', profileTier: 'PHX Native Member',
+    profileAva: '👤', profileName: 'PHX Member', profileTier: 'PHX Native Member',
     topbarCta: '💳 Native Pass', topbarCtaAct: "showView('mypass')",
     playsLeftVisible: false,
     navId: 'nav-member', bottomId: 'sb-bottom-member',
@@ -1902,10 +1887,10 @@ var ROLES = {
   insider: {
     chipClass: 'chip-insider',
     chipTier: 'Insider Pass · All Access',
-    chipName: 'Marcus Webb',
-    chipSub: 'Member since April 2026',
+    chipName: 'PHX Member',
+    chipSub: 'Insider Pass',
     sbTagline: '602 Culture. One App.',
-    profileAva: 'M', profileName: 'Marcus Webb', profileTier: 'PHX Insider · All Access',
+    profileAva: '👤', profileName: 'PHX Member', profileTier: 'PHX Insider · All Access',
     topbarCta: '⭐ Insider Pass', topbarCtaAct: "showView('mypass')",
     playsLeftVisible: false,
     navId: 'nav-member', bottomId: 'sb-bottom-member',
@@ -2421,7 +2406,7 @@ function playTrack(el, title, artist, feat, album, duration, trackId, streamCoun
 
   // Update expanded player
   var titleBig = document.getElementById('np-title-big');
-  if (titleBig) titleBig.innerHTML = title;
+  if (titleBig) titleBig.textContent = title;
   var artistBig = document.getElementById('np-artist-big');
   if (artistBig) artistBig.textContent = artist;
   var albumEl = document.getElementById('np-album');
@@ -2498,7 +2483,7 @@ async function loadAdminStreamData() {
       var streams = (t.stream_count||0) >= 1000 ? ((t.stream_count||0)/1000).toFixed(1)+'K' : (t.stream_count||0);
       topHtml += '<div style="padding:.45rem 0;border-bottom:1px solid var(--border)">' +
         '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.3rem">' +
-          '<span style="font-size:.84rem;font-weight:600">' + (i+1) + '. ' + t.title + '</span>' +
+          '<span style="font-size:.84rem;font-weight:600">' + (i+1) + '. ' + escapeHtml(t.title) + '</span>' +
           '<span style="font-size:.82rem;color:var(--teal);font-weight:700">' + streams + '</span>' +
         '</div>' +
         '<div style="display:flex;align-items:center;gap:.5rem">' +
@@ -2596,6 +2581,9 @@ function dismissInstallBanner() {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
+  // Sync UI to the signed-out default; a restored session upgrades it
+  // via applyAccountRole() when auth state resolves.
+  setRole('explorer');
   var btn = document.getElementById('install-banner-action');
   if (btn) {
     btn.addEventListener('click', function() {
@@ -2977,7 +2965,7 @@ function renderFeedPost(p) {
     var orig = _feedPosts[p.shared_post_id];
     if (orig) {
       repostEmbed = '<div style="border:1px solid var(--border);border-radius:10px;padding:.7rem .8rem;margin-top:.6rem;background:var(--bg4);cursor:pointer" onclick="scrollToPost(\'' + orig.id + '\')">' +
-        '<div style="font-size:.76rem;font-weight:700;margin-bottom:.25rem">' + (orig.author_avatar||'?') + ' ' + escapeHtml(orig.author_name) + '</div>' +
+        '<div style="font-size:.76rem;font-weight:700;margin-bottom:.25rem">' + escapeHtml(orig.author_avatar||'?') + ' ' + escapeHtml(orig.author_name) + '</div>' +
         '<div style="font-size:.8rem;color:var(--muted)">' + escapeHtml((orig.content||'').slice(0,180)) + ((orig.content||'').length > 180 ? '…' : '') + '</div>' +
         (orig.tracks ? '<div style="font-size:.74rem;color:var(--teal);margin-top:.3rem">🎵 ' + escapeHtml(orig.tracks.title) + '</div>' : '') +
       '</div>';
@@ -2988,16 +2976,17 @@ function renderFeedPost(p) {
 
   // Video / image attachment
   var mediaEmbed = '';
-  if (p.media_url) {
+  var mediaUrl = safeUrl(p.media_url);
+  if (mediaUrl) {
     var isVideo = /\.(mp4|webm|mov)(\?|$)/i.test(p.media_url);
     mediaEmbed = isVideo
-      ? '<video controls playsinline preload="metadata" style="width:100%;max-height:420px;border-radius:10px;margin-top:.6rem;background:#000" src="' + p.media_url + '"></video>'
-      : '<img loading="lazy" style="width:100%;max-height:420px;object-fit:cover;border-radius:10px;margin-top:.6rem" src="' + p.media_url + '">';
+      ? '<video controls playsinline preload="metadata" style="width:100%;max-height:420px;border-radius:10px;margin-top:.6rem;background:#000" src="' + mediaUrl + '"></video>'
+      : '<img loading="lazy" alt="" style="width:100%;max-height:420px;object-fit:cover;border-radius:10px;margin-top:.6rem" src="' + mediaUrl + '">';
   }
 
   return '<div class="feed-post" id="post-' + p.id + '">' +
     '<div class="fp-header">' +
-      '<div class="fp-ava" style="background:' + bg + '">' + (p.author_avatar||'?') + '</div>' +
+      '<div class="fp-ava" style="background:' + bg + '">' + escapeHtml(p.author_avatar||'?') + '</div>' +
       '<div class="fp-meta"><h4>' + escapeHtml(p.author_name) + ' ' + badge +
         // Follow the author: pages > users; skip self + official PHX
         (p.page_id ? followBtnHtml('page', p.page_id) :
@@ -3936,11 +3925,11 @@ async function loadPendingTracks() {
     var hasAudio = !!t.audio_url;
     return '<div style="display:flex;align-items:center;gap:.75rem;padding:.8rem;background:var(--bg4);border-radius:10px;border:1px solid var(--border);margin-bottom:.5rem;flex-wrap:wrap">' +
       '<div style="flex:1;min-width:180px">' +
-        '<div style="font-size:.88rem;font-weight:600">' + t.title + (t.featuring ? ' <span style="color:var(--muted)">ft. ' + t.featuring + '</span>' : '') + '</div>' +
-        '<div style="font-size:.74rem;color:var(--muted);margin-top:.15rem">' + artist + ' · ' + (t.release_type||'single') + ' · submitted ' + when + '</div>' +
-        (t.producer ? '<div style="font-size:.72rem;color:var(--muted)">Prod. ' + t.producer + '</div>' : '') +
+        '<div style="font-size:.88rem;font-weight:600">' + escapeHtml(t.title) + (t.featuring ? ' <span style="color:var(--muted)">ft. ' + escapeHtml(t.featuring) + '</span>' : '') + '</div>' +
+        '<div style="font-size:.74rem;color:var(--muted);margin-top:.15rem">' + escapeHtml(artist) + ' · ' + escapeHtml(t.release_type||'single') + ' · submitted ' + when + '</div>' +
+        (t.producer ? '<div style="font-size:.72rem;color:var(--muted)">Prod. ' + escapeHtml(t.producer) + '</div>' : '') +
       '</div>' +
-      (hasAudio ? '<a href="' + t.audio_url + '" target="_blank" class="tb-btn" style="font-size:.74rem;padding:.3rem .6rem;color:var(--teal);border-color:rgba(20,184,166,.3)">▶ Preview</a>' : '') +
+      (hasAudio && safeUrl(t.audio_url) ? '<a href="' + safeUrl(t.audio_url) + '" target="_blank" class="tb-btn" style="font-size:.74rem;padding:.3rem .6rem;color:var(--teal);border-color:rgba(20,184,166,.3)">▶ Preview</a>' : '') +
       '<button class="tb-btn" style="font-size:.74rem;padding:.3rem .65rem;color:var(--green);border-color:rgba(34,197,94,.3)" onclick="approveTrack(\'' + t.id + '\', this)">✓ Approve</button>' +
       '<button class="tb-btn" style="font-size:.74rem;padding:.3rem .65rem;color:var(--red);border-color:rgba(239,68,68,.3)" onclick="rejectTrack(\'' + t.id + '\', this)">✕ Reject</button>' +
     '</div>';
@@ -4057,6 +4046,13 @@ function escapeHtml(s) {
   return d.innerHTML;
 }
 
+// For URLs interpolated into src/href attributes: http(s) only, and
+// escape every character that could break out of a quoted attribute.
+function safeUrl(u) {
+  if (!u || !/^https?:\/\//i.test(u)) return '';
+  return String(u).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
 // Tier hierarchy for gating playback (not search itself)
 function tierRank(role) {
   return { explorer:0, native:1, insider:2, artist:3, admin:3, super:3 }[role] || 0;
@@ -4138,6 +4134,28 @@ function setAuthTab(tab) {
   document.getElementById('auth-submit-btn').textContent = tab === 'signin' ? 'Sign In' : 'Create Account';
 }
 
+async function sendPasswordReset() {
+  var email = (document.getElementById('auth-email') || {}).value || '';
+  var errEl = document.getElementById('auth-error');
+  var infoEl = document.getElementById('auth-info');
+  errEl.style.display = 'none'; infoEl.style.display = 'none';
+  if (!email || email.indexOf('@') < 1) {
+    errEl.textContent = 'Enter your email above first, then tap Forgot password.';
+    errEl.style.display = 'block';
+    return;
+  }
+  var res = await _sb.auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.origin + '/app.html'
+  });
+  if (res.error) {
+    errEl.textContent = res.error.message;
+    errEl.style.display = 'block';
+    return;
+  }
+  infoEl.textContent = '✓ If that email has an account, a reset link is on its way.';
+  infoEl.style.display = 'block';
+}
+
 async function submitAuth() {
   var email = (document.getElementById('auth-email') || {}).value || '';
   var password = (document.getElementById('auth-password') || {}).value || '';
@@ -4153,7 +4171,8 @@ async function submitAuth() {
   btn.disabled = true;
   var res;
   if (_authTab === 'signup') {
-    res = await _sb.auth.signUp({ email: email, password: password });
+    res = await _sb.auth.signUp({ email: email, password: password,
+      options: { emailRedirectTo: window.location.origin + '/app.html' } });
     if (!res.error && res.data.user && !res.data.session) {
       infoEl.textContent = '✓ Check your email to confirm your account, then sign in.';
       infoEl.style.display = 'block';
@@ -4172,14 +4191,65 @@ async function submitAuth() {
   closeAuthModal();
 }
 
+// Role + identity derived from the signed-in account. This replaces the
+// old demo role bar: profiles.role decides admin/artist access, tier
+// decides member gating, and signed-out visitors are Explorers.
+function _whenDomReady(fn) {
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn);
+  else fn();
+}
+
+async function applyAccountRole() {
+  if (!_authUser) { _whenDomReady(function(){ setRole('explorer'); }); return; }
+  var res = await _sb.from('profiles').select('role,tier,display_name,username').eq('id', _authUser.id).maybeSingle();
+  var p = res.data || {};
+  var role;
+  if (p.role === 'super') role = 'super';
+  else if (p.role === 'admin') role = 'admin';
+  else if (p.role === 'artist') role = 'artist';
+  else if (p.tier === 'insider') role = 'insider';
+  else if (p.tier === 'native') role = 'native';
+  else role = 'explorer';
+  var label = p.display_name || (p.username ? '@' + p.username : (_authUser.email || '').split('@')[0]);
+  _whenDomReady(function() {
+    setRole(role);
+    // Show the real account identity instead of the generic role label
+    var r = ROLES[role] || {};
+    if (role !== 'super' && role !== 'admin') {
+      var chipName = document.getElementById('chip-name');
+      if (chipName) chipName.textContent = label;
+      if (r.bottomId === 'sb-bottom-member') {
+        var pn = document.getElementById('sb-profile-name');
+        if (pn) pn.textContent = label;
+        var pa = document.getElementById('profile-ava-initial');
+        if (pa) pa.textContent = (label.replace('@','').charAt(0) || '?').toUpperCase();
+      } else {
+        var on = document.getElementById('sb-other-name');
+        if (on) on.textContent = label;
+      }
+    }
+  });
+}
+
 // Session lifecycle: swap identity, refresh everything identity-scoped
 _sb.auth.onAuthStateChange(function(event, session) {
   var wasUser = _authUser;
   _authUser = session ? session.user : null;
   var btn = document.getElementById('auth-btn');
   if (btn) btn.textContent = _authUser ? '👤 ' + (_authUser.email || '').split('@')[0] + ' · Log Out' : 'Log In';
+  if (event === 'PASSWORD_RECOVERY') {
+    // User arrived from a reset-password email link
+    var np = window.prompt('Enter a new password (8+ characters):');
+    if (np && np.length >= 8) {
+      _sb.auth.updateUser({ password: np }).then(function(r) {
+        alert(r.error ? 'Could not update password: ' + r.error.message : '✓ Password updated. You are signed in.');
+      });
+    }
+    return;
+  }
   if ((!!wasUser) !== (!!_authUser)) {
     _myProfile = null;
+    applyAccountRole();
     loadMyProfile().then(function() {
       // Fresh account with no @username → claim it now
       if (_authUser && !_myProfile) {
@@ -4468,17 +4538,28 @@ async function rejectTrack(id, btn) {
   loadPendingTracks();
 }
 
-// ── NOTIFY ME BUTTONS ──────────────────────────────────────────────────
+// ── NOTIFY ME BUTTONS — write interest to the DB so launches have a list
 document.querySelectorAll('.cs-notify-btn').forEach(function(btn) {
-  btn.addEventListener('click', function() {
+  btn.addEventListener('click', async function() {
+    var view = btn.closest('.view');
+    var section = view ? view.id.replace(/^v-/, '') : 'unknown';
+    var res = await _sb.from('notify_interest').insert({
+      user_id: getGuestId(),
+      email: _authUser ? _authUser.email : null,
+      section: section
+    });
+    if (res.error && res.error.code !== '23505') { // ignore duplicate signups
+      btn.textContent = 'Try again later';
+      return;
+    }
     btn.textContent = '✓ We\'ll notify you';
     btn.style.background = 'rgba(34,197,94,.12)';
     btn.style.borderColor = 'rgba(34,197,94,.3)';
     btn.style.color = 'var(--green)';
+    trackEvent('notify_interest', section, null, {});
   });
 });
 </script>
-<script src="shared.js?v=3"></script>
-<script src="tour.js?v=3"></script>
+<script src="shared.js?v=4"></script>
 </body>
 </html>

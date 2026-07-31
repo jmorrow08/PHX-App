@@ -5,6 +5,12 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>PHX — Your money goes to Phoenix artists. With receipts.</title>
 <meta name="description" content="PHX is a scene membership for Phoenix. $15/mo — the artists you actually stream get paid from your pass, and every month you get the receipt to prove it.">
+<meta property="og:title" content="PHX — Your money goes to Phoenix artists. With receipts.">
+<meta property="og:description" content="A scene membership for Phoenix. $15/mo — the artists you actually stream get paid from your pass, and every month you get the receipt to prove it.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://phx-app.vercel.app/">
+<meta name="twitter:card" content="summary">
+<link rel="canonical" href="https://phx-app.vercel.app/">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#F97316">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -156,17 +162,16 @@ footer{border-top:1px solid var(--line);padding:2rem clamp(1.2rem,4vw,3.5rem)}
       <h1 class="hero-h1">Your money goes to Phoenix artists.<br><span class="g">With receipts.</span></h1>
       <p class="hero-sub">$15 a month. Your pass pays the Phoenix artists you actually stream — and every month you get the receipt to prove it.</p>
       <div class="hero-btns">
-        <a class="btn btn-orange btn-lg" href="app.html">Claim founding pass #848</a>
-        <span class="hero-count" id="founding-left">152 FOUNDING NUMBERS LEFT</span>
+        <a class="btn btn-orange btn-lg" href="app.html">Claim your founding pass</a>
+        <span class="hero-count" id="founding-left">1,000 FOUNDING NUMBERS · NOW OPEN</span>
       </div>
     </div>
-    <div class="receipt" aria-label="Example monthly receipt">
-      <div class="r-head"><span>THE RECEIPT</span><span>JUL 2026</span></div>
-      <div class="r-row r-dash" style="margin-top:.6rem"><span>PHX NATIVE PASS</span><b>#PHX-00847</b></div>
+    <div class="receipt" aria-label="Sample monthly receipt">
+      <div class="r-head"><span>THE RECEIPT · SAMPLE</span><span>JUL 2026</span></div>
+      <div class="r-row r-dash" style="margin-top:.6rem"><span>PHX NATIVE PASS</span><b>#PHX-00001</b></div>
       <div class="r-row" style="font-weight:600"><span>TO PHOENIX ARTISTS</span><b style="color:#C2410C">$7.50</b></div>
       <div class="r-artist"><div class="r-line"><span>MURKEMZ</span><b>$6.45</b></div><div class="r-bar"><div class="r-fill" style="width:86%"></div></div></div>
-      <div class="r-artist"><div class="r-line"><span>FUTURISTIC</span><b>$0.68</b></div><div class="r-bar"><div class="r-fill" style="width:9%"></div></div></div>
-      <div class="r-artist"><div class="r-line"><span>MEGA RAN</span><b>$0.37</b></div><div class="r-bar"><div class="r-fill" style="width:5%"></div></div></div>
+      <div class="r-artist"><div class="r-line"><span>+ EVERY ARTIST YOU PLAY</span><b>$1.05</b></div><div class="r-bar"><div class="r-fill" style="width:14%"></div></div></div>
       <div class="r-foot" style="border-top:1px dashed rgba(36,27,16,.35);margin-top:.3rem;padding-top:.5rem"><span>PAID TO PHOENIX ARTISTS · VERIFIED</span><span class="r-barcode"></span></div>
     </div>
   </div>
@@ -201,14 +206,14 @@ footer{border-top:1px solid var(--line);padding:2rem clamp(1.2rem,4vw,3.5rem)}
 <section id="founding">
   <div class="inner founding-banner">
     <div>
-      <div class="f-num">847<span> / 1000</span></div>
-      <div class="f-label">Founding passes claimed</div>
+      <div class="f-num">1,000<span> numbers</span></div>
+      <div class="f-label">Founding passes — now open</div>
     </div>
     <div>
-      <div class="f-track"><div class="f-fill"></div></div>
-      <div class="f-note">Founding numbers are permanent. When they're gone, they're gone.</div>
+      <div class="f-track"><div class="f-fill" style="width:2%"></div></div>
+      <div class="f-note">Founding numbers are permanent, first come first served. When they're gone, they're gone.</div>
     </div>
-    <a class="btn btn-ghost btn-lg" href="app.html">Take #848</a>
+    <a class="btn btn-ghost btn-lg" href="app.html">Claim yours</a>
   </div>
 </section>
 
@@ -216,26 +221,16 @@ footer{border-top:1px solid var(--line);padding:2rem clamp(1.2rem,4vw,3.5rem)}
 <section id="roster">
   <div class="inner">
     <div class="kicker">On the roster</div>
-    <h2 class="h2">14 Phoenix artists. More every week.</h2>
+    <h2 class="h2">Built by Phoenix artists. Growing every week.</h2>
     <div class="roster-grid">
       <div>
         <div class="artist-ph hl">photo — murkemz</div>
         <div class="artist-name">Murkemz</div>
-        <div class="artist-meta">Hip-hop · South Phoenix</div>
+        <div class="artist-meta">Hip-hop · South Phoenix · Founding Artist</div>
       </div>
       <div>
-        <div class="artist-ph">photo — futuristic</div>
-        <div class="artist-name">Futuristic</div>
-        <div class="artist-meta">Hip-hop · Tempe</div>
-      </div>
-      <div>
-        <div class="artist-ph">photo — mega ran</div>
-        <div class="artist-name">Mega Ran</div>
-        <div class="artist-meta">Nerdcore · Phoenix</div>
-      </div>
-      <div>
-        <div class="roster-cta"><b>+11</b><span>and counting</span></div>
-        <div class="artist-name" style="color:var(--orange-l)">Your name here?</div>
+        <div class="roster-cta"><b>YOU?</b><span>founding spots open</span></div>
+        <div class="artist-name" style="color:var(--orange-l)">Your name here</div>
         <div class="artist-meta">Artists list free — apply in the app</div>
       </div>
     </div>
@@ -255,7 +250,7 @@ footer{border-top:1px solid var(--line);padding:2rem clamp(1.2rem,4vw,3.5rem)}
       <div class="tier featured">
         <div class="tier-flag">MOST OF THE CITY</div>
         <div class="tier-top"><span class="tier-name">Native</span><span class="tier-price">$15<span>/mo</span></span></div>
-        <div class="tier-desc">Full catalog · your streams pay artists · founding number <b>#848</b> · monthly receipt · city perks as they launch</div>
+        <div class="tier-desc">Full catalog · your streams pay artists · a permanent <b>founding number</b> · monthly receipt · city perks as they launch</div>
         <a class="btn btn-orange" href="app.html" style="margin-top:1.2rem;width:100%">Go Native</a>
       </div>
       <div class="tier">
@@ -312,7 +307,6 @@ footer{border-top:1px solid var(--line);padding:2rem clamp(1.2rem,4vw,3.5rem)}
   </div>
 </footer>
 
-<script src="shared.js?v=3"></script>
-<script src="tour.js?v=3"></script>
+<script src="shared.js?v=4"></script>
 </body>
 </html>

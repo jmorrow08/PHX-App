@@ -1,3 +1,4 @@
-.env.local\n.env\n*.env
-
 .env.local
+.env
+*.env
+_to_delete/
