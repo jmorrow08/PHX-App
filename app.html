@@ -1243,17 +1243,26 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
               </select>
             </div>
             <div class="form-field">
-              <label class="form-label">Audio File * <span id="upload-file-name" style="color:var(--green);font-size:.78rem;margin-left:.5rem"></span></label>
-              <input type="file" id="track-file-input" accept=".mp3,.wav,.ogg,.m4a,.aac" style="display:none" onchange="handleFileSelect(this)">
+              <label class="form-label">Audio File(s) * <span id="upload-file-name" style="color:var(--green);font-size:.78rem;margin-left:.5rem"></span></label>
+              <input type="file" id="track-file-input" accept=".mp3,.wav,.ogg,.m4a,.aac" multiple style="display:none" onchange="handleFileSelect(this)">
               <div class="upload-zone" id="upload-zone-el" onclick="document.getElementById('track-file-input').click()">
                 <div class="upload-icon" id="upload-zone-icon">🎵</div>
-                <div class="upload-text" id="upload-zone-text">Drop .mp3 or .wav here<br><span style="color:var(--orange)">or click to browse</span></div>
+                <div class="upload-text" id="upload-zone-text">Drop .mp3 or .wav here — select multiple files for an album or EP<br><span style="color:var(--orange)">or click to browse</span></div>
               </div>
+              <div id="multi-upload-note" style="display:none;font-size:.74rem;color:var(--teal);margin-top:.4rem">📀 Multiple tracks selected — track titles come from the filenames, and the Album/EP name groups them into one project. Track numbers follow file order.</div>
               <div id="upload-progress" style="display:none;margin-top:.5rem">
                 <div style="background:var(--bg4);border-radius:4px;height:6px">
                   <div id="upload-progress-bar" style="height:6px;background:var(--orange);border-radius:4px;width:0%;transition:width .3s"></div>
                 </div>
                 <div id="upload-progress-label" style="font-size:.74rem;color:var(--muted);margin-top:.3rem">Uploading…</div>
+              </div>
+            </div>
+            <div class="form-field">
+              <label class="form-label">Cover Art <span style="color:var(--muted);font-size:.74rem">(optional — auto-pulled from the MP3 if it has embedded art)</span></label>
+              <input type="file" id="cover-file-input" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="handleCoverSelect(this)">
+              <div style="display:flex;align-items:center;gap:.8rem">
+                <div id="cover-preview" onclick="document.getElementById('cover-file-input').click()" style="width:72px;height:72px;border-radius:10px;background:var(--bg4);border:1px dashed var(--border);display:flex;align-items:center;justify-content:center;font-size:1.5rem;cursor:pointer;overflow:hidden;flex-shrink:0">🖼️</div>
+                <div style="font-size:.76rem;color:var(--muted)">Square image works best (min 500×500). Click the box to choose one, or leave it — we'll grab the art inside your audio file automatically.</div>
               </div>
             </div>
             <div style="display:flex;gap:.6rem;align-items:flex-start;margin-bottom:.8rem;padding:.7rem;background:var(--bg4);border-radius:10px;border:1px solid var(--border)">
@@ -2029,6 +2038,20 @@ function trackEvent(eventType, entityType, entityId, metadata) {
   });
 }
 
+// Signed audio URLs — the private bucket's only read path. Cached until
+// shortly before the server-side expiry.
+var _signedAudio = {};
+async function getPlayableUrl(trackUuid) {
+  var c = _signedAudio[trackUuid];
+  if (c && c.exp > Date.now()) return c.url;
+  try {
+    var res = await _sb.functions.invoke('sign-audio', { body: { track_id: trackUuid } });
+    if (res.error || !res.data || !res.data.url) return null;
+    _signedAudio[trackUuid] = { url: res.data.url, exp: Date.now() + 50 * 60 * 1000 };
+    return res.data.url;
+  } catch (e) { return null; }
+}
+
 // Hidden audio element for real playback
 var PHX_AUDIO = (function() {
   var a = document.createElement('audio');
@@ -2375,11 +2398,20 @@ function playTrack(el, title, artist, feat, album, duration, trackId, streamCoun
   updateMediaSessionMetadata(title, artist, feat, album);
   updateNpLikeButton();
 
-  // Real audio if available for this track (falls back to demo progress animation)
+  // Real audio if available for this track (falls back to demo progress
+  // animation). The bucket is private — playable URLs are minted per play
+  // by the sign-audio edge function, which enforces tier gates server-side.
   var uuid = TRACK_IDS[trackId] || trackId;
-  var audioUrl = TRACK_AUDIO_URLS[uuid];
+  var hasAudio = !!TRACK_AUDIO_URLS[uuid];
   if (PHX_AUDIO) {
-    PHX_AUDIO.src = audioUrl || '';
+    PHX_AUDIO.src = '';
+    if (hasAudio) {
+      getPlayableUrl(uuid).then(function(url) {
+        if (!url || streamData.currentTrack !== trackId) return;
+        PHX_AUDIO.src = url;
+        if (streamData.playing) PHX_AUDIO.play().catch(function(){});
+      });
+    }
   }
 
   // Track play start for behavioral analytics
@@ -3840,31 +3872,105 @@ function playForYouTrack(idx, el) {
 
 // ── TRACK SUBMISSION ────────────────────────────────────────────────────
 function handleFileSelect(input) {
-  var file = input.files[0];
-  if (!file) return;
+  var files = Array.prototype.slice.call(input.files || []);
+  if (!files.length) return;
   var nameEl = document.getElementById('upload-file-name');
   var iconEl = document.getElementById('upload-zone-icon');
   var textEl = document.getElementById('upload-zone-text');
-  if (nameEl) nameEl.textContent = '✓ ' + file.name;
-  if (iconEl) iconEl.textContent = '✅';
-  if (textEl) textEl.innerHTML = '<strong>' + file.name + '</strong><br><span style="color:var(--muted);font-size:.78rem">' + (file.size / 1048576).toFixed(1) + ' MB</span>';
+  var noteEl = document.getElementById('multi-upload-note');
+  var totalMb = (files.reduce(function(s,f){ return s + f.size; }, 0) / 1048576).toFixed(1);
+  if (nameEl) nameEl.textContent = '✓ ' + (files.length === 1 ? files[0].name : files.length + ' tracks');
+  if (iconEl) iconEl.textContent = files.length > 1 ? '📀' : '✅';
+  if (textEl) textEl.innerHTML = '<strong>' + escapeHtml(files.length === 1 ? files[0].name : files.length + ' files selected') + '</strong><br><span style="color:var(--muted);font-size:.78rem">' + totalMb + ' MB</span>';
+  if (noteEl) noteEl.style.display = files.length > 1 ? 'block' : 'none';
+  // Try to pull embedded cover art from the first MP3 if none chosen yet
+  if (!_coverFile) {
+    extractId3Cover(files[0]).then(function(blob) {
+      if (blob && !_coverFile) setCoverPreview(blob, true);
+    });
+  }
+}
+
+// ── COVER ART ────────────────────────────────────────────────────────────
+var _coverFile = null;      // explicit file chosen by artist
+var _coverExtracted = null; // blob pulled from the MP3's ID3 tag
+
+function handleCoverSelect(input) {
+  var f = input.files && input.files[0];
+  if (!f) return;
+  _coverFile = f;
+  setCoverPreview(f, false);
+}
+
+function setCoverPreview(fileOrBlob, extracted) {
+  if (extracted) _coverExtracted = fileOrBlob;
+  var box = document.getElementById('cover-preview');
+  if (!box) return;
+  var url = URL.createObjectURL(fileOrBlob);
+  box.innerHTML = '<img src="' + url + '" alt="Cover art preview" style="width:100%;height:100%;object-fit:cover">';
+}
+
+// Minimal ID3v2 APIC reader — finds embedded album art in an MP3 without
+// any library. Returns a Blob or null.
+function extractId3Cover(file) {
+  return new Promise(function(resolve) {
+    if (!file || !/\.mp3$/i.test(file.name)) return resolve(null);
+    var reader = new FileReader();
+    reader.onerror = function(){ resolve(null); };
+    reader.onload = function() {
+      try {
+        var b = new Uint8Array(reader.result);
+        if (b[0] !== 0x49 || b[1] !== 0x44 || b[2] !== 0x33) return resolve(null); // "ID3"
+        var ver = b[3];
+        var tagSize = ((b[6] & 0x7f) << 21) | ((b[7] & 0x7f) << 14) | ((b[8] & 0x7f) << 7) | (b[9] & 0x7f);
+        var i = 10, end = Math.min(10 + tagSize, b.length);
+        while (i + 10 < end) {
+          var id = String.fromCharCode(b[i], b[i+1], b[i+2], b[i+3]);
+          var size = ver >= 4
+            ? ((b[i+4] & 0x7f) << 21) | ((b[i+5] & 0x7f) << 14) | ((b[i+6] & 0x7f) << 7) | (b[i+7] & 0x7f)
+            : (b[i+4] << 24) | (b[i+5] << 16) | (b[i+6] << 8) | b[i+7];
+          if (!size || size < 0) break;
+          if (id === 'APIC') {
+            var p = i + 10;
+            p++; // text encoding byte
+            var mime = '';
+            while (b[p] !== 0 && p < i + 10 + size) { mime += String.fromCharCode(b[p]); p++; }
+            p++; // null terminator
+            p++; // picture type byte
+            while (b[p] !== 0 && p < i + 10 + size) p++; // description
+            p++;
+            var imgData = b.slice(p, i + 10 + size);
+            if (imgData.length > 100) {
+              return resolve(new Blob([imgData], { type: mime || 'image/jpeg' }));
+            }
+            return resolve(null);
+          }
+          i += 10 + size;
+        }
+        resolve(null);
+      } catch (e) { resolve(null); }
+    };
+    // Art lives in the ID3 header at the front — 2MB covers virtually all tags
+    reader.readAsArrayBuffer(file.slice(0, 2 * 1024 * 1024));
+  });
 }
 
 async function submitTrack() {
-  var title    = (document.getElementById('track-title-input') || {}).value || '';
+  var title    = ((document.getElementById('track-title-input') || {}).value || '').trim();
   var feat     = (document.getElementById('track-feat-input')  || {}).value || '';
   var prod     = (document.getElementById('track-prod-input')  || {}).value || '';
-  var album    = (document.getElementById('track-album-input') || {}).value || '';
+  var album    = ((document.getElementById('track-album-input') || {}).value || '').trim();
   var relType  = (document.getElementById('track-release-type')|| {}).value || 'single';
   var tierGate = (document.getElementById('track-tier-gate')   || {}).value || 'free';
   var fileInput = document.getElementById('track-file-input');
-  var file = fileInput && fileInput.files[0];
+  var files = Array.prototype.slice.call((fileInput && fileInput.files) || []);
   var errEl = document.getElementById('submit-error-msg');
   var btn   = document.getElementById('track-submit-btn');
+  var multi = files.length > 1;
 
-  title = title.trim();
-  if (!title) { showSubmitError('Track title is required.'); return; }
-  if (!file)  { showSubmitError('Please select an audio file.'); return; }
+  if (!files.length) { showSubmitError('Please select at least one audio file.'); return; }
+  if (!multi && !title) { showSubmitError('Track title is required.'); return; }
+  if (multi && !album && !title) { showSubmitError('Give the project a name in Album / EP (or Track Title).'); return; }
   var agreeEl = document.getElementById('artist-agreement-check');
   if (agreeEl && !agreeEl.checked) { showSubmitError('You must agree to the Artist Distribution Agreement to submit.'); return; }
   if (errEl) errEl.style.display = 'none';
@@ -3879,78 +3985,119 @@ async function submitTrack() {
   btn.textContent = 'Uploading…';
   btn.disabled = true;
 
-  // Show progress bar
   var progWrap = document.getElementById('upload-progress');
   var progBar  = document.getElementById('upload-progress-bar');
   var progLbl  = document.getElementById('upload-progress-label');
   if (progWrap) progWrap.style.display = 'block';
-  if (progBar)  progBar.style.width = '20%';
-  if (progLbl)  progLbl.textContent = 'Uploading audio…';
 
-  // Build safe filename
-  var gid = getGuestId();
-  var safeTitle = title.toLowerCase().replace(/[^a-z0-9]/g,'-').slice(0,40);
-  var ext = file.name.split('.').pop().toLowerCase() || 'mp3';
-  var fileName = gid.slice(0,8) + '/' + Date.now() + '_' + safeTitle + '.' + ext;
-
-  // Upload to Supabase Storage
-  var { data: uploadData, error: uploadErr } = await _sb.storage
-    .from('track-audio')
-    .upload(fileName, file, { contentType: file.type, upsert: false });
-
-  if (uploadErr) {
+  function fail(msg) {
     if (progBar) progBar.style.width = '0%';
     btn.textContent = 'Submit for Review';
     btn.disabled = false;
-    showSubmitError('Upload failed: ' + uploadErr.message);
-    return;
+    showSubmitError(msg);
   }
 
-  if (progBar) progBar.style.width = '70%';
-  if (progLbl) progLbl.textContent = 'Saving track info…';
+  var gid = getGuestId();
 
-  // Get public URL
-  var { data: urlData } = _sb.storage.from('track-audio').getPublicUrl(fileName);
-  var audioUrl = urlData ? urlData.publicUrl : null;
+  // 1) Cover art: explicit file wins, else art extracted from the MP3 tag
+  var coverUrl = null;
+  var coverSrc = _coverFile || _coverExtracted;
+  if (!coverSrc) {
+    try { coverSrc = await extractId3Cover(files[0]); } catch (e) {}
+  }
+  if (coverSrc) {
+    if (progLbl) progLbl.textContent = 'Uploading cover art…';
+    if (progBar) progBar.style.width = '10%';
+    var cext = (coverSrc.type === 'image/png') ? 'png' : (coverSrc.type === 'image/webp') ? 'webp' : 'jpg';
+    var coverPath = gid.slice(0,8) + '/' + Date.now() + '_cover.' + cext;
+    var cRes = await _sb.storage.from('track-covers').upload(coverPath, coverSrc, { contentType: coverSrc.type || 'image/jpeg', upsert: false });
+    if (!cRes.error) {
+      var cUrl = _sb.storage.from('track-covers').getPublicUrl(coverPath);
+      coverUrl = cUrl.data ? cUrl.data.publicUrl : null;
+    }
+  }
+
+  // 2) Album row when this is a multi-track project (or an album/EP single drop with a name)
+  var albumId = null;
+  var projectName = album || title;
+  if (multi || ((relType === 'album_track' || relType === 'ep_track') && album)) {
+    var albRes = await _sb.from('albums').insert({
+      artist_id: artistId,
+      title: projectName,
+      type: relType === 'ep_track' ? 'ep' : (multi && relType === 'single' ? 'album' : 'album'),
+      cover_url: coverUrl
+    }).select('id').single();
+    if (!albRes.error && albRes.data) albumId = albRes.data.id;
+  }
 
   // Exclusive tier mapping
   var excMap = { free: null, native: 'native', insider: 'insider', timed: 'native' };
   var excTier = excMap[tierGate] || null;
   var excUntil = (tierGate === 'timed') ? new Date(Date.now() + 172800000).toISOString() : null;
 
-  var { error: insertErr } = await _sb.from('tracks').insert({
-    title:          title,
-    featuring:      feat || null,
-    producer:       prod || null,
-    artist_id:      artistId,
-    release_type:   relType,
-    audio_url:      audioUrl,
-    exclusive_tier: excTier,
-    exclusive_until:excUntil,
-    status:         'pending',
-    is_active:      false,
-    duration_seconds: 0,
-    stream_count:   0
-  });
+  // 3) Upload every file and create its pending track row
+  for (var i = 0; i < files.length; i++) {
+    var file = files[i];
+    var trackTitle = multi
+      ? file.name.replace(/\.[^.]+$/, '').replace(/^\d+[\s._-]*/, '').replace(/[_-]+/g, ' ').trim() || ('Track ' + (i + 1))
+      : title;
+    if (progLbl) progLbl.textContent = 'Uploading ' + (i + 1) + ' of ' + files.length + ': ' + trackTitle + '…';
+    if (progBar) progBar.style.width = Math.round(15 + (i / files.length) * 75) + '%';
 
-  if (insertErr) {
-    if (progBar) progBar.style.width = '0%';
-    btn.textContent = 'Submit for Review';
-    btn.disabled = false;
-    showSubmitError('Submission failed: ' + insertErr.message);
-    return;
+    var safeTitle = trackTitle.toLowerCase().replace(/[^a-z0-9]/g,'-').slice(0,40);
+    var ext = file.name.split('.').pop().toLowerCase() || 'mp3';
+    var fileName = gid.slice(0,8) + '/' + Date.now() + '_' + i + '_' + safeTitle + '.' + ext;
+
+    var up = await _sb.storage.from('track-audio').upload(fileName, file, { contentType: file.type, upsert: false });
+    if (up.error) { fail('Upload failed on "' + trackTitle + '": ' + up.error.message); return; }
+
+    var urlData = _sb.storage.from('track-audio').getPublicUrl(fileName);
+    var audioUrl = urlData.data ? urlData.data.publicUrl : null;
+
+    var ins = await _sb.from('tracks').insert({
+      title:          trackTitle,
+      featuring:      feat || null,
+      producer:       prod || null,
+      artist_id:      artistId,
+      album_id:       albumId,
+      track_number:   multi ? i + 1 : null,
+      release_type:   multi ? (relType === 'single' ? 'album_track' : relType) : relType,
+      audio_url:      audioUrl,
+      cover_url:      coverUrl,
+      exclusive_tier: excTier,
+      exclusive_until:excUntil,
+      status:         'pending',
+      is_active:      false,
+      duration_seconds: 0,
+      stream_count:   0
+    });
+    if (ins.error) { fail('Submission failed on "' + trackTitle + '": ' + ins.error.message); return; }
   }
 
   if (progBar) progBar.style.width = '100%';
-  if (progLbl) progLbl.textContent = 'Done!';
+  if (progLbl) progLbl.textContent = files.length > 1 ? 'All ' + files.length + ' tracks submitted!' : 'Done!';
 
   // Show success
   setTimeout(function() {
     var formEl = document.getElementById('submit-form-body');
     var succEl = document.getElementById('submit-success-msg');
+    var succText = succEl && succEl.querySelector('div:nth-child(3)');
     if (formEl) formEl.style.display = 'none';
     if (succEl) succEl.style.display = 'block';
   }, 500);
+  _coverFile = null; _coverExtracted = null;
+}
+
+// Admin review: mint a signed URL for a pending track and open it
+async function previewPendingAudio(id, btn) {
+  var orig = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '…';
+  var url = await getPlayableUrl(id);
+  btn.disabled = false;
+  btn.textContent = orig;
+  if (!url) { btn.textContent = 'Denied'; return; }
+  window.open(url, '_blank');
 }
 
 function showSubmitError(msg) {
@@ -4023,7 +4170,7 @@ async function loadPendingTracks() {
         '<div style="font-size:.74rem;color:var(--muted);margin-top:.15rem">' + escapeHtml(artist) + ' · ' + escapeHtml(t.release_type||'single') + ' · submitted ' + when + '</div>' +
         (t.producer ? '<div style="font-size:.72rem;color:var(--muted)">Prod. ' + escapeHtml(t.producer) + '</div>' : '') +
       '</div>' +
-      (hasAudio && safeUrl(t.audio_url) ? '<a href="' + safeUrl(t.audio_url) + '" target="_blank" class="tb-btn" style="font-size:.74rem;padding:.3rem .6rem;color:var(--teal);border-color:rgba(20,184,166,.3)">▶ Preview</a>' : '') +
+      (hasAudio ? '<button class="tb-btn" style="font-size:.74rem;padding:.3rem .6rem;color:var(--teal);border-color:rgba(20,184,166,.3)" onclick="previewPendingAudio(\'' + t.id + '\', this)">▶ Preview</button>' : '') +
       '<button class="tb-btn" style="font-size:.74rem;padding:.3rem .65rem;color:var(--green);border-color:rgba(34,197,94,.3)" onclick="approveTrack(\'' + t.id + '\', this)">✓ Approve</button>' +
       '<button class="tb-btn" style="font-size:.74rem;padding:.3rem .65rem;color:var(--red);border-color:rgba(239,68,68,.3)" onclick="rejectTrack(\'' + t.id + '\', this)">✕ Reject</button>' +
     '</div>';
@@ -4689,7 +4836,7 @@ async function loadArtistDashboard() {
     _setText('artist-monthly-listeners', fmtK(artist.monthly_listeners));
 
     // Catalog
-    var tRes = await _sb.from('tracks').select('id,title,featuring,producer,duration_seconds,stream_count,status,exclusive_tier').eq('artist_id', artist.id).order('stream_count', { ascending: false });
+    var tRes = await _sb.from('tracks').select('id,title,featuring,producer,duration_seconds,stream_count,status,exclusive_tier,cover_url').eq('artist_id', artist.id).order('stream_count', { ascending: false });
     var tracks = tRes.data || [];
     var live = tracks.filter(function(t){ return t.status === 'live'; });
     _setText('artist-catalog-count', live.length + (live.length === 1 ? ' track live' : ' tracks live'));
@@ -4702,7 +4849,7 @@ async function loadArtistDashboard() {
                  : t.status === 'pending' ? '<span class="status-chip sc-pending">Pending</span>'
                  : '<span class="status-chip sc-explorer">' + escapeHtml(t.status||'') + '</span>';
         return '<div class="track-manage-row">' +
-          '<div class="tm-art">🎵</div>' +
+          '<div class="tm-art">' + (safeUrl(t.cover_url) ? '<img src="' + safeUrl(t.cover_url) + '" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:6px">' : '🎵') + '</div>' +
           '<div class="tm-info"><div class="tm-title">' + escapeHtml(t.title) +
             (t.exclusive_tier ? ' <span class="badge badge-orange" style="font-size:.6rem">EXCLUSIVE</span>' : '') + '</div>' +
           '<div class="tm-meta">' + escapeHtml([t.featuring ? 'ft. ' + t.featuring : '', t.producer ? 'Prod. ' + t.producer : '', dur].filter(Boolean).join(' · ')) + '</div></div>' +
@@ -5012,7 +5159,7 @@ async function showArtistPage(slug) {
     var dur = t.duration_seconds ? (mins + ':' + (secs < 10 ? '0' : '') + secs) : '';
     return '<div class="track-row' + (locked ? ' locked' : '') + '" onclick="playArtistPageTrack(this, ' + i + ')">' +
       '<div class="track-num">' + (i + 1) + '</div>' +
-      '<div class="track-art">🎵</div>' +
+      '<div class="track-art">' + (safeUrl(t.cover_url) ? '<img src="' + safeUrl(t.cover_url) + '" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:6px">' : '🎵') + '</div>' +
       '<div class="track-info"><div class="track-title">' + escapeHtml(t.title) + tierBadge + '</div>' +
         '<div class="track-feat">' + escapeHtml([t.featuring ? 'ft. ' + t.featuring : '', t.producer ? 'Prod. ' + t.producer : ''].filter(Boolean).join(' · ')) + '</div></div>' +
       '<div class="track-streams">' + fmtK(t.stream_count) + '</div>' +
