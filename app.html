@@ -1483,6 +1483,22 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
         </div>
       </div>
       <div class="card" style="margin-top:1.5rem">
+        <div class="card-title">Community Pot Ledger <span style="font-size:.62rem;color:var(--red);font-weight:700;margin-left:.4rem">INTERNAL ONLY</span></div>
+        <div style="font-size:.78rem;color:var(--muted);margin-bottom:.8rem">
+          The pot is minted by each monthly payout run: whatever a paying member's wallet <em>didn't</em> send to
+          artists (light listening months) flows here instead of vanishing. It then splits per the Royalty Engine —
+          one share funds artist payouts for free-tier listening, the rest goes to the platform.
+          Until Stripe billing is live there are no wallets, so there is no pot yet — the first payout run
+          creates the first row below.
+        </div>
+        <table class="data-table">
+          <thead><tr><th>Period</th><th>Pot Total</th><th>→ Free-Tier Fund</th><th>→ Platform</th><th>Status</th></tr></thead>
+          <tbody id="pot-ledger-tbody">
+            <tr><td colspan="5" style="color:var(--muted)">No payout periods yet — this fills in after the first monthly run.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="card" style="margin-top:1.5rem">
         <div class="card-title">Payout Formula Lab <span style="font-size:.62rem;color:var(--red);font-weight:700;margin-left:.4rem">INTERNAL ONLY</span></div>
         <div style="font-size:.78rem;color:var(--muted);margin-bottom:.8rem">
           Same month of real listening, split two ways: the current per-stream formula vs the proposed
@@ -5041,7 +5057,7 @@ async function loadAdminOps() {
       _sb.from('tracks').select('title,stream_count,status,exclusive_tier,artists(name)').order('stream_count', { ascending: false }),
       _sb.from('subscriptions').select('tier,amount_cents,status'),
       _sb.from('artist_payouts').select('artist_id,total_streams,total_earnings_cents,status'),
-      _sb.from('payout_periods').select('total_subscription_revenue_cents,pot_total_cents,streams_paid_cents,period_start,status').order('period_start', { ascending: false }),
+      _sb.from('payout_periods').select('total_subscription_revenue_cents,pot_total_cents,pot_free_tier_cents,pot_platform_cents,streams_paid_cents,period_start,status').order('period_start', { ascending: false }),
       _sb.from('payout_settings').select('*').eq('id',1).maybeSingle()
     ]);
     var profiles = results[0].data || [];
@@ -5159,6 +5175,19 @@ async function loadAdminOps() {
           '<td><span class="status-chip sc-pending">' + escapeHtml((p.status||'queued')) + '</span></td></tr>';
       }).join('');
     }
+    // Community Pot ledger — one row per payout period
+    var potEl = document.getElementById('pot-ledger-tbody');
+    if (potEl && periods.length) {
+      potEl.innerHTML = periods.map(function(p) {
+        var label = new Date(p.period_start + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+        return '<tr><td><strong>' + label + '</strong></td>' +
+          '<td style="color:var(--purple-l);font-weight:700">' + fmtUsd(p.pot_total_cents) + '</td>' +
+          '<td style="color:var(--green)">' + fmtUsd(p.pot_free_tier_cents) + '</td>' +
+          '<td style="color:var(--orange)">' + fmtUsd(p.pot_platform_cents) + '</td>' +
+          '<td><span class="status-chip ' + (p.status === 'paid' ? 'sc-active' : 'sc-pending') + '">' + escapeHtml(p.status || 'pending') + '</span></td></tr>';
+      }).join('');
+    }
+
     var rhEl = document.getElementById('fin-revenue-history');
     if (rhEl && periods.length) {
       rhEl.innerHTML = periods.map(function(p, i) {
