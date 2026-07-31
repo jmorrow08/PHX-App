@@ -465,6 +465,7 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
     <button class="nav-item" onclick="showView('admin-artists')"><span class="icon">🎤</span>Artists</button>
     <button class="nav-item" onclick="showView('admin-content')"><span class="icon">🎵</span>Content</button>
     <button class="nav-item" onclick="showView('admin-reports')"><span class="icon">🚨</span>Reports<span class="nav-badge" id="reports-nav-badge" style="display:none">0</span></button>
+    <button class="nav-item" onclick="showView('admin-activity')"><span class="icon">📡</span>Activity</button>
     <div class="sb-section">My Artist</div>
     <button class="nav-item" onclick="showView('artist-tracks')"><span class="icon">🎼</span>My Tracks</button>
     <button class="nav-item" onclick="showView('artist-submit')"><span class="icon">⬆️</span>Submit Track</button>
@@ -1440,6 +1441,34 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
       </div>
     </div>
 
+    <!-- ADMIN — ACTIVITY: full listening + behavior log -->
+    <div class="view" id="v-admin-activity">
+      <div class="card" style="margin-bottom:1.5rem">
+        <div class="sh" style="margin-bottom:.75rem">
+          <h3>Listening Log</h3>
+          <span class="badge badge-teal" id="activity-stream-count">—</span>
+          <span id="activity-user-filter" style="display:none;font-size:.72rem;color:var(--orange);margin-left:.5rem"></span>
+          <button class="tb-btn" id="activity-clear-filter" style="display:none;font-size:.72rem;padding:.25rem .55rem;margin-left:.4rem" onclick="loadAdminActivity()">✕ Clear filter</button>
+          <button class="tb-btn" style="margin-left:auto;font-size:.76rem;padding:.3rem .65rem" onclick="loadAdminActivity(_activityFilterUser)">↻ Refresh</button>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>When</th><th>Listener</th><th>Track</th><th>Artist</th><th>Listened</th><th>Tier</th><th>Counted</th></tr></thead>
+          <tbody id="activity-streams-tbody"><tr><td colspan="7" style="color:var(--muted)">Loading…</td></tr></tbody>
+        </table>
+      </div>
+      <div class="card">
+        <div class="sh" style="margin-bottom:.75rem">
+          <h3>App Events</h3>
+          <span class="badge badge-orange" id="activity-events-count">—</span>
+        </div>
+        <div style="font-size:.74rem;color:var(--muted);margin-bottom:.6rem">Every tracked action in the app — sessions, plays, follows, posts, signups, installs. Newest first.</div>
+        <table class="data-table">
+          <thead><tr><th>When</th><th>User</th><th>Event</th><th>Target</th><th>Details</th></tr></thead>
+          <tbody id="activity-events-tbody"><tr><td colspan="5" style="color:var(--muted)">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
     <!-- ADMIN — REPORTS QUEUE -->
     <div class="view" id="v-admin-reports">
       <div class="card">
@@ -1753,7 +1782,7 @@ var titles = {
   'admin-dashboard':'Platform Dashboard', 'admin-members':'Members',
   'admin-artists':'Artists', 'admin-content':'Content', 'admin-reports':'Reports',
   'admin-financials':'Financials', 'admin-system':'System Settings',
-  'artist-page':'Artist', 'artist-directory':'PHX Artists',
+  'admin-activity':'Activity', 'artist-page':'Artist', 'artist-directory':'PHX Artists',
 };
 
 function showView(id) {
@@ -1767,6 +1796,7 @@ function showView(id) {
   if (titleEl) titleEl.textContent = titles[id] || id;
   if (id === 'admin-dashboard') { loadAdminStreamData(); loadAdminOps(); }
   if (id === 'admin-members' || id === 'admin-artists' || id === 'admin-financials') loadAdminOps();
+  if (id === 'admin-activity') loadAdminActivity(_activityFilterUser);
   if (id === 'admin-content') { loadPendingTracks(); loadAdminOps(); }
   if (id === 'admin-reports') loadReports();
   if (id === 'artist-tracks' || id === 'artist-analytics' || id === 'artist-earnings') loadArtistDashboard();
@@ -5052,7 +5082,7 @@ async function loadAdminOps() {
   _adminOpsLoading = true;
   try {
     var results = await Promise.all([
-      _sb.from('profiles').select('username,display_name,tier,role,created_at').order('created_at', { ascending: false }).limit(50),
+      _sb.from('profiles').select('id,username,display_name,tier,role,created_at').order('created_at', { ascending: false }).limit(50),
       _sb.from('artists').select('id,name,slug,total_streams,status,verified').order('total_streams', { ascending: false }),
       _sb.from('tracks').select('title,stream_count,status,exclusive_tier,artists(name)').order('stream_count', { ascending: false }),
       _sb.from('subscriptions').select('tier,amount_cents,status'),
@@ -5112,7 +5142,7 @@ async function loadAdminOps() {
       mtb.innerHTML = profiles.length ? profiles.map(function(p) {
         var tierChip = p.tier === 'native' ? 'sc-native' : p.tier === 'insider' ? 'sc-insider' : 'sc-explorer';
         var joined = new Date(p.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-        return '<tr><td><strong>' + escapeHtml(p.display_name || '—') + '</strong></td>' +
+        return '<tr style="cursor:pointer" title="View this member\'s activity" onclick="showUserActivity(\'' + p.id + '\')"><td><strong>' + escapeHtml(p.display_name || '—') + '</strong></td>' +
           '<td style="color:var(--muted)">' + escapeHtml(p.username ? '@' + p.username : '—') + '</td>' +
           '<td><span class="status-chip ' + tierChip + '">' + escapeHtml(p.tier || 'explorer') + '</span></td>' +
           '<td style="color:var(--muted)">' + escapeHtml(p.role || 'member') + '</td>' +
@@ -5377,6 +5407,94 @@ document.addEventListener('keydown', function(e) {
     if (m && m.style.display !== 'none' && m.style.display !== '') m.style.display = 'none';
   });
 });
+
+// ═══════════════════════════════════════════════════════════════════════
+// ADMIN ACTIVITY — full listening log + every tracked app event
+// ═══════════════════════════════════════════════════════════════════════
+var _activityFilterUser = null;
+var _activityLoading = false;
+
+function _actorLabel(uid, profileMap) {
+  if (!uid) return '—';
+  var p = profileMap[uid];
+  if (p) return p.username ? '@' + p.username : (p.display_name || uid.slice(0, 8));
+  return 'guest-' + uid.slice(0, 6);
+}
+
+function _agoLabel(ts) {
+  var s = (Date.now() - new Date(ts).getTime()) / 1000;
+  if (s < 60) return Math.floor(s) + 's ago';
+  if (s < 3600) return Math.floor(s / 60) + 'm ago';
+  if (s < 86400) return Math.floor(s / 3600) + 'h ago';
+  return Math.floor(s / 86400) + 'd ago';
+}
+
+async function loadAdminActivity(filterUserId) {
+  if (_activityLoading) return;
+  _activityLoading = true;
+  _activityFilterUser = filterUserId || null;
+  try {
+    var sq = _sb.from('stream_events')
+      .select('listened_at,user_id,user_tier,counted,seconds_listened,tracks(title),artists(name)')
+      .order('listened_at', { ascending: false }).limit(75);
+    var eq = _sb.from('user_events')
+      .select('created_at,user_id,event_type,entity_type,entity_id,metadata')
+      .order('created_at', { ascending: false }).limit(75);
+    if (_activityFilterUser) { sq = sq.eq('user_id', _activityFilterUser); eq = eq.eq('user_id', _activityFilterUser); }
+
+    var results = await Promise.all([sq, eq, _sb.from('profiles').select('id,username,display_name')]);
+    var streams = results[0].data || [];
+    var events  = results[1].data || [];
+    var profileMap = {};
+    (results[2].data || []).forEach(function(p){ profileMap[p.id] = p; });
+
+    var filterLbl = document.getElementById('activity-user-filter');
+    var clearBtn  = document.getElementById('activity-clear-filter');
+    if (filterLbl) {
+      filterLbl.style.display = _activityFilterUser ? '' : 'none';
+      filterLbl.textContent = _activityFilterUser ? 'filtered: ' + _actorLabel(_activityFilterUser, profileMap) : '';
+    }
+    if (clearBtn) clearBtn.style.display = _activityFilterUser ? '' : 'none';
+
+    var stb = document.getElementById('activity-streams-tbody');
+    if (stb) {
+      _setText('activity-stream-count', streams.length + (streams.length === 75 ? '+' : '') + ' plays');
+      stb.innerHTML = streams.length ? streams.map(function(s) {
+        var secs = s.seconds_listened;
+        var listened = secs == null ? '30s+' : (secs >= 60 ? Math.floor(secs/60) + 'm ' + (secs%60) + 's' : secs + 's');
+        return '<tr><td style="color:var(--muted);white-space:nowrap">' + _agoLabel(s.listened_at) + '</td>' +
+          '<td>' + escapeHtml(_actorLabel(s.user_id, profileMap)) + '</td>' +
+          '<td><strong>' + escapeHtml(s.tracks ? s.tracks.title : '—') + '</strong></td>' +
+          '<td style="color:var(--muted)">' + escapeHtml(s.artists ? s.artists.name : '—') + '</td>' +
+          '<td style="color:var(--teal)">' + listened + '</td>' +
+          '<td style="color:var(--muted)">' + escapeHtml(s.user_tier || '—') + '</td>' +
+          '<td>' + (s.counted ? '<span class="status-chip sc-active">✓</span>' : '<span class="status-chip sc-explorer">capped</span>') + '</td></tr>';
+      }).join('') : '<tr><td colspan="7" style="color:var(--muted)">No streams yet' + (_activityFilterUser ? ' for this user' : '') + '.</td></tr>';
+    }
+
+    var etb = document.getElementById('activity-events-tbody');
+    if (etb) {
+      _setText('activity-events-count', events.length + (events.length === 75 ? '+' : '') + ' events');
+      etb.innerHTML = events.length ? events.map(function(e) {
+        var meta = e.metadata || {};
+        var details = Object.keys(meta).filter(function(k){ return k !== 'fp' && k !== 'ua_short'; })
+          .slice(0, 3).map(function(k){ return k + ': ' + String(meta[k]).slice(0, 30); }).join(' · ');
+        return '<tr><td style="color:var(--muted);white-space:nowrap">' + _agoLabel(e.created_at) + '</td>' +
+          '<td>' + escapeHtml(_actorLabel(e.user_id, profileMap)) + '</td>' +
+          '<td><strong>' + escapeHtml(e.event_type || '—') + '</strong></td>' +
+          '<td style="color:var(--muted)">' + escapeHtml([e.entity_type, e.entity_id ? String(e.entity_id).slice(0, 8) : ''].filter(Boolean).join(' ')) + '</td>' +
+          '<td style="color:var(--muted);font-size:.72rem">' + escapeHtml(details) + '</td></tr>';
+      }).join('') : '<tr><td colspan="5" style="color:var(--muted)">No events yet' + (_activityFilterUser ? ' for this user' : '') + '.</td></tr>';
+    }
+  } finally {
+    _activityLoading = false;
+  }
+}
+
+function showUserActivity(userId) {
+  showView('admin-activity');
+  loadAdminActivity(userId);
+}
 
 // ── NOTIFY ME BUTTONS — write interest to the DB so launches have a list
 document.querySelectorAll('.cs-notify-btn').forEach(function(btn) {
