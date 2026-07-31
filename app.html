@@ -465,6 +465,10 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
     <button class="nav-item" onclick="showView('admin-artists')"><span class="icon">🎤</span>Artists</button>
     <button class="nav-item" onclick="showView('admin-content')"><span class="icon">🎵</span>Content</button>
     <button class="nav-item" onclick="showView('admin-reports')"><span class="icon">🚨</span>Reports<span class="nav-badge" id="reports-nav-badge" style="display:none">0</span></button>
+    <div class="sb-section">My Artist</div>
+    <button class="nav-item" onclick="showView('artist-tracks')"><span class="icon">🎼</span>My Tracks</button>
+    <button class="nav-item" onclick="showView('artist-submit')"><span class="icon">⬆️</span>Submit Track</button>
+    <button class="nav-item" onclick="showView('artist-earnings')"><span class="icon">💵</span>My Earnings</button>
     <div class="sb-section">Finance</div>
     <button class="nav-item" onclick="showView('admin-financials')"><span class="icon">💰</span>Financials<span id="admin-fin-tag" class="section-tag tag-super" style="display:none">SUPER</span></button>
     <div class="sb-section">System</div>
@@ -2160,6 +2164,7 @@ function playAudio() {
 function pauseAudio() {
   streamData.playing = false;
   document.querySelectorAll('.ctrl-btn.play, .mp-btn.play').forEach(function(b){ b.textContent = '▶'; });
+  _finalizeListen();
   clearStreamTimer();
   if (PHX_AUDIO) PHX_AUDIO.pause();
   if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';
@@ -2233,8 +2238,36 @@ function updateMediaSessionMetadata(title, artist, feat, album) {
   });
 }
 
+// ── LISTEN-TIME COLLECTION ──────────────────────────────────────────────
+// Feeds the future capped time-weighted payout formula (docs/phx-open-
+// decisions.md #1). Rows only exist once record_stream fires at 30s;
+// finalize_stream backfills seconds actually listened (server caps + GREATEST).
+var _listen = { key: null, uuid: null, seconds: 0, sent: 0 };
+
+function _finalizeListen() {
+  if (!_listen.uuid || _listen.seconds < 31 || Math.round(_listen.seconds) === _listen.sent) return;
+  _listen.sent = Math.round(_listen.seconds);
+  _sb.rpc('finalize_stream', {
+    p_session_id: SESSION_ID + '-' + _listen.key,
+    p_track_id: _listen.uuid,
+    p_seconds: _listen.sent
+  }).then(function(){}, function(){});
+}
+
+function _startListen(trackKey) {
+  _finalizeListen();
+  _listen = { key: trackKey, uuid: TRACK_IDS[trackKey] || trackKey, seconds: 0, sent: 0 };
+}
+
+document.addEventListener('visibilitychange', function() {
+  if (document.visibilityState === 'hidden') _finalizeListen();
+});
+
+var _listenFlushTick = 0;
 setInterval(function() {
   if (streamData.playing) {
+    _listen.seconds += 0.3;
+    if (++_listenFlushTick >= 50) { _listenFlushTick = 0; _finalizeListen(); } // flush ~15s
     prog = (prog + 0.03) % 100;
     var pf = document.getElementById('prog-fill');
     if (pf) pf.style.width = prog + '%';
@@ -2253,6 +2286,8 @@ function playTrack(el, title, artist, feat, album, duration, trackId, streamCoun
   // Static onclick args carry legacy counts — live DB counts win
   var _lc = _liveTrackCounts[(title || '').toLowerCase()];
   if (_lc != null) streamCount = _lc;
+  // Close out listen-time on the previous track, start the new clock
+  _startListen(trackId);
   // Update track rows
   document.querySelectorAll('.track-row').forEach(function(r){ r.classList.remove('playing'); });
   if (el) {
@@ -2504,20 +2539,29 @@ function activePage() {
 
 var _myProfile = null; // {username, display_name} from member_profiles
 
-function currentPersona() {
-  var page = activePage();
-  if (page) {
-    return {
-      name: page.name,
-      role: page.page_type === 'artist' ? 'artist' : 'member',
-      avatar: page.avatar || '⭐',
-      page_id: page.id
-    };
-  }
+// Identity choices for the composer. Everyone has their personal
+// @username; page owners add their Pages; admins add the official
+// PHX App voice. The picker only renders when there's a real choice.
+function personaOptions() {
+  var opts = [];
   if (currentRole === 'admin' || currentRole === 'super') {
-    return { name: 'PHX App', role: 'admin', avatar: '🏙️', page_id: null };
+    opts.push({ id: 'official', label: '🏙️ PHX App (Official)' });
   }
-  // Personal identity: @username once claimed — real names stay private
+  var personal = (_myProfile && _myProfile.username) ? '@' + _myProfile.username
+    : ((ROLES[currentRole] || {}).chipName || 'PHX Member');
+  opts.push({ id: 'personal', label: '👤 ' + personal });
+  _myPages.forEach(function(p) {
+    opts.push({ id: 'page:' + p.id, label: (p.avatar || '⭐') + ' ' + p.name });
+  });
+  return opts;
+}
+
+function setPersonaChoice(v) {
+  localStorage.setItem('phx_persona_choice', v);
+  if (_cityFeedLoaded) loadCityFeed(true);
+}
+
+function _personalPersona() {
   if (_myProfile && _myProfile.username) {
     return {
       name: '@' + _myProfile.username,
@@ -2533,6 +2577,39 @@ function currentPersona() {
     avatar: currentRole === 'artist' ? '🎤' : '👤',
     page_id: null
   };
+}
+
+function currentPersona() {
+  var choice = localStorage.getItem('phx_persona_choice') || '';
+  var isStaff = currentRole === 'admin' || currentRole === 'super';
+  if (choice.indexOf('page:') === 0) {
+    var pid = choice.slice(5);
+    for (var i = 0; i < _myPages.length; i++) {
+      if (_myPages[i].id === pid) {
+        var page = _myPages[i];
+        return {
+          name: page.name,
+          role: page.page_type === 'artist' ? 'artist' : 'member',
+          avatar: page.avatar || '⭐',
+          page_id: page.id
+        };
+      }
+    }
+  }
+  var legacyPage = activePage();
+  if (legacyPage && choice === '') {
+    return {
+      name: legacyPage.name,
+      role: legacyPage.page_type === 'artist' ? 'artist' : 'member',
+      avatar: legacyPage.avatar || '⭐',
+      page_id: legacyPage.id
+    };
+  }
+  // Admins default to the official voice unless they picked otherwise
+  if (isStaff && choice !== 'personal') {
+    return { name: 'PHX App', role: 'admin', avatar: '🏙️', page_id: null };
+  }
+  return _personalPersona();
 }
 
 // ── USERNAME ONBOARDING ──────────────────────────────────────────────────
@@ -2656,11 +2733,25 @@ async function loadCityFeed(force) {
 
 function renderComposer() {
   var persona = currentPersona();
-  var identityChip = '<div style="display:flex;align-items:center;gap:.45rem;margin-bottom:.5rem;font-size:.76rem;color:var(--muted)">' +
-    'Posting as <strong style="color:var(--white)">' + persona.avatar + ' ' + escapeHtml(persona.name) + '</strong>' +
-    (persona.role === 'admin' ? ' <span class="badge badge-orange" style="font-size:.6rem">Official</span>' : '') +
-    (_myPages.length ? ' · <a href="#" style="color:var(--orange)" onclick="showView(\'profile\');return false">switch</a>' : '') +
-  '</div>';
+  var opts = personaOptions();
+  var identityChip;
+  if (opts.length > 1) {
+    // Multiple identities (admin voice or owned Pages) → picker
+    var choice = localStorage.getItem('phx_persona_choice') || opts[0].id;
+    identityChip = '<div style="display:flex;align-items:center;gap:.45rem;margin-bottom:.5rem;font-size:.76rem;color:var(--muted)">' +
+      'Posting as <select onchange="setPersonaChoice(this.value)" aria-label="Post as" ' +
+        'style="background:var(--bg3);color:var(--white);border:1px solid var(--border);border-radius:8px;font-size:.76rem;padding:.25rem .45rem">' +
+        opts.map(function(o) {
+          return '<option value="' + o.id + '"' + (o.id === choice ? ' selected' : '') + '>' + escapeHtml(o.label) + '</option>';
+        }).join('') +
+      '</select>' +
+      (persona.role === 'admin' ? ' <span class="badge badge-orange" style="font-size:.6rem">Official</span>' : '') +
+    '</div>';
+  } else {
+    identityChip = '<div style="display:flex;align-items:center;gap:.45rem;margin-bottom:.5rem;font-size:.76rem;color:var(--muted)">' +
+      'Posting as <strong style="color:var(--white)">' + persona.avatar + ' ' + escapeHtml(persona.name) + '</strong>' +
+    '</div>';
+  }
   return '<div class="feed-post" style="margin-bottom:1rem">' +
     identityChip +
     '<textarea id="composer-text" class="form-input" rows="2" maxlength="1000" ' +
