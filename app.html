@@ -715,7 +715,7 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
         </div>
         <div class="np-progress-area">
           <div class="progress-wrap"><div class="progress-fill" id="prog-fill"></div></div>
-          <div class="progress-times"><span id="elapsed-time">1:12</span><span id="total-time">3:24</span></div>
+          <div class="progress-times"><span id="elapsed-time">0:00</span><span id="total-time">0:00</span></div>
         </div>
         <div class="np-controls">
           <button class="ctrl-btn" title="Shuffle">⇄</button>
@@ -2269,10 +2269,45 @@ function nextTrack() {
 }
 
 function prevTrack() {
+  // Standard player behavior: first press restarts the current song if
+  // it's more than 3 seconds in; press again to go to the previous track.
+  if (PHX_AUDIO && PHX_AUDIO.src && PHX_AUDIO.currentTime > 3) {
+    PHX_AUDIO.currentTime = 0;
+    prog = 0;
+    return;
+  }
   var order = Object.keys(TRACK_META);
   var idx = order.indexOf(streamData.currentTrack);
   playTrackByKey(order[(idx - 1 + order.length) % order.length]);
 }
+
+// Tap/click anywhere on a progress bar to jump there
+function seekToFraction(f) {
+  f = Math.max(0, Math.min(1, f));
+  if (PHX_AUDIO && PHX_AUDIO.src && PHX_AUDIO.duration && !isNaN(PHX_AUDIO.duration)) {
+    PHX_AUDIO.currentTime = f * PHX_AUDIO.duration;
+  }
+  prog = f * 100;
+  var pf = document.getElementById('prog-fill');
+  if (pf) pf.style.width = prog + '%';
+  var mf = document.getElementById('mp-fill');
+  if (mf) mf.style.width = prog + '%';
+}
+
+_whenDomReady(function() {
+  ['.progress-wrap', '.mp-bar'].forEach(function(sel) {
+    var el = document.querySelector(sel);
+    if (!el) return;
+    el.style.cursor = 'pointer';
+    el.setAttribute('role', 'slider');
+    el.setAttribute('aria-label', 'Seek');
+    el.addEventListener('click', function(e) {
+      var r = el.getBoundingClientRect();
+      if (r.width > 0) seekToFraction((e.clientX - r.left) / r.width);
+      e.stopPropagation();
+    });
+  });
+});
 
 // ── MEDIA SESSION API ────────────────────────────────────────────────
 // Wires lock-screen controls + Bluetooth/headphone hardware buttons (play,
