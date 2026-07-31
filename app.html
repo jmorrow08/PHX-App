@@ -769,7 +769,7 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
       <div class="grid-2">
         <div>
           <!-- Artist Spotlight -->
-          <div class="sh"><h3>Featured Artist</h3><a href="#">All Artists</a></div>
+          <div class="sh"><h3>Featured Artist</h3><a href="#" onclick="showArtistDirectory();return false">All Artists</a></div>
           <div class="artist-spotlight">
             <div class="artist-banner">
               <div class="artist-avatar">M</div>
@@ -867,8 +867,8 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
           </div>
 
           <!-- PHX Roster -->
-          <div class="sh"><h3>PHX Roster</h3><a href="#">All Artists</a></div>
-          <div class="artist-card" onclick="void(0)">
+          <div class="sh"><h3>PHX Roster</h3><a href="#" onclick="showArtistDirectory();return false">All Artists</a></div>
+          <div class="artist-card" onclick="showArtistPage('murkemz')" style="cursor:pointer">
             <div class="artist-card-ava" style="background:linear-gradient(135deg,var(--orange-d),var(--purple))">M</div>
             <div style="flex:1">
               <div class="artist-card-name">Murkemz <span class="badge badge-orange" style="font-size:.6rem">Founder</span></div>
@@ -1315,6 +1315,21 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
       </div>
     </div>
 
+    <!-- PUBLIC ARTIST PAGE — shareable via #artist/slug -->
+    <div class="view" id="v-artist-page">
+      <div id="artist-page-content"><div style="color:var(--muted);font-size:.85rem;padding:1rem 0">Loading artist…</div></div>
+      <div id="artist-page-lock-toast" style="display:none;position:fixed;bottom:120px;left:50%;transform:translateX(-50%);z-index:450;background:var(--bg2);border:1px solid rgba(249,115,22,.4);border-radius:10px;padding:.6rem 1rem;font-size:.8rem;box-shadow:0 8px 30px rgba(0,0,0,.5)"></div>
+    </div>
+
+    <!-- ARTIST DIRECTORY -->
+    <div class="view" id="v-artist-directory">
+      <div class="sh"><h3>PHX Artists</h3><span class="badge badge-orange" id="artist-directory-count">—</span></div>
+      <div id="artist-directory-list"><div style="color:var(--muted);font-size:.85rem;padding:1rem 0">Loading…</div></div>
+      <div style="margin-top:1.4rem;padding:1rem 1.2rem;background:var(--bg3);border:1px dashed rgba(249,115,22,.4);border-radius:12px;font-size:.84rem;color:var(--muted)">
+        🎤 <strong style="color:var(--white)">Phoenix artist?</strong> Listing is free and you keep your rights — sign in and apply from the Artist menu.
+      </div>
+    </div>
+
     <!-- ═══════════════════════════════════════════════════════════════ -->
     <!-- ADMIN / SUPER OS VIEWS                                         -->
     <!-- ═══════════════════════════════════════════════════════════════ -->
@@ -1712,6 +1727,7 @@ var titles = {
   'admin-dashboard':'Platform Dashboard', 'admin-members':'Members',
   'admin-artists':'Artists', 'admin-content':'Content', 'admin-reports':'Reports',
   'admin-financials':'Financials', 'admin-system':'System Settings',
+  'artist-page':'Artist', 'artist-directory':'PHX Artists',
 };
 
 function showView(id) {
@@ -2019,6 +2035,12 @@ var PHX_AUDIO = (function() {
   a.id = 'phx-audio';
   a.preload = 'metadata';
   document.body.appendChild(a);
+  // Album-style auto-advance: when a track finishes, close out its
+  // listen-time and roll to the next one (keeps lock-screen sessions alive)
+  a.addEventListener('ended', function() {
+    if (typeof _finalizeListen === 'function') _finalizeListen();
+    if (typeof nextTrack === 'function') nextTrack();
+  });
   return a;
 }());
 
@@ -2370,14 +2392,32 @@ function playTrack(el, title, artist, feat, album, duration, trackId, streamCoun
 // ── ACTIVITY CHART ─────────────────────────────────────────────────────
 window.addEventListener('load', function() {
   var ctx = document.getElementById('activity-chart');
-  if (ctx && window.Chart) {
+  if (!ctx || !window.Chart) return;
+  // Real listening history for this account/device, last 6 months
+  _sb.from('stream_events').select('listened_at,track_id').eq('user_id', getGuestId()).then(function(res) {
+    var events = res.data || [];
+    var labels = [], streams = [], uniqTracks = [];
+    for (var i = 5; i >= 0; i--) {
+      var d = new Date();
+      d.setDate(1); d.setMonth(d.getMonth() - i);
+      var y = d.getFullYear(), m = d.getMonth();
+      labels.push(d.toLocaleDateString('en-US', { month: 'short' }));
+      var monthEvents = events.filter(function(e) {
+        var t = new Date(e.listened_at);
+        return t.getFullYear() === y && t.getMonth() === m;
+      });
+      streams.push(monthEvents.length);
+      var seen = {};
+      monthEvents.forEach(function(e){ if (e.track_id) seen[e.track_id] = 1; });
+      uniqTracks.push(Object.keys(seen).length);
+    }
     new Chart(ctx, {
       type: 'bar',
       data: {
-        labels: ['Jan','Feb','Mar','Apr','May','Jun'],
+        labels: labels,
         datasets: [
-          { label:'Streams', data:[0,0,0,12,189,821], backgroundColor:'rgba(249,115,22,.7)', borderRadius:4 },
-          { label:'Unique Tracks', data:[0,0,0,2,4,5], backgroundColor:'rgba(249,115,22,.3)', borderRadius:4 },
+          { label:'Streams', data:streams, backgroundColor:'rgba(249,115,22,.7)', borderRadius:4 },
+          { label:'Unique Tracks', data:uniqTracks, backgroundColor:'rgba(249,115,22,.3)', borderRadius:4 },
         ]
       },
       options: {
@@ -2385,11 +2425,11 @@ window.addEventListener('load', function() {
         plugins: { legend: { labels: { color:'#6B7280', font:{size:10} } } },
         scales: {
           x: { grid:{color:'rgba(255,255,255,.04)'}, ticks:{color:'#6B7280'} },
-          y: { grid:{color:'rgba(255,255,255,.04)'}, ticks:{color:'#6B7280'} }
+          y: { grid:{color:'rgba(255,255,255,.04)'}, ticks:{color:'#6B7280'}, beginAtZero:true }
         }
       }
     });
-  }
+  });
 });
 
 // ── ADMIN: LIVE STREAM ACTIVITY ───────────────────────────────────────
@@ -4922,6 +4962,135 @@ async function loadAdminOps() {
     _adminOpsLoading = false;
   }
 }
+
+// ═══════════════════════════════════════════════════════════════════════
+// PUBLIC ARTIST PAGES — shareable profiles: bio, catalog, stats, merch
+// ═══════════════════════════════════════════════════════════════════════
+var _artistPageTracks = [];
+
+async function showArtistDirectory() {
+  showView('artist-directory');
+  var el = document.getElementById('artist-directory-list');
+  var res = await _sb.from('artists').select('*').eq('status', 'active').order('total_streams', { ascending: false });
+  var artists = res.data || [];
+  _setText('artist-directory-count', artists.length + (artists.length === 1 ? ' artist' : ' artists'));
+  if (!el) return;
+  el.innerHTML = artists.length ? artists.map(function(a) {
+    return '<div class="artist-card" onclick="showArtistPage(\'' + escapeHtml(a.slug) + '\')" style="cursor:pointer">' +
+      '<div class="artist-card-ava" style="background:linear-gradient(135deg,var(--orange-d),var(--purple))">' + escapeHtml((a.name || '?').charAt(0).toUpperCase()) + '</div>' +
+      '<div style="flex:1"><div class="artist-card-name">' + escapeHtml(a.name) + (a.verified ? ' <span class="badge badge-orange" style="font-size:.6rem">✓</span>' : '') + '</div>' +
+      '<div class="artist-card-meta">' + escapeHtml([a.genre, a.city].filter(Boolean).join(' · ')) + '</div></div>' +
+      '<span class="badge badge-teal" style="font-size:.62rem">' + fmtK(a.total_streams) + ' ▶</span>' +
+    '</div>';
+  }).join('') : '<div style="color:var(--muted);font-size:.85rem;padding:1rem 0">No artists yet.</div>';
+}
+
+async function showArtistPage(slug) {
+  showView('artist-page');
+  try { window.location.hash = 'artist/' + slug; } catch (e) {}
+  var el = document.getElementById('artist-page-content');
+  if (!el) return;
+  el.innerHTML = '<div style="color:var(--muted);font-size:.85rem;padding:1rem 0">Loading artist…</div>';
+
+  var aRes = await _sb.from('artists').select('*').eq('slug', slug).maybeSingle();
+  var artist = aRes.data;
+  if (!artist) {
+    el.innerHTML = '<div style="color:var(--muted);font-size:.85rem;padding:1rem 0">Artist not found. <a href="#" style="color:var(--orange)" onclick="showArtistDirectory();return false">Browse all artists →</a></div>';
+    return;
+  }
+  var tRes = await _sb.from('tracks').select('*').eq('artist_id', artist.id).eq('status', 'live').order('stream_count', { ascending: false });
+  _artistPageTracks = tRes.data || [];
+
+  var merchUrl = artist.merch_enabled ? (artist.merch_external_url || artist.fourthwall_shop_url) : null;
+  var initial = escapeHtml((artist.name || '?').charAt(0).toUpperCase());
+
+  var trackRows = _artistPageTracks.length ? _artistPageTracks.map(function(t, i) {
+    var locked = !canPlayTrack(t.exclusive_tier);
+    var tierBadge = t.exclusive_tier === 'insider' ? ' <span class="status-chip sc-insider" style="font-size:.6rem">Insider</span>'
+                  : t.exclusive_tier === 'native' ? ' <span class="status-chip sc-native" style="font-size:.6rem">Native+</span>' : '';
+    var mins = Math.floor((t.duration_seconds || 0) / 60), secs = (t.duration_seconds || 0) % 60;
+    var dur = t.duration_seconds ? (mins + ':' + (secs < 10 ? '0' : '') + secs) : '';
+    return '<div class="track-row' + (locked ? ' locked' : '') + '" onclick="playArtistPageTrack(this, ' + i + ')">' +
+      '<div class="track-num">' + (i + 1) + '</div>' +
+      '<div class="track-art">🎵</div>' +
+      '<div class="track-info"><div class="track-title">' + escapeHtml(t.title) + tierBadge + '</div>' +
+        '<div class="track-feat">' + escapeHtml([t.featuring ? 'ft. ' + t.featuring : '', t.producer ? 'Prod. ' + t.producer : ''].filter(Boolean).join(' · ')) + '</div></div>' +
+      '<div class="track-streams">' + fmtK(t.stream_count) + '</div>' +
+      (dur ? '<div class="track-time">' + dur + '</div>' : '') +
+    '</div>';
+  }).join('') : '<div style="color:var(--muted);font-size:.84rem;padding:.8rem 0">No live tracks yet — first drop coming.</div>';
+
+  el.innerHTML =
+    '<div style="margin-bottom:.8rem"><a href="#" style="color:var(--muted);font-size:.78rem" onclick="showArtistDirectory();return false">← All artists</a></div>' +
+    '<div class="artist-spotlight">' +
+      '<div class="artist-banner">' +
+        '<div class="artist-avatar">' + initial + '</div>' +
+        '<div style="flex:1">' +
+          '<div class="artist-banner-name">' + escapeHtml(artist.name) +
+            (artist.verified ? ' <span class="badge badge-orange" style="font-size:.6rem">✓ Verified</span>' : '') +
+            '<span id="artist-page-follow"></span></div>' +
+          '<div class="artist-banner-meta">' + escapeHtml([artist.genre, artist.city].filter(Boolean).join(' · ')) + '</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="artist-body">' +
+        (artist.bio ? '<div style="font-size:.86rem;color:var(--muted);line-height:1.6;margin-bottom:1rem">' + escapeHtml(artist.bio) + '</div>' : '') +
+        '<div class="artist-stats">' +
+          '<div class="astat"><div class="astat-val">' + fmtK(artist.total_streams) + '</div><div class="astat-label">Total Streams</div></div>' +
+          '<div class="astat"><div class="astat-val">' + fmtK(artist.monthly_listeners) + '</div><div class="astat-label">Monthly Listeners</div></div>' +
+          '<div class="astat"><div class="astat-val">' + _artistPageTracks.length + '</div><div class="astat-label">Tracks</div></div>' +
+        '</div>' +
+        '<div style="display:flex;gap:.6rem;flex-wrap:wrap;margin-bottom:1rem">' +
+          (merchUrl && safeUrl(merchUrl) ? '<a class="tb-btn" style="font-size:.8rem;text-decoration:none" href="' + safeUrl(merchUrl) + '" target="_blank" rel="noopener">🛍️ Shop Merch</a>' : '') +
+          '<button class="tb-btn" style="font-size:.8rem" onclick="shareArtistPage(\'' + escapeHtml(artist.slug) + '\',\'' + escapeHtml(artist.name).replace(/'/g, '') + '\')">↗ Share</button>' +
+        '</div>' +
+        '<div class="sh" style="margin-bottom:.6rem"><h3 style="font-size:.82rem">Top Tracks</h3><span class="badge badge-orange">' + _artistPageTracks.length + ' live</span></div>' +
+        '<div class="track-list">' + trackRows + '</div>' +
+      '</div>' +
+    '</div>';
+
+  var followSlot = document.getElementById('artist-page-follow');
+  if (followSlot) followSlot.innerHTML = followBtnHtml('artist', artist.id);
+}
+
+function playArtistPageTrack(el, idx) {
+  var t = _artistPageTracks[idx];
+  if (!t) return;
+  if (!canPlayTrack(t.exclusive_tier)) {
+    var toast = document.getElementById('artist-page-lock-toast');
+    if (toast) {
+      toast.textContent = '🔒 This track requires ' + (t.exclusive_tier === 'insider' ? 'an Insider Pass' : 'a Native Pass') + '.';
+      toast.style.display = 'block';
+      setTimeout(function(){ toast.style.display = 'none'; }, 3000);
+    }
+    return;
+  }
+  var mins = Math.floor((t.duration_seconds || 0) / 60), secs = (t.duration_seconds || 0) % 60;
+  var dur = t.duration_seconds ? (mins + ':' + (secs < 10 ? '0' : '') + secs) : '0:00';
+  var artistName = '';
+  var nameEl = document.querySelector('#artist-page-content .artist-banner-name');
+  if (nameEl && nameEl.childNodes[0]) artistName = nameEl.childNodes[0].textContent.trim();
+  playTrack(el, t.title, artistName || 'PHX Artist', t.featuring ? 'ft. ' + t.featuring : '', '', dur, t.id, t.stream_count || 0, '🎵');
+}
+
+function shareArtistPage(slug, name) {
+  var url = window.location.origin + '/app#artist/' + slug;
+  if (navigator.share) {
+    navigator.share({ title: name + ' on PHX', text: 'Stream ' + name + ' on PHX — your pass pays the artists you play.', url: url });
+  } else if (navigator.clipboard) {
+    navigator.clipboard.writeText(url);
+    alert('✓ Link copied: ' + url);
+  }
+}
+
+// Deep links: #artist/slug opens that artist's public page
+_whenDomReady(function() {
+  var m = window.location.hash.match(/^#artist\/([a-z0-9-]+)$/);
+  if (m) setTimeout(function(){ showArtistPage(m[1]); }, 300);
+});
+window.addEventListener('hashchange', function() {
+  var m = window.location.hash.match(/^#artist\/([a-z0-9-]+)$/);
+  if (m) showArtistPage(m[1]);
+});
 
 _whenDomReady(function(){ hydrateCatalogStats(); });
 
