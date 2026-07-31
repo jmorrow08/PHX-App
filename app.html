@@ -677,7 +677,7 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
         <div class="mstat">
           <div class="mstat-icon">🎤</div>
           <div>
-            <div class="mstat-val">14</div>
+            <div class="mstat-val" id="mstat-artist-count">—</div>
             <div class="mstat-label">PHX Artists on Platform</div>
           </div>
         </div>
@@ -4437,11 +4437,14 @@ async function hydrateCatalogStats() {
     var base = ((tEl.childNodes[0] && tEl.childNodes[0].textContent) || tEl.textContent || '').trim().toLowerCase();
     if (_liveTrackCounts[base] != null) sEl.textContent = fmtK(_liveTrackCounts[base]);
   });
-  var aRes = await _sb.from('artists').select('total_streams,monthly_listeners').eq('slug','murkemz').maybeSingle();
-  if (aRes.data) {
-    _setText('murkemz-monthly', fmtK(aRes.data.monthly_listeners));
-    _setText('murkemz-total', fmtK(aRes.data.total_streams));
+  var aRes = await _sb.from('artists').select('slug,total_streams,monthly_listeners,status');
+  var allArtists = aRes.data || [];
+  var murk = allArtists.filter(function(a){ return a.slug === 'murkemz'; })[0];
+  if (murk) {
+    _setText('murkemz-monthly', fmtK(murk.monthly_listeners));
+    _setText('murkemz-total', fmtK(murk.total_streams));
   }
+  _setText('mstat-artist-count', String(allArtists.filter(function(a){ return a.status === 'active'; }).length));
 }
 
 // Artist dashboard: stats, catalog, analytics, earnings for the artist
