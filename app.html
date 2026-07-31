@@ -1249,7 +1249,8 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
                 <div class="upload-icon" id="upload-zone-icon">🎵</div>
                 <div class="upload-text" id="upload-zone-text">Drop .mp3 or .wav here — select multiple files for an album or EP<br><span style="color:var(--orange)">or click to browse</span></div>
               </div>
-              <div id="multi-upload-note" style="display:none;font-size:.74rem;color:var(--teal);margin-top:.4rem">📀 Multiple tracks selected — track titles come from the filenames, and the Album/EP name groups them into one project. Track numbers follow file order.</div>
+              <div id="multi-upload-note" style="display:none;font-size:.74rem;color:var(--teal);margin-top:.4rem">📀 Multiple tracks selected — track titles come from the filenames, and the Album/EP name groups them into one project. Track numbers follow file order. Set who can play each track below.</div>
+              <div id="multi-file-list" style="display:none;margin-top:.6rem"></div>
               <div id="upload-progress" style="display:none;margin-top:.5rem">
                 <div style="background:var(--bg4);border-radius:4px;height:6px">
                   <div id="upload-progress-bar" style="height:6px;background:var(--orange);border-radius:4px;width:0%;transition:width .3s"></div>
@@ -2334,22 +2335,36 @@ document.addEventListener('visibilitychange', function() {
   if (document.visibilityState === 'hidden') _finalizeListen();
 });
 
+function fmtTime(s) {
+  s = Math.max(0, Math.floor(s || 0));
+  return Math.floor(s / 60) + ':' + (s % 60 < 10 ? '0' : '') + (s % 60);
+}
+
 var _listenFlushTick = 0;
 setInterval(function() {
   if (streamData.playing) {
     _listen.seconds += 0.3;
     if (++_listenFlushTick >= 50) { _listenFlushTick = 0; _finalizeListen(); } // flush ~15s
-    prog = (prog + 0.03) % 100;
+
+    // Real audio drives the bar; the simulation only covers tracks with
+    // no audio file yet.
+    var realDur = (PHX_AUDIO && PHX_AUDIO.src && PHX_AUDIO.duration && !isNaN(PHX_AUDIO.duration)) ? PHX_AUDIO.duration : 0;
+    if (realDur) {
+      totalSeconds = Math.round(realDur);
+      prog = Math.min(100, PHX_AUDIO.currentTime / realDur * 100);
+      var totEl = document.getElementById('total-time');
+      if (totEl && totEl.textContent !== fmtTime(realDur)) totEl.textContent = fmtTime(realDur);
+    } else {
+      prog = (prog + 0.03) % 100;
+    }
     var pf = document.getElementById('prog-fill');
     if (pf) pf.style.width = prog + '%';
     var mf = document.getElementById('mp-fill');
     if (mf) mf.style.width = prog + '%';
 
-    var elapsed = Math.floor((prog / 100) * totalSeconds);
-    var elMins = Math.floor(elapsed / 60);
-    var elSecs = elapsed % 60;
+    var elapsed = realDur ? PHX_AUDIO.currentTime : (prog / 100) * totalSeconds;
     var elEl = document.getElementById('elapsed-time');
-    if (elEl) elEl.textContent = elMins + ':' + (elSecs < 10 ? '0' : '') + elSecs;
+    if (elEl) elEl.textContent = fmtTime(elapsed);
   }
 }, 300);
 
@@ -3878,17 +3893,58 @@ function handleFileSelect(input) {
   var iconEl = document.getElementById('upload-zone-icon');
   var textEl = document.getElementById('upload-zone-text');
   var noteEl = document.getElementById('multi-upload-note');
+  var listEl = document.getElementById('multi-file-list');
   var totalMb = (files.reduce(function(s,f){ return s + f.size; }, 0) / 1048576).toFixed(1);
   if (nameEl) nameEl.textContent = '✓ ' + (files.length === 1 ? files[0].name : files.length + ' tracks');
   if (iconEl) iconEl.textContent = files.length > 1 ? '📀' : '✅';
   if (textEl) textEl.innerHTML = '<strong>' + escapeHtml(files.length === 1 ? files[0].name : files.length + ' files selected') + '</strong><br><span style="color:var(--muted);font-size:.78rem">' + totalMb + ' MB</span>';
   if (noteEl) noteEl.style.display = files.length > 1 ? 'block' : 'none';
+
+  // Per-track availability — e.g. lead single free, the rest for paying
+  // members. Defaults follow the Tier Gate selector above.
+  if (listEl) {
+    if (files.length > 1) {
+      var globalTier = (document.getElementById('track-tier-gate') || {}).value || 'free';
+      listEl.innerHTML = files.map(function(f, i) {
+        var cleanName = f.name.replace(/\.[^.]+$/, '').replace(/^\d+[\s._-]*/, '').replace(/[_-]+/g, ' ').trim() || ('Track ' + (i + 1));
+        return '<div style="display:flex;align-items:center;gap:.6rem;padding:.45rem .6rem;background:var(--bg4);border:1px solid var(--border);border-radius:8px;margin-bottom:.35rem">' +
+          '<span style="font-size:.72rem;color:var(--muted);min-width:1.2rem">' + (i + 1) + '.</span>' +
+          '<span style="flex:1;font-size:.8rem;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + escapeHtml(cleanName) + '</span>' +
+          '<select id="multi-tier-' + i + '" class="form-select" style="width:auto;font-size:.72rem;padding:.25rem .4rem">' +
+            '<option value="free"' + (globalTier === 'free' ? ' selected' : '') + '>Free — everyone</option>' +
+            '<option value="native"' + (globalTier === 'native' ? ' selected' : '') + '>Native+ only</option>' +
+            '<option value="insider"' + (globalTier === 'insider' ? ' selected' : '') + '>Insider only</option>' +
+            '<option value="timed"' + (globalTier === 'timed' ? ' selected' : '') + '>48hr exclusive</option>' +
+          '</select>' +
+        '</div>';
+      }).join('');
+      listEl.style.display = 'block';
+    } else {
+      listEl.style.display = 'none';
+      listEl.innerHTML = '';
+    }
+  }
+
   // Try to pull embedded cover art from the first MP3 if none chosen yet
   if (!_coverFile) {
     extractId3Cover(files[0]).then(function(blob) {
       if (blob && !_coverFile) setCoverPreview(blob, true);
     });
   }
+}
+
+// Read a file's real duration from its metadata (no upload needed)
+function getAudioDuration(file) {
+  return new Promise(function(res) {
+    try {
+      var url = URL.createObjectURL(file);
+      var a = new Audio();
+      a.preload = 'metadata';
+      a.onloadedmetadata = function() { var d = Math.round(a.duration || 0); URL.revokeObjectURL(url); res(isFinite(d) ? d : 0); };
+      a.onerror = function() { URL.revokeObjectURL(url); res(0); };
+      a.src = url;
+    } catch (e) { res(0); }
+  });
 }
 
 // ── COVER ART ────────────────────────────────────────────────────────────
@@ -4030,10 +4086,8 @@ async function submitTrack() {
     if (!albRes.error && albRes.data) albumId = albRes.data.id;
   }
 
-  // Exclusive tier mapping
+  // Exclusive tier mapping — per-track selectors win on multi-uploads
   var excMap = { free: null, native: 'native', insider: 'insider', timed: 'native' };
-  var excTier = excMap[tierGate] || null;
-  var excUntil = (tierGate === 'timed') ? new Date(Date.now() + 172800000).toISOString() : null;
 
   // 3) Upload every file and create its pending track row
   for (var i = 0; i < files.length; i++) {
@@ -4043,6 +4097,16 @@ async function submitTrack() {
       : title;
     if (progLbl) progLbl.textContent = 'Uploading ' + (i + 1) + ' of ' + files.length + ': ' + trackTitle + '…';
     if (progBar) progBar.style.width = Math.round(15 + (i / files.length) * 75) + '%';
+
+    var trackGate = tierGate;
+    if (multi) {
+      var tierSel = document.getElementById('multi-tier-' + i);
+      if (tierSel && tierSel.value) trackGate = tierSel.value;
+    }
+    var excTier = excMap[trackGate] || null;
+    var excUntil = (trackGate === 'timed') ? new Date(Date.now() + 172800000).toISOString() : null;
+
+    var durSec = await getAudioDuration(file);
 
     var safeTitle = trackTitle.toLowerCase().replace(/[^a-z0-9]/g,'-').slice(0,40);
     var ext = file.name.split('.').pop().toLowerCase() || 'mp3';
@@ -4068,7 +4132,7 @@ async function submitTrack() {
       exclusive_until:excUntil,
       status:         'pending',
       is_active:      false,
-      duration_seconds: 0,
+      duration_seconds: durSec,
       stream_count:   0
     });
     if (ins.error) { fail('Submission failed on "' + trackTitle + '": ' + ins.error.message); return; }
