@@ -2,6 +2,7 @@
   "version": 2,
   "name": "phx-app",
   "cleanUrls": true,
+  "outputDirectory": ".",
   "headers": [
     {
       "source": "/manifest.json",
