@@ -3755,7 +3755,10 @@ async function resolveReportAction(reportId, action, btn) {
 // ── PAGES — multi-identity system ────────────────────────────────────────
 async function loadMyPages() {
   var list = document.getElementById('my-pages-list');
-  var res = await _sb.from('pages').select('*').eq('owner_id', getGuestId()).order('created_at');
+  // Pages are owned by the AUTH account. Falling back to the device id kept
+  // pre-auth pages working, but meant a signed-in owner saw an empty list.
+  var ownerId = (_authUser && _authUser.id) ? _authUser.id : getGuestId();
+  var res = await _sb.from('pages').select('*').eq('owner_id', ownerId).order('created_at');
   _myPages = res.data || [];
   if (!list) return;
   var activeId = localStorage.getItem('phx_active_page');
@@ -3780,6 +3783,7 @@ async function loadMyPages() {
       (isActive
         ? '<span style="font-size:.7rem;color:var(--orange);font-weight:700">ACTIVE</span>'
         : '<button class="tb-btn" style="font-size:.7rem;padding:.25rem .55rem" onclick="setActivePage(\'' + pg.id + '\')">Use</button>') +
+      '<button class="tb-btn" style="font-size:.7rem;padding:.25rem .55rem;margin-left:.3rem" onclick="openPageEditor(\'' + pg.id + '\')">Edit</button>' +
     '</div>';
   }).join('');
 
@@ -4632,6 +4636,92 @@ async function submitAuth() {
   closeAuthModal();
 }
 
+// ── EDIT A PAGE YOU OWN ────────────────────────────────────────────────
+// Pages PHX pre-builds are handed over with placeholder copy; the owner
+// rewrites everything the moment they log in.
+function openPageEditor(pageId) {
+  var pg = (_myPages || []).filter(function(p){ return p.id === pageId; })[0];
+  if (!pg) return;
+  var links = pg.links || {};
+  var m = document.getElementById('page-editor-modal');
+  if (!m) {
+    m = document.createElement('div');
+    m.id = 'page-editor-modal';
+    m.style.cssText = 'position:fixed;inset:0;z-index:530;background:rgba(7,7,15,.88);backdrop-filter:blur(5px);display:flex;align-items:center;justify-content:center;padding:1rem';
+    document.body.appendChild(m);
+  }
+  m.style.display = 'flex';
+  m.innerHTML =
+    '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;max-width:440px;width:100%;padding:1.4rem;max-height:88vh;overflow:auto">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">' +
+        '<div style="font-weight:800;font-size:1.05rem">Edit page</div>' +
+        '<button onclick="closePageEditor()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem">✕</button>' +
+      '</div>' +
+      '<input class="form-input" id="pe-name" placeholder="Page name" value="' + escapeHtml(pg.name || '') + '" style="margin-bottom:.55rem">' +
+      '<textarea class="form-input" id="pe-bio" placeholder="Bio" rows="3" style="margin-bottom:.55rem">' + escapeHtml(pg.bio || '') + '</textarea>' +
+      '<input class="form-input" id="pe-city" placeholder="City" value="' + escapeHtml(pg.city || '') + '" style="margin-bottom:.55rem">' +
+      '<div style="font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:.6rem 0 .35rem">Profile picture</div>' +
+      '<input type="file" id="pe-avatar" accept="image/*" class="form-input" style="margin-bottom:.55rem">' +
+      '<div style="font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:.6rem 0 .35rem">Banner (1200×630 works best)</div>' +
+      '<input type="file" id="pe-banner" accept="image/*" class="form-input" style="margin-bottom:.55rem">' +
+      '<input class="form-input" id="pe-ig" placeholder="Instagram URL" value="' + escapeHtml(links.instagram || '') + '" style="margin-bottom:.55rem">' +
+      '<input class="form-input" id="pe-web" placeholder="Website" value="' + escapeHtml(links.website || '') + '" style="margin-bottom:.9rem">' +
+      '<button class="upgrade-btn" style="margin:0;width:100%" onclick="savePageEditor(\'' + pg.id + '\')">Save</button>' +
+      '<div id="pe-status" style="font-size:.76rem;color:var(--muted);margin-top:.6rem"></div>' +
+    '</div>';
+}
+
+function closePageEditor() {
+  var m = document.getElementById('page-editor-modal');
+  if (m) m.style.display = 'none';
+}
+
+async function _uploadPageImage(fileInputId, pageId, kind) {
+  var inp = document.getElementById(fileInputId);
+  if (!inp || !inp.files || !inp.files[0]) return null;
+  var f = inp.files[0];
+  var ext = (f.name.split('.').pop() || 'jpg').toLowerCase();
+  var path = pageId + '/' + kind + '_' + Date.now() + '.' + ext;
+  var up = await _sb.storage.from('post-media').upload(path, f, { contentType: f.type, upsert: true });
+  if (up.error) return null;
+  var pub = _sb.storage.from('post-media').getPublicUrl(path);
+  return pub.data ? pub.data.publicUrl : null;
+}
+
+async function savePageEditor(pageId) {
+  var st = document.getElementById('pe-status');
+  if (st) st.textContent = 'Saving…';
+  try {
+    var avatarUrl = await _uploadPageImage('pe-avatar', pageId, 'avatar');
+    var bannerUrl = await _uploadPageImage('pe-banner', pageId, 'banner');
+    var links = {};
+    var ig = (document.getElementById('pe-ig') || {}).value || '';
+    var web = (document.getElementById('pe-web') || {}).value || '';
+    if (ig) links.instagram = ig;
+    if (web) links.website = web;
+
+    var res = await _sb.rpc('update_my_page', {
+      p_page_id: pageId,
+      p_user_id: _authUser ? _authUser.id : null,
+      p_name: (document.getElementById('pe-name') || {}).value || null,
+      p_bio: (document.getElementById('pe-bio') || {}).value || null,
+      p_avatar_url: avatarUrl,
+      p_banner_url: bannerUrl,
+      p_city: (document.getElementById('pe-city') || {}).value || null,
+      p_links: Object.keys(links).length ? links : null
+    });
+    if (res.data && res.data.ok) {
+      if (st) st.textContent = '✓ Saved';
+      await loadMyPages();
+      setTimeout(closePageEditor, 700);
+    } else {
+      if (st) st.textContent = (res.data && res.data.reason) || 'Could not save.';
+    }
+  } catch (e) {
+    if (st) st.textContent = 'Could not save.';
+  }
+}
+
 // ── PROFILES: everyone is clickable ────────────────────────────────────
 // A post author might own an artist page or just be a member. Look it up
 // once, cache it, and route to whichever page actually exists.
@@ -4809,6 +4899,24 @@ async function redeemPendingInvite() {
   var code = '';
   try { code = localStorage.getItem('phx_pending_invite') || ''; } catch (e) {}
   if (!code) return;
+  // A code can either CLAIM pre-built pages/artist records (handed to someone
+  // whose page PHX built for them) or be an ordinary referral invite. Try the
+  // claim path first; it's a no-op for normal codes.
+  try {
+    var cRes = await _sb.rpc('redeem_claim_code', { p_code: code, p_user_id: _authUser.id });
+    var cd = cRes.data || {};
+    if (cd.ok) {
+      try { localStorage.removeItem('phx_pending_invite'); } catch (e) {}
+      var bits = [];
+      if (cd.pages_claimed) bits.push(cd.pages_claimed + ' page' + (cd.pages_claimed === 1 ? '' : 's'));
+      if (cd.artists_claimed) bits.push('your artist page');
+      showToast('✓ ' + (bits.join(' + ') || 'Your account') + ' is yours — edit anything in Profile');
+      if (typeof applyAccountRole === 'function') setTimeout(applyAccountRole, 400);
+      if (typeof loadMyPages === 'function') setTimeout(loadMyPages, 600);
+      return;
+    }
+  } catch (e) {}
+
   try {
     var res = await _sb.rpc('redeem_invite_code', {
       p_code: code, p_user_id: _authUser.id,
