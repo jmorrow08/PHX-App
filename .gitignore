@@ -5,3 +5,4 @@ _to_delete/
 
 # generated artist pages (rebuilt on every deploy)
 a/
+.vercel

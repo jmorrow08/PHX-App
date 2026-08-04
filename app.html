@@ -184,6 +184,95 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
 .fan-payout-vs{font-size:.78rem;color:var(--muted);margin-top:.8rem;padding-top:.8rem;border-top:1px solid var(--line);line-height:1.6}
 .fan-payout-vs b,.fan-payout-vs strong{color:var(--white)}
 
+/* ═══════════════════════════════════════════════════════════════════════
+   PROFILE PAGES — one design system, three identities
+   Artists, members and brand pages share this skeleton (hero → identity →
+   actions → stats → modules) so PHX reads as one product. What differs is
+   only WHICH modules render underneath: artists get Popular/Merch, members
+   get Posts/Likes. Fallbacks are designed, not accidental — a profile with
+   no banner and no avatar still looks intentional.
+   ═══════════════════════════════════════════════════════════════════════ */
+.pf{margin-bottom:1.1rem}
+.pf-hero{position:relative;border-radius:var(--r-m);overflow:hidden;background:var(--bg3)}
+.pf-banner{height:190px;background-size:cover;background-position:center;background-repeat:no-repeat;position:relative}
+/* No banner? A generated one — city-toned, never a gray box. */
+.pf-banner.pf-gen{background:
+  radial-gradient(120% 140% at 12% 0%, rgba(249,115,22,.42) 0%, transparent 58%),
+  radial-gradient(130% 150% at 88% 12%, rgba(124,58,237,.36) 0%, transparent 62%),
+  linear-gradient(165deg,#2A1206 0%,#160B18 55%,#0B0B14 100%)}
+.pf-banner.pf-gen::before{content:'';position:absolute;inset:0;
+  background:repeating-linear-gradient(58deg,rgba(255,255,255,.045) 0 2px,transparent 2px 22px)}
+/* Scrim: keeps text legible over ANY uploaded photo */
+.pf-banner::after{content:'';position:absolute;inset:0;
+  background:linear-gradient(180deg,rgba(7,7,15,.10) 0%,rgba(7,7,15,.45) 45%,rgba(19,19,37,.94) 88%,var(--bg3) 100%)}
+.pf-id{position:relative;margin-top:-46px;padding:0 1.2rem 1rem;display:flex;align-items:flex-end;gap:.9rem;z-index:2}
+.pf-ava{width:92px;height:92px;border-radius:20px;flex-shrink:0;overflow:hidden;
+  border:3px solid var(--bg3);box-shadow:0 10px 30px rgba(0,0,0,.55);
+  background:linear-gradient(150deg,#EA580C,#7C3AED);
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--disp);font-size:2.3rem;font-weight:700;color:#fff;line-height:1}
+.pf-ava.round{border-radius:50%}
+.pf-ava img{width:100%;height:100%;object-fit:cover;display:block}
+.pf-idtext{flex:1;min-width:0;padding-bottom:.2rem}
+.pf-name{font-family:var(--disp);font-size:1.55rem;font-weight:700;letter-spacing:-.025em;line-height:1.15;
+  display:flex;align-items:center;gap:.45rem;flex-wrap:wrap}
+.pf-meta{font-size:.78rem;color:var(--muted);margin-top:.15rem}
+.pf-body{padding:0 1.2rem 1.2rem}
+.pf-bio{font-size:.88rem;color:var(--muted);line-height:1.65;margin-bottom:.9rem;max-width:62ch}
+/* Action bar — play is the hero action for artists (Spotify pattern) */
+.pf-actions{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;margin-bottom:1rem}
+.pf-play{width:46px;height:46px;border-radius:50%;border:none;cursor:pointer;flex-shrink:0;
+  background:var(--orange);color:#0B0B14;font-size:1.05rem;display:flex;align-items:center;justify-content:center;
+  box-shadow:0 6px 20px rgba(249,115,22,.42);transition:transform .16s}
+.pf-play:hover{transform:scale(1.06)}
+.pf-btn{background:transparent;border:1px solid rgba(241,241,248,.18);color:var(--white);
+  border-radius:100px;padding:.5rem 1.05rem;font-size:.82rem;font-weight:600;cursor:pointer;
+  font-family:inherit;transition:border-color .16s,color .16s;text-decoration:none;display:inline-flex;align-items:center;gap:.35rem}
+.pf-btn:hover{border-color:var(--orange);color:var(--orange)}
+.pf-btn.on{border-color:var(--orange);color:var(--orange);background:rgba(249,115,22,.1)}
+/* Stats — inline dot-separated, not boxed cards */
+.pf-stats{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;font-size:.8rem;color:var(--muted);margin-bottom:.9rem}
+.pf-stats b{color:var(--white);font-weight:700}
+.pf-stats .dot{color:var(--faint)}
+.pf-links{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.2rem}
+.pf-link{font-size:.76rem;color:var(--muted);text-decoration:none;border-bottom:1px solid rgba(241,241,248,.16);padding-bottom:1px}
+.pf-link:hover{color:var(--orange);border-color:var(--orange)}
+/* Section headers inside a profile */
+.pf-sec{display:flex;align-items:baseline;justify-content:space-between;gap:.6rem;margin:1.4rem 0 .7rem}
+.pf-sec h3{font-family:var(--disp);font-size:.95rem;font-weight:700;letter-spacing:-.01em}
+.pf-sec a{font-size:.75rem;color:var(--muted);text-decoration:none}
+.pf-sec a:hover{color:var(--orange)}
+/* Merch grid */
+.pf-merch{display:grid;grid-template-columns:repeat(auto-fill,minmax(158px,1fr));gap:.85rem}
+.pf-prod{background:var(--bg3);border:1px solid rgba(241,241,248,.07);border-radius:var(--r-s);
+  overflow:hidden;cursor:pointer;transition:transform .18s,border-color .18s}
+.pf-prod:hover{transform:translateY(-3px);border-color:rgba(249,115,22,.45)}
+.pf-prod-img{aspect-ratio:1;background:linear-gradient(150deg,#231108,#3A1D0A);
+  display:flex;align-items:center;justify-content:center;font-size:2rem;overflow:hidden}
+.pf-prod-img img{width:100%;height:100%;object-fit:cover;display:block}
+.pf-prod-body{padding:.6rem .7rem}
+.pf-prod-name{font-size:.8rem;font-weight:600;line-height:1.3;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.pf-prod-price{font-size:.88rem;color:var(--orange);font-weight:700;margin-top:.2rem}
+.pf-prod-ship{font-size:.68rem;color:var(--faint);margin-top:.1rem}
+.pf-prod.sold{opacity:.5;cursor:default}
+.pf-prod.sold:hover{transform:none;border-color:rgba(241,241,248,.07)}
+/* Post cards on member profiles */
+.pf-post{border:1px solid rgba(241,241,248,.08);border-radius:var(--r-s);padding:.75rem .9rem;
+  margin-bottom:.5rem;cursor:pointer;transition:border-color .18s}
+.pf-post:hover{border-color:rgba(249,115,22,.4)}
+.pf-post-txt{font-size:.86rem;line-height:1.5}
+.pf-post-meta{font-size:.72rem;color:var(--faint);margin-top:.35rem}
+.pf-empty{color:var(--faint);font-size:.83rem;padding:1rem 0}
+@media(max-width:640px){
+  .pf-banner{height:140px}
+  .pf-id{margin-top:-38px;gap:.7rem;padding:0 .9rem .8rem}
+  .pf-ava{width:74px;height:74px;border-radius:16px;font-size:1.85rem}
+  .pf-name{font-size:1.25rem}
+  .pf-body{padding:0 .9rem 1rem}
+  .pf-merch{grid-template-columns:repeat(2,1fr);gap:.6rem}
+}
+
 /* Artist spotlight */
 .artist-spotlight{background:var(--bg3);border:none;border-radius:var(--r-m);overflow:hidden;margin-bottom:1.2rem}
 .artist-banner{height:96px;background:repeating-linear-gradient(45deg,rgba(241,241,248,.03) 0 12px,transparent 12px 24px),linear-gradient(180deg,#1A0E06,var(--bg3));position:relative;display:flex;align-items:flex-end;padding:.9rem 1.2rem;gap:.9rem}
@@ -4811,12 +4900,28 @@ async function showMemberPage(userId) {
   if (!el) return;
   el.innerHTML = '<div style="color:var(--muted);font-size:.85rem;padding:1rem 0">Loading…</div>';
   try {
+    // Identity lives in one of two places: `profiles` for real auth accounts,
+    // `member_profiles` for device-era members created before sign-up existed.
+    // Look in both so every author in the feed resolves to a real page.
     var pRes = await _sb.from('profiles')
-      .select('id,username,display_name,avatar_url,bio,city,created_at,founding_number')
+      .select('id,username,display_name,avatar_url,banner_url,bio,city,created_at,founding_number')
       .eq('id', userId).maybeSingle();
     var p = pRes.data;
     if (!p) {
-      el.innerHTML = '<div style="color:var(--muted);font-size:.85rem;padding:1rem 0">Profile not found.</div>';
+      var mRes = await _sb.from('member_profiles')
+        .select('device_id,username,display_name,avatar_url,banner_url,bio,city,created_at')
+        .eq('device_id', userId).maybeSingle();
+      if (mRes.data) {
+        p = {
+          id: mRes.data.device_id, username: mRes.data.username,
+          display_name: mRes.data.display_name, avatar_url: mRes.data.avatar_url,
+          banner_url: mRes.data.banner_url, bio: mRes.data.bio,
+          city: mRes.data.city, created_at: mRes.data.created_at, founding_number: null
+        };
+      }
+    }
+    if (!p) {
+      el.innerHTML = '<div class="pf-empty">This profile isn\'t set up yet.</div>';
       return;
     }
     var name = p.display_name || (p.username ? '@' + p.username : 'PHX Member');
@@ -4833,35 +4938,66 @@ async function showMemberPage(userId) {
     var followers = fRes.count || 0;
 
     var isSelf = _authUser && _authUser.id === userId;
+    var following = !!_myFollows['user:' + userId];
+
+    // What this member is into — their liked tracks double as taste signal
+    var likesRes = await _sb.from('track_likes')
+      .select('track_id,tracks(id,title,cover_url,artists(name))')
+      .eq('user_id', userId).limit(6);
+    var likes = (likesRes.data || []).filter(function(l){ return l.tracks; });
+
+    var joined = p.created_at ? new Date(p.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : '';
+    var statBits = [
+      '<b>' + followers + '</b> follower' + (followers === 1 ? '' : 's'),
+      '<b>' + posts.length + '</b> post' + (posts.length === 1 ? '' : 's')
+    ];
+    if (p.city) statBits.push('📍 ' + escapeHtml(p.city));
+    if (joined) statBits.push('Joined ' + joined);
 
     el.innerHTML =
       '<div style="margin-bottom:.8rem"><a href="#" style="color:var(--muted);font-size:.78rem" onclick="showView(\'home\');return false">← City Feed</a></div>' +
-      '<div style="display:flex;gap:1rem;align-items:center;margin-bottom:1rem">' +
-        '<div style="width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,#3B82F6,#14B8A6);display:flex;align-items:center;justify-content:center;font-size:1.8rem;font-weight:800;overflow:hidden">' +
-          (safeUrl(p.avatar_url) ? '<img src="' + safeUrl(p.avatar_url) + '" alt="" style="width:100%;height:100%;object-fit:cover">' : initial) +
+      '<div class="pf">' +
+        profileHeroHtml({
+          name: name, avatar_url: p.avatar_url, banner_url: p.banner_url, roundAva: true,
+          meta: p.username ? '@' + p.username : '',
+          badgeHtml: p.founding_number
+            ? '<span class="badge badge-orange" style="font-size:.58rem">🔥 PHX Native #' + p.founding_number + '</span>' : ''
+        }) +
+        '<div class="pf-body">' +
+          (isSelf
+            ? '<div class="pf-actions"><button class="pf-btn" onclick="showView(\'profile\')">✎ Edit profile</button></div>'
+            : '<div class="pf-actions">' +
+                '<button class="pf-btn' + (following ? ' on' : '') + '" onclick="toggleFollowUI(\'user\',\'' + userId + '\',this)">' +
+                  (following ? '✓ Following' : '+ Follow') + '</button>' +
+              '</div>') +
+          '<div class="pf-stats">' + statBits.join('<span class="dot">·</span>') + '</div>' +
+          (p.bio ? '<div class="pf-bio">' + escapeHtml(p.bio) + '</div>' : '') +
+          (likes.length
+            ? '<div class="pf-sec"><h3>On repeat</h3></div>' +
+              '<div class="track-list">' + likes.map(function(l) {
+                  var t = l.tracks;
+                  var art = safeUrl(t.cover_url);
+                  return '<div class="track-row" onclick="showArtistDirectory()">' +
+                    '<div class="track-art">' + (art ? '<img src="' + art + '" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:6px">' : '🎵') + '</div>' +
+                    '<div class="track-info"><div class="track-title">' + escapeHtml(t.title) + '</div>' +
+                      '<div class="track-feat">' + escapeHtml(t.artists ? t.artists.name : '') + '</div></div>' +
+                  '</div>';
+                }).join('') + '</div>'
+            : '') +
+          '<div class="pf-sec"><h3>Posts</h3></div>' +
+          (posts.length ? posts.map(function(po) {
+            var d = new Date(po.created_at);
+            var diff = Math.floor((Date.now() - d.getTime()) / 60000);
+            var when = diff < 60 ? diff + 'm ago' : diff < 1440 ? Math.floor(diff/60) + 'h ago' : Math.floor(diff/1440) + 'd ago';
+            return '<div class="pf-post" onclick="showView(\'home\');setTimeout(function(){scrollToPost(\'' + po.id + '\')},400)">' +
+              '<div class="pf-post-txt">' + escapeHtml((po.content || '').slice(0, 220)) + '</div>' +
+              '<div class="pf-post-meta">❤️ ' + (po.likes_count || 0) + ' · 💬 ' + (po.comments_count || 0) + ' · ' + when + '</div>' +
+            '</div>';
+          }).join('') : '<div class="pf-empty">No posts yet.</div>') +
         '</div>' +
-        '<div style="flex:1">' +
-          '<div style="font-size:1.3rem;font-weight:800;line-height:1.2">' + escapeHtml(name) + '</div>' +
-          (p.username ? '<div style="font-size:.82rem;color:var(--muted)">@' + escapeHtml(p.username) + '</div>' : '') +
-          (p.founding_number ? '<div style="font-size:.74rem;color:var(--orange-l);margin-top:.2rem">🔥 PHX Native #' + p.founding_number + '</div>' : '') +
-        '</div>' +
-      '</div>' +
-      (p.bio ? '<div style="font-size:.88rem;color:var(--muted);margin-bottom:.9rem">' + escapeHtml(p.bio) + '</div>' : '') +
-      '<div style="display:flex;gap:1.4rem;margin-bottom:1rem;font-size:.8rem">' +
-        '<div><b>' + followers + '</b> <span style="color:var(--muted)">followers</span></div>' +
-        '<div><b>' + posts.length + '</b> <span style="color:var(--muted)">posts</span></div>' +
-        (p.city ? '<div style="color:var(--muted)">📍 ' + escapeHtml(p.city) + '</div>' : '') +
-      '</div>' +
-      (isSelf ? '' : '<div style="margin-bottom:1.2rem">' + followBtnHtml('user', userId) + '</div>') +
-      '<div class="card-title" style="margin-bottom:.6rem">Posts</div>' +
-      (posts.length ? posts.map(function(po) {
-        return '<div style="border:1px solid var(--border);border-radius:10px;padding:.7rem .85rem;margin-bottom:.5rem;cursor:pointer" onclick="showView(\'home\');setTimeout(function(){scrollToPost(\'' + po.id + '\')},400)">' +
-          '<div style="font-size:.86rem">' + escapeHtml((po.content || '').slice(0, 220)) + '</div>' +
-          '<div style="font-size:.72rem;color:var(--muted);margin-top:.3rem">❤️ ' + (po.likes_count || 0) + ' · 💬 ' + (po.comments_count || 0) + '</div>' +
-        '</div>';
-      }).join('') : '<div style="color:var(--muted);font-size:.84rem">No posts yet.</div>');
+      '</div>';
   } catch (e) {
-    el.innerHTML = '<div style="color:var(--muted);font-size:.85rem">Couldn\'t load this profile.</div>';
+    el.innerHTML = '<div class="pf-empty">Couldn\'t load this profile.</div>';
   }
 }
 
@@ -4869,18 +5005,28 @@ async function showMemberPage(userId) {
 // Products are admin-managed (merch_products.managed_by = 'admin') and render
 // natively in PHX styling; checkout hands off to the provider. Supports both
 // print-on-demand and artist-shipped inventory.
-async function loadArtistMerch(artistId) {
+async function loadArtistMerch(artistId, shopUrl) {
   var el = document.getElementById('artist-merch-grid');
   if (!el || !artistId) return;
   try {
     var res = await _sb.from('merch_catalog').select('*')
       .eq('artist_id', artistId).order('position', { ascending: true });
     var items = res.data || [];
-    if (!items.length) { el.innerHTML = ''; return; }
+    if (!items.length) {
+      // No catalog rows but the artist has a shop — still give fans the door
+      el.innerHTML = (shopUrl && safeUrl(shopUrl))
+        ? '<div class="pf-sec"><h3>Merch</h3></div>' +
+          '<a class="pf-btn" href="' + safeUrl(shopUrl) + '" target="_blank" rel="noopener">🛍️ Shop the store ↗</a>'
+        : '';
+      return;
+    }
 
     el.innerHTML =
-      '<div class="card-title" style="margin:1.4rem 0 .8rem">Merch</div>' +
-      '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:.9rem">' +
+      '<div class="pf-sec"><h3>Merch</h3>' +
+        (shopUrl && safeUrl(shopUrl)
+          ? '<a href="' + safeUrl(shopUrl) + '" target="_blank" rel="noopener">Shop all ↗</a>' : '') +
+      '</div>' +
+      '<div class="pf-merch">' +
       items.map(function(p) {
         var img = (p.images && p.images[0] && p.images[0].url) ? safeUrl(p.images[0].url) : '';
         var price = '$' + ((p.price_cents || 0) / 100).toFixed(2);
@@ -4892,16 +5038,15 @@ async function loadArtistMerch(artistId) {
         var reviews = p.review_count > 0
           ? '<div style="font-size:.68rem;color:var(--gold);margin-top:.2rem">★ ' + (p.avg_rating || '') + ' · ' + p.review_count + ' fan photo' + (p.review_count === 1 ? '' : 's') + '</div>'
           : '';
-        return '<div style="background:var(--bg3);border:1px solid var(--border);border-radius:12px;overflow:hidden;' +
-                 (soldOut ? 'opacity:.55;' : 'cursor:pointer;') + '"' +
+        return '<div class="pf-prod' + (soldOut ? ' sold' : '') + '"' +
                  (soldOut ? '' : ' onclick="openMerchItem(\'' + p.id + '\')"') + '>' +
-          '<div style="aspect-ratio:1;background:linear-gradient(135deg,#231108,#3A1D0A);display:flex;align-items:center;justify-content:center;font-size:2rem">' +
-            (img ? '<img src="' + img + '" alt="' + escapeHtml(p.name) + '" loading="lazy" style="width:100%;height:100%;object-fit:cover">' : '👕') +
+          '<div class="pf-prod-img">' +
+            (img ? '<img src="' + img + '" alt="' + escapeHtml(p.name) + '" loading="lazy">' : '👕') +
           '</div>' +
-          '<div style="padding:.6rem .7rem">' +
-            '<div style="font-size:.82rem;font-weight:600;line-height:1.3">' + escapeHtml(p.name) + '</div>' +
-            '<div style="font-size:.85rem;color:var(--orange);font-weight:700;margin-top:.15rem">' + price + '</div>' +
-            '<div style="font-size:.68rem;color:var(--muted);margin-top:.15rem">' + escapeHtml(soldOut ? 'Sold out' : ship) + '</div>' +
+          '<div class="pf-prod-body">' +
+            '<div class="pf-prod-name">' + escapeHtml(p.name) + '</div>' +
+            '<div class="pf-prod-price">' + price + '</div>' +
+            '<div class="pf-prod-ship">' + escapeHtml(soldOut ? 'Sold out' : ship) + '</div>' +
             reviews +
           '</div></div>';
       }).join('') + '</div>';
@@ -6054,25 +6199,60 @@ async function showArtistDirectory() {
   }).join('') : '<div style="color:var(--muted);font-size:.85rem;padding:1rem 0">No artists yet.</div>';
 }
 
+// ── SHARED PROFILE HERO ────────────────────────────────────────────────
+// One hero for artists, members and pages. Every profile in PHX is built
+// from this so identity feels consistent no matter whose page you land on.
+// opts: {name, avatar_url, banner_url, verified, meta, badgeHtml, roundAva}
+function profileHeroHtml(opts) {
+  var ava = safeUrl(opts.avatar_url);
+  var banner = safeUrl(opts.banner_url);
+  var initial = escapeHtml((opts.name || '?').trim().charAt(0).toUpperCase() || '?');
+  return '<div class="pf-hero">' +
+    '<div class="pf-banner' + (banner ? '' : ' pf-gen') + '"' +
+      (banner ? ' style="background-image:url(\'' + banner + '\')"' : '') + '></div>' +
+    '<div class="pf-id">' +
+      '<div class="pf-ava' + (opts.roundAva ? ' round' : '') + '">' +
+        (ava ? '<img src="' + ava + '" alt="' + escapeHtml(opts.name || '') + '" loading="lazy">' : initial) +
+      '</div>' +
+      '<div class="pf-idtext">' +
+        '<div class="pf-name">' + escapeHtml(opts.name || 'PHX') +
+          (opts.verified ? '<span class="badge badge-orange" style="font-size:.58rem">✓ Verified</span>' : '') +
+          (opts.badgeHtml || '') +
+        '</div>' +
+        (opts.meta ? '<div class="pf-meta">' + escapeHtml(opts.meta) + '</div>' : '') +
+      '</div>' +
+    '</div>' +
+  '</div>';
+}
+
+// Social/web links render the same way on every profile type
+function profileLinksHtml(links) {
+  if (!links || typeof links !== 'object') return '';
+  var map = { instagram: 'Instagram', website: 'Website', twitter: 'X', tiktok: 'TikTok', youtube: 'YouTube', spotify: 'Spotify' };
+  var out = Object.keys(map).filter(function(k){ return links[k] && safeUrl(links[k]); }).map(function(k) {
+    return '<a class="pf-link" href="' + safeUrl(links[k]) + '" target="_blank" rel="noopener">' + map[k] + ' ↗</a>';
+  });
+  return out.length ? '<div class="pf-links">' + out.join('') + '</div>' : '';
+}
+
 async function showArtistPage(slug) {
   showView('artist-page');
   try { window.location.hash = 'artist/' + slug; } catch (e) {}
   var el = document.getElementById('artist-page-content');
   if (!el) return;
-  el.innerHTML = '<div style="color:var(--muted);font-size:.85rem;padding:1rem 0">Loading artist…</div>';
+  el.innerHTML = '<div class="pf-empty">Loading artist…</div>';
 
   var aRes = await _sb.from('artists').select('*').eq('slug', slug).maybeSingle();
   var artist = aRes.data;
   if (!artist) {
-    el.innerHTML = '<div style="color:var(--muted);font-size:.85rem;padding:1rem 0">Artist not found. <a href="#" style="color:var(--orange)" onclick="showArtistDirectory();return false">Browse all artists →</a></div>';
+    el.innerHTML = '<div class="pf-empty">Artist not found. <a href="#" style="color:var(--orange)" onclick="showArtistDirectory();return false">Browse all artists →</a></div>';
     return;
   }
   var tRes = await _sb.from('tracks').select('*').eq('artist_id', artist.id).eq('status', 'live').order('stream_count', { ascending: false });
   _artistPageTracks = tRes.data || [];
 
   var merchUrl = artist.merch_enabled ? (artist.merch_external_url || artist.fourthwall_shop_url) : null;
-  if (artist.merch_enabled) loadArtistMerch(artist.id);
-  var initial = escapeHtml((artist.name || '?').charAt(0).toUpperCase());
+  var following = !!_myFollows['artist:' + artist.id];
 
   var trackRows = _artistPageTracks.length ? _artistPageTracks.map(function(t, i) {
     var locked = !canPlayTrack(t.exclusive_tier);
@@ -6080,47 +6260,57 @@ async function showArtistPage(slug) {
                   : t.exclusive_tier === 'native' ? ' <span class="status-chip sc-native" style="font-size:.6rem">Native+</span>' : '';
     var mins = Math.floor((t.duration_seconds || 0) / 60), secs = (t.duration_seconds || 0) % 60;
     var dur = t.duration_seconds ? (mins + ':' + (secs < 10 ? '0' : '') + secs) : '';
+    var art = safeUrl(t.cover_url) || safeUrl(artist.avatar_url); // fall back to artist art, never an empty tile
     return '<div class="track-row' + (locked ? ' locked' : '') + '" onclick="playArtistPageTrack(this, ' + i + ')">' +
       '<div class="track-num">' + (i + 1) + '</div>' +
-      '<div class="track-art">' + (safeUrl(t.cover_url) ? '<img src="' + safeUrl(t.cover_url) + '" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:6px">' : '🎵') + '</div>' +
+      '<div class="track-art">' + (art ? '<img src="' + art + '" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:6px">' : '🎵') + '</div>' +
       '<div class="track-info"><div class="track-title">' + escapeHtml(t.title) + tierBadge + '</div>' +
         '<div class="track-feat">' + escapeHtml([t.featuring ? 'ft. ' + t.featuring : '', t.producer ? 'Prod. ' + t.producer : ''].filter(Boolean).join(' · ')) + '</div></div>' +
       '<div class="track-streams">' + fmtK(t.stream_count) + '</div>' +
       (dur ? '<div class="track-time">' + dur + '</div>' : '') +
     '</div>';
-  }).join('') : '<div style="color:var(--muted);font-size:.84rem;padding:.8rem 0">No live tracks yet — first drop coming.</div>';
+  }).join('') : '<div class="pf-empty">No live tracks yet — first drop coming.</div>';
+
+  var statBits = [
+    '<b>' + fmtK(artist.total_streams) + '</b> streams',
+    '<b>' + fmtK(artist.monthly_listeners) + '</b> monthly listeners',
+    '<b>' + _artistPageTracks.length + '</b> track' + (_artistPageTracks.length === 1 ? '' : 's')
+  ];
 
   el.innerHTML =
     '<div style="margin-bottom:.8rem"><a href="#" style="color:var(--muted);font-size:.78rem" onclick="showArtistDirectory();return false">← All artists</a></div>' +
-    '<div class="artist-spotlight">' +
-      '<div class="artist-banner" style="height:auto;min-height:96px;padding-bottom:1rem">' +
-        '<div class="artist-avatar">' + initial + '</div>' +
-        '<div style="flex:1">' +
-          '<div class="artist-banner-name">' + escapeHtml(artist.name) +
-            (artist.verified ? ' <span class="badge badge-orange" style="font-size:.6rem">✓ Verified</span>' : '') +
-            '<span id="artist-page-follow"></span></div>' +
-          '<div class="artist-banner-meta">' + escapeHtml([artist.genre, artist.city].filter(Boolean).join(' · ')) + '</div>' +
+    '<div class="pf">' +
+      profileHeroHtml({
+        name: artist.name, avatar_url: artist.avatar_url, banner_url: artist.banner_url,
+        verified: artist.verified,
+        meta: [artist.genre, artist.city || 'Phoenix'].filter(Boolean).join(' · ')
+      }) +
+      '<div class="pf-body">' +
+        '<div class="pf-actions">' +
+          (_artistPageTracks.length ? '<button class="pf-play" title="Play ' + escapeHtml(artist.name) + '" onclick="playArtistTop()">▶</button>' : '') +
+          '<button class="pf-btn' + (following ? ' on' : '') + '" id="artist-page-follow-btn" onclick="toggleFollowUI(\'artist\',\'' + artist.id + '\',this)">' +
+            (following ? '✓ Following' : '+ Follow') + '</button>' +
+          '<button class="pf-btn" onclick="shareArtistPage(\'' + escapeHtml(artist.slug) + '\',\'' + escapeHtml(artist.name).replace(/'/g, '') + '\')">↗ Share</button>' +
         '</div>' +
-      '</div>' +
-      '<div class="artist-body">' +
-        (artist.bio ? '<div style="font-size:.86rem;color:var(--muted);line-height:1.6;margin-bottom:1rem">' + escapeHtml(artist.bio) + '</div>' : '') +
-        '<div class="artist-stats">' +
-          '<div class="astat"><div class="astat-val">' + fmtK(artist.total_streams) + '</div><div class="astat-label">Total Streams</div></div>' +
-          '<div class="astat"><div class="astat-val">' + fmtK(artist.monthly_listeners) + '</div><div class="astat-label">Monthly Listeners</div></div>' +
-          '<div class="astat"><div class="astat-val">' + _artistPageTracks.length + '</div><div class="astat-label">Tracks</div></div>' +
-        '</div>' +
-        '<div style="display:flex;gap:.6rem;flex-wrap:wrap;margin-bottom:1rem">' +
-          (merchUrl && safeUrl(merchUrl) ? '<a class="tb-btn" style="font-size:.8rem;text-decoration:none" href="' + safeUrl(merchUrl) + '" target="_blank" rel="noopener">🛍️ Shop Merch</a>' : '') +
-          '<button class="tb-btn" style="font-size:.8rem" onclick="shareArtistPage(\'' + escapeHtml(artist.slug) + '\',\'' + escapeHtml(artist.name).replace(/'/g, '') + '\')">↗ Share</button>' +
-        '</div>' +
-        '<div class="sh" style="margin-bottom:.6rem"><h3 style="font-size:.82rem">Top Tracks</h3><span class="badge badge-orange">' + _artistPageTracks.length + ' live</span></div>' +
+        '<div class="pf-stats">' + statBits.join('<span class="dot">·</span>') + '</div>' +
+        (artist.bio ? '<div class="pf-bio">' + escapeHtml(artist.bio) + '</div>' : '') +
+        profileLinksHtml(artist.links) +
+        '<div class="pf-sec"><h3>Popular</h3><span class="badge badge-orange">' + _artistPageTracks.length + ' live</span></div>' +
         '<div class="track-list">' + trackRows + '</div>' +
+        '<div id="artist-merch-grid"></div>' +
       '</div>' +
-    '</div>' +
-    '<div id="artist-merch-grid"></div>';
+    '</div>';
 
-  var followSlot = document.getElementById('artist-page-follow');
-  if (followSlot) followSlot.innerHTML = followBtnHtml('artist', artist.id);
+  // Merch loads AFTER the container exists. Previously this fired before
+  // innerHTML was assigned, so it always bailed on a missing element and
+  // no products ever rendered.
+  if (artist.merch_enabled) loadArtistMerch(artist.id, merchUrl);
+}
+
+// Play button on the hero = start the artist's top track
+function playArtistTop() {
+  var row = document.querySelector('#artist-page-content .track-row:not(.locked)');
+  if (row) playArtistPageTrack(row, Array.prototype.indexOf.call(row.parentNode.children, row));
 }
 
 function playArtistPageTrack(el, idx) {
