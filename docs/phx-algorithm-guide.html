@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>PHX — How Algorithms Work &amp; What We Should Build</title>
+<style>
+:root{--bg:#07070F;--bg2:#0D0D18;--bg3:#12121F;--line:rgba(249,115,22,.16);--line2:rgba(255,255,255,.07);--orange:#F97316;--orange-l:#FB923C;--green:#22C55E;--gold:#EAB308;--red:#EF4444;--purple:#A78BFA;--white:#F1F1F8;--muted:#9CA3AF;--faint:#6B7280;--mono:ui-monospace,'SF Mono',Menlo,monospace}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--white);font-family:'Space Grotesk',system-ui,-apple-system,sans-serif;line-height:1.65;padding:2.4rem 1.2rem 6rem}
+.wrap{max-width:900px;margin:0 auto}
+h1{font-size:1.9rem;letter-spacing:-.025em;line-height:1.2}
+h1 span{color:var(--orange)}
+.sub{color:var(--muted);font-size:.95rem;margin:.6rem 0 2.4rem;max-width:660px}
+h2{font-size:1.25rem;margin:3.2rem 0 .4rem;letter-spacing:-.01em;padding-top:1.6rem;border-top:1px solid var(--line2)}
+h2 .n{color:var(--orange);font-family:var(--mono);font-size:.8rem;display:block;margin-bottom:.35rem;letter-spacing:.14em}
+h3{font-size:1rem;margin:1.9rem 0 .5rem;color:var(--orange-l)}
+p{color:var(--muted);font-size:.92rem;margin-bottom:.85rem}
+b,strong{color:var(--white);font-weight:600}
+em{color:var(--white);font-style:italic}
+.lede{font-size:1rem;color:var(--white);border-left:3px solid var(--orange);padding-left:1.1rem;margin:1.2rem 0 1.6rem}
+.card{background:var(--bg2);border:1px solid var(--line2);border-radius:14px;padding:1.3rem 1.4rem;margin:1.1rem 0}
+.card.hi{border-color:var(--line);background:linear-gradient(180deg,rgba(249,115,22,.05),transparent 60%),var(--bg2)}
+table{width:100%;border-collapse:collapse;font-size:.83rem;margin:.7rem 0}
+th{text-align:left;font-size:.62rem;letter-spacing:.11em;text-transform:uppercase;color:var(--faint);padding:.5rem .55rem;border-bottom:1px solid var(--line2);font-weight:600}
+td{padding:.55rem .55rem;border-bottom:1px solid rgba(255,255,255,.04);color:var(--muted);vertical-align:top}
+td b{color:var(--white)}
+tr.good td{background:rgba(34,197,94,.05)}
+tr.bad td{background:rgba(239,68,68,.045)}
+.flow{font-family:var(--mono);font-size:.75rem;line-height:1.85;background:var(--bg3);border:1px solid var(--line2);border-radius:10px;padding:1rem 1.15rem;overflow-x:auto;white-space:pre;color:var(--muted);margin:.8rem 0}
+.flow b{color:var(--orange-l)}
+.flow .g{color:var(--green)}
+.flow .r{color:var(--red)}
+code{font-family:var(--mono);font-size:.85em;background:var(--bg3);border:1px solid var(--line2);border-radius:5px;padding:.08em .38em;color:var(--orange-l)}
+.callout{border-left:3px solid var(--gold);background:rgba(234,179,8,.06);border-radius:0 10px 10px 0;padding:.9rem 1.1rem;margin:1.1rem 0;font-size:.88rem;color:var(--muted)}
+.callout b{color:var(--gold)}
+.callout.red{border-color:var(--red);background:rgba(239,68,68,.06)}
+.callout.red b{color:var(--red)}
+.callout.green{border-color:var(--green);background:rgba(34,197,94,.06)}
+.callout.green b{color:var(--green)}
+.stars{color:var(--orange);letter-spacing:-1px}
+.dim{color:var(--faint)}
+ul{margin:.5rem 0 1rem 1.1rem;color:var(--muted);font-size:.9rem}
+li{margin-bottom:.4rem}
+li::marker{color:var(--orange)}
+.giant{display:grid;grid-template-columns:88px 1fr;gap:1rem;padding:1rem 0;border-bottom:1px solid rgba(255,255,255,.05);align-items:start}
+.giant:last-child{border-bottom:none}
+.giant .name{font-weight:700;font-size:.92rem;color:var(--white);padding-top:.1rem}
+.giant .name small{display:block;font-weight:400;font-size:.66rem;color:var(--faint);letter-spacing:.06em;text-transform:uppercase;margin-top:.15rem}
+.steal{display:inline-block;font-size:.68rem;background:rgba(249,115,22,.14);border:1px solid var(--line);color:var(--orange-l);border-radius:5px;padding:.12rem .5rem;margin-top:.35rem}
+.opt{border:1px solid var(--line2);border-radius:14px;padding:1.2rem 1.35rem;margin:1rem 0;background:var(--bg2)}
+.opt.rec{border-color:var(--orange);background:linear-gradient(180deg,rgba(249,115,22,.07),transparent 55%),var(--bg2)}
+.opt h4{font-size:1.02rem;margin-bottom:.15rem}
+.opt .tag{font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);margin-bottom:.7rem}
+.opt.rec .tag{color:var(--orange)}
+.meta{display:flex;gap:1.6rem;flex-wrap:wrap;margin-top:.9rem;padding-top:.8rem;border-top:1px solid rgba(255,255,255,.06);font-size:.78rem}
+.meta div span{display:block;font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);margin-bottom:.1rem}
+.meta div b{color:var(--white);font-family:var(--mono);font-weight:600}
+.stage{display:grid;grid-template-columns:130px 1fr;gap:1.1rem;padding:1.1rem 0;border-bottom:1px solid rgba(255,255,255,.05)}
+.stage:last-child{border-bottom:none}
+.stage .when{font-family:var(--mono);font-size:.74rem;color:var(--orange);line-height:1.5}
+.stage .when b{display:block;color:var(--white);font-size:.86rem;font-family:'Space Grotesk',sans-serif;margin-bottom:.2rem}
+.q{background:var(--bg3);border:1px solid var(--line);border-radius:12px;padding:1.1rem 1.25rem;margin:.9rem 0}
+.q .qh{font-weight:600;color:var(--white);font-size:.95rem;margin-bottom:.5rem}
+a{color:var(--orange-l)}
+.foot{margin-top:3rem;padding-top:1.4rem;border-top:1px solid var(--line2);font-size:.76rem;color:var(--faint)}
+@media(max-width:620px){.giant,.stage{grid-template-columns:1fr;gap:.4rem}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>How <span>algorithms</span> actually work<br>— and what PHX should build</h1>
+<p class="sub">A plain-language breakdown of what Spotify, TikTok, YouTube, Instagram and Netflix are really doing, which techniques exist, how much data each one needs before it works at all, and three concrete options for PHX. Written for a founder, detailed enough for a developer.</p>
+
+<h2><span class="n">01</span>What an "algorithm" actually is</h2>
+
+<p class="lede">An algorithm is not artificial intelligence. It's a <b>scoring formula</b>. For every possible thing you could show someone, you calculate a number, then you sort by that number. That's the whole idea. Everything else is detail about how the number gets calculated.</p>
+
+<p>The thing people call "the TikTok algorithm" is literally an equation that was leaked to the New York Times in 2021, and it looks like this:</p>
+
+<div class="flow">score = P(like) × <b>V_like</b>  +  P(comment) × <b>V_comment</b>
+      + E(watch time) × <b>V_watch</b>  +  P(play) × <b>V_play</b>
+
+  P = predicted chance you'll do that thing
+  E = expected amount (seconds watched)
+  <b>V = how much the company decides that action is WORTH</b></div>
+
+<p>Two halves. The <b>P</b> values are predictions — that's the machine-learning part, and it's a commodity. The <b>V</b> values are hand-typed by humans in a meeting. <b>That second half is a values statement, not a technical decision.</b> When Facebook weighted "reshares" 30× a like in 2018, that one number is what made the platform angrier. They quietly cut it to 1.5× in 2020.</p>
+
+<p>So when you ask "should we add an algorithm," the real question is: <em>what do we want to be worth the most?</em> That's a question only you can answer, and I'll ask it properly at the end.</p>
+
+<h3>The universal three-stage shape</h3>
+<p>Every single platform below uses the same pipeline. YouTube named it in 2016 and everyone copied it:</p>
+
+<div class="flow"><b>1. CANDIDATE GENERATION</b>   millions of items → a few hundred
+   fast, cheap, sloppy. "what's even eligible?"
+
+<b>2. RANKING</b>                score those few hundred carefully
+   this is where the P × V formula lives
+
+<b>3. RE-RANKING / POLICY</b>    the rules you apply on top
+   no two songs by the same artist in a row,
+   force in something new, remove stuff they hid</div>
+
+<div class="callout"><b>Where PHX sits:</b> with 6 tracks, stage 1 is <code>SELECT * FROM tracks</code>. Your entire game for the next year is stages 2 and 3 — and stage 3 (the rules layer) is where your brand actually lives.</div>
+
+<h2><span class="n">02</span>What the giants do — and the one thing to steal from each</h2>
+
+<div class="card">
+
+<div class="giant">
+  <div class="name">Spotify<small>Music</small></div>
+  <div>
+    <p>Not one algorithm — a <b>portfolio</b>. A "bandit" system called <b>BaRT</b> decides which shelf appears where on your homepage. Underneath, three separate engines feed it: what people play together, what people <em>write</em> in playlist titles and blogs, and what the audio physically sounds like. Discover Weekly is 30 tracks rebuilt every Monday; there's no way to pitch into it. A skip before 30 seconds is a strong negative signal; a skip near the end is roughly neutral.</p>
+    <p>Their cold-start answer for unknown artists is the important part: they trained a neural net to <b>listen to the audio and predict where a song would sit in the recommendation space</b>, so a track with zero plays is still recommendable on day one.</p>
+    <div class="steal">STEAL: audio-based cold start · editorial + algorithm hybrid ("algotorial")</div>
+  </div>
+</div>
+
+<div class="giant">
+  <div class="name">TikTok<small>Short video</small></div>
+  <div>
+    <p>Two bets nobody else made. First, <b>it ignores who you follow</b> — TikTok states outright that follower count is not a direct ranking factor. It's an <em>interest graph</em>, not a social graph. That's why an unknown creator can go viral, which is exactly the property PHX needs for unknown Phoenix artists. Second, they rebuilt the training system (published as <b>Monolith</b>) so the model updates from your behavior in <em>minutes</em> instead of days.</p>
+    <p>Their #1 signal is stated plainly: <b>watching something all the way through</b> outweighs everything else. New videos get shown to a small test audience; if completion and share rates clear a bar, it gets promoted to a bigger pool. Repeat. That's a bandit with successive elimination — and it's cheap to copy.</p>
+    <div class="steal">STEAL: completion rate as king · small-test-audience promotion · no two in a row from same creator</div>
+  </div>
+</div>
+
+<div class="giant">
+  <div class="name">YouTube<small>Video</small></div>
+  <div>
+    <p>The most-copied recommendation paper ever written (Covington et al., 2016). Two neural nets in sequence — one narrows millions to hundreds, one ranks those carefully. The famous lesson: <b>they stopped optimizing for clicks because it produced clickbait</b>, and switched to expected watch time. That single change was worth more than most model improvements.</p>
+    <p>Their most transferable trick is called <b>"example age."</b> Models trained on history are structurally biased against new content — they learn what was popular, which by definition excludes what just came out. The fix is one line: feed the age of each training example in as a feature, then set it to zero when you're actually recommending. The model then predicts "how hot would this be if it were brand new."</p>
+    <div class="steal">STEAL: freshness correction · the "shown to you and ignored" penalty (demotes what you keep scrolling past)</div>
+  </div>
+</div>
+
+<div class="giant">
+  <div class="name">Instagram<small>Feed &amp; Reels</small></div>
+  <div>
+    <p>The clearest published version of the P × V "value model." A dozen small models each predict one thing — will you like it, comment, share, watch it through, hide it, report it — and those predictions get multiplied by business weights and summed. Mosseri stated the top three signals in 2025: <b>watch time, then likes, then sends</b>. Notably comments did <em>not</em> make the top three.</p>
+    <p>The single most useful recent finding for a small team: Meta discovered that engagement ≠ satisfaction, so they started <b>asking people directly</b> — a one-question survey on a small fraction of sessions ("does this match your interests?" 1–5). Training on that lifted model accuracy from 59% to 71% and engagement 5.2%.</p>
+    <div class="steal">STEAL: the 👍/👎 "was this a good rec?" survey — at your data volume, one explicit answer is worth ~100 implicit signals</div>
+  </div>
+</div>
+
+<div class="giant">
+  <div class="name">Netflix<small>Video</small></div>
+  <div>
+    <p>Their insight: <b>the whole page is the recommendation</b> — not just the titles, but which rows appear, in what order, and even which thumbnail image you personally see. Every row on the homepage is a different algorithm (Trending Now, Because You Watched, Continue Watching, each its own model).</p>
+    <p>They're candid that the system <b>struggles with brand-new members</b>, which is why signup starts with a taste survey. And they publish a metric PHX should adopt outright: <b>Effective Catalog Size</b> — how much of the catalog actually gets watched. Personalization made members reach ~4× more of the library. For a platform whose <em>mission</em> is getting local artists heard, that's the number that proves you're working.</p>
+    <div class="steal">STEAL: shelves as the unit · signup taste picker · Effective Catalog Size as a north star</div>
+  </div>
+</div>
+
+</div>
+
+<h3>What all five have in common</h3>
+<ul>
+<li>Every one predicts <b>several different actions</b> and combines them with hand-set weights. Nobody optimizes a single number end to end.</li>
+<li>Every one has an explicit <b>freshness correction</b>, because a model trained on the past is automatically biased against anything new.</li>
+<li>Every one applies <b>diversity rules as hard constraints after ranking</b> — not as part of the math, as a rule bolted on top.</li>
+<li>Every one's cold-start answer is ultimately <b>content features + humans + forced exploration</b>. There is no clever math that escapes this.</li>
+</ul>
+
+<h2><span class="n">03</span>The technique ladder — and how much data each needs</h2>
+
+<p>This is the part that matters most for you, because most of these <b>cannot work yet</b>. Recommendation techniques have hard data floors. Below the floor they don't degrade gracefully — they output noise that looks like a working feature.</p>
+
+<table>
+<tr><th>Technique</th><th>In plain terms</th><th>Data needed</th><th>Build</th><th>Worth it today?</th></tr>
+<tr class="good"><td><b>Weighted scoring</b></td><td>You write down what makes a good rec as arithmetic and tune it by hand</td><td><b>none</b></td><td>1–3 days</td><td class="stars">★★★★★</td></tr>
+<tr class="good"><td><b>Popularity + time decay</b></td><td>Popular <em>right now</em> beats popular last year. Hacker News / Reddit math</td><td>~50 items</td><td>1 day</td><td class="stars">★★★★★</td></tr>
+<tr class="good"><td><b>Exploration (bandits)</b></td><td>Deliberately spend some slots on unknowns so you can discover hits</td><td><b>none</b> — this IS the no-data answer</td><td>2–4 days</td><td class="stars">★★★★★</td></tr>
+<tr class="good"><td><b>Audio embeddings</b></td><td>Turn each song into 512 numbers describing how it sounds → "sounds like this"</td><td><b>0 users</b>, just a catalog</td><td>2–5 days</td><td class="stars">★★★★★</td></tr>
+<tr><td><b>Item-item co-occurrence</b></td><td>"People who played X also played Y." You already have a version of this</td><td>~50 users × 20 tracks; 1,000+ co-play pairs</td><td>1–2 days</td><td class="dim">★★☆☆☆ noise until ~5k events</td></tr>
+<tr class="bad"><td><b>Matrix factorization</b> (LightFM/ALS)</td><td>Compress users and songs into ~50 hidden numbers each. Finds genres nobody labeled</td><td><b>10,000+ interactions, 1,000+ users</b></td><td>3–7 days + worker</td><td class="dim">☆☆☆☆☆ not close</td></tr>
+<tr class="bad"><td><b>Two-tower neural retrieval</b></td><td>The modern standard at scale. Two neural nets whose outputs multiply</td><td><b>~1,000,000 interactions</b></td><td>3–6 weeks</td><td class="dim">☆☆☆☆☆ not close</td></tr>
+<tr><td><b>LLM ranking</b> (Claude/GPT picks songs)</td><td>Ask an AI to rank. Tempting because it needs no data</td><td>any</td><td>2–5 days</td><td class="dim">★★★★☆ <em>as a curator only</em> — see below</td></tr>
+</table>
+
+<div class="callout red"><b>The most important number in this whole document.</b> A 2026 study tested LLM-based ranking against the dumbest possible baseline — just sorting by popularity. Popularity won by <b>33×</b> (hit rate 0.268 vs 0.008), was <b>360× faster</b>, and worst of all the LLM collapsed exposure: across 500 users it recommended only <b>3 unique songs</b> as the top result. For a platform whose entire mission is spreading plays across local artists, that failure mode is fatal. Separately, an engineer benchmarked a real Postgres recommender on 800k interactions: content embeddings <em>lost to popularity</em>, and a plain <code>GROUP BY</code> co-occurrence query beat the embeddings by 3.4×. <b>Simple wins. Ship SQL first.</b></div>
+
+<div class="callout green"><b>Where LLMs genuinely do help:</b> not in the live ranking loop, but offline — auto-tagging your catalog (genre, mood, "sounds like" — about a tenth of a cent per track), generating weekly playlist <em>ideas</em> for you to approve, writing the "why you're seeing this" copy, and turning a typed vibe ("dusty desert night drive") into a search. The LLM does language; the database does ranking.</div>
+
+<h2><span class="n">04</span>The honest truth about PHX right now</h2>
+
+<div class="card hi">
+<p style="color:var(--white);font-size:1rem;margin-bottom:.6rem"><b>You have 6 tracks, 2 artists, and 14 streams.</b></p>
+<p>There is no algorithm on earth that produces a meaningful recommendation from that. With 6 tracks you can put all 6 on one screen. Collaborative filtering needs overlapping behavior between many users, and you have essentially none. The LightFM script sitting in <code>/ml</code> cannot work — archive it.</p>
+<p style="margin-bottom:0">So the right move isn't "add an algorithm." It's <b>instrument now, curate now, and climb the ladder as the numbers grow.</b> Every company above will tell you the same thing: the model is a commodity, the behavioral log is the moat.</p>
+</div>
+
+<div class="callout"><b>The single most urgent gap:</b> PHX logs plays but not <b>impressions</b> — what was shown and <em>not</em> played. Without a denominator you cannot compute a single rate: not completion rate, not click-through, nothing. YouTube's most predictive feature was literally "how many times has this been shown to this user and ignored." This is ~2 days of work and everything else depends on it. If you do one thing from this document, do this.</div>
+
+<h3>Your actual competitive advantage is not algorithmic</h3>
+<p>It's the <b>Phoenix scene graph</b> — which artists play the same venues, share bills, run in the same collectives, who's playing Friday at Valley Bar, which neighborhood a listener lives in. Spotify cannot build that for Phoenix and never will, because there's no money in it for them. Encoded as ranking features, that data will outperform any model you could train, and it's hand-buildable at 2 artists and still works at 200.</p>
+
+<h2><span class="n">05</span>Three options for how PHX's algorithm should work</h2>
+
+<div class="opt rec">
+<div class="tag">★ Recommended</div>
+<h4>Option A — "The Curated City"</h4>
+<p>Hand-built shelves that a light algorithm personalizes. Netflix's structure at 1/1000th the complexity. You define 5–8 named rows — <em>New This Week in Phoenix · Playing Live This Weekend · Because You Follow [Artist] · Deep Cuts (under 50 plays) · Sounds Like [track] · Staff Picks</em> — and each one is a SQL query. The "algorithm" decides which rows you see first and what order items sit in inside them.</p>
+<p>Every feed reserves slots: roughly <b>14 proven · 4 exploration · 2 editorial</b> out of 20. Every new track gets a guaranteed floor of impressions before the system is allowed to judge it — TikTok's test-audience mechanic, which doubles as a marketable promise: <em>"every track gets its first 200 listeners."</em></p>
+<div class="meta">
+<div><span>Effort</span><b>~7 days</b></div><div><span>Data needed</span><b>none</b></div><div><span>Runs in</span><b>Supabase SQL</b></div><div><span>Explainable</span><b>completely</b></div>
+</div>
+</div>
+
+<div class="opt">
+<div class="tag">Add at ~100 users / 100+ tracks</div>
+<h4>Option B — "Sounds Like Phoenix"</h4>
+<p>Option A plus <b>audio fingerprinting</b>. Every track gets run through a music-embedding model (CLAP or MuQ-MuLan) once on upload, producing 512 numbers describing how it sounds. Stored in Postgres via pgvector. This solves cold start completely — a track uploaded five minutes ago with zero plays is instantly recommendable next to things that sound like it.</p>
+<p>It also unlocks two things for free: <b>semantic search</b> ("downtempo desert night drive" typed as text, matched against audio), and <b>onboarding taste picking</b> — pick 3 artists at signup and you get real recommendations in your first session. Cost is roughly zero; it's a one-time batch job that runs on a laptop.</p>
+<div class="meta">
+<div><span>Effort</span><b>+10 days</b></div><div><span>Data needed</span><b>a catalog, not users</b></div><div><span>Runs in</span><b>pgvector + 1 script</b></div><div><span>Cost</span><b>~$0</b></div>
+</div>
+</div>
+
+<div class="opt">
+<div class="tag">Add at ~1,000 users</div>
+<h4>Option C — "The Interest Graph"</h4>
+<p>Behavioral signal finally comes online. Upgrade the existing co-occurrence recommender with proper normalization (so it stops just returning the most popular track every time), run the same query over <b>follows</b> — which accumulate faster than plays — and hand-build the artist knowledge graph: same venue, same bill, same collective. Then fit small prediction models for each objective and let them replace the hand-typed guesses in the scoring formula.</p>
+<p>This is where you'd also add an evaluation harness, because past this point you cannot tell whether a change helped without measuring it. Rule from the research: if your fancy model doesn't beat plain popularity on a holdout test, <b>ship the popularity baseline.</b></p>
+<div class="meta">
+<div><span>Effort</span><b>+15–22 days</b></div><div><span>Data needed</span><b>~10k interactions</b></div><div><span>Runs in</span><b>SQL + nightly worker</b></div><div><span>Prereq</span><b>impression logs</b></div>
+</div>
+</div>
+
+<h2><span class="n">06</span>The build ladder</h2>
+
+<div class="card">
+<div class="stage">
+<div class="when"><b>Stage 0</b>Now<br>0–50 users</div>
+<div><p style="margin-bottom:.4rem"><b>Instrument and curate. Build no algorithm.</b></p><p style="margin-bottom:0">Impression logging · guarantee completion % on every play · the 👍/👎 rec survey · 5–6 editorial shelves · popularity + decay math · a <code>ranking_weights</code> table so weights change without a deploy · design defaults locked in (no autoplay, finite feeds, no streaks). <b>Success metric: clean logs. Nothing else.</b></p></div>
+</div>
+<div class="stage">
+<div class="when"><b>Stage 1</b>~100 users<br>100–300 tracks</div>
+<div><p style="margin-bottom:.4rem"><b>Audio embeddings + exploration slots. This is the real launch config.</b></p><p style="margin-bottom:0">Embed the catalog · taste picker at signup · 14/4/2 exploit-explore-editorial split · guaranteed impression floor for new tracks · diversity rules · "why you're seeing this" strings · LLM auto-tagging · freshness boost.</p></div>
+</div>
+<div class="stage">
+<div class="when"><b>Stage 2</b>~1,000 users<br>500+ tracks</div>
+<div><p style="margin-bottom:.4rem"><b>Behavioral signal comes online.</b></p><p style="margin-bottom:0">Normalized co-occurrence · follow-graph similarity · Phoenix venue/bill knowledge graph · learned prediction models feeding the value formula · tuned hybrid blend · offline evaluation harness · LLM weekly playlist drafts.</p></div>
+</div>
+<div class="stage">
+<div class="when"><b>Stage 3</b>~10,000 users<br>5,000+ tracks</div>
+<div><p style="margin-bottom:.4rem"><b>Real ML, real infrastructure.</b></p><p style="margin-bottom:0">Matrix factorization nightly on a worker · multi-objective ranking model · Thompson sampling · proper A/B framework · two-stage funnel · bandit-ordered shelves. Still <em>not</em> a two-tower neural net — that needs a million interactions.</p></div>
+</div>
+</div>
+
+<h2><span class="n">07</span>The part nobody warns you about</h2>
+
+<p>Engagement-optimizing design is being <b>actively litigated right now</b>. The federal social-media addiction case (MDL 3047) has ~2,900 pending cases; Snap and TikTok settled bellwethers in January 2026, and in March a jury hit Meta and Google for $6M including punitive damages. Section 230 protects you as a publisher of other people's content — it does <b>not</b> protect your own product design. Arizona is a bellwether district.</p>
+
+<p>The specific features being called defective read like a list of what not to build: infinite scroll, variable-reward notifications, autoplay, streaks, public follower counts, engagement-optimized feeds, and weak age gating.</p>
+
+<div class="callout green"><b>The good news:</b> every defensive choice here also makes PHX better and costs nothing today. Finite named sets that actually end ("This Week's 25," "Tonight in Phoenix") are easier to rank well with little data. Notifications on real events (an artist you follow dropped something) instead of "we noticed you haven't opened the app." Diversity floors that stop one artist eating the feed — which is your mission anyway. A chronological toggle. And an honest <b>"why am I seeing this?"</b> that shows the actual arithmetic — <em>which you can only do because you chose simple algorithms.</em> Nobody at Spotify's scale can be that honest. It's the same "with receipts" brand promise, applied to discovery.</div>
+
+<h2><span class="n">08</span>What I need you to decide</h2>
+
+<p>These are the calls that are yours, not mine. They set the <b>V</b> values in the formula — the values statement.</p>
+
+<div class="q"><div class="qh">1. What should the feed optimize for?</div><p style="margin-bottom:0">Options: time spent (what everyone else does, and what's being litigated) · <b>artists discovered per person</b> · follows and saves · money reaching artists · tickets and merch clicked. My recommendation is a blend led by <em>discovery breadth</em>, because it's the only one that matches "we get local artists heard" and it's defensible in a courtroom.</p></div>
+
+<div class="q"><div class="qh">2. How aggressively do we force exposure for new/small artists?</div><p style="margin-bottom:0">A guaranteed impression floor is a fairness promise you can market, but it costs feed quality. Options: every track gets its first 100 / 200 / 500 listeners guaranteed — or no floor, purely merit-based.</p></div>
+
+<div class="q"><div class="qh">3. Does an artist's payout ever affect their ranking?</div><p style="margin-bottom:0">Spotify sells this (Discovery Mode: lower royalty rate in exchange for algorithmic promotion). It's real revenue and it's also exactly the kind of thing PHX's brand is positioned <em>against</em>. My strong recommendation is never — and to say so publicly, loudly.</p></div>
+
+<div class="q"><div class="qh">4. Do we ship "why am I seeing this?"</div><p style="margin-bottom:0">It's a genuine differentiator you can only offer while the algorithm is simple, and it extends the receipt brand into discovery. Costs about a day and a half at Stage 1.</p></div>
+
+<p class="foot">Sources: TikTok Newsroom &amp; the leaked "Algo 101" scoring doc (NYT, 2021) · <i>Monolith</i>, ByteDance (arXiv 2209.07663) · Covington et al., <i>Deep Neural Networks for YouTube Recommendations</i> (RecSys 2016) · McInerney et al., <i>Explore, Exploit, Explain</i> — Spotify BaRT (RecSys 2018) · Dieleman, <i>Recommending music on Spotify with deep learning</i> (2014) · Gomez-Uribe &amp; Hunt, <i>The Netflix Recommender System</i> (ACM TMIS 2015) · Meta Transparency Center system cards &amp; Mosseri's 2025 signal ranking · Meta Engineering, <i>Adapting Facebook Reels RecSys Based on User Feedback</i> (Jan 2026) · <i>Diagnosing LLM-based Rerankers in Cold-Start Recommender Systems</i> (arXiv 2604.16318) · Alonso, <i>I Built a Recommendation Engine in Pure Postgres</i> · MDL 3047 docket tracking, July 2026.</p>
+
+</div>
+</body>
+</html>

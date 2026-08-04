@@ -3969,6 +3969,29 @@ function playForYouTrack(idx, el) {
   }, 1200);
 }());
 
+// ── DEEP LINK: /app?artist=<slug> — where the static /a/<slug> pages land ──
+// The generated artist pages (scripts/build-artist-pages.mjs) carry the OG
+// tags for link previews, then bounce real browsers here.
+(function() {
+  var params = new URLSearchParams(window.location.search);
+  var slug = params.get('artist');
+  if (!slug) return;
+  setTimeout(function() {
+    if (typeof showArtistPage === 'function') showArtistPage(slug);
+  }, 600);
+}());
+
+// ── HASH ROUTE: #artist/<slug> — makes shared in-app links restorable ─────
+(function() {
+  var h = (window.location.hash || '').replace(/^#/, '');
+  if (h.indexOf('artist/') !== 0) return;
+  var slug = h.slice('artist/'.length);
+  if (!slug) return;
+  setTimeout(function() {
+    if (typeof showArtistPage === 'function') showArtistPage(slug);
+  }, 600);
+}());
+
 // ── TRACK SUBMISSION ────────────────────────────────────────────────────
 function handleFileSelect(input) {
   var files = Array.prototype.slice.call(input.files || []);

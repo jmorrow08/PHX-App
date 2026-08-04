@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>PHX — Build Board</title>
+<style>
+:root{--bg:#07070F;--bg2:#0D0D18;--bg3:#12121F;--line:rgba(249,115,22,.16);--line2:rgba(255,255,255,.07);--orange:#F97316;--orange-l:#FB923C;--green:#22C55E;--gold:#EAB308;--red:#EF4444;--purple:#A78BFA;--white:#F1F1F8;--muted:#9CA3AF;--faint:#6B7280;--mono:ui-monospace,'SF Mono',Menlo,monospace}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--white);font-family:'Space Grotesk',system-ui,-apple-system,sans-serif;line-height:1.6;padding:2.2rem 1.1rem 5rem}
+.wrap{max-width:940px;margin:0 auto}
+h1{font-size:1.75rem;letter-spacing:-.025em}
+h1 span{color:var(--orange)}
+.sub{color:var(--muted);font-size:.92rem;margin:.5rem 0 2rem;max-width:620px}
+h2{font-size:1.15rem;margin:2.8rem 0 .9rem;padding-top:1.4rem;border-top:1px solid var(--line2);display:flex;align-items:center;gap:.6rem}
+h2 .dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+h3{font-size:.78rem;letter-spacing:.11em;text-transform:uppercase;color:var(--faint);margin:1.4rem 0 .6rem;font-weight:600}
+p{color:var(--muted);font-size:.9rem;margin-bottom:.8rem}
+b{color:var(--white);font-weight:600}
+code{font-family:var(--mono);font-size:.85em;background:var(--bg3);border:1px solid var(--line2);border-radius:5px;padding:.08em .38em;color:var(--orange-l)}
+.row{display:grid;grid-template-columns:26px 1fr auto;gap:.85rem;padding:.7rem .9rem;border-radius:10px;align-items:start;margin-bottom:.4rem;background:var(--bg2);border:1px solid var(--line2)}
+.row .ico{font-size:.95rem;line-height:1.45}
+.row .body strong{display:block;color:var(--white);font-size:.92rem;font-weight:600;margin-bottom:.12rem}
+.row .body span{font-size:.82rem;color:var(--muted)}
+.row .tag{font-family:var(--mono);font-size:.66rem;color:var(--faint);white-space:nowrap;padding-top:.2rem}
+.row.done{background:rgba(34,197,94,.055);border-color:rgba(34,197,94,.18)}
+.row.next{background:linear-gradient(90deg,rgba(249,115,22,.08),transparent 70%);border-color:var(--line)}
+.row.dead{opacity:.62}
+.num{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:6px;background:var(--orange);color:#07070F;font-size:.74rem;font-weight:700;font-family:var(--mono)}
+.card{background:var(--bg2);border:1px solid var(--line2);border-radius:14px;padding:1.15rem 1.3rem;margin:1rem 0}
+.card.hi{border-color:var(--line);background:linear-gradient(180deg,rgba(249,115,22,.06),transparent 55%),var(--bg2)}
+.card.warn{border-left:3px solid var(--gold);border-radius:0 12px 12px 0;background:rgba(234,179,8,.05)}
+.card.warn b{color:var(--gold)}
+.card h4{font-size:1rem;margin-bottom:.4rem}
+table{width:100%;border-collapse:collapse;font-size:.83rem;margin:.6rem 0}
+th{text-align:left;font-size:.6rem;letter-spacing:.11em;text-transform:uppercase;color:var(--faint);padding:.45rem .5rem;border-bottom:1px solid var(--line2)}
+td{padding:.5rem .5rem;border-bottom:1px solid rgba(255,255,255,.04);color:var(--muted);vertical-align:top}
+td b{color:var(--white)}
+.kpi{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:.7rem;margin:1rem 0}
+.kpi div{background:var(--bg3);border:1px solid var(--line2);border-radius:10px;padding:.65rem .8rem}
+.kpi .k{font-size:.58rem;letter-spacing:.11em;text-transform:uppercase;color:var(--faint)}
+.kpi .v{font-family:var(--mono);font-size:1.15rem;font-weight:600;margin-top:.1rem}
+ul{margin:.4rem 0 .9rem 1.05rem;color:var(--muted);font-size:.88rem}
+li{margin-bottom:.32rem}
+li::marker{color:var(--orange)}
+.foot{margin-top:2.6rem;padding-top:1.2rem;border-top:1px solid var(--line2);font-size:.75rem;color:var(--faint)}
+@media(max-width:600px){.row{grid-template-columns:22px 1fr}.row .tag{grid-column:2;padding-top:.3rem}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>PHX <span>Build Board</span></h1>
+<p class="sub">Where everything stands as of August 3, 2026. Green is shipped and verified. Orange is next. Grey is deliberately parked, with the reason.</p>
+
+<div class="kpi">
+  <div><div class="k">Migrations</div><div class="v">44</div></div>
+  <div><div class="k">Artists</div><div class="v">2</div></div>
+  <div><div class="k">Live tracks</div><div class="v">6</div></div>
+  <div><div class="k">Streams</div><div class="v">14</div></div>
+  <div><div class="k">Paying subs</div><div class="v" style="color:var(--red)">0</div></div>
+  <div><div class="k">Security errors</div><div class="v" style="color:var(--green)">0</div></div>
+</div>
+
+<!-- ───────────────────────── BUILT ───────────────────────── -->
+<h2><span class="dot" style="background:var(--green)"></span>Built &amp; verified</h2>
+
+<h3>Security — all closed</h3>
+<div class="row done"><div class="ico">✓</div><div class="body"><strong>Bootstrap mode closed</strong><span>You're Super Admin. Admin actions now require your login — the anon key can't approve tracks or touch payouts.</span></div><div class="tag">verified</div></div>
+<div class="row done"><div class="ico">✓</div><div class="body"><strong>Audio locked down</strong><span>track-audio bucket is private; playback goes through the <code>sign-audio</code> edge function with short-lived URLs.</span></div><div class="tag">verified</div></div>
+<div class="row done"><div class="ico">✓</div><div class="body"><strong>Merch token leak fixed</strong><span>I'd put the Fourthwall token on a publicly-readable table. Secrets moved to <code>artist_merch_secrets</code> — service-role only. My bug, closed.</span></div><div class="tag">today</div></div>
+<div class="row done"><div class="ico">✓</div><div class="body"><strong>Database hardening</strong><span>3 ERROR-level advisories cleared, search_path pinned on 26 functions, always-true RLS policies dropped, payout function revoked from anon.</span></div><div class="tag">0 errors</div></div>
+
+<h3>The app itself</h3>
+<div class="row done"><div class="ico">✓</div><div class="body"><strong>Auth, roles, artist pages, feed, upload → approve → live</strong><span>Real login, role from the database, public shareable artist pages, cover art, album/multi-track upload, listen-time capture, notifications, push, moderation, admin dashboards.</span></div><div class="tag">shipped</div></div>
+<div class="row done"><div class="ico">✓</div><div class="body"><strong>Payout engine</strong><span>Wallet + pot math, monthly run, Net-60, fraud caps (30s threshold, 60/hr, 1,000 counted streams/user/month). Calculates correctly; can't pay out until Stripe exists.</span></div><div class="tag">needs Stripe</div></div>
+<div class="row done"><div class="ico">✓</div><div class="body"><strong>Redesign live</strong><span>New app + landing page, transparency copy adjusted so the 50/50 split isn't shown to members.</span></div><div class="tag">shipped</div></div>
+
+<h3>Ranking foundation — built today</h3>
+<div class="row done"><div class="ico">✓</div><div class="body"><strong>Impression logging</strong><span><code>impression_events</code> + batched writer. This is the denominator you were missing — without it no rate (completion %, skip rate) could be calculated at all.</span></div><div class="tag">today</div></div>
+<div class="row done"><div class="ico">✓</div><div class="body"><strong>Ranking weights as data</strong><span>Your chosen objective stored in <code>ranking_weights</code> v1 — change the numbers without a deploy, and every impression gets stamped with the version that produced it.</span></div><div class="tag">today</div></div>
+<div class="row done"><div class="ico">✓</div><div class="body"><strong>Feed assembler</strong><span><code>get_ranked_tracks()</code> — exploit/explore/editorial slots, max 2 tracks per artist, your 200-listener floor enforced, and a plain-English reason on every item. Tested: returns "Needs its first 200 listeners."</span></div><div class="tag">today</div></div>
+<div class="row done"><div class="ico">✓</div><div class="body"><strong>6 editorial shelves + the math</strong><span>Wilson bounds, freshness decay, per-track signal rollup. Shelves seeded including "Needs Its First 200."</span></div><div class="tag">today</div></div>
+
+<!-- ───────────────────────── NEXT ───────────────────────── -->
+<h2><span class="dot" style="background:var(--orange)"></span>Next, in order</h2>
+
+<div class="row next"><div class="ico"><span class="num">1</span></div><div class="body"><strong>Open a separate Stripe account for PHX</strong><span>Same login, same Lytbub EIN, DBA "PHX." Then sandboxes + test clocks to simulate 6 months of billing before real money. <b>Blocks everything financial.</b></span></div><div class="tag">2 hrs (you)</div></div>
+<div class="row next"><div class="ico"><span class="num">2</span></div><div class="body"><strong>Per-artist link previews (OG tags)</strong><span>Instagram doesn't run JavaScript, so every bio link Murkemz posts today shows a blank card. Build-time HTML generation per artist.</span></div><div class="tag">~1 day</div></div>
+<div class="row next"><div class="ico"><span class="num">3</span></div><div class="body"><strong>Wire the client to the ranking</strong><span>Log impressions on render, call <code>get_ranked_tracks</code>, show the "why you're seeing this" line. Database side is already live.</span></div><div class="tag">~2 days</div></div>
+<div class="row next"><div class="ico"><span class="num">4</span></div><div class="body"><strong>Murkemz's Fourthwall shop → apply for Partner Dashboard</strong><span>You need one live shop to qualify. Partner Dashboard is how one operator runs many artist stores and earns commission.</span></div><div class="tag">1 hr (you)</div></div>
+<div class="row next"><div class="ico"><span class="num">5</span></div><div class="body"><strong>Merch UI — both fulfilment types</strong><span>POD dropship <em>and</em> artist-shipped inventory, admin-managed. Plus product tagging in posts as reviews (see below).</span></div><div class="tag">~4 days</div></div>
+<div class="row next"><div class="ico"><span class="num">6</span></div><div class="body"><strong>Referral system</strong><span>Build it, don't buy it — 6–10 hours in Supabase vs $49/mo for a tool serving zero affiliates.</span></div><div class="tag">~1 day</div></div>
+<div class="row next"><div class="ico"><span class="num">7</span></div><div class="body"><strong>PHX → Lytbub HQ monitoring</strong><span>HQ's <code>/api/site-event</code> endpoint already accepts events — zero HQ changes needed. Plus drop PHX's URL in a clients row for free uptime checks.</span></div><div class="tag">½ day</div></div>
+
+<!-- ───────────────────────── ANSWERS ───────────────────────── -->
+<h2><span class="dot" style="background:var(--purple)"></span>Today's questions</h2>
+
+<div class="card hi">
+<h4>Stripe: new account, not piggyback</h4>
+<p>You <em>may</em> legally use Lytbub's account — Stripe's rule is one account per legal entity, and PHX is currently Lytbub Technologies LLC. But don't. The deciding reason: as a marketplace you must accept liability for negative balances, and <b>Stripe can hold reserves on your platform account for up to 180 days</b>. One bad month on PHX would freeze the cash that pays Lytbub's contractors.</p>
+<p>Also: PHX is a "content platform" on Stripe's restricted list and needs pre-approval — you don't want that review touching a live account with client invoices in it. And a consumer seeing "LYTBUB TECH" on a $15 charge disputes it.</p>
+<p style="margin-bottom:0"><b>Cost of doing it right: $0 and about 2 hours.</b> Same login, new account, AZ DBA for "PHX" (~$10), separate bank account. When PHX becomes its own entity later, Stripe changes the legal entity on that account — routine, because it only ever did PHX business. Migrating a live Connect platform later means every artist re-onboards.</p>
+</div>
+
+<div class="card warn">
+<b>One thing to do before Stripe underwriting:</b> have your artist licensing agreement drafted. Unlicensed music distribution is <em>prohibited</em>, not merely restricted. Handing Stripe a signed sample agreement turns a scary review into a routine one.
+</div>
+
+<div class="card hi">
+<h4>Referral program — build it, double-sided, artists are the real lever</h4>
+<p>Buy nothing. A working referral system on your stack is <b>6–10 hours</b>; the cheapest tool that fits is $49/mo to serve zero affiliates. Structure:</p>
+<ul>
+<li><b>Both sides get a free month</b> — one-sided asks people to spam friends for personal gain, which reads badly in a tight scene. Double-sided reframes it as a gift.</li>
+<li><b>Reward fires on the referee's 2nd paid invoice</b>, not signup. Costs a 30-day delay, removes the entire fraud surface.</li>
+<li><b>Milestone ladder at 3 / 10 / 25.</b> In the best available benchmark, 83% of successful referrers refer exactly once — and the top 1.1% drive 30% of all referrals. The whole game is giving your super-referrers somewhere to keep going.</li>
+<li><b>Artist referral tier, Fourthwall-style:</b> commission unlocks with the artist's <em>own</em> activity on PHX, not just referral volume. Only artists actually using PHX can earn from PHX.</li>
+</ul>
+<p style="margin-bottom:0"><b>The decision you have to make:</b> when someone gets a comped month, does the artist still get paid? Say yes, fund it from your 50%, and say so publicly. It costs ~$7.50 per referral pair and it's a trust asset in a scene where everyone talks. Say no and you've built a growth mechanic that quietly hurts artists.</p>
+</div>
+
+<div class="card hi">
+<h4>Tag a product in a post → it becomes a review ✅</h4>
+<p>This is the best idea in your message and you should build it. Three reasons it's stronger than it looks:</p>
+<ul>
+<li>Customer photos are one of the highest-evidence conversion levers in apparel — Baymard finds a 63% navigation gap for them, and shoppers treat them as objective proof in a way they never treat brand photos.</li>
+<li>You already have the hard parts: a social feed, media upload, and post→track attachment. Product tagging is the same mechanic pointed at a different table.</li>
+<li><b>No POD store on earth has this</b>, because they're stores, not social networks. Fourthwall can't build it. This is the merch feature that's actually defensible.</li>
+</ul>
+<p style="margin-bottom:0">Build it as: post composer gets "tag a product" → creates a <code>merch_reviews</code> row linked to the post → the product page shows real fans wearing it, pulled live from the feed. Ships with the merch UI.</p>
+</div>
+
+<!-- ───────────────────────── ARTIST HUB ───────────────────────── -->
+<h2><span class="dot" style="background:var(--red)"></span>The Artist Hub idea — my honest read</h2>
+
+<p>You asked whether to build a paid Artist Hub: merch management, analytics from all their other platforms, social scheduling, sold in tiers. I had it researched hard, because it's the kind of idea that's expensive to be wrong about. <b>The answer is don't build it as described</b> — and two of the four pieces aren't "later," they're permanently blocked.</p>
+
+<table>
+<tr><th>Piece</th><th>Verdict</th><th>Why</th></tr>
+<tr><td><b>Analytics from Spotify / Apple</b></td><td style="color:var(--red)"><b>Blocked</b></td><td>Spotify for Artists has <b>no public API</b> — confirmed by Spotify staff. The Web API needs <b>250,000 monthly users</b> to leave dev mode, which caps you at 5 authenticated users; you'd hit the wall at artist #6. In Feb 2026 they also stripped follower and popularity fields. Apple Music's equivalent is labels-and-distributors only. This isn't hard, it's prohibited.</td></tr>
+<tr><td><b>Social scheduling</b></td><td style="color:var(--red)"><b>Loses money</b></td><td>At 30 artists the API aggregator alone is <b>$599/mo — $20/artist in pure cost</b> — to compete with Buffer's free tier and Metricool's free 50 posts/month. X now charges <b>$0.20 per post containing a link</b>, and artists post links constantly.</td></tr>
+<tr><td><b>Merch management</b></td><td style="color:var(--gold)"><b>Already free</b></td><td>Fourthwall gives musicians a full POD storefront for $0 and absorbs merchant-of-record liability. Building this to compete is building a worse free thing.</td></tr>
+<tr><td><b>Charging artists tiers</b></td><td style="color:var(--red)"><b>Costs you the pitch</b></td><td>Your entire recruiting line is "free to upload, you earn more here, we make money from the fan side." Introducing artist subscriptions during the conversation where you're hand-recruiting 30 artists converts a gift into a transaction.</td></tr>
+</table>
+
+<p><b>The market pattern is unusually clear.</b> Every artist-direct tools company either died (ToneDen, shut down 2024 — the fanlink.to domain expired and every artist's links broke overnight), pivoted to selling B2B (Symphony went from $6–20/mo for artists to $99–799/mo for labels; Beatchain now white-labels to music businesses), went free and monetized transactions (Fourthwall, Bandsintown), or is being stripped for parts (Bandcamp, two rounds of layoffs). There are <b>zero</b> examples of a sustainable artist-pays-monthly tools business at indie scale.</p>
+
+<p>And the money isn't there: per Spotify's own 2026 report, the <b>100,000th highest-earning artist on Earth made about $7,300</b> — gross, before the distributor cut. Your first 30 Phoenix artists are not in that group. Meanwhile B2C subscriptions under $25/mo churn at 8.2% monthly — you'd lose ~64% of subscribers a year.</p>
+
+<div class="card hi">
+<h4>The version that works — same instinct, different customer</h4>
+<p>Your instinct is right: PHX needs revenue that isn't just $15 consumer subscriptions. Three moves that use what you actually own:</p>
+<ul>
+<li><b>Give artists a free dashboard on PHX's own data</b> — which Phoenix neighborhoods their listeners are in, named contactable fans, which other local artists their listeners play. Spotify has this and will never share it. It costs you nothing, it's a recruiting weapon, and it <em>strengthens</em> the free pitch instead of undermining it.</li>
+<li><b>Sell to venues and promoters, not artists.</b> They have marketing budgets; artists have $47. "This artist has 340 active listeners within 5 miles of your venue" is the hardest question in local booking and only your data answers it. Bandsintown runs exactly this model — free for artists, paid for venues.</li>
+<li><b>Local sponsorship, starting now.</b> One Roosevelt Row venue at $500/mo equals 33 subscribers, with no Stripe fees, no artist payout, no churn. For comparison: Axios Local converts free readers to paid at <b>0.75%</b>, while 6AM City is profitable at $9.5M revenue on essentially zero consumer subscriptions — it's all local advertising.</li>
+</ul>
+<p style="margin-bottom:0">If you ever do charge artists, charge for <b>outcomes</b> — a showcase slot, featured placement, a co-op ad buy — never for software.</p>
+</div>
+
+<!-- ───────────────────────── PARKED ───────────────────────── -->
+<h2><span class="dot" style="background:var(--faint)"></span>Deliberately parked</h2>
+
+<div class="row dead"><div class="ico">✕</div><div class="body"><strong>Virtual try-on (upload a photo, see it on your body)</strong><span>The models' documented failure mode is hallucinating text on printed graphics — and band merch is entirely text and graphics. You'd pay to show fans a misspelled MURKEMZ on their own body. Google shut down its own try-on app in April 2026.</span></div><div class="tag">killed</div></div>
+<div class="row dead"><div class="ico">✕</div><div class="body"><strong>360° spin and 3D/AR product views</strong><span>The "AR converts 94% better" stat is a 2020 tweet about self-selection, not an experiment. $200–600 per SKU chasing it.</span></div><div class="tag">killed</div></div>
+<div class="row dead"><div class="ico">✕</div><div class="body"><strong>Size-recommendation engine</strong><span>Your catalog is standard Bella+Canvas and Gildan blanks with published measurements. One sentence — "Murkemz is 6'1", wearing L, true to size" — does the whole job.</span></div><div class="tag">killed</div></div>
+<div class="row dead"><div class="ico">✕</div><div class="body"><strong>LightFM / machine-learning recommendations</strong><span>Needs ~10,000 interactions and 1,000 users. You have 14 streams. Revisit in a year, and with a different library.</span></div><div class="tag">too early</div></div>
+<div class="row dead"><div class="ico">✕</div><div class="body"><strong>Reels, Eats/Cuts/Drops verticals, native apps, self-serve artist signup</strong><span>All from the beta scope cut. Nothing changed.</span></div><div class="tag">post-beta</div></div>
+
+<p class="foot">Companion docs in <code>phx/docs/</code>: <b>phx-algorithm-guide.html</b> (how algorithms work) · <b>phx-algorithm-decisions.md</b> (your locked ranking decisions) · <b>phx-open-questions-answered.md</b> (artist pages, beta rollout, merch, monitoring) · <b>phx-payout-math.html</b> (royalty formula + verification SQL) · <b>PHX-Beta-Build-Plan.md</b> · <b>PHX-Launch-Strategy.md</b></p>
+
+</div>
+</body>
+</html>
