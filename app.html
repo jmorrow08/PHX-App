@@ -1330,6 +1330,11 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
       </div>
     </div>
 
+    <!-- PUBLIC MEMBER PAGE — every account has one -->
+    <div class="view" id="v-member-page">
+      <div id="member-page-content"><div style="color:var(--muted);font-size:.85rem;padding:1rem 0">Loading…</div></div>
+    </div>
+
     <!-- PUBLIC ARTIST PAGE — shareable via #artist/slug -->
     <div class="view" id="v-artist-page">
       <div id="artist-page-content"><div style="color:var(--muted);font-size:.85rem;padding:1rem 0">Loading artist…</div></div>
@@ -1786,6 +1791,7 @@ var titles = {
   home:'City Feed', discover:'Discover PHX', music:'PHX Music', reels:'Reels',
   events:'PHX Events', eats:'PHX Eats', audio:'PHX Audio',
   drops:'PHX Drops', cuts:'PHX Cuts', mypass:'My PHX Pass', profile:'My Profile',
+  'member-page':'Profile', 'artist-page':'Artist', 'artist-directory':'Artists',
   'artist-tracks':'My Tracks', 'artist-analytics':'Analytics',
   'artist-earnings':'Earnings', 'artist-submit':'Submit Track', 'artist-profile':'Artist Profile',
   'admin-dashboard':'Platform Dashboard', 'admin-members':'Members',
@@ -3217,8 +3223,8 @@ function renderFeedPost(p) {
 
   return '<div class="feed-post" id="post-' + p.id + '">' +
     '<div class="fp-header">' +
-      '<div class="fp-ava" style="background:' + bg + '">' + escapeHtml(p.author_avatar||'?') + '</div>' +
-      '<div class="fp-meta"><h4>' + escapeHtml(p.author_name) + ' ' + badge +
+      '<div class="fp-ava" style="background:' + bg + ';cursor:pointer" onclick="openAuthorProfile(\'' + (p.user_id||'') + '\',\'' + (p.page_id||'') + '\')">' + escapeHtml(p.author_avatar||'?') + '</div>' +
+      '<div class="fp-meta"><h4><span style="cursor:pointer" onclick="openAuthorProfile(\'' + (p.user_id||'') + '\',\'' + (p.page_id||'') + '\')">' + escapeHtml(p.author_name) + '</span> ' + badge +
         // Follow the author: pages > users; skip self + official PHX
         (p.page_id ? followBtnHtml('page', p.page_id) :
          (p.user_id && p.user_id !== getGuestId() && p.author_role !== 'admin') ? followBtnHtml('user', p.user_id) : '') +
@@ -4626,6 +4632,91 @@ async function submitAuth() {
   closeAuthModal();
 }
 
+// ── PROFILES: everyone is clickable ────────────────────────────────────
+// A post author might own an artist page or just be a member. Look it up
+// once, cache it, and route to whichever page actually exists.
+var _authorRouteCache = {};
+
+async function openAuthorProfile(userId, pageId) {
+  if (pageId) { showArtistDirectory(); return; }   // pages land in the directory for now
+  if (!userId) return;
+  if (_authorRouteCache[userId]) {
+    var c = _authorRouteCache[userId];
+    if (c.type === 'artist') showArtistPage(c.slug); else showMemberPage(userId);
+    return;
+  }
+  try {
+    var res = await _sb.from('artists').select('slug').eq('user_id', userId).maybeSingle();
+    if (res.data && res.data.slug) {
+      _authorRouteCache[userId] = { type: 'artist', slug: res.data.slug };
+      showArtistPage(res.data.slug);
+      return;
+    }
+  } catch (e) {}
+  _authorRouteCache[userId] = { type: 'member' };
+  showMemberPage(userId);
+}
+
+async function showMemberPage(userId) {
+  showView('member-page');
+  var el = document.getElementById('member-page-content');
+  if (!el) return;
+  el.innerHTML = '<div style="color:var(--muted);font-size:.85rem;padding:1rem 0">Loading…</div>';
+  try {
+    var pRes = await _sb.from('profiles')
+      .select('id,username,display_name,avatar_url,bio,city,created_at,founding_number')
+      .eq('id', userId).maybeSingle();
+    var p = pRes.data;
+    if (!p) {
+      el.innerHTML = '<div style="color:var(--muted);font-size:.85rem;padding:1rem 0">Profile not found.</div>';
+      return;
+    }
+    var name = p.display_name || (p.username ? '@' + p.username : 'PHX Member');
+    var initial = escapeHtml((name || '?').charAt(0).toUpperCase());
+
+    var postsRes = await _sb.from('feed_posts')
+      .select('id,content,created_at,likes_count,comments_count')
+      .eq('user_id', userId).eq('is_hidden', false)
+      .order('created_at', { ascending: false }).limit(20);
+    var posts = postsRes.data || [];
+
+    var fRes = await _sb.from('follows').select('id', { count: 'exact', head: true })
+      .eq('followee_type', 'user').eq('followee_id', userId);
+    var followers = fRes.count || 0;
+
+    var isSelf = _authUser && _authUser.id === userId;
+
+    el.innerHTML =
+      '<div style="margin-bottom:.8rem"><a href="#" style="color:var(--muted);font-size:.78rem" onclick="showView(\'home\');return false">← City Feed</a></div>' +
+      '<div style="display:flex;gap:1rem;align-items:center;margin-bottom:1rem">' +
+        '<div style="width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,#3B82F6,#14B8A6);display:flex;align-items:center;justify-content:center;font-size:1.8rem;font-weight:800;overflow:hidden">' +
+          (safeUrl(p.avatar_url) ? '<img src="' + safeUrl(p.avatar_url) + '" alt="" style="width:100%;height:100%;object-fit:cover">' : initial) +
+        '</div>' +
+        '<div style="flex:1">' +
+          '<div style="font-size:1.3rem;font-weight:800;line-height:1.2">' + escapeHtml(name) + '</div>' +
+          (p.username ? '<div style="font-size:.82rem;color:var(--muted)">@' + escapeHtml(p.username) + '</div>' : '') +
+          (p.founding_number ? '<div style="font-size:.74rem;color:var(--orange-l);margin-top:.2rem">🔥 PHX Native #' + p.founding_number + '</div>' : '') +
+        '</div>' +
+      '</div>' +
+      (p.bio ? '<div style="font-size:.88rem;color:var(--muted);margin-bottom:.9rem">' + escapeHtml(p.bio) + '</div>' : '') +
+      '<div style="display:flex;gap:1.4rem;margin-bottom:1rem;font-size:.8rem">' +
+        '<div><b>' + followers + '</b> <span style="color:var(--muted)">followers</span></div>' +
+        '<div><b>' + posts.length + '</b> <span style="color:var(--muted)">posts</span></div>' +
+        (p.city ? '<div style="color:var(--muted)">📍 ' + escapeHtml(p.city) + '</div>' : '') +
+      '</div>' +
+      (isSelf ? '' : '<div style="margin-bottom:1.2rem">' + followBtnHtml('user', userId) + '</div>') +
+      '<div class="card-title" style="margin-bottom:.6rem">Posts</div>' +
+      (posts.length ? posts.map(function(po) {
+        return '<div style="border:1px solid var(--border);border-radius:10px;padding:.7rem .85rem;margin-bottom:.5rem;cursor:pointer" onclick="showView(\'home\');setTimeout(function(){scrollToPost(\'' + po.id + '\')},400)">' +
+          '<div style="font-size:.86rem">' + escapeHtml((po.content || '').slice(0, 220)) + '</div>' +
+          '<div style="font-size:.72rem;color:var(--muted);margin-top:.3rem">❤️ ' + (po.likes_count || 0) + ' · 💬 ' + (po.comments_count || 0) + '</div>' +
+        '</div>';
+      }).join('') : '<div style="color:var(--muted);font-size:.84rem">No posts yet.</div>');
+  } catch (e) {
+    el.innerHTML = '<div style="color:var(--muted);font-size:.85rem">Couldn\'t load this profile.</div>';
+  }
+}
+
 // ── ARTIST MERCH GRID ──────────────────────────────────────────────────
 // Products are admin-managed (merch_products.managed_by = 'admin') and render
 // natively in PHX styling; checkout hands off to the provider. Supports both
@@ -5568,7 +5659,8 @@ async function showArtistPage(slug) {
         '<div class="sh" style="margin-bottom:.6rem"><h3 style="font-size:.82rem">Top Tracks</h3><span class="badge badge-orange">' + _artistPageTracks.length + ' live</span></div>' +
         '<div class="track-list">' + trackRows + '</div>' +
       '</div>' +
-    '</div>';
+    '</div>' +
+    '<div id="artist-merch-grid"></div>';
 
   var followSlot = document.getElementById('artist-page-follow');
   if (followSlot) followSlot.innerHTML = followBtnHtml('artist', artist.id);
