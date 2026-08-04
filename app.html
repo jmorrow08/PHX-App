@@ -4876,6 +4876,230 @@ async function openMerchItem(productId) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
+// ACCESS GATE + ONBOARDING
+// PHX is invite-only until launch. An account can exist but stays
+// access_status='pending' until a code is redeemed — the wall below is what
+// they see until then. After redemption, a 3-step setup runs once.
+// ═══════════════════════════════════════════════════════════════════════
+var _onbStep = 1, _onbFollows = [], _onbAvatarUrl = null;
+
+function _onbModal() {
+  var m = document.getElementById('onboard-modal');
+  if (!m) {
+    m = document.createElement('div');
+    m.id = 'onboard-modal';
+    m.style.cssText = 'position:fixed;inset:0;z-index:560;background:rgba(7,7,15,.94);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:1rem';
+    document.body.appendChild(m);
+  }
+  m.style.display = 'flex';
+  return m;
+}
+
+function showAccessWall(reason) {
+  var m = _onbModal();
+  m.innerHTML =
+    '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:18px;max-width:420px;width:100%;padding:1.8rem;text-align:center">' +
+      '<div style="font-size:1.5rem;font-weight:900;background:linear-gradient(135deg,#F97316,#EAB308);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:.9rem">PHX</div>' +
+      '<div style="font-size:1.15rem;font-weight:800;margin-bottom:.5rem">You need an invite</div>' +
+      '<p style="color:var(--muted);font-size:.88rem;line-height:1.6;margin-bottom:1.2rem">' +
+        'PHX is invite-only while we build the catalog. If an artist gave you a code, enter it below. Otherwise request early access and we\'ll send you one.</p>' +
+      '<input class="form-input" id="wall-code" placeholder="Invite code" maxlength="12" style="text-transform:uppercase;letter-spacing:.14em;font-family:ui-monospace,monospace;text-align:center;margin-bottom:.6rem">' +
+      '<button class="upgrade-btn" style="margin:0;width:100%" onclick="submitWallCode()">Unlock PHX</button>' +
+      '<div id="wall-msg" style="font-size:.78rem;color:var(--red);margin-top:.6rem;min-height:1em"></div>' +
+      '<a href="/#request" style="display:inline-block;margin-top:.6rem;font-size:.8rem;color:var(--orange-l)">Request early access →</a>' +
+      '<button onclick="signOutNow()" style="display:block;width:100%;background:none;border:none;color:var(--faint);cursor:pointer;font-size:.74rem;margin-top:1rem;text-decoration:underline">Sign out</button>' +
+    '</div>';
+}
+
+async function submitWallCode() {
+  var el = document.getElementById('wall-code');
+  var msg = document.getElementById('wall-msg');
+  var code = (el ? el.value : '').trim().toUpperCase();
+  if (!code) { msg.textContent = 'Enter your code.'; return; }
+  msg.style.color = 'var(--muted)'; msg.textContent = 'Checking…';
+  try { localStorage.setItem('phx_pending_invite', code); } catch (e) {}
+  await redeemPendingInvite();
+  var res = await _sb.from('profiles').select('access_status').eq('id', _authUser.id).maybeSingle();
+  if (res.data && res.data.access_status === 'active') {
+    closeOnboard();
+    startOnboarding();
+  } else {
+    msg.style.color = 'var(--red)';
+    msg.textContent = 'That code isn\'t valid or has already been used.';
+  }
+}
+
+async function signOutNow() { try { await _sb.auth.signOut(); } catch (e) {} location.reload(); }
+function closeOnboard() { var m = document.getElementById('onboard-modal'); if (m) m.style.display = 'none'; }
+
+// ── 3-step setup, runs once ─────────────────────────────────────────────
+async function startOnboarding() {
+  _onbStep = 1; _onbFollows = []; _onbAvatarUrl = null;
+  renderOnboard();
+}
+
+function _onbDots(n) {
+  var s = '';
+  for (var i = 1; i <= 3; i++) {
+    s += '<span style="width:26px;height:3px;border-radius:2px;background:' + (i <= n ? 'var(--orange)' : 'rgba(255,255,255,.14)') + '"></span>';
+  }
+  return '<div style="display:flex;gap:.3rem;justify-content:center;margin-bottom:1.2rem">' + s + '</div>';
+}
+
+async function renderOnboard() {
+  var m = _onbModal();
+  var shell = function (inner) {
+    return '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:18px;max-width:430px;width:100%;padding:1.7rem;max-height:90vh;overflow:auto">' +
+      _onbDots(_onbStep) + inner + '</div>';
+  };
+
+  if (_onbStep === 1) {
+    var fn = await _sb.from('profiles').select('founding_number,display_name,username').eq('id', _authUser.id).maybeSingle();
+    var p = fn.data || {};
+    m.innerHTML = shell(
+      (p.founding_number
+        ? '<div style="text-align:center;margin-bottom:1rem"><div style="font-family:ui-monospace,monospace;font-size:2.1rem;font-weight:800;color:var(--orange);line-height:1">#' + p.founding_number + '</div>' +
+          '<div style="font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-top:.2rem">PHX Native · Founding</div></div>'
+        : '') +
+      '<div style="font-size:1.2rem;font-weight:800;margin-bottom:.35rem">Pick your handle</div>' +
+      '<p style="color:var(--muted);font-size:.85rem;margin-bottom:1rem">This is how you show up when you post. Your real name stays private unless you share it.</p>' +
+      '<div style="display:flex;align-items:center;gap:.4rem;margin-bottom:.55rem">' +
+        '<span style="font-size:1.1rem;color:var(--muted)">@</span>' +
+        '<input class="form-input" id="onb-username" placeholder="yourhandle" maxlength="20" value="' + escapeHtml(p.username || '') + '" style="flex:1">' +
+      '</div>' +
+      '<input class="form-input" id="onb-display" placeholder="Display name (optional)" maxlength="40" value="' + escapeHtml(p.display_name || '') + '" style="margin-bottom:.55rem">' +
+      '<input class="form-input" id="onb-city" placeholder="Neighborhood or city (optional)" maxlength="40" style="margin-bottom:.9rem">' +
+      '<button class="upgrade-btn" style="margin:0;width:100%" onclick="onbNext()">Continue</button>' +
+      '<div id="onb-msg" style="font-size:.78rem;color:var(--red);margin-top:.55rem;min-height:1em"></div>'
+    );
+    return;
+  }
+
+  if (_onbStep === 2) {
+    m.innerHTML = shell(
+      '<div style="font-size:1.2rem;font-weight:800;margin-bottom:.35rem">Add a picture</div>' +
+      '<p style="color:var(--muted);font-size:.85rem;margin-bottom:1rem">Optional — you can always change it later.</p>' +
+      '<input type="file" id="onb-avatar" accept="image/*" class="form-input" style="margin-bottom:1rem">' +
+      '<button class="upgrade-btn" style="margin:0;width:100%" onclick="onbNext()">Continue</button>' +
+      '<button onclick="onbNext(true)" style="display:block;width:100%;background:none;border:none;color:var(--muted);cursor:pointer;font-size:.8rem;margin-top:.7rem;text-decoration:underline">Skip</button>' +
+      '<div id="onb-msg" style="font-size:.78rem;color:var(--muted);margin-top:.55rem;min-height:1em"></div>'
+    );
+    return;
+  }
+
+  // step 3 — follow artists; this is what makes the first feed non-empty
+  var aRes = await _sb.from('artists').select('id,name,genre,avatar_url,slug')
+    .eq('status', 'active').order('total_streams', { ascending: false }).limit(12);
+  var artists = aRes.data || [];
+  m.innerHTML = shell(
+    '<div style="font-size:1.2rem;font-weight:800;margin-bottom:.35rem">Follow a few artists</div>' +
+    '<p style="color:var(--muted);font-size:.85rem;margin-bottom:1rem">Your feed and recommendations start here. Tap to follow.</p>' +
+    '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:.55rem;margin-bottom:1.1rem">' +
+      artists.map(function (a) {
+        return '<div id="onb-a-' + a.id + '" onclick="onbToggleFollow(\'' + a.id + '\')" style="cursor:pointer;border:1px solid var(--border);border-radius:11px;padding:.65rem .5rem;text-align:center">' +
+          '<div style="width:44px;height:44px;border-radius:50%;margin:0 auto .4rem;background:linear-gradient(135deg,#EA580C,#7C3AED);display:flex;align-items:center;justify-content:center;font-weight:700;overflow:hidden">' +
+            (safeUrl(a.avatar_url) ? '<img src="' + safeUrl(a.avatar_url) + '" alt="" style="width:100%;height:100%;object-fit:cover">' : escapeHtml((a.name || '?').charAt(0))) +
+          '</div>' +
+          '<div style="font-size:.78rem;font-weight:600;line-height:1.2">' + escapeHtml(a.name) + '</div>' +
+          '<div style="font-size:.66rem;color:var(--muted)">' + escapeHtml(a.genre || '') + '</div>' +
+        '</div>';
+      }).join('') +
+    '</div>' +
+    '<button class="upgrade-btn" style="margin:0;width:100%" onclick="finishOnboarding()">Enter PHX</button>' +
+    '<div id="onb-msg" style="font-size:.78rem;color:var(--muted);margin-top:.55rem;min-height:1em"></div>'
+  );
+}
+
+function onbToggleFollow(id) {
+  var el = document.getElementById('onb-a-' + id);
+  var i = _onbFollows.indexOf(id);
+  if (i >= 0) {
+    _onbFollows.splice(i, 1);
+    if (el) el.style.cssText = 'cursor:pointer;border:1px solid var(--border);border-radius:11px;padding:.65rem .5rem;text-align:center';
+  } else {
+    _onbFollows.push(id);
+    if (el) el.style.cssText = 'cursor:pointer;border:1px solid var(--orange);background:rgba(249,115,22,.1);border-radius:11px;padding:.65rem .5rem;text-align:center';
+  }
+}
+
+var _onbData = {};
+async function onbNext(skip) {
+  var msg = document.getElementById('onb-msg');
+  if (_onbStep === 1) {
+    var u = (document.getElementById('onb-username') || {}).value || '';
+    if (u.trim().length < 3) { if (msg) msg.textContent = 'Pick a handle of 3+ characters.'; return; }
+    _onbData.username = u.trim();
+    _onbData.display_name = (document.getElementById('onb-display') || {}).value || null;
+    _onbData.city = (document.getElementById('onb-city') || {}).value || null;
+    _onbStep = 2; renderOnboard(); return;
+  }
+  if (_onbStep === 2) {
+    if (!skip) {
+      var inp = document.getElementById('onb-avatar');
+      if (inp && inp.files && inp.files[0]) {
+        if (msg) msg.textContent = 'Uploading…';
+        try {
+          var f = inp.files[0];
+          var ext = (f.name.split('.').pop() || 'jpg').toLowerCase();
+          var path = _authUser.id + '/avatar_' + Date.now() + '.' + ext;
+          var up = await _sb.storage.from('post-media').upload(path, f, { contentType: f.type, upsert: true });
+          if (!up.error) {
+            var pub = _sb.storage.from('post-media').getPublicUrl(path);
+            _onbAvatarUrl = pub.data ? pub.data.publicUrl : null;
+          }
+        } catch (e) {}
+      }
+    }
+    _onbStep = 3; renderOnboard(); return;
+  }
+}
+
+async function finishOnboarding() {
+  var msg = document.getElementById('onb-msg');
+  if (msg) msg.textContent = 'Setting up…';
+  try {
+    var res = await _sb.rpc('complete_onboarding', {
+      p_user_id: _authUser.id,
+      p_username: _onbData.username || null,
+      p_display_name: _onbData.display_name || null,
+      p_city: _onbData.city || null,
+      p_avatar_url: _onbAvatarUrl,
+      p_follow_artist_ids: _onbFollows
+    });
+    var d = res.data || {};
+    if (!d.ok) {
+      if (msg) {
+        msg.style.color = 'var(--red)';
+        msg.textContent = d.reason === 'username_taken' ? 'That handle is taken — go back and pick another.'
+                        : d.reason === 'bad_username' ? 'Handle must be 3–20 characters.'
+                        : 'Something went wrong.';
+      }
+      return;
+    }
+    closeOnboard();
+    showToast('Welcome to PHX 🏙️');
+    if (typeof applyAccountRole === 'function') applyAccountRole();
+    if (typeof loadCityFeed === 'function') loadCityFeed(true);
+  } catch (e) {
+    if (msg) { msg.style.color = 'var(--red)'; msg.textContent = 'Something went wrong.'; }
+  }
+}
+
+// Decide on every session resolve: wall, onboarding, or straight in.
+async function checkAccessAndOnboarding() {
+  if (!_authUser) return;
+  try {
+    var res = await _sb.from('profiles')
+      .select('access_status,username,onboarded_at,role').eq('id', _authUser.id).maybeSingle();
+    var p = res.data;
+    if (!p) return;
+    if (p.access_status === 'blocked') { showAccessWall('blocked'); return; }
+    if (p.access_status !== 'active') { showAccessWall('pending'); return; }
+    if (!p.onboarded_at && p.role !== 'super' && p.role !== 'admin') { startOnboarding(); }
+  } catch (e) {}
+}
+
+// ═══════════════════════════════════════════════════════════════════════
 // REFERRALS + FOUNDING MEMBERSHIP
 // The invite system replaces a "beta mode" flag: instead of a switch we rip
 // out later, the code IS the gate now and stays as the growth loop.
@@ -5001,7 +5225,8 @@ function _whenDomReady(fn) {
 async function applyAccountRole() {
   loadPlatformSettings();
   if (!_authUser) { _whenDomReady(function(){ setRole('explorer'); }); return; }
-  redeemPendingInvite();
+  await redeemPendingInvite();
+  checkAccessAndOnboarding();
   var res = await _sb.from('profiles').select('role,tier,display_name,username').eq('id', _authUser.id).maybeSingle();
   var p = res.data || {};
   var role;

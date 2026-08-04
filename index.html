@@ -153,7 +153,7 @@ footer{border-top:1px solid var(--line);padding:2rem clamp(1.2rem,4vw,3.5rem)}
   </div>
   <div style="display:flex;align-items:center;gap:.7rem">
     <a class="btn btn-ghost" href="app.html#signin">Sign in</a>
-    <a class="btn btn-orange" href="app.html">Claim your pass</a>
+    <a class="btn btn-orange" href="#request">Request early access</a>
   </div>
 </nav>
 
@@ -165,9 +165,9 @@ footer{border-top:1px solid var(--line);padding:2rem clamp(1.2rem,4vw,3.5rem)}
       <h1 class="hero-h1">Your money goes to Phoenix artists.<br><span class="g">With receipts.</span></h1>
       <p class="hero-sub">$15 a month. Your pass pays the Phoenix artists you actually stream — and every month you get the receipt to prove it.</p>
       <div class="hero-btns">
-        <a class="btn btn-orange btn-lg" href="app.html">Claim your founding pass</a>
-        <a class="btn btn-ghost btn-lg" href="app.html#install">📲 Get the app</a>
-        <span class="hero-count" id="founding-left">1,000 FOUNDING NUMBERS · NOW OPEN</span>
+        <a class="btn btn-orange btn-lg" href="#request">Request early access</a>
+        <a class="btn btn-ghost btn-lg" href="app.html">Have a code? Sign in</a>
+        <span class="hero-count" id="founding-left">INVITE ONLY · 1,000 FOUNDING NUMBERS</span>
       </div>
     </div>
     <div class="receipt" aria-label="Sample monthly receipt">
@@ -217,7 +217,7 @@ footer{border-top:1px solid var(--line);padding:2rem clamp(1.2rem,4vw,3.5rem)}
       <div class="f-track"><div class="f-fill" style="width:2%"></div></div>
       <div class="f-note">Founding numbers are permanent, first come first served. When they're gone, they're gone.</div>
     </div>
-    <a class="btn btn-ghost btn-lg" href="app.html">Claim yours</a>
+    <a class="btn btn-ghost btn-lg" href="#request">Request access</a>
   </div>
 </section>
 
@@ -255,7 +255,7 @@ footer{border-top:1px solid var(--line);padding:2rem clamp(1.2rem,4vw,3.5rem)}
         <div class="tier-flag">MOST OF THE CITY</div>
         <div class="tier-top"><span class="tier-name">Native</span><span class="tier-price">$15<span>/mo</span></span></div>
         <div class="tier-desc">Full catalog · your streams pay artists · a permanent <b>founding number</b> · monthly receipt · city perks as they launch</div>
-        <a class="btn btn-orange" href="app.html" style="margin-top:1.2rem;width:100%">Go Native</a>
+        <a class="btn btn-orange" href="#request" style="margin-top:1.2rem;width:100%">Request access</a>
       </div>
       <div class="tier">
         <div class="tier-top"><span class="tier-name">Insider</span><span class="tier-price">$29<span>/mo</span></span></div>
@@ -299,6 +299,41 @@ footer{border-top:1px solid var(--line);padding:2rem clamp(1.2rem,4vw,3.5rem)}
   </div>
 </section>
 
+
+<!-- REQUEST EARLY ACCESS -->
+<section id="request" style="border-top:1px solid var(--line);padding:4rem 0">
+  <div class="inner" style="max-width:560px">
+    <div class="kicker">Invite only</div>
+    <h2 class="h2">PHX opens one person at a time.</h2>
+    <p style="color:var(--muted);font-size:.95rem;line-height:1.7;margin-bottom:1.8rem">
+      We're building the catalog with Phoenix artists first. If an artist gave you a code,
+      <a href="app.html" style="color:var(--orange)">sign in here</a>. If not, tell us who you are
+      and we'll send one as spots open.
+    </p>
+
+    <form id="req-form" onsubmit="return submitRequest(event)" style="display:grid;gap:.7rem">
+      <input required type="email" id="req-email" placeholder="Email" autocomplete="email"
+             style="background:#0D0D18;border:1px solid rgba(255,255,255,.1);border-radius:10px;color:#F1F1F8;padding:.8rem .9rem;font-size:.95rem;font-family:inherit">
+      <input type="text" id="req-name" placeholder="Name" autocomplete="name"
+             style="background:#0D0D18;border:1px solid rgba(255,255,255,.1);border-radius:10px;color:#F1F1F8;padding:.8rem .9rem;font-size:.95rem;font-family:inherit">
+      <input type="text" id="req-ig" placeholder="@instagram (optional)"
+             style="background:#0D0D18;border:1px solid rgba(255,255,255,.1);border-radius:10px;color:#F1F1F8;padding:.8rem .9rem;font-size:.95rem;font-family:inherit">
+      <select id="req-role"
+             style="background:#0D0D18;border:1px solid rgba(255,255,255,.1);border-radius:10px;color:#F1F1F8;padding:.8rem .9rem;font-size:.95rem;font-family:inherit">
+        <option value="fan">I'm a fan</option>
+        <option value="artist">I'm an artist</option>
+        <option value="venue">I run a venue</option>
+        <option value="promoter">I'm a promoter</option>
+        <option value="other">Something else</option>
+      </select>
+      <textarea id="req-note" rows="2" placeholder="Anything we should know? (optional)"
+             style="background:#0D0D18;border:1px solid rgba(255,255,255,.1);border-radius:10px;color:#F1F1F8;padding:.8rem .9rem;font-size:.95rem;font-family:inherit;resize:vertical"></textarea>
+      <button class="btn btn-orange btn-lg" type="submit" id="req-btn" style="width:100%;justify-content:center">Request access</button>
+      <div id="req-msg" style="font-size:.85rem;color:var(--muted);min-height:1.2em"></div>
+    </form>
+  </div>
+</section>
+
 <footer>
   <div class="foot-inner">
     <div class="foot-logo">PHX <span>602 CULTURE. ONE APP.</span></div>
@@ -313,5 +348,50 @@ footer{border-top:1px solid var(--line);padding:2rem clamp(1.2rem,4vw,3.5rem)}
 </footer>
 
 <script src="shared.js?v=4"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+var _sb = window.supabase.createClient(
+  'https://dnzvtathfpjelffjnqrc.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRuenZ0YXRoZnBqZWxmZmpucXJjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI2MTMyODksImV4cCI6MjA5ODE4OTI4OX0.0X7C5UYnQCAB__opnWTCUC1uoAt5AZcmbmfNXpvlnQg'
+);
+
+async function submitRequest(e) {
+  e.preventDefault();
+  var btn = document.getElementById('req-btn');
+  var msg = document.getElementById('req-msg');
+  btn.disabled = true; msg.style.color = 'var(--muted)'; msg.textContent = 'Sending…';
+  try {
+    var res = await _sb.rpc('request_access', {
+      p_email: document.getElementById('req-email').value,
+      p_name: document.getElementById('req-name').value || null,
+      p_instagram: document.getElementById('req-ig').value || null,
+      p_role: document.getElementById('req-role').value,
+      p_note: document.getElementById('req-note').value || null,
+      p_heard_from: document.referrer || null,
+      p_device_fp: null
+    });
+    var d = res.data || {};
+    if (d.ok) {
+      document.getElementById('req-form').innerHTML =
+        '<div style="text-align:center;padding:1.4rem 0">' +
+          '<div style="font-size:1.6rem;margin-bottom:.5rem">🏙️</div>' +
+          '<div style="font-size:1.05rem;font-weight:700;margin-bottom:.35rem">You\'re on the list.</div>' +
+          '<div style="color:var(--muted);font-size:.9rem">We\'ll email your code as spots open. ' +
+          'Fastest way in is an artist\'s code — ask the one who sent you here.</div>' +
+        '</div>';
+    } else {
+      msg.style.color = '#EF4444';
+      msg.textContent = d.reason === 'rate_limited' ? 'Too many requests — try again later.' : 'Check your email address and try again.';
+      btn.disabled = false;
+    }
+  } catch (err) {
+    msg.style.color = '#EF4444';
+    msg.textContent = 'Could not send — try again.';
+    btn.disabled = false;
+  }
+  return false;
+}
+</script>
 </body>
 </html>
