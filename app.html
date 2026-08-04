@@ -4489,6 +4489,25 @@ function escapeHtml(s) {
   return d.innerHTML;
 }
 
+// Lightweight toast — used by onboarding, claim codes, merch, invite copy
+function showToast(msg) {
+  var t = document.getElementById('phx-toast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'phx-toast';
+    t.style.cssText = 'position:fixed;bottom:130px;left:50%;transform:translateX(-50%);z-index:600;' +
+      'background:var(--bg2);border:1px solid rgba(249,115,22,.4);color:var(--white);' +
+      'border-radius:100px;padding:.6rem 1.2rem;font-size:.82rem;font-weight:600;' +
+      'box-shadow:0 8px 30px rgba(0,0,0,.5);max-width:88vw;text-align:center;' +
+      'opacity:0;transition:opacity .25s;pointer-events:none';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.opacity = '1';
+  clearTimeout(t._hideTimer);
+  t._hideTimer = setTimeout(function(){ t.style.opacity = '0'; }, 2600);
+}
+
 // For URLs interpolated into src/href attributes: http(s) only, and
 // escape every character that could break out of a quoted attribute.
 function safeUrl(u) {

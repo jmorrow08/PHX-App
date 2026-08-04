@@ -43,8 +43,10 @@ const SUPABASE_KEY = env.SUPABASE_ANON_KEY || env.SUPABASE_PUBLISHABLE_KEY;
 const SITE = (env.PHX_SITE_URL || 'https://phx-app.vercel.app').replace(/\/$/, '');
 
 if (!SUPABASE_URL || !SUPABASE_KEY) {
-  console.error('✗ Missing SUPABASE_URL / SUPABASE_ANON_KEY (checked env and .env.local)');
-  process.exit(1);
+  // Fail-soft: a missing env var must not block the whole site deploy.
+  // The app still ships; only the /a/<slug> preview pages are skipped.
+  console.warn('⚠ Missing SUPABASE_URL / SUPABASE_ANON_KEY (checked env and .env.local) — skipping artist page generation. Set these in Vercel → Project → Environment Variables to enable.');
+  process.exit(0);
 }
 
 // ── helpers ───────────────────────────────────────────────────────────────
@@ -188,7 +190,14 @@ function renderPage(a) {
 }
 
 // ── run ───────────────────────────────────────────────────────────────────
-const artists = await fetchArtists();
+let artists;
+try {
+  artists = await fetchArtists();
+} catch (e) {
+  // Fail-soft: Supabase being unreachable at build time must not block deploys.
+  console.warn(`⚠ Could not fetch artists (${e.message}) — skipping artist page generation.`);
+  process.exit(0);
+}
 
 if (!artists.length) {
   console.log('· No active artists with a slug — nothing to generate.');
