@@ -523,6 +523,7 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
 
     <!-- HOME / CITY FEED -->
     <div class="view active" id="v-home">
+      <div id="starter-rail"></div>
       <!-- KPI stats row removed from member view (owner decision 2026-07-04):
            platform stats belong on the landing page, not the daily feed —
            especially on mobile. kpi-streams id preserved invisibly for JS. -->
@@ -1698,6 +1699,15 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
       <div style="font-size:1.4rem;font-weight:900;background:linear-gradient(135deg,#F97316,#EAB308);-webkit-background-clip:text;-webkit-text-fill-color:transparent">PHX</div>
       <button onclick="closeAuthModal()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem">✕</button>
     </div>
+    <button class="tb-btn" onclick="signInWithGoogle()" style="width:100%;display:flex;align-items:center;justify-content:center;gap:.6rem;padding:.7rem;margin-bottom:.9rem;background:#fff;color:#1f1f1f;border-color:#fff;font-weight:600">
+      <svg width="17" height="17" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24s.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+      Continue with Google
+    </button>
+    <div style="display:flex;align-items:center;gap:.6rem;margin-bottom:.9rem">
+      <div style="flex:1;height:1px;background:rgba(255,255,255,.09)"></div>
+      <span style="font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--faint)">or email</span>
+      <div style="flex:1;height:1px;background:rgba(255,255,255,.09)"></div>
+    </div>
     <div style="display:flex;gap:.5rem;margin-bottom:1rem">
       <button class="tb-btn" id="auth-tab-signin" style="flex:1;color:var(--orange);border-color:rgba(249,115,22,.4)" onclick="setAuthTab('signin')">Sign In</button>
       <button class="tb-btn" id="auth-tab-signup" style="flex:1" onclick="setAuthTab('signup')">Create Account</button>
@@ -1809,6 +1819,7 @@ function showView(id) {
   if (btn && !btn.classList.contains('nav-soon-item')) btn.classList.add('active');
   var titleEl = document.getElementById('page-title');
   if (titleEl) titleEl.textContent = titles[id] || id;
+  if (id === 'home') renderStarterRail();
   if (id === 'mypass') loadReferralPanel();
   if (id === 'admin-dashboard') { loadAdminStreamData(); loadAdminOps(); }
   if (id === 'admin-members' || id === 'admin-artists' || id === 'admin-financials') loadAdminOps();
@@ -4590,6 +4601,34 @@ async function sendPasswordReset() {
   infoEl.style.display = 'block';
 }
 
+// OAuth: the invite code is stashed first, then redeemed when the session
+// comes back from the provider — same path as email signup.
+async function signInWithGoogle() {
+  var errEl = document.getElementById('auth-error');
+  var inviteEl = document.getElementById('auth-invite');
+  var code = inviteEl ? (inviteEl.value || '').trim().toUpperCase() : '';
+  if (code) { try { localStorage.setItem('phx_pending_invite', code); } catch (e) {} }
+  var pending = '';
+  try { pending = localStorage.getItem('phx_pending_invite') || ''; } catch (e) {}
+  if (_requiresInvite && !pending) {
+    if (errEl) {
+      errEl.textContent = 'Enter your invite code first — PHX is invite-only right now.';
+      errEl.style.display = 'block';
+    }
+    var iw = document.getElementById('auth-invite-wrap');
+    if (iw) iw.style.display = 'block';
+    return;
+  }
+  try {
+    await _sb.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: window.location.origin + '/app' }
+    });
+  } catch (e) {
+    if (errEl) { errEl.textContent = 'Google sign-in is not enabled yet.'; errEl.style.display = 'block'; }
+  }
+}
+
 async function submitAuth() {
   var email = (document.getElementById('auth-email') || {}).value || '';
   var password = (document.getElementById('auth-password') || {}).value || '';
@@ -4875,6 +4914,70 @@ async function openMerchItem(productId) {
   } catch (e) {}
 }
 
+// ── STARTER RAIL ───────────────────────────────────────────────────────
+// A user who follows nobody would otherwise open PHX to a dead screen. This
+// is where the ranking engine earns its keep: get_ranked_tracks() already
+// blends proven quality, freshness and the guaranteed-exposure slots, and it
+// works with zero personal history. Shown until they follow someone.
+async function renderStarterRail() {
+  var host = document.getElementById('starter-rail');
+  if (!host) return;
+  try {
+    if (_authUser) {
+      var f = await _sb.from('follows').select('id', { count: 'exact', head: true })
+        .eq('follower_id', _authUser.id);
+      if ((f.count || 0) > 0) { host.innerHTML = ''; return; }
+    }
+    var res = await _sb.rpc('get_ranked_tracks', { p_user_id: _authUser ? _authUser.id : null, p_limit: 8 });
+    var rows = res.data || [];
+    if (!rows.length) { host.innerHTML = ''; return; }
+
+    var ids = rows.map(function (r) { return r.track_id; });
+    var tRes = await _sb.from('tracks')
+      .select('id,title,cover_url,stream_count,artist_id,artists(name,slug)')
+      .in('id', ids);
+    var byId = {};
+    (tRes.data || []).forEach(function (t) { byId[t.id] = t; });
+
+    host.innerHTML =
+      '<div class="card" style="margin-bottom:1rem">' +
+        '<div class="card-title" style="margin-bottom:.25rem">Start here</div>' +
+        '<div style="font-size:.8rem;color:var(--muted);margin-bottom:.9rem">What Phoenix is playing right now. Follow anyone and this becomes your feed.</div>' +
+        rows.map(function (r) {
+          var t = byId[r.track_id];
+          if (!t) return '';
+          var art = (t.artists && t.artists.name) || '';
+          return '<div class="track-row" style="cursor:pointer" onclick="playStarterTrack(\'' + r.track_id + '\')">' +
+            '<div class="track-art">' + (safeUrl(t.cover_url)
+              ? '<img src="' + safeUrl(t.cover_url) + '" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:6px">' : '🎵') + '</div>' +
+            '<div class="track-info">' +
+              '<div class="track-title">' + escapeHtml(t.title) + '</div>' +
+              '<div class="track-feat">' + escapeHtml(art) + ' · <span style="color:var(--orange-l)">' + escapeHtml(r.reason || '') + '</span></div>' +
+            '</div>' +
+            '<div class="track-streams">' + fmtK(t.stream_count || 0) + '</div>' +
+          '</div>';
+        }).join('') +
+      '</div>';
+
+    // log what we showed — impressions are the denominator every rate needs
+    _sb.rpc('log_impressions', {
+      p_rows: rows.map(function (r, i) {
+        return {
+          user_id: _authUser ? _authUser.id : null,
+          session_id: (typeof SESSION_ID !== 'undefined' ? SESSION_ID : null),
+          surface: 'starter_rail', item_type: 'track', item_id: r.track_id,
+          slot_position: i + 1, shelf: r.slot, ranking_version: r.ranking_version
+        };
+      })
+    }).then(function () {}, function () {});
+  } catch (e) { host.innerHTML = ''; }
+}
+
+function playStarterTrack(trackId) {
+  if (typeof playTrack === 'function') { playTrack(trackId); return; }
+  showView('music');
+}
+
 // ═══════════════════════════════════════════════════════════════════════
 // ACCESS GATE + ONBOARDING
 // PHX is invite-only until launch. An account can exist but stays
@@ -5006,6 +5109,7 @@ async function renderOnboard() {
       }).join('') +
     '</div>' +
     '<button class="upgrade-btn" style="margin:0;width:100%" onclick="finishOnboarding()">Enter PHX</button>' +
+    '<button onclick="finishOnboarding(true)" style="display:block;width:100%;background:none;border:none;color:var(--muted);cursor:pointer;font-size:.8rem;margin-top:.7rem;text-decoration:underline">Skip — show me what\'s hot</button>' +
     '<div id="onb-msg" style="font-size:.78rem;color:var(--muted);margin-top:.55rem;min-height:1em"></div>'
   );
 }
@@ -5054,7 +5158,8 @@ async function onbNext(skip) {
   }
 }
 
-async function finishOnboarding() {
+async function finishOnboarding(skipFollows) {
+  if (skipFollows) _onbFollows = [];
   var msg = document.getElementById('onb-msg');
   if (msg) msg.textContent = 'Setting up…';
   try {
