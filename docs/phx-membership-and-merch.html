@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>PHX — Membership &amp; Merch Setup</title>
+<style>
+:root{--bg:#07070F;--bg2:#0D0D18;--bg3:#12121F;--line:rgba(249,115,22,.16);--line2:rgba(255,255,255,.07);--orange:#F97316;--orange-l:#FB923C;--green:#22C55E;--gold:#EAB308;--red:#EF4444;--purple:#A78BFA;--white:#F1F1F8;--muted:#9CA3AF;--faint:#6B7280;--mono:ui-monospace,'SF Mono',Menlo,monospace}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--white);font-family:'Space Grotesk',system-ui,-apple-system,sans-serif;line-height:1.65;padding:2.2rem 1.1rem 5rem}
+.wrap{max-width:900px;margin:0 auto}
+h1{font-size:1.8rem;letter-spacing:-.025em}
+h1 span{color:var(--orange)}
+.sub{color:var(--muted);font-size:.93rem;margin:.5rem 0 2rem;max-width:640px}
+h2{font-size:1.2rem;margin:3rem 0 .8rem;padding-top:1.5rem;border-top:1px solid var(--line2)}
+h2 .n{color:var(--orange);font-family:var(--mono);font-size:.72rem;display:block;letter-spacing:.14em;margin-bottom:.3rem}
+h3{font-size:1rem;margin:1.8rem 0 .5rem;color:var(--orange-l)}
+p{color:var(--muted);font-size:.91rem;margin-bottom:.8rem}
+b{color:var(--white);font-weight:600}
+code{font-family:var(--mono);font-size:.85em;background:var(--bg3);border:1px solid var(--line2);border-radius:5px;padding:.08em .38em;color:var(--orange-l)}
+.lede{font-size:1rem;color:var(--white);border-left:3px solid var(--orange);padding-left:1.1rem;margin:1.1rem 0 1.5rem}
+.card{background:var(--bg2);border:1px solid var(--line2);border-radius:14px;padding:1.15rem 1.3rem;margin:1rem 0}
+.card.hi{border-color:var(--line);background:linear-gradient(180deg,rgba(249,115,22,.06),transparent 55%),var(--bg2)}
+.card.warn{border-left:3px solid var(--gold);border-radius:0 12px 12px 0;background:rgba(234,179,8,.055)}
+.card.warn b{color:var(--gold)}
+.card.good{border-left:3px solid var(--green);border-radius:0 12px 12px 0;background:rgba(34,197,94,.05)}
+.card.good b{color:var(--green)}
+table{width:100%;border-collapse:collapse;font-size:.83rem;margin:.7rem 0}
+th{text-align:left;font-size:.6rem;letter-spacing:.11em;text-transform:uppercase;color:var(--faint);padding:.45rem .5rem;border-bottom:1px solid var(--line2)}
+td{padding:.52rem .5rem;border-bottom:1px solid rgba(255,255,255,.04);color:var(--muted);vertical-align:top}
+td b{color:var(--white)}
+.phase{display:grid;grid-template-columns:150px 1fr;gap:1.1rem;padding:1.05rem 0;border-bottom:1px solid rgba(255,255,255,.05)}
+.phase:last-child{border-bottom:none}
+.phase .lbl{font-family:var(--mono);font-size:.72rem;color:var(--orange);line-height:1.55}
+.phase .lbl b{display:block;font-family:'Space Grotesk',sans-serif;font-size:.9rem;color:var(--white);margin-bottom:.15rem}
+.step{display:grid;grid-template-columns:30px 1fr;gap:.9rem;padding:.75rem 0;border-bottom:1px solid rgba(255,255,255,.05)}
+.step:last-child{border-bottom:none}
+.step .n{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:7px;background:var(--orange);color:#07070F;font-size:.76rem;font-weight:700;font-family:var(--mono)}
+.step .n.you{background:var(--purple);color:#07070F}
+.step strong{display:block;color:var(--white);font-size:.93rem;margin-bottom:.15rem}
+.step span{font-size:.86rem;color:var(--muted)}
+.flow{font-family:var(--mono);font-size:.76rem;line-height:1.9;background:var(--bg3);border:1px solid var(--line2);border-radius:10px;padding:1rem 1.15rem;overflow-x:auto;white-space:pre;color:var(--muted);margin:.8rem 0}
+.flow b{color:var(--orange-l)}
+.flow .g{color:var(--green)}
+ul{margin:.4rem 0 .9rem 1.05rem;color:var(--muted);font-size:.89rem}
+li{margin-bottom:.32rem}
+li::marker{color:var(--orange)}
+.chip{display:inline-block;font-family:var(--mono);font-size:1.05rem;font-weight:700;letter-spacing:.14em;background:rgba(249,115,22,.14);border:1px solid var(--line);color:var(--orange-l);border-radius:8px;padding:.35rem .9rem}
+.legend{display:flex;gap:1.4rem;font-size:.75rem;color:var(--faint);margin-bottom:.8rem;flex-wrap:wrap}
+.legend i{font-style:normal;display:inline-flex;align-items:center;gap:.35rem}
+.dot{width:10px;height:10px;border-radius:3px;display:inline-block}
+@media(max-width:600px){.phase{grid-template-columns:1fr;gap:.3rem}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>Membership &amp; <span>Merch Setup</span></h1>
+<p class="sub">How a new person becomes a member, what they pay and when, and the exact step-by-step for setting up an artist's print-on-demand store as admin.</p>
+
+<!-- ══════════════ MEMBERSHIP ══════════════ -->
+<h2><span class="n">PART ONE</span>How membership works</h2>
+
+<p class="lede">You can't charge $15/month for six tracks — there's nothing to listen to yet. But free-forever kills the price anchor <em>and</em> leaves artists earning $0. The answer is neither a trial nor a free tier: it's a <b>founding membership that's free now and priced forever.</b></p>
+
+<h3>The three phases</h3>
+<div class="card">
+<div class="phase">
+  <div class="lbl"><b>Founding</b>now → catalog fills</div>
+  <div>
+    <p style="margin-bottom:.4rem"><b>Invite-only. $0. Full Native access.</b> Everyone who redeems a code claims a permanent founding number (#1, #2, #3…) and locks a price — <b>$9.99/mo Native</b> — that they'll pay later and keep for life. No card at signup.</p>
+    <p style="margin-bottom:0">Capped at 1,000. The cap is what does the selling: scarcity plus a permanent number is a much better offer than "free beta."</p>
+  </div>
+</div>
+<div class="phase">
+  <div class="lbl"><b>Converting</b>when the catalog earns it</div>
+  <div>
+    <p style="margin-bottom:0">Billing turns on. Founding members are asked for a card <b>at their locked $9.99</b>, not at $15. Banked referral months apply first, so heavy referrers pay nothing for months. Anyone who declines drops to Explorer (free) — they don't lose their account, just the Native features.</p>
+  </div>
+</div>
+<div class="phase">
+  <div class="lbl"><b>Public</b>open signup</div>
+  <div>
+    <p style="margin-bottom:0">$15 Native / $29 Insider. Founding members keep $9.99 forever — that's the whole point, and it's why the early cohort evangelises.</p>
+  </div>
+</div>
+</div>
+
+<div class="card warn">
+<b>Why not a free trial.</b> Trials only work when the product is already good enough to convert on. Right now the catalog is the product, and it's six tracks — a 14-day clock would expire before there's a reason to pay, and you'd have burned the person. Worse, a card-required trial at the door would gut signups from a cold Instagram link, and a cardless trial converts at 15–25%. The founding structure sidesteps the whole problem: no clock, no card, and the conversion moment arrives when the catalog actually justifies it.
+</div>
+
+<h3>What a new person actually experiences</h3>
+<div class="flow">Taps Murkemz's IG bio link
+  → <b>/a/murkemz</b> — real page, real preview card, plays music logged out
+  → likes it, hits "Claim your pass"
+  → enters code <b>QVRPRA</b> (Murkemz's code)
+  → picks a @username
+  → <span class="g">"You're PHX Native #7 — locked at $9.99/mo, forever"</span>
+  → full access. Pays nothing today.</div>
+
+<h3>The part that makes it work for artists</h3>
+<div class="card good">
+<p><b>The founding pool.</b> During the free phase nobody pays, so wallets are $0, so artists earn $0 — which kills the artist pitch at the exact moment you're recruiting the first thirty. So PHX seeds money into the pot directly. Artists then earn <b>real dollars from real listening before a single subscriber exists</b>, through the same capped, fraud-checked machinery as everything else.</p>
+<p style="margin-bottom:0">It's a marketing cost with a receipt attached — and "we paid Phoenix artists $X before we charged anyone a dollar" is a better recruiting line than anything you could say about the product.</p>
+</div>
+
+<div class="card warn">
+<b>A trap I hit while testing this, and fixed.</b> I simulated a $500 seed against your current 12 streams and it paid <b>$41 per stream</b>. Great first cheque — and a disaster, because when real subscribers arrive the rate reverts to ~0.75¢ and every artist watches their earnings collapse. Ramping up reads as momentum; crashing down reads as a bait-and-switch. So the seed now pays at most <b>7.5¢/stream</b> (10× the normal rate — generous, same order of magnitude), and whatever the catalog can't absorb simply isn't spent. Re-run with the ceiling: Murkemz $0.53, Jaye Mali $0.38 on 12 streams. Small, honest, and it only goes up.
+</div>
+
+<p><b>The number is yours to set.</b> It's currently <code>0</code> — nothing pays out until you choose. $200–500/month is the range I'd suggest for the founding phase: enough that a working artist notices, small enough that it's a rounding error against the story it buys.</p>
+
+<!-- ══════════════ REFERRAL ══════════════ -->
+<h2><span class="n">PART TWO</span>The referral system — built and live</h2>
+
+<p>This replaces the beta-mode flag entirely. There's no switch to rip out later — <b>the invite system is the gate now and stays as the growth loop forever.</b></p>
+
+<h3>How codes work</h3>
+<table>
+<tr><th>Who</th><th>Code</th><th>Uses</th><th>Why</th></tr>
+<tr><td><b>Artists</b></td><td>One permanent code per artist page</td><td><b>Unlimited</b></td><td>An artist's code is their own payroll — every member they bring streams them and funds their wallet. Never limit this.</td></tr>
+<tr><td><b>Members</b></td><td>Personal code</td><td>3 (tunable)</td><td>Scarcity makes the invite feel like a gift rather than spam.</td></tr>
+<tr><td><b>Promoters / campaigns</b></td><td>Labelled codes</td><td>Set per code</td><td>"AZ Hip Hop Fest table", "Valley Bar flyer" — so you know what actually worked.</td></tr>
+</table>
+
+<div class="card hi">
+<p style="margin-bottom:.5rem"><b>Murkemz's code is already issued:</b></p>
+<span class="chip">QVRPRA</span>
+<p style="margin:.7rem 0 0;font-size:.85rem">Unlimited uses. Goes in his IG bio, on merch-table cards, on flyer QR codes. Every signup through it is attributed to him permanently.</p>
+</div>
+
+<h3>Rewards</h3>
+<ul>
+<li><b>Double-sided</b> — both people get a free month. One-sided asks someone to spam their friends for personal gain, which reads badly in a tight scene; double-sided makes it a gift.</li>
+<li><b>Banked, not spent</b> — credits accrue <em>now</em>, during the free phase, and apply when billing starts. That's what makes referring worth doing before anything costs money.</li>
+<li><b>Qualifies after 30 days plus real listening</b> (founding phase) or a settled invoice (billing phase). Never at signup — that's the entire fraud surface.</li>
+<li><b>Milestone ladder at 3 / 10 / 25</b> — three months free, then a founding Insider upgrade, then guest list plus a PHX metal card. This exists because ~83% of referrers refer exactly once while the top ~1% drive ~30% of all referrals; the ladder gives those people somewhere to keep going.</li>
+</ul>
+
+<h3>Fraud guards</h3>
+<ul>
+<li>Self-referral blocked outright.</li>
+<li>One referral per person, ever — enforced at the database level.</li>
+<li>Device-fingerprint collisions <em>flag for review</em> rather than block, so a shared family laptop isn't punished, but nothing pays out until it's cleared.</li>
+<li>Rewards run through an admin-only function — the client can never trigger a payout.</li>
+</ul>
+
+<!-- ══════════════ MERCH ══════════════ -->
+<h2><span class="n">PART THREE</span>Setting up merch — the full walkthrough</h2>
+
+<p class="legend">
+  <i><span class="dot" style="background:var(--purple)"></span> you do this</i>
+  <i><span class="dot" style="background:var(--orange)"></span> in PHX admin</i>
+</p>
+
+<h3>Path A — Print-on-demand (dropshipping)</h3>
+<p>This is the Murkemz path. Nobody holds inventory; a shirt gets printed only when someone buys one.</p>
+
+<div class="card">
+<div class="step"><div><span class="n you">1</span></div><div><strong>Create the Fourthwall shop — you, not the artist</strong><span>fourthwall.com, free, ~15 minutes. Name it for the artist. You own the login; the artist never has to touch it. This is deliberate for now — every store meets a quality bar, which is the point of a curated platform.</span></div></div>
+
+<div class="step"><div><span class="n you">2</span></div><div><strong>Upload the artwork</strong><span>300 DPI PNG, transparent background. Fourthwall's Merch Maker places it on the product and shows you a mockup. You can generate designs or reuse what's already on murkmerch.com.</span></div></div>
+
+<div class="step"><div><span class="n you">3</span></div><div><strong>Pick products and set prices</strong><span>Their catalog is far wider than tees — hoodies, crewnecks, hats, beanies, joggers, tote bags, mugs, posters, stickers, phone cases, blankets, socks. Base costs: Gildan tee $9.50, Bella+Canvas tee $11.75, Comfort Colors hoodie $26.95, mug $5.95. You set retail; everything above base is the artist's. A $28 tee on an $11.75 blank leaves ~$16.</span></div></div>
+
+<div class="step"><div><span class="n you">4</span></div><div><strong>Order one sample of each</strong><span>Never sell something you haven't held. Also gives you a real photo, which converts better than any mockup.</span></div></div>
+
+<div class="step"><div><span class="n you">5</span></div><div><strong>Copy the Storefront token</strong><span>Fourthwall → Settings → For Developers → Storefront token. It's a public read token, but it goes in the admin-only <code>artist_merch_secrets</code> table, never on the artists row — that's the leak I fixed earlier.</span></div></div>
+
+<div class="step"><div><span class="n">6</span></div><div><strong>Switch the artist on in PHX admin</strong><span>Set <code>merch_mode = 'fourthwall_headless'</code> and paste the token. PHX's server-side proxy fetches their products and renders them natively on the artist page in PHX styling — the customer never sees a Fourthwall page until checkout.</span></div></div>
+
+<div class="step"><div><span class="n">7</span></div><div><strong>Done — it's live</strong><span>Products appear on <code>/a/murkemz</code>. Buy button hands off to Fourthwall's checkout.</span></div></div>
+</div>
+
+<h3>What happens when someone buys</h3>
+<div class="flow">Fan taps Buy on the PHX artist page
+  → Fourthwall checkout (card / PayPal / Apple Pay)
+  → <b>Fourthwall charges them</b> — they are the merchant of record
+  → supplier prints and ships, 7–10 days, artist's branding
+  → <span class="g">artist gets everything above base cost</span>
+  → <span class="g">PHX earns partner commission on net sales</span>
+
+  Sales tax, chargebacks, refunds, customer support: <b>all Fourthwall's</b></div>
+
+<div class="card good">
+<b>Why this structure and not Printful direct.</b> Printful's API is better, but with them <em>you</em> become the merchant of record — which means you personally own sales-tax nexus in every state you cross a threshold in, plus returns, chargebacks, and support. As an Arizona-based marketplace you'd owe TPT from the first sale. Letting Fourthwall be merchant of record removes all of it, and their <b>Partner Dashboard</b> is purpose-built for exactly your shape: one operator running many creator shops, with commission paid to the operator. Apply for it once Murkemz's shop is live — you need one live shop to qualify.
+</div>
+
+<h3>Path B — Direct-ship (the artist's own inventory)</h3>
+<p>Vinyl, cassettes, hand-made pieces, chains, anything they already have boxes of. The schema supports this today — <code>fulfilment = 'direct_ship'</code>.</p>
+<div class="card">
+<div class="step"><div><span class="n">1</span></div><div><strong>You create the product in PHX admin</strong><span>Name, price, photos, variants, stock count, and a ship note — "Ships from Phoenix in 2–3 days." Stock decrements on order.</span></div></div>
+<div class="step"><div><span class="n you">2</span></div><div><strong>Order comes in → the artist ships it</strong><span>They get notified, pack it, mark it shipped. For beta, keep this to artists you trust to actually ship — the failure mode is a fan waiting on someone flaky while PHX takes the blame.</span></div></div>
+</div>
+<p style="font-size:.85rem"><b>Also supported:</b> <code>digital</code> (download/unlock) and <code>pickup</code> (collect at a show — genuinely useful for a local platform, and zero shipping cost).</p>
+
+<h3>The thing that makes PHX merch different</h3>
+<div class="card hi">
+<p style="margin-bottom:.5rem"><b>Fans tag products in posts, and it becomes a review.</b> Someone posts a photo wearing the hoodie, tags the product, and it shows up as social proof on the product page with their photo.</p>
+<p style="margin-bottom:0">Customer photos are one of the highest-evidence conversion levers in apparel, and <b>no print-on-demand store can build this</b> — they're stores, not social networks. Fourthwall structurally can't. You already have the feed, the media upload, and the tagging mechanic. The tables are in; it ships with the merch UI.</p>
+</div>
+
+<!-- ══════════════ NEXT ══════════════ -->
+<h2><span class="n">NEXT</span>What's left</h2>
+<table>
+<tr><th>Item</th><th>Who</th><th>Notes</th></tr>
+<tr><td><b>Set the founding pool number</b></td><td>You</td><td>Currently $0. $200–500/mo suggested. One settings update and artists start earning.</td></tr>
+<tr><td><b>Create Murkemz's Fourthwall shop</b></td><td>You</td><td>Then apply for the Partner Dashboard.</td></tr>
+<tr><td><b>Upload a banner image for Murkemz</b></td><td>You</td><td>1200×630. Right now his link preview shows the PHX icon instead of him.</td></tr>
+<tr><td><b>Referral UI in the app</b></td><td>Me</td><td>Signup code field, "your code + invites left" screen, founding number on profile.</td></tr>
+<tr><td><b>Merch UI on artist pages</b></td><td>Me</td><td>Product grid, both fulfilment paths, tag-to-review.</td></tr>
+<tr><td><b>Nightly reward job</b></td><td>Me</td><td><code>process_referral_rewards()</code> on a schedule.</td></tr>
+</table>
+
+</div>
+</body>
+</html>
