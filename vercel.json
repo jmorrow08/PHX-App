@@ -1,6 +1,4 @@
 {
-  "version": 2,
-  "name": "phx-app",
   "cleanUrls": true,
   "outputDirectory": ".",
   "rewrites": [
