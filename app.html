@@ -1719,6 +1719,12 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
         <div style="font-size:.78rem;color:var(--muted);margin-bottom:.7rem">Hand these to the person they belong to. Signing up with the code transfers ownership instantly.</div>
         <div id="admin-claim-codes"><div class="pf-empty">Loading…</div></div>
       </div>
+      <div class="card" style="margin-bottom:1rem">
+        <div class="sh" style="margin-bottom:.6rem"><h3>Invites &amp; referrals</h3>
+          <button class="tb-btn" style="margin-left:auto;font-size:.74rem;padding:.28rem .6rem" onclick="generateInviteCode()">+ Generate code</button></div>
+        <div style="font-size:.78rem;color:var(--muted);margin-bottom:.7rem">Who invited whom. Every signup must redeem a code — there is no open sign-up.</div>
+        <div id="admin-invites"><div class="pf-empty">Loading…</div></div>
+      </div>
       <div class="card">
         <div class="sh" style="margin-bottom:.6rem"><h3>Everyone on PHX</h3><span class="badge badge-orange" id="roster-count">…</span></div>
         <div id="admin-roster-list"><div class="pf-empty">Loading…</div></div>
@@ -2918,6 +2924,7 @@ async function loadAdminStreamData() {
 
 // Load live stream counts + profile + city feed + liked songs + pages + notifs on startup
 loadStreamCounts();
+loadPageCapabilities();
 Promise.all([loadMyPages(), loadMyProfile(), loadMyFollows()]).then(function(){ loadCityFeed(); });
 loadMyTrackLikes();
 loadNotifications();
@@ -4598,6 +4605,7 @@ function resetSubmitForm() {
 // outstanding. Previously you couldn't tell who existed or what was unclaimed.
 // ═══════════════════════════════════════════════════════════════════════
 async function loadAdminRoster() {
+  loadAdminInvites();
   var codesEl = document.getElementById('admin-claim-codes');
   var listEl = document.getElementById('admin-roster-list');
   if (!listEl) return;
@@ -4675,6 +4683,76 @@ function copyClaimCode(code, btn) {
   if (navigator.clipboard) navigator.clipboard.writeText(code);
   btn.textContent = '✓ Copied';
   setTimeout(function(){ btn.textContent = 'Copy'; }, 1500);
+}
+
+// ── INVITE / REFERRAL TRACKING ─────────────────────────────────────────
+// Every account must redeem a code, so this table IS the growth graph:
+// which code, who owned it, who it brought in.
+async function loadAdminInvites() {
+  var el = document.getElementById('admin-invites');
+  if (!el) return;
+  var r = await Promise.all([
+    _sb.from('invite_codes').select('*').order('created_at', { ascending: false }).limit(50),
+    _sb.from('referrals').select('*').order('created_at', { ascending: false }).limit(50),
+    _sb.from('member_profiles').select('device_id,username,display_name'),
+    _sb.from('artists').select('id,name')
+  ]);
+  var codes = r[0].data || [], refs = r[1].data || [],
+      members = r[2].data || [], artists = r[3].data || [];
+
+  if (!codes.length && !refs.length) {
+    el.innerHTML = _authUser
+      ? '<div class="pf-empty">No invite codes yet — generate one above.</div>'
+      : '<div class="pf-empty">🔒 Sign in with your admin account to view invites.</div>';
+    return;
+  }
+  function who(id) {
+    if (!id) return '—';
+    var m = members.filter(function(x){ return x.device_id === id; })[0];
+    if (m) return m.display_name || ('@' + m.username);
+    var a = artists.filter(function(x){ return x.id === id; })[0];
+    return a ? a.name : id.slice(0, 8);
+  }
+
+  el.innerHTML =
+    (codes.length ? codes.map(function(c) {
+      var left = c.max_uses ? (c.max_uses - (c.uses || 0)) : '∞';
+      return '<div style="display:flex;align-items:center;gap:.7rem;padding:.55rem .7rem;border:1px solid var(--border);border-radius:10px;margin-bottom:.4rem;flex-wrap:wrap">' +
+        '<code style="font-family:var(--mono);font-size:.86rem;font-weight:700;color:var(--orange);letter-spacing:.1em">' + escapeHtml(c.code) + '</code>' +
+        '<div style="flex:1;min-width:110px"><div style="font-size:.8rem;font-weight:600">' + escapeHtml(c.label || c.kind || 'Invite') + '</div>' +
+          '<div style="font-size:.7rem;color:var(--muted)">Owner: ' + escapeHtml(who(c.owner_user_id || c.owner_artist_id)) +
+            ' · ' + (c.uses || 0) + ' used · ' + left + ' left</div></div>' +
+        '<span class="badge" style="font-size:.6rem;color:' + (c.is_active ? 'var(--green)' : 'var(--faint)') + ';border:1px solid rgba(241,241,248,.14)">' +
+          (c.is_active ? 'Active' : 'Off') + '</span>' +
+        '<button class="tb-btn" style="font-size:.68rem;padding:.22rem .55rem" onclick="copyClaimCode(\'' + escapeHtml(c.code) + '\',this)">Copy</button>' +
+      '</div>';
+    }).join('') : '') +
+    (refs.length
+      ? '<div class="pf-sec"><h3>Who invited whom</h3><span class="badge badge-orange">' + refs.length + '</span></div>' +
+        refs.map(function(rf) {
+          return '<div style="display:flex;align-items:center;gap:.6rem;padding:.45rem 0;border-bottom:1px solid var(--border);font-size:.8rem;flex-wrap:wrap">' +
+            '<code style="font-family:var(--mono);font-size:.74rem;color:var(--orange-l)">' + escapeHtml(rf.code || '') + '</code>' +
+            '<span style="flex:1;min-width:140px">' + escapeHtml(who(rf.referrer_user_id || rf.referrer_artist_id)) +
+              ' <span style="color:var(--faint)">→</span> ' + escapeHtml(who(rf.referee_user_id)) + '</span>' +
+            '<span class="badge" style="font-size:.6rem;color:' + (rf.status === 'qualified' ? 'var(--green)' : 'var(--muted)') +
+              ';border:1px solid rgba(241,241,248,.14)">' + escapeHtml(rf.status || 'pending') + '</span>' +
+          '</div>';
+        }).join('')
+      : '<div class="pf-empty" style="padding-top:.6rem">No referrals recorded yet.</div>');
+}
+
+async function generateInviteCode() {
+  var label = prompt('Label for this code (who is it for?):');
+  if (label === null) return;
+  var res = await _sb.rpc('ensure_invite_code', {
+    p_user_id: _authUser ? _authUser.id : getGuestId(),
+    p_artist_id: null,
+    p_label: label || 'PHX invite'
+  });
+  if (res.error) { showToast('Could not generate — admin sign-in required'); return; }
+  var code = res.data && (res.data.code || res.data);
+  if (code) showToast('Code: ' + code);
+  loadAdminInvites();
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -4912,7 +4990,7 @@ async function runMusicSearch(query) {
   // People search: artists, pages AND members. Members were previously
   // unfindable, so the only way to follow someone was to stumble across a
   // post of theirs — a broken social loop for a platform built on following.
-  var peopleRes = await _sb.rpc('search_people', { p_q: query, p_limit: 12 });
+  var peopleRes = await _sb.rpc('search_all', { p_q: query, p_limit: 18 });
   var people = peopleRes.data || [];
 
   if (!tracks.length && !people.length) {
@@ -4920,23 +4998,31 @@ async function runMusicSearch(query) {
     return;
   }
 
-  var kindLabel = { artist: 'Artist', page: 'Page', member: 'Member' };
+  // Every result states WHAT it is — an album named like an artist is a
+  // real ambiguity, so the type chip does the disambiguating.
+  var kindMeta = {
+    artist: { label: 'Artist', icon: '🎤', color: 'var(--orange-l)' },
+    album:  { label: 'Album',  icon: '💿', color: 'var(--teal)' },
+    page:   { label: 'Page',   icon: '⭐', color: 'var(--purple-l)' },
+    member: { label: 'Member', icon: '👤', color: 'var(--muted)' }
+  };
   var peopleHtml = people.length
-    ? '<div class="pf-sec" style="margin-top:0"><h3>People &amp; Pages</h3><span class="badge badge-orange">' + people.length + '</span></div>' +
+    ? '<div class="pf-sec" style="margin-top:0"><h3>Artists, Albums &amp; People</h3><span class="badge badge-orange">' + people.length + '</span></div>' +
       people.map(function(p) {
+        var k = kindMeta[p.kind] || kindMeta.member;
         var target = p.kind === 'artist' ? "showArtistPage('" + escapeHtml(p.slug) + "')"
                    : p.kind === 'page'   ? "showPageProfile('" + escapeHtml(p.slug || p.id) + "')"
+                   : p.kind === 'album'  ? "showView('music')"
                    : "showMemberPage('" + p.id + "')";
         var ava = safeUrl(p.avatar_url);
         return '<div class="artist-card" style="cursor:pointer" onclick="' + target + '">' +
           '<div class="artist-card-ava" style="background:linear-gradient(135deg,var(--orange-d),var(--purple));overflow:hidden">' +
-            (ava ? '<img src="' + ava + '" alt="" style="width:100%;height:100%;object-fit:cover">'
-                 : escapeHtml((p.name||'?').charAt(0).toUpperCase())) + '</div>' +
+            (ava ? '<img src="' + ava + '" alt="" style="width:100%;height:100%;object-fit:cover">' : k.icon) + '</div>' +
           '<div style="flex:1;min-width:0"><div class="artist-card-name">' + escapeHtml(p.name) +
             (p.verified ? ' <span class="badge badge-orange" style="font-size:.6rem">✓</span>' : '') + '</div>' +
             '<div class="artist-card-meta">' + escapeHtml(p.subtitle || '') + '</div></div>' +
-          '<span class="badge" style="font-size:.6rem;color:var(--faint);border:1px solid rgba(241,241,248,.14)">' +
-            (kindLabel[p.kind] || '') + '</span>' +
+          '<span class="badge" style="font-size:.6rem;color:' + k.color + ';border:1px solid rgba(241,241,248,.14);white-space:nowrap">' +
+            k.icon + ' ' + k.label + '</span>' +
         '</div>';
       }).join('')
     : '';
@@ -6598,10 +6684,29 @@ var _artistPageTracks = [];
 // The directory lists everyone with a public identity — artists AND pages
 // (creators, brands, venues, promoters). Pages existed in the database with
 // nothing linking to them; this is where the city actually becomes browsable.
+// Page types aren't just labels — each declares which MODULES its page
+// gets, loaded from page_type_capabilities. Adding Eats/Events/Drops later
+// means inserting a row, not rewriting the page renderer.
 var PAGE_TYPE_LABEL = {
   artist:'Artist', creator:'Creator', restaurant:'Food', clothing:'Brand',
   venue:'Venue', promoter:'Promoter', brand:'Brand', other:'Business'
 };
+var PAGE_CAPS = {};
+function loadPageCapabilities() {
+  return _sb.from('page_type_capabilities').select('*').then(function(res) {
+    (res.data || []).forEach(function(r) {
+      PAGE_CAPS[r.page_type] = r;
+      PAGE_TYPE_LABEL[r.page_type] = r.label;
+    });
+  }, function(){});
+}
+function pageCan(pageType, cap) {
+  var c = PAGE_CAPS[pageType];
+  return !!(c && c.capabilities && c.capabilities.indexOf(cap) !== -1);
+}
+function pageTypeIcon(pageType) {
+  return (PAGE_CAPS[pageType] && PAGE_CAPS[pageType].icon) || '⭐';
+}
 
 async function showArtistDirectory() {
   showView('artist-directory');
@@ -6665,11 +6770,18 @@ async function showPageProfile(slugOrId) {
   }
   if (pg.slug) { try { window.location.hash = 'page/' + pg.slug; } catch (e) {} }
 
-  var postsRes = await _sb.from('feed_posts')
-    .select('id,content,created_at,likes_count,comments_count,media_url')
-    .eq('page_id', pg.id).eq('is_hidden', false)
-    .order('created_at', { ascending: false }).limit(20);
-  var posts = postsRes.data || [];
+  var pgRes = await Promise.all([
+    _sb.from('feed_posts')
+      .select('id,content,created_at,likes_count,comments_count,media_url')
+      .eq('page_id', pg.id).eq('is_hidden', false)
+      .order('created_at', { ascending: false }).limit(20),
+    pageCan(pg.page_type, 'shows')
+      ? _sb.from('shows').select('*').eq('page_id', pg.id).eq('status','live')
+          .gte('starts_at', new Date().toISOString()).order('starts_at')
+      : Promise.resolve({ data: [] })
+  ]);
+  var posts = pgRes[0].data || [];
+  var pageShows = pgRes[1].data || [];
 
   var fRes = await _sb.from('follows').select('id', { count: 'exact', head: true })
     .eq('followee_type', 'page').eq('followee_id', pg.id);
@@ -6686,7 +6798,7 @@ async function showPageProfile(slugOrId) {
       profileHeroHtml({
         name: pg.name, avatar_url: pg.avatar_url, banner_url: pg.banner_url,
         verified: pg.is_verified,
-        meta: [PAGE_TYPE_LABEL[pg.page_type] || 'Page', pg.city].filter(Boolean).join(' · ')
+        meta: [pageTypeIcon(pg.page_type) + ' ' + (PAGE_TYPE_LABEL[pg.page_type] || 'Page'), pg.city].filter(Boolean).join(' · ')
       }) +
       '<div class="pf-body">' +
         '<div class="pf-actions">' +
@@ -6703,6 +6815,22 @@ async function showPageProfile(slugOrId) {
           ? '<div style="background:rgba(249,115,22,.08);border:1px solid rgba(249,115,22,.28);border-radius:var(--r-s);padding:.75rem .9rem;margin-top:1rem;font-size:.8rem;color:var(--muted)">' +
               'This page was built by PHX and is waiting to be claimed. If it\'s yours, sign in with your claim code to take it over.' +
             '</div>' : '') +
+        // Modules render per the page TYPE's declared capabilities
+        (pageCan(pg.page_type, 'shows') && pageShows.length
+          ? '<div class="pf-sec"><h3>Upcoming</h3></div>' + pageShows.map(function(s) {
+              var d = new Date(s.starts_at);
+              var ticket = safeUrl(s.ticket_url);
+              return '<div class="ap-show">' +
+                '<div class="ap-date"><div class="m">' + d.toLocaleDateString('en-US',{month:'short'}).toUpperCase() + '</div>' +
+                  '<div class="d">' + d.getDate() + '</div></div>' +
+                '<div style="flex:1;min-width:0"><div style="font-family:var(--disp);font-size:.9rem;font-weight:600">' + escapeHtml(s.title) + '</div>' +
+                  '<div style="font-size:.74rem;color:var(--muted)">' + escapeHtml([s.venue, s.city].filter(Boolean).join(' · ')) + '</div></div>' +
+                (ticket ? '<a class="pf-btn" style="padding:.35rem .85rem;font-size:.74rem" href="' + ticket + '" target="_blank" rel="noopener">Tickets ↗</a>' : '') +
+              '</div>';
+            }).join('')
+          : '') +
+        (pageCan(pg.page_type, 'menu') ? '<div class="pf-sec"><h3>Menu</h3></div><div class="pf-empty">Menu coming with PHX Eats.</div>' : '') +
+        (pageCan(pg.page_type, 'perks') ? '<div class="pf-sec"><h3>Member perks</h3></div><div class="pf-empty">Perks launch with the partner program.</div>' : '') +
         '<div class="pf-sec"><h3>Posts</h3></div>' +
         (posts.length ? posts.map(function(po) {
           var d = new Date(po.created_at);
@@ -6795,11 +6923,15 @@ async function showArtistPage(slug) {
     _sb.rpc('artist_support_stats', { p_artist_id: artist.id }),
     artist.merch_enabled
       ? _sb.from('merch_catalog').select('*').eq('artist_id', artist.id).order('position', { ascending: true })
-      : Promise.resolve({ data: [] })
+      : Promise.resolve({ data: [] }),
+    _sb.from('shows').select('*').eq('artist_id', artist.id).eq('status','live')
+      .gte('starts_at', new Date(Date.now() - 6*3600*1000).toISOString())
+      .order('starts_at', { ascending: true })
   ]);
   _artistPageTracks = results[0].data || [];
   var support = results[1].data || {};
   _artistMerch = results[2].data || [];
+  _artistShows = results[3].data || [];
   _merchFilter = 'all';
 
   var following = !!_myFollows['artist:' + artist.id];
@@ -6838,11 +6970,15 @@ async function showArtistPage(slug) {
     '<div class="ap-tabs" id="ap-tabs">' +
       '<button class="ap-tab on" data-tab="music" onclick="apTab(\'music\')">Music</button>' +
       (_artistMerch.length ? '<button class="ap-tab" data-tab="merch" onclick="apTab(\'merch\')">Merch <span class="n">' + _artistMerch.length + '</span></button>' : '') +
+      '<button class="ap-tab" data-tab="shows" onclick="apTab(\'shows\')">Shows' +
+        (_artistShows.length ? ' <span class="n">' + _artistShows.length + '</span>' : '') + '</button>' +
       '<button class="ap-tab" data-tab="about" onclick="apTab(\'about\')">About</button>' +
     '</div>' +
 
     '<div class="ap-panel" id="ap-panel-music">' + renderArtistTracks() + '</div>' +
     '<div class="ap-panel" id="ap-panel-merch" hidden>' + renderArtistMerchPanel(shopUrl) + '</div>' +
+    '<div class="ap-panel" id="ap-panel-shows" hidden>' +
+      '<div class="pf-sec" style="margin-top:0"><h3>Next in the city</h3></div>' + renderArtistShows(artist) + '</div>' +
     '<div class="ap-panel" id="ap-panel-about" hidden>' + renderArtistAbout(artist, shopUrl) + '</div>' +
 
     '<div class="ap-cta">' +
@@ -6898,26 +7034,17 @@ function renderArtistMerchPanel(shopUrl) {
   if (!_artistMerch.length) {
     return shopUrl ? '<a class="pf-btn" href="' + shopUrl + '" target="_blank" rel="noopener">🛍️ Shop the store ↗</a>' : '';
   }
-  var hasShip = _artistMerch.some(function(p){ return p.fulfilment === 'direct_ship'; });
-  var hasPod  = _artistMerch.some(function(p){ return p.fulfilment === 'pod'; });
-  // Chips only appear when both paths exist — a single-path artist sees none
-  var chips = (hasShip && hasPod)
-    ? '<div class="ap-chips">' +
-        [['all','All'],['direct_ship','From the artist'],['pod','Made to order']].map(function(c) {
-          return '<button class="ap-chip' + (_merchFilter === c[0] ? ' on' : '') + '" onclick="apMerchFilter(\'' + c[0] + '\')">' + c[1] + '</button>';
-        }).join('') +
-      '</div>' : '';
-
-  var items = _artistMerch.filter(function(p){ return _merchFilter === 'all' || p.fulfilment === _merchFilter; });
+  // Fulfilment is an operational detail, not a shopping decision — no
+  // badges, no source filter chips. A shopper sees product, price and
+  // whether it's running out. Where it ships from surfaces at checkout.
+  var items = _artistMerch;
 
   return '<div class="pf-sec" style="margin-top:0"><h3>Merch</h3>' +
       (shopUrl ? '<a href="' + shopUrl + '" target="_blank" rel="noopener">Shop all ↗</a>' : '') + '</div>' +
-    chips +
     '<div class="ap-grid">' + items.map(function(p) {
       var img = (p.images && p.images[0] && p.images[0].url) ? safeUrl(p.images[0].url) : '';
       var isShip = p.fulfilment === 'direct_ship';
       var soldOut = isShip && p.stock_qty !== null && p.stock_qty <= 0;
-      var badgeTxt = isShip ? 'Artist ships' : p.fulfilment === 'digital' ? 'Instant' : p.fulfilment === 'pickup' ? 'At the show' : 'Made to order';
       var note = soldOut ? '<span class="ap-card-note low">Sold out</span>'
         : (isShip && p.stock_qty !== null && p.stock_qty <= 5) ? '<span class="ap-card-note low">· only ' + p.stock_qty + ' left</span>'
         : (p.review_count > 0) ? '<span class="ap-card-note rate">· ★ ' + (p.avg_rating || '') + ' (' + p.review_count + ')</span>'
@@ -6925,12 +7052,115 @@ function renderArtistMerchPanel(shopUrl) {
       return '<div class="ap-card"' + (soldOut ? ' style="opacity:.5"' : ' onclick="openBuySheet(\'' + p.id + '\')"') + '>' +
         '<div class="ap-card-img">' +
           (img ? '<img src="' + img + '" alt="' + escapeHtml(p.name) + '" loading="lazy">' : '👕') +
-          '<span class="ap-badge ' + (isShip ? 'ship' : 'pod') + '">' + badgeTxt + '</span>' +
         '</div>' +
         '<div class="ap-card-name">' + escapeHtml(p.name) + '</div>' +
         '<div class="ap-card-row"><span class="ap-card-price">$' + ((p.price_cents||0)/100).toFixed(0) + '</span>' + note + '</div>' +
       '</div>';
     }).join('') + '</div>';
+}
+
+// ── SHOWS ──────────────────────────────────────────────────────────────
+var _artistShows = [];
+function renderArtistShows(artist) {
+  var canEdit = !!(_authUser && artist.user_id === _authUser.id) || currentRole === 'admin' || currentRole === 'super';
+  if (!_artistShows.length) {
+    return '<div class="pf-empty">No shows announced yet.</div>' +
+      (canEdit ? '<button class="pf-btn" onclick="openShowEditor(null)">+ Add a show</button>' : '');
+  }
+  return _artistShows.map(function(s) {
+    var d = new Date(s.starts_at);
+    var mon = d.toLocaleDateString('en-US',{month:'short'}).toUpperCase();
+    var day = d.getDate();
+    var ticket = safeUrl(s.ticket_url);
+    var meta = [s.venue, s.city].filter(Boolean).join(' · ');
+    var price = s.is_free ? 'Free entry' : (s.price_text || '');
+    return '<div class="ap-show">' +
+      '<div class="ap-date"><div class="m">' + mon + '</div><div class="d">' + day + '</div></div>' +
+      '<div style="flex:1;min-width:0">' +
+        '<div style="font-family:var(--disp);font-size:.9rem;font-weight:600">' + escapeHtml(s.title) + '</div>' +
+        '<div style="font-size:.74rem;color:var(--muted);margin-top:2px">' + escapeHtml(meta) +
+          (price ? ' · ' + escapeHtml(price) : '') + '</div>' +
+      '</div>' +
+      (ticket
+        ? '<a class="pf-btn" style="padding:.35rem .85rem;font-size:.74rem" href="' + ticket + '" target="_blank" rel="noopener">Tickets ↗</a>'
+        : '<span class="ap-card-note">' + (s.is_free ? 'No ticket needed' : 'TBA') + '</span>') +
+      (canEdit ? '<button class="ap-navbtn" style="position:static;width:26px;height:26px;font-size:.7rem" title="Edit" onclick="openShowEditor(\'' + s.id + '\')">✎</button>' : '') +
+    '</div>';
+  }).join('') +
+  (canEdit ? '<button class="pf-btn" style="margin-top:.8rem" onclick="openShowEditor(null)">+ Add a show</button>' : '');
+}
+
+// Artists edit their own shows; admins edit anyone's. Guarded server-side too.
+function openShowEditor(showId) {
+  var s = showId ? _artistShows.filter(function(x){ return x.id === showId; })[0] : null;
+  var artist = _artistPage || {};
+  var wrap = document.getElementById('show-editor');
+  if (!wrap) {
+    wrap = document.createElement('div');
+    wrap.id = 'show-editor';
+    wrap.style.cssText = 'position:fixed;inset:0;z-index:545;background:rgba(7,7,15,.88);backdrop-filter:blur(5px);display:flex;align-items:center;justify-content:center;padding:1rem';
+    wrap.addEventListener('click', function(e){ if (e.target === wrap) closeShowEditor(); });
+    document.body.appendChild(wrap);
+  }
+  wrap.style.display = 'flex';
+  var iso = s ? new Date(new Date(s.starts_at).getTime() - new Date().getTimezoneOffset()*60000).toISOString().slice(0,16) : '';
+  wrap.innerHTML =
+    '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;max-width:420px;width:100%;padding:1.4rem;max-height:90vh;overflow:auto">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">' +
+        '<div style="font-weight:800;font-size:1.05rem">' + (s ? 'Edit show' : 'Add a show') + '</div>' +
+        '<button onclick="closeShowEditor()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem">✕</button></div>' +
+      '<input class="form-input" id="sh-title" placeholder="Show title" value="' + escapeHtml(s ? s.title : '') + '" style="margin-bottom:.5rem">' +
+      '<input class="form-input" id="sh-venue" placeholder="Venue" value="' + escapeHtml(s ? (s.venue||'') : '') + '" style="margin-bottom:.5rem">' +
+      '<input class="form-input" id="sh-city" placeholder="City" value="' + escapeHtml(s ? (s.city||'Phoenix') : 'Phoenix') + '" style="margin-bottom:.5rem">' +
+      '<label class="form-label">Date &amp; time</label>' +
+      '<input class="form-input" id="sh-when" type="datetime-local" value="' + iso + '" style="margin-bottom:.5rem">' +
+      '<input class="form-input" id="sh-price" placeholder="Price (e.g. $15 adv / $20 door)" value="' + escapeHtml(s ? (s.price_text||'') : '') + '" style="margin-bottom:.5rem">' +
+      '<label style="display:flex;align-items:center;gap:.5rem;font-size:.82rem;color:var(--muted);margin-bottom:.5rem">' +
+        '<input type="checkbox" id="sh-free" ' + (s && s.is_free ? 'checked' : '') + ' style="accent-color:var(--orange)"> Free entry</label>' +
+      '<label class="form-label">Ticket link</label>' +
+      '<input class="form-input" id="sh-ticket" placeholder="https://…" value="' + escapeHtml(s ? (s.ticket_url||'') : '') + '" style="margin-bottom:.35rem">' +
+      '<div style="font-size:.7rem;color:var(--faint);margin-bottom:.8rem">External for now — PHX ticketing will replace this link when it launches.</div>' +
+      '<div style="display:flex;gap:.5rem">' +
+        '<button class="upgrade-btn" style="margin:0;flex:1;padding:.6rem" onclick="saveShow(' + (s ? "'" + s.id + "'" : 'null') + ',\'' + (artist.id||'') + '\')">Save</button>' +
+        (s ? '<button class="tb-btn" style="color:var(--red)" onclick="removeShow(\'' + s.id + '\')">Delete</button>' : '') +
+      '</div>' +
+      '<div id="sh-status" style="font-size:.76rem;color:var(--muted);margin-top:.6rem"></div>' +
+    '</div>';
+}
+function closeShowEditor(){ var w=document.getElementById('show-editor'); if(w) w.style.display='none'; }
+
+async function saveShow(showId, artistId) {
+  var st = document.getElementById('sh-status');
+  var when = (document.getElementById('sh-when')||{}).value;
+  if (!when) { if (st) st.textContent = 'Pick a date and time.'; return; }
+  if (st) st.textContent = 'Saving…';
+  var res = await _sb.rpc('upsert_show', {
+    p_id: showId, p_artist_id: artistId || null, p_page_id: null,
+    p_title: (document.getElementById('sh-title')||{}).value || '',
+    p_venue: (document.getElementById('sh-venue')||{}).value || null,
+    p_city: (document.getElementById('sh-city')||{}).value || null,
+    p_starts_at: new Date(when).toISOString(),
+    p_ticket_url: (document.getElementById('sh-ticket')||{}).value || null,
+    p_price_text: (document.getElementById('sh-price')||{}).value || null,
+    p_is_free: !!(document.getElementById('sh-free')||{}).checked,
+    p_age_limit: null, p_status: 'live'
+  });
+  if (res.error || !res.data || !res.data.ok) {
+    if (st) st.textContent = (res.data && res.data.reason === 'not_allowed')
+      ? 'Only this artist or a PHX admin can add shows.' : 'Could not save.';
+    return;
+  }
+  closeShowEditor();
+  showToast('Show saved');
+  if (_artistPage) showArtistPage(_artistPage.slug);
+}
+
+async function removeShow(showId) {
+  if (!confirm('Delete this show?')) return;
+  var res = await _sb.rpc('delete_show', { p_id: showId });
+  if (res.error || !res.data || !res.data.ok) { showToast('Not allowed'); return; }
+  closeShowEditor();
+  if (_artistPage) showArtistPage(_artistPage.slug);
 }
 
 function renderArtistAbout(artist, shopUrl) {
@@ -6942,7 +7172,7 @@ function renderArtistAbout(artist, shopUrl) {
 }
 
 function apTab(name) {
-  ['music','merch','about'].forEach(function(t) {
+  ['music','merch','shows','about'].forEach(function(t) {
     var p = document.getElementById('ap-panel-' + t);
     if (p) p.hidden = (t !== name);
   });
