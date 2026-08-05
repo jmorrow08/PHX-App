@@ -5,7 +5,7 @@
   "outputDirectory": ".",
   "rewrites": [
     {
-      "source": "/:slug((?!app$|index$|legal$|admin$|artist$|tour$|manifest\\.json$|sw\\.js$|favicon|apple-touch-icon|icon-|assets/|a/|api/).+)",
+      "source": "/:slug",
       "destination": "/app.html"
     }
   ],
