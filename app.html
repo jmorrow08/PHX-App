@@ -1217,6 +1217,11 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
         <div class="card-title" style="margin-bottom:.8rem">Invite the city</div>
         <div id="referral-panel"><div style="color:var(--muted);font-size:.85rem">Loading…</div></div>
       </div>
+      <div class="card" style="margin-bottom:1rem">
+        <div class="card-title" style="margin-bottom:.3rem">Your monthly receipt</div>
+        <div style="font-size:.78rem;color:var(--muted);margin-bottom:.9rem">The Phoenix artists your listening supported this month.</div>
+        <div id="my-receipt"><div class="pf-empty">Loading…</div></div>
+      </div>
       <div class="grid-2">
         <div>
           <div class="my-pass-card" data-pass-num="preview">
@@ -1719,7 +1724,7 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
     <!-- ADMIN — REPORTS QUEUE -->
     <!-- ADMIN — COMMUNITY POT (admin-only; never shown to members or artists) -->
     <div class="view" id="v-admin-pot">
-      <div class="admin-alert" id="sim-banner" style="display:none">🧪 Simulation mode — money below is test data, not real funds.</div>
+      <div class="admin-alert" id="sim-banner" style="display:none">🧪 Beta mode — money below is simulated, not real funds.</div>
       <div class="card" style="margin-bottom:1rem">
         <div class="sh" style="margin-bottom:.8rem"><h3>Community Pot</h3>
           <button class="tb-btn" style="margin-left:auto;font-size:.74rem;padding:.28rem .6rem" onclick="loadPotDashboard()">↻</button></div>
@@ -1738,9 +1743,9 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
       </div>
       <div class="card" style="margin-bottom:1rem">
         <div class="card-title" style="margin-bottom:.6rem">Simulation controls</div>
-        <div style="font-size:.78rem;color:var(--muted);margin-bottom:.8rem">Dummy members are funded and stream like real ones so payouts can be watched end-to-end. Purge wipes every simulated row the day real billing starts.</div>
+        <div style="font-size:.78rem;color:var(--muted);margin-bottom:.8rem">Beta members are real accounts with simulated money behind them. They stream like anyone else so payouts can be watched end-to-end. Purge wipes every simulated row the day real billing starts.</div>
         <div style="display:flex;gap:.5rem;flex-wrap:wrap">
-          <button class="tb-btn" style="font-size:.76rem" onclick="doSeedSubs()">+ 10 dummy members</button>
+          <button class="tb-btn" style="font-size:.76rem" onclick="doSeedSubs()">+ 10 beta members</button>
           <button class="tb-btn" style="font-size:.76rem" onclick="doSimulateListening()">+ 200 plays</button>
           <button class="tb-btn" style="font-size:.76rem" onclick="doRunPayout()">▶ Run payout</button>
           <button class="tb-btn" style="font-size:.76rem;color:var(--red)" onclick="doPurgeSim()">Purge simulation</button>
@@ -2125,7 +2130,7 @@ function showView(id) {
   var titleEl = document.getElementById('page-title');
   if (titleEl) titleEl.textContent = titles[id] || id;
   if (id === 'home') renderStarterRail();
-  if (id === 'mypass') loadReferralPanel();
+  if (id === 'mypass') { loadReferralPanel(); loadMyReceipt(); }
   if (id === 'admin-dashboard') { loadAdminStreamData(); loadAdminOps(); }
   if (id === 'admin-members' || id === 'admin-artists' || id === 'admin-financials') loadAdminOps();
   if (id === 'admin-activity') loadAdminActivity(_activityFilterUser);
@@ -2260,9 +2265,11 @@ function setRole(role) {
   // Sidebar tagline
   document.getElementById('sb-tagline').textContent = r.sbTagline;
 
-  // Show correct nav
+  // Show correct nav. Privileged navs are REMOVED from the DOM for accounts
+  // that don't hold the role, so these lookups can legitimately be null.
   ['nav-member','nav-artist','nav-admin'].forEach(function(id) {
-    document.getElementById(id).style.display = id === r.navId ? '' : 'none';
+    var n = document.getElementById(id);
+    if (n) n.style.display = id === r.navId ? '' : 'none';
   });
   // Reset active state within the newly shown nav
   document.querySelectorAll('#' + r.navId + ' .nav-item').forEach(function(b){ b.classList.remove('active'); });
@@ -2271,7 +2278,8 @@ function setRole(role) {
 
   // Show correct bottom
   ['sb-bottom-member','sb-bottom-other'].forEach(function(id) {
-    document.getElementById(id).style.display = id === r.bottomId ? '' : 'none';
+    var n = document.getElementById(id);
+    if (n) n.style.display = id === r.bottomId ? '' : 'none';
   });
 
   // Member bottom
@@ -4774,10 +4782,79 @@ async function loadPotDashboard() {
 
 function _simStatus(t){ var e=document.getElementById('sim-status'); if(e) e.textContent=t; }
 
+// ═══════════════════════════════════════════════════════════════════════
+// MEMBER RECEIPT — who you supported, never how much.
+// Per-artist dollar amounts are deliberately absent: the cents are noisy,
+// they invite bad comparisons, and money belongs in the artist portal and
+// admin books, not on a member surface. Percentages here describe the
+// MEMBER'S OWN LISTENING, not PHX's economics.
+// ═══════════════════════════════════════════════════════════════════════
+async function loadMyReceipt() {
+  var el = document.getElementById('my-receipt');
+  if (!el) return;
+  var res = await _sb.rpc('my_receipt', { p_user_id: getGuestId(), p_month: null });
+  var d = res.data || {};
+  var artists = d.artists || [];
+  if (!artists.length) {
+    el.innerHTML = '<div class="pf-empty">No plays yet this month. Start listening and your receipt fills in.</div>';
+    return;
+  }
+  var month = new Date(d.month + 'T00:00:00').toLocaleDateString('en-US',{month:'long', year:'numeric'});
+  el.innerHTML =
+    '<div style="font:600 .68rem var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin-bottom:.6rem">' +
+      escapeHtml(month) + ' · ' + d.artist_count + ' artist' + (d.artist_count === 1 ? '' : 's') + ' supported</div>' +
+    artists.map(function(a) {
+      var ava = safeUrl(a.avatar_url);
+      return '<div style="display:flex;align-items:center;gap:.7rem;padding:.5rem 0;border-bottom:1px solid var(--border);cursor:pointer"' +
+          (a.slug ? ' onclick="showArtistPage(\'' + escapeHtml(a.slug) + '\')"' : '') + '>' +
+        '<div class="artist-card-ava" style="width:34px;height:34px;background:linear-gradient(135deg,var(--orange-d),var(--purple));overflow:hidden;flex-shrink:0">' +
+          (ava ? '<img src="' + ava + '" alt="" style="width:100%;height:100%;object-fit:cover">'
+               : escapeHtml((a.name||'?').charAt(0).toUpperCase())) + '</div>' +
+        '<div style="flex:1;min-width:0"><div style="font-size:.86rem;font-weight:600">' + escapeHtml(a.name) + '</div>' +
+          '<div style="height:5px;background:var(--bg4);border-radius:4px;margin-top:.3rem">' +
+            '<div style="width:' + (a.share_pct || 0) + '%;height:5px;background:linear-gradient(90deg,var(--orange),var(--green));border-radius:4px"></div>' +
+          '</div></div>' +
+        '<span style="font-size:.76rem;color:var(--muted);white-space:nowrap">' + (a.share_pct || 0) + '%</span>' +
+      '</div>';
+    }).join('') +
+    '<div style="font-size:.74rem;color:var(--faint);margin-top:.8rem;line-height:1.6">' +
+      'Your pass supports the Phoenix artists you actually play. ' +
+      'The more of your listening an artist gets, the more of your support reaches them.</div>';
+}
+
 // ── ARTIST REFERRAL LEVERAGE ───────────────────────────────────────────
 // Each artist gets a personal code and a live count of the fans they
 // brought onto PHX. It costs nothing and makes the roster the channel.
+// While the platform is in beta the money behind accounts isn't real, so the
+// earnings hero is replaced with stream counts and a plain notice. Showing a
+// dollar figure an artist can't be paid would set a false expectation.
+async function applyArtistBetaEarnings() {
+  var aRes = _authUser
+    ? await _sb.from('artists').select('id').eq('user_id', _authUser.id).maybeSingle()
+    : await _sb.from('artists').select('id').eq('slug','murkemz').maybeSingle();
+  if (!aRes.data) return;
+  var res = await _sb.rpc('artist_earnings_view', { p_artist_id: aRes.data.id });
+  var d = res.data || {};
+  if (!d.ok) return;
+
+  var hero = document.querySelector('#v-artist-earnings .earnings-hero');
+  if (!hero) return;
+  if (d.beta) {
+    hero.innerHTML =
+      '<div style="font:600 .7rem var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--orange-l);margin-bottom:.5rem">Beta · payouts not started</div>' +
+      '<div class="earnings-main">' + fmtK(d.streams || 0) + '</div>' +
+      '<div class="earnings-sub">qualifying plays from <b>' + (d.listeners || 0) + '</b> listeners</div>' +
+      '<div style="margin-top:1rem;padding:.75rem .9rem;border-radius:10px;background:rgba(249,115,22,.08);border:1px solid rgba(249,115,22,.28);font-size:.8rem;color:var(--muted);line-height:1.6">' +
+        'PHX is in beta. Your plays and listeners are being tracked for real and will carry over — but payouts haven\'t started yet, so there\'s nothing to collect at this stage. You\'ll see earnings here the moment they do.</div>';
+    // Hide the payout table underneath so no dollar figures leak through
+    document.querySelectorAll('#v-artist-earnings .fan-payout-card, #v-artist-earnings .grid-2').forEach(function(n) {
+      n.style.display = 'none';
+    });
+  }
+}
+
 async function loadArtistReferral() {
+  applyArtistBetaEarnings();
   var el = document.getElementById('artist-referral');
   if (!el) return;
   // Resolve which artist this viewer is (owner match, else the demo artist)
@@ -4846,17 +4923,17 @@ async function toggleSimMode() {
 }
 
 async function doSeedSubs() {
-  _simStatus('Creating dummy members…');
+  _simStatus('Creating beta members…');
   var res = await _sb.rpc('seed_simulated_subscribers', { p_count: 10, p_tier: 'native', p_amount_cents: 1500 });
   if (res.error) { _simStatus('Denied — admin sign-in required.'); return; }
-  _simStatus('✓ Created ' + ((res.data && res.data.created) || 0) + ' dummy members at $15/mo each.');
+  _simStatus('✓ Created ' + ((res.data && res.data.created) || 0) + ' beta members at $15/mo each.');
 }
 
 async function doSimulateListening() {
   _simStatus('Generating plays…');
   var res = await _sb.rpc('simulate_listening', { p_plays: 200 });
   if (res.error) { _simStatus('Denied — admin sign-in required.'); return; }
-  if (res.data && !res.data.ok) { _simStatus('Need dummy members and live tracks first.'); return; }
+  if (res.data && !res.data.ok) { _simStatus('Need beta members and live tracks first.'); return; }
   _simStatus('✓ Generated ' + ((res.data && res.data.plays) || 0) + ' plays.');
 }
 
@@ -4878,7 +4955,7 @@ async function doRunPayout() {
 }
 
 async function doPurgeSim() {
-  if (!confirm('Delete EVERY simulated member, play and ledger entry? Real data is untouched.')) return;
+  if (!confirm('Delete EVERY beta member, play and ledger entry? Real data is untouched.')) return;
   _simStatus('Purging…');
   var res = await _sb.rpc('purge_simulation');
   if (res.error) { _simStatus('Denied — admin sign-in required.'); return; }
@@ -6194,7 +6271,11 @@ function _whenDomReady(fn) {
 
 async function applyAccountRole() {
   loadPlatformSettings();
-  if (!_authUser) { _whenDomReady(function(){ setRole('explorer'); }); return; }
+  if (!_authUser) {
+    _accountRole = 'explorer';
+    _whenDomReady(function(){ setRole('explorer'); });
+    return;
+  }
   await redeemPendingInvite();
   checkAccessAndOnboarding();
   var res = await _sb.from('profiles').select('role,tier,display_name,username').eq('id', _authUser.id).maybeSingle();
@@ -6207,6 +6288,7 @@ async function applyAccountRole() {
   else if (p.tier === 'native') role = 'native';
   else role = 'explorer';
   var label = p.display_name || (p.username ? '@' + p.username : (_authUser.email || '').split('@')[0]);
+  _accountRole = role;   // the one place this is ever assigned
   _whenDomReady(function() {
     setRole(role);
     // Show the real account identity instead of the generic role label
@@ -6425,29 +6507,74 @@ async function reelLike(postId) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// SUPER ADMIN: VIEW-AS + WORKING SETTINGS CONTROLS
+// ROLE ENFORCEMENT — the app is user-initiated, not demo-switched.
+// _accountRole is set ONLY from the signed-in profile row. setRole can no
+// longer be used to climb into a privileged view: typing setRole('super')
+// in the console is now inert. The database already refuses the data, but
+// the admin shell shouldn't render for a member either.
 // ═══════════════════════════════════════════════════════════════════════
+var _accountRole = 'explorer';   // server-verified; never set from the client
 var _viewAsActive = false;
 var _setRoleCore = setRole;
+
+function _roleRank(r) {
+  return { explorer:0, native:1, insider:2, artist:3, admin:4, super:5 }[r] || 0;
+}
+
 setRole = function(role) {
+  // Privileged roles require the account to actually hold them. Super may
+  // step DOWN to preview a member experience (View-As), never anyone up.
+  if (_roleRank(role) > _roleRank(_accountRole)) {
+    role = _accountRole;
+  }
   _setRoleCore(role);
-  // View-As selector: super only
+
+  var isSuper = (_accountRole === 'super');
   var sel = document.getElementById('viewas-select');
   if (sel) {
-    sel.style.display = (role === 'super') ? '' : 'none';
-    sel.value = '';
+    sel.style.display = (isSuper && role === 'super') ? '' : 'none';
+    if (role === 'super') sel.value = '';
   }
-  // Settings Edit buttons: super only
   document.querySelectorAll('.sys-edit-btn').forEach(function(b) {
-    b.style.display = (role === 'super') ? '' : 'none';
+    b.style.display = isSuper ? '' : 'none';
   });
-  // Return chip management
   var chip = document.getElementById('viewas-return');
-  if (role === 'super') {
+  if (role === 'super' || !isSuper) {
     _viewAsActive = false;
     if (chip) chip.remove();
   }
+  applyRoleVisibility();
 };
+
+// Admin surfaces are REMOVED from the DOM for non-admins, not just hidden —
+// a hidden node is still readable in devtools.
+function applyRoleVisibility() {
+  var isAdmin = (_accountRole === 'admin' || _accountRole === 'super');
+  if (!isAdmin) {
+    ['nav-admin'].forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el && el.parentNode) el.parentNode.removeChild(el);
+    });
+    document.querySelectorAll('[id^="v-admin-"]').forEach(function(el) {
+      if (el.parentNode) el.parentNode.removeChild(el);
+    });
+    var bt = document.getElementById('bt-admin');
+    if (bt && bt.parentNode) bt.parentNode.removeChild(bt);
+    var sel = document.getElementById('viewas-select');
+    if (sel && sel.parentNode) sel.parentNode.removeChild(sel);
+  }
+  if (_accountRole !== 'artist' && !isAdmin) {
+    var na = document.getElementById('nav-artist');
+    if (na && na.parentNode) na.parentNode.removeChild(na);
+    var bta = document.getElementById('bt-artist');
+    if (bta && bta.parentNode) bta.parentNode.removeChild(bta);
+    document.querySelectorAll('[id^="v-artist-"]').forEach(function(el) {
+      // keep the PUBLIC artist page + directory; drop the artist portal
+      if (el.id === 'v-artist-page' || el.id === 'v-artist-directory') return;
+      if (el.parentNode) el.parentNode.removeChild(el);
+    });
+  }
+}
 
 function viewAsRole(role) {
   if (!role) return;
