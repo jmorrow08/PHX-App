@@ -690,6 +690,7 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
     <button class="nav-item" onclick="showView('admin-content')"><span class="icon">🎵</span>Content</button>
     <button class="nav-item" onclick="showView('admin-reports')"><span class="icon">🚨</span>Reports<span class="nav-badge" id="reports-nav-badge" style="display:none">0</span></button>
     <button class="nav-item" onclick="showView('admin-roster')"><span class="icon">🗂️</span>Roster</button>
+    <button class="nav-item" onclick="showView('admin-pot')"><span class="icon">🫙</span>Community Pot<span id="pot-nav-tag" class="section-tag tag-super" style="display:none">SUPER</span></button>
     <button class="nav-item" onclick="showView('admin-merch')"><span class="icon">🛍️</span>Merch</button>
     <button class="nav-item" onclick="showView('admin-activity')"><span class="icon">📡</span>Activity</button>
     <div class="sb-section">My Artist</div>
@@ -1399,6 +1400,11 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
 
     <!-- ARTIST — EARNINGS -->
     <div class="view" id="v-artist-earnings">
+      <!-- Fans you brought in: the number artists actually care about -->
+      <div class="card" style="margin-bottom:1rem;background:linear-gradient(150deg,rgba(249,115,22,.12),var(--bg3) 70%);border:1px solid rgba(249,115,22,.28)">
+        <div class="card-title" style="margin-bottom:.5rem">Your invite code</div>
+        <div id="artist-referral"><div class="pf-empty">Loading…</div></div>
+      </div>
       <div class="earnings-hero">
         <div class="earnings-label"><span class="studio-tag" style="margin-right:.6rem">Studio</span><span id="earnings-period">This Month</span> · Estimated</div>
         <div class="earnings-main" id="earnings-main-val">$0<span class="cents">.00</span></div>
@@ -1711,6 +1717,42 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
     </div>
 
     <!-- ADMIN — REPORTS QUEUE -->
+    <!-- ADMIN — COMMUNITY POT (admin-only; never shown to members or artists) -->
+    <div class="view" id="v-admin-pot">
+      <div class="admin-alert" id="sim-banner" style="display:none">🧪 Simulation mode — money below is test data, not real funds.</div>
+      <div class="card" style="margin-bottom:1rem">
+        <div class="sh" style="margin-bottom:.8rem"><h3>Community Pot</h3>
+          <button class="tb-btn" style="margin-left:auto;font-size:.74rem;padding:.28rem .6rem" onclick="loadPotDashboard()">↻</button></div>
+        <div style="display:flex;gap:1.4rem;flex-wrap:wrap;margin-bottom:1rem">
+          <div><div style="font-family:var(--disp);font-size:2rem;font-weight:700;color:var(--orange)" id="pot-balance">—</div>
+            <div style="font-size:.7rem;color:var(--faint)">Pot balance</div></div>
+          <div><div style="font-family:var(--disp);font-size:1.3rem;font-weight:700;color:var(--green)" id="pot-credited">—</div>
+            <div style="font-size:.7rem;color:var(--faint)">Total credited</div></div>
+          <div><div style="font-family:var(--disp);font-size:1.3rem;font-weight:700;color:var(--teal)" id="pot-debited">—</div>
+            <div style="font-size:.7rem;color:var(--faint)">Paid to artists</div></div>
+        </div>
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+          <button class="tb-btn" style="font-size:.76rem" onclick="doFundPot()">+ Fund the pot</button>
+          <button class="tb-btn" style="font-size:.76rem" onclick="toggleSimMode()" id="sim-toggle-btn">Toggle simulation</button>
+        </div>
+      </div>
+      <div class="card" style="margin-bottom:1rem">
+        <div class="card-title" style="margin-bottom:.6rem">Simulation controls</div>
+        <div style="font-size:.78rem;color:var(--muted);margin-bottom:.8rem">Dummy members are funded and stream like real ones so payouts can be watched end-to-end. Purge wipes every simulated row the day real billing starts.</div>
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+          <button class="tb-btn" style="font-size:.76rem" onclick="doSeedSubs()">+ 10 dummy members</button>
+          <button class="tb-btn" style="font-size:.76rem" onclick="doSimulateListening()">+ 200 plays</button>
+          <button class="tb-btn" style="font-size:.76rem" onclick="doRunPayout()">▶ Run payout</button>
+          <button class="tb-btn" style="font-size:.76rem;color:var(--red)" onclick="doPurgeSim()">Purge simulation</button>
+        </div>
+        <div id="sim-status" style="font-size:.78rem;color:var(--muted);margin-top:.7rem"></div>
+      </div>
+      <div class="card">
+        <div class="card-title" style="margin-bottom:.6rem">Ledger</div>
+        <div id="pot-ledger"><div class="pf-empty">Loading…</div></div>
+      </div>
+    </div>
+
     <!-- ADMIN — MASTER ROSTER: every identity + outstanding claim codes -->
     <div class="view" id="v-admin-roster">
       <div class="card" style="margin-bottom:1rem">
@@ -2064,7 +2106,7 @@ var titles = {
   events:'PHX Events', eats:'PHX Eats', audio:'PHX Audio',
   drops:'PHX Drops', cuts:'PHX Cuts', mypass:'My PHX Pass', profile:'My Profile',
   'member-page':'Profile', 'artist-page':'Artist', 'artist-directory':'Browse PHX', 'page-profile':'Page',
-  'admin-roster':'Roster', 'admin-merch':'Merch Connections',
+  'admin-roster':'Roster', 'admin-merch':'Merch Connections', 'admin-pot':'Community Pot',
   'artist-tracks':'My Tracks', 'artist-analytics':'Analytics',
   'artist-earnings':'Earnings', 'artist-submit':'Submit Track', 'artist-profile':'Artist Profile',
   'admin-dashboard':'Platform Dashboard', 'admin-members':'Members',
@@ -2090,6 +2132,8 @@ function showView(id) {
   if (id === 'admin-content') { loadPendingTracks(); loadAdminOps(); }
   if (id === 'admin-reports') loadReports();
   if (id === 'admin-roster') loadAdminRoster();
+  if (id === 'admin-pot') loadPotDashboard();
+  if (id === 'artist-earnings') loadArtistReferral();
   if (id === 'admin-merch') loadMerchConnections();
   if (id === 'artist-tracks' || id === 'artist-analytics' || id === 'artist-earnings') loadArtistDashboard();
   if (id === 'home') loadCityFeed();
@@ -4685,6 +4729,164 @@ function copyClaimCode(code, btn) {
   setTimeout(function(){ btn.textContent = 'Copy'; }, 1500);
 }
 
+// ═══════════════════════════════════════════════════════════════════════
+// COMMUNITY POT — admin only, never rendered anywhere a member can reach.
+// Simulation mode lets money move end-to-end before a real card is charged;
+// every simulated row is flagged so it can be purged in one call.
+// ═══════════════════════════════════════════════════════════════════════
+async function loadPotDashboard() {
+  var res = await _sb.rpc('pot_balance');
+  var d = res.data || {};
+  if (!d.ok) {
+    _setText('pot-balance', '🔒');
+    var lg = document.getElementById('pot-ledger');
+    if (lg) lg.innerHTML = '<div class="pf-empty">🔒 Sign in with your admin account to view the pot.</div>';
+    return;
+  }
+  var usd = function(c){ return '$' + ((c||0)/100).toLocaleString('en-US',{minimumFractionDigits:2, maximumFractionDigits:2}); };
+  _setText('pot-balance', usd(d.balance_cents));
+  _setText('pot-credited', usd(d.credited_cents));
+  _setText('pot-debited', usd(d.debited_cents));
+
+  var banner = document.getElementById('sim-banner');
+  if (banner) banner.style.display = d.simulation_mode ? 'flex' : 'none';
+  var tb = document.getElementById('sim-toggle-btn');
+  if (tb) tb.textContent = d.simulation_mode ? 'Switch to LIVE money' : 'Switch to simulation';
+
+  var led = await _sb.from('pot_ledger').select('*').order('created_at', { ascending: false }).limit(40);
+  var rows = led.data || [];
+  var el = document.getElementById('pot-ledger');
+  if (!el) return;
+  var srcLabel = { founder_funding:'Founder funding', unused_wallet:'Unused wallets',
+                   free_play_payout:'Free-play payouts', adjustment:'Adjustment' };
+  el.innerHTML = rows.length ? rows.map(function(r) {
+    var credit = r.entry_type === 'credit';
+    return '<div style="display:flex;align-items:center;gap:.6rem;padding:.5rem 0;border-bottom:1px solid var(--border);font-size:.8rem;flex-wrap:wrap">' +
+      '<span style="color:' + (credit ? 'var(--green)' : 'var(--teal)') + ';font-weight:700;min-width:74px">' +
+        (credit ? '+' : '−') + usd(r.amount_cents) + '</span>' +
+      '<span style="flex:1;min-width:130px">' + escapeHtml(srcLabel[r.source] || r.source) +
+        (r.note ? ' <span style="color:var(--faint)">· ' + escapeHtml(r.note) + '</span>' : '') + '</span>' +
+      (r.is_simulated ? '<span class="badge" style="font-size:.58rem;color:var(--orange);border:1px solid rgba(249,115,22,.3)">SIM</span>' : '') +
+      '<span style="color:var(--faint);font-size:.7rem">' + new Date(r.created_at).toLocaleDateString() + '</span>' +
+    '</div>';
+  }).join('') : '<div class="pf-empty">No ledger entries yet.</div>';
+}
+
+function _simStatus(t){ var e=document.getElementById('sim-status'); if(e) e.textContent=t; }
+
+// ── ARTIST REFERRAL LEVERAGE ───────────────────────────────────────────
+// Each artist gets a personal code and a live count of the fans they
+// brought onto PHX. It costs nothing and makes the roster the channel.
+async function loadArtistReferral() {
+  var el = document.getElementById('artist-referral');
+  if (!el) return;
+  // Resolve which artist this viewer is (owner match, else the demo artist)
+  var aRes = _authUser
+    ? await _sb.from('artists').select('id,name,slug').eq('user_id', _authUser.id).maybeSingle()
+    : await _sb.from('artists').select('id,name,slug').eq('slug','murkemz').maybeSingle();
+  var artist = aRes.data;
+  if (!artist) { el.innerHTML = '<div class="pf-empty">No artist page linked to this account yet.</div>'; return; }
+
+  var res = await _sb.rpc('artist_referral_stats', { p_artist_id: artist.id });
+  var d = res.data || {};
+  if (!d.ok) { el.innerHTML = '<div class="pf-empty">🔒 Sign in as this artist to see your invite stats.</div>'; return; }
+
+  var link = 'https://phx-app.vercel.app/app?invite=' + encodeURIComponent(d.code || '');
+  el.innerHTML =
+    '<div style="display:flex;align-items:center;gap:.7rem;flex-wrap:wrap;margin-bottom:.9rem">' +
+      '<code style="font-family:var(--mono);font-size:1.35rem;font-weight:700;color:var(--orange);letter-spacing:.14em">' +
+        escapeHtml(d.code || '—') + '</code>' +
+      (d.code ? '<button class="tb-btn" style="font-size:.72rem;padding:.25rem .6rem" onclick="copyClaimCode(\'' + escapeHtml(d.code) + '\',this)">Copy code</button>' +
+        '<button class="tb-btn" style="font-size:.72rem;padding:.25rem .6rem" onclick="copyInviteLink(\'' + escapeHtml(link) + '\',this)">Copy link</button>' : '') +
+    '</div>' +
+    '<div style="display:flex;gap:1.6rem;flex-wrap:wrap;margin-bottom:.8rem">' +
+      '<div><div style="font-family:var(--disp);font-size:1.8rem;font-weight:700;color:var(--orange)">' + (d.fans_brought || 0) + '</div>' +
+        '<div style="font-size:.7rem;color:var(--faint)">fans you brought to PHX</div></div>' +
+      '<div><div style="font-family:var(--disp);font-size:1.8rem;font-weight:700;color:var(--green)">' + (d.qualified || 0) + '</div>' +
+        '<div style="font-size:.7rem;color:var(--faint)">active listeners</div></div>' +
+    '</div>' +
+    '<div style="font-size:.78rem;color:var(--muted);line-height:1.6">Put this in your bio or hand it out at the merch table. Everyone who joins with your code is tracked to you — and every one of them streaming you pays you directly.</div>' +
+    ((d.recent && d.recent.length)
+      ? '<div class="pf-sec"><h3>Recent joins</h3></div>' + d.recent.map(function(r) {
+          return '<div style="display:flex;justify-content:space-between;padding:.35rem 0;border-bottom:1px solid var(--border);font-size:.8rem">' +
+            '<span>' + escapeHtml(r.name) + '</span>' +
+            '<span style="color:var(--faint);font-size:.72rem">' + new Date(r.created_at).toLocaleDateString() + '</span></div>';
+        }).join('')
+      : '');
+}
+
+function copyInviteLink(link, btn) {
+  if (navigator.clipboard) navigator.clipboard.writeText(link);
+  btn.textContent = '✓ Copied';
+  setTimeout(function(){ btn.textContent = 'Copy link'; }, 1500);
+}
+
+async function doFundPot() {
+  var amt = prompt('Amount to add to the pot, in dollars:', '100');
+  if (amt === null) return;
+  var cents = Math.round(parseFloat(amt) * 100);
+  if (!cents || cents < 0) return;
+  var res = await _sb.rpc('fund_pot', { p_amount_cents: cents, p_note: 'Founder funding', p_simulated: null });
+  if (res.error) { _simStatus('Denied — admin sign-in required.'); return; }
+  showToast('Pot funded');
+  loadPotDashboard();
+}
+
+async function toggleSimMode() {
+  var cur = await _sb.rpc('pot_balance');
+  var on = !!(cur.data && cur.data.simulation_mode);
+  var msg = on
+    ? 'Switch OFF simulation mode? New money will be treated as REAL from here.'
+    : 'Switch ON simulation mode? New money will be flagged as test data.';
+  if (!confirm(msg)) return;
+  var res = await _sb.rpc('set_simulation_mode', { p_on: !on });
+  if (res.error) { _simStatus('Denied — admin sign-in required.'); return; }
+  showToast(!on ? 'Simulation ON' : 'LIVE money mode');
+  loadPotDashboard();
+}
+
+async function doSeedSubs() {
+  _simStatus('Creating dummy members…');
+  var res = await _sb.rpc('seed_simulated_subscribers', { p_count: 10, p_tier: 'native', p_amount_cents: 1500 });
+  if (res.error) { _simStatus('Denied — admin sign-in required.'); return; }
+  _simStatus('✓ Created ' + ((res.data && res.data.created) || 0) + ' dummy members at $15/mo each.');
+}
+
+async function doSimulateListening() {
+  _simStatus('Generating plays…');
+  var res = await _sb.rpc('simulate_listening', { p_plays: 200 });
+  if (res.error) { _simStatus('Denied — admin sign-in required.'); return; }
+  if (res.data && !res.data.ok) { _simStatus('Need dummy members and live tracks first.'); return; }
+  _simStatus('✓ Generated ' + ((res.data && res.data.plays) || 0) + ' plays.');
+}
+
+async function doRunPayout() {
+  _simStatus('Running payout…');
+  var now = new Date();
+  var start = new Date(now.getFullYear(), now.getMonth(), 1);
+  var end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  var iso = function(d){ return d.toISOString().slice(0,10); };
+  var res = await _sb.rpc('run_monthly_payout_guarded', { p_period_start: iso(start), p_period_end: iso(end) });
+  if (res.error) { _simStatus('Denied — admin sign-in required.'); return; }
+  var d = res.data || {};
+  if (!d.ok) { _simStatus('Could not run: ' + (d.reason || 'unknown')); return; }
+  _simStatus('✓ Gross $' + (d.gross_cents/100).toFixed(2) +
+             ' · to artists $' + (d.streams_paid_cents/100).toFixed(2) +
+             ' · pot +$' + (d.pot_credited_cents/100).toFixed(2) +
+             ' · free plays paid $' + (d.free_paid_cents/100).toFixed(2));
+  loadPotDashboard();
+}
+
+async function doPurgeSim() {
+  if (!confirm('Delete EVERY simulated member, play and ledger entry? Real data is untouched.')) return;
+  _simStatus('Purging…');
+  var res = await _sb.rpc('purge_simulation');
+  if (res.error) { _simStatus('Denied — admin sign-in required.'); return; }
+  var d = res.data || {};
+  _simStatus('✓ Removed ' + (d.streams_removed||0) + ' plays, ' + (d.subscriptions_removed||0) + ' members, ' + (d.ledger_removed||0) + ' ledger rows.');
+  loadPotDashboard();
+}
+
 // ── INVITE / REFERRAL TRACKING ─────────────────────────────────────────
 // Every account must redeem a code, so this table IS the growth graph:
 // which code, who owned it, who it brought in.
@@ -6992,11 +7194,9 @@ async function showArtistPage(slug) {
 // Artist/admin: the same strip plus their real earnings.
 function renderMoneyStrip(artist, support) {
   var supporters = support.supporters || 0;
-  var priv = '';
-  if (support.can_see_earnings) {
-    priv = '<div class="ap-private">🔒 <span><b>$' + ((support.earned_cents || 0) / 100).toFixed(2) +
-           '</b> earned on PHX — visible only to you and PHX admins.</span></div>';
-  }
+  // Earnings deliberately NOT shown here — the artist portal and admin
+  // financials already carry that number. Repeating it on the public page
+  // is redundant and puts money on a surface strangers land on.
   return '<div class="ap-money">' +
     '<div class="ap-money-tag"><i></i>Fan-powered</div>' +
     '<div class="ap-money-line">Streaming ' + escapeHtml(artist.name) + ' here pays ' + escapeHtml(artist.name) + '.<br>' +
