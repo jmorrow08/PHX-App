@@ -1311,7 +1311,7 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
             <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">PHX Streams (session)</span><span style="color:var(--green)" id="profile-stream-count">0</span></div>
           </div>
           <br>
-          <button class="tb-btn" style="width:100%;margin-bottom:.6rem">Edit Profile</button>
+          <button class="tb-btn" style="width:100%;margin-bottom:.6rem" onclick="openProfileEditor()">Edit Profile</button>
           <button class="tb-btn primary" style="width:100%;opacity:.6;cursor:default" disabled title="Membership billing is launching soon">Insider Pass — coming soon</button>
         </div>
         <div>
@@ -4331,25 +4331,22 @@ function playForYouTrack(idx, el) {
 // ── DEEP LINK: /app?artist=<slug> — where the static /a/<slug> pages land ──
 // The generated artist pages (scripts/build-artist-pages.mjs) carry the OG
 // tags for link previews, then bounce real browsers here.
+// The HASH WINS over the query param: a stale ?artist= left in the URL bar
+// must not override the artist the user actually navigated to. Previously
+// both fired on a timer and whichever resolved last won the render, so
+// /app?artist=murkemz#artist/jaye-mali showed Murkemz.
 (function() {
   var params = new URLSearchParams(window.location.search);
   var slug = params.get('artist');
   if (!slug) return;
+  if (/^#(artist|page)\//.test(window.location.hash || '')) return;  // hash takes precedence
   setTimeout(function() {
     if (typeof showArtistPage === 'function') showArtistPage(slug);
   }, 600);
 }());
 
-// ── HASH ROUTE: #artist/<slug> — makes shared in-app links restorable ─────
-(function() {
-  var h = (window.location.hash || '').replace(/^#/, '');
-  if (h.indexOf('artist/') !== 0) return;
-  var slug = h.slice('artist/'.length);
-  if (!slug) return;
-  setTimeout(function() {
-    if (typeof showArtistPage === 'function') showArtistPage(slug);
-  }, 600);
-}());
+// (hash routing consolidated into _routeProfileHash — a second handler here
+// raced the first and double-rendered the page)
 
 // ── TRACK SUBMISSION ────────────────────────────────────────────────────
 function handleFileSelect(input) {
@@ -4791,6 +4788,81 @@ async function loadPotDashboard() {
 }
 
 function _simStatus(t){ var e=document.getElementById('sim-status'); if(e) e.textContent=t; }
+
+// ═══════════════════════════════════════════════════════════════════════
+// PROFILE EDITOR — the escape hatch from the wizard.
+// Admins and artists skip onboarding entirely, and anyone can dismiss it,
+// so there has to be a permanent place to claim a @handle and fix your
+// name later. Without this an account could exist forever with no handle,
+// which is exactly why the activity log was full of "guest-a1b2c3".
+// ═══════════════════════════════════════════════════════════════════════
+async function openProfileEditor() {
+  if (!_authUser) { openAuthModal(); return; }
+  var res = await _sb.from('profiles')
+    .select('username,display_name,bio,city,avatar_url').eq('id', _authUser.id).maybeSingle();
+  var p = res.data || {};
+  var m = document.getElementById('profile-editor');
+  if (!m) {
+    m = document.createElement('div');
+    m.id = 'profile-editor';
+    m.style.cssText = 'position:fixed;inset:0;z-index:540;background:rgba(7,7,15,.88);backdrop-filter:blur(5px);display:flex;align-items:center;justify-content:center;padding:1rem';
+    m.addEventListener('click', function(e){ if (e.target === m) closeProfileEditor(); });
+    document.body.appendChild(m);
+  }
+  m.style.display = 'flex';
+  m.innerHTML =
+    '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;max-width:420px;width:100%;padding:1.4rem;max-height:90vh;overflow:auto">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">' +
+        '<div style="font-weight:800;font-size:1.05rem">Edit profile</div>' +
+        '<button onclick="closeProfileEditor()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem">✕</button></div>' +
+      '<label class="form-label">Username (your @handle)</label>' +
+      '<div style="display:flex;align-items:center;gap:.4rem;margin-bottom:.15rem">' +
+        '<span style="color:var(--orange);font-weight:800">@</span>' +
+        '<input class="form-input" id="pe-username" maxlength="20" placeholder="yourhandle" value="' + escapeHtml(p.username || '') + '" ' +
+          'style="flex:1" oninput="this.value=this.value.toLowerCase().replace(/[^a-z0-9_.]/g,\'\')"></div>' +
+      '<div style="font-size:.7rem;color:var(--faint);margin-bottom:.6rem">3–20 characters. This is how you appear when you post.</div>' +
+      '<label class="form-label">Display name</label>' +
+      '<input class="form-input" id="pe-display" maxlength="40" value="' + escapeHtml(p.display_name || '') + '" style="margin-bottom:.6rem">' +
+      '<label class="form-label">City</label>' +
+      '<input class="form-input" id="pe-city" maxlength="40" placeholder="Phoenix, AZ" value="' + escapeHtml(p.city || '') + '" style="margin-bottom:.6rem">' +
+      '<label class="form-label">Bio</label>' +
+      '<textarea class="form-input" id="pe-bio" rows="3" maxlength="300" style="margin-bottom:.9rem">' + escapeHtml(p.bio || '') + '</textarea>' +
+      '<button class="upgrade-btn" style="margin:0;width:100%" onclick="saveProfileEditor()">Save</button>' +
+      '<div id="pe-msg" style="font-size:.78rem;color:var(--muted);margin-top:.6rem;min-height:1em"></div>' +
+    '</div>';
+}
+function closeProfileEditor(){ var m=document.getElementById('profile-editor'); if(m) m.style.display='none'; }
+
+async function saveProfileEditor() {
+  var msg = document.getElementById('pe-msg');
+  var uname = ((document.getElementById('pe-username')||{}).value || '').trim().toLowerCase();
+  if (uname && (uname.length < 3 || uname.length > 20)) {
+    if (msg) { msg.style.color = 'var(--red)'; msg.textContent = 'Handle must be 3–20 characters.'; }
+    return;
+  }
+  if (msg) { msg.style.color = 'var(--muted)'; msg.textContent = 'Saving…'; }
+  var res = await _sb.rpc('update_my_profile', {
+    p_user_id: _authUser.id,
+    p_username: uname || null,
+    p_display_name: (document.getElementById('pe-display')||{}).value || null,
+    p_city: (document.getElementById('pe-city')||{}).value || null,
+    p_bio: (document.getElementById('pe-bio')||{}).value || null
+  });
+  var d = res.data || {};
+  if (res.error || !d.ok) {
+    if (msg) {
+      msg.style.color = 'var(--red)';
+      msg.textContent = d.reason === 'username_taken' ? 'That handle is already taken.'
+                      : d.reason === 'bad_username' ? 'Handle must be 3–20 characters (letters, numbers, _ or .).'
+                      : 'Could not save.';
+    }
+    return;
+  }
+  if (msg) { msg.style.color = 'var(--green)'; msg.textContent = '✓ Saved'; }
+  _myProfile = null;
+  loadMyProfile();
+  setTimeout(closeProfileEditor, 700);
+}
 
 // ═══════════════════════════════════════════════════════════════════════
 // MEMBER RECEIPT — who you supported, never how much.
@@ -7380,8 +7452,7 @@ function renderMoneyStrip(artist, support) {
   // is redundant and puts money on a surface strangers land on.
   return '<div class="ap-money">' +
     '<div class="ap-money-tag"><i></i>Fan-powered</div>' +
-    '<div class="ap-money-line">Streaming ' + escapeHtml(artist.name) + ' here pays ' + escapeHtml(artist.name) + '.<br>' +
-      'Not a pool. <span style="color:var(--orange-l)">Them.</span></div>' +
+    '<div class="ap-money-line">Streaming ' + escapeHtml(artist.name) + ' here pays ' + escapeHtml(artist.name) + '.</div>' +
     '<div class="ap-money-stats">' +
       '<div><b>' + supporters + '</b><span>' + (supporters === 1 ? 'member funding them' : 'members funding them') + '</span></div>' +
       '<div><b>' + fmtK(artist.total_streams || 0) + '</b><span>plays that paid out</span></div>' +
@@ -7711,15 +7782,27 @@ document.addEventListener('keydown', function(e) {
 var _activityFilterUser = null;
 var _activityLoading = false;
 
+// Identity lives across three tables: profiles (auth accounts),
+// member_profiles (device-era members) and artists. Looking in only one
+// meant nearly every row in the activity log rendered as "guest-a1b2c3".
 function _actorLabel(uid, profileMap) {
-  if (!uid) return '—';
+  if (!uid) return 'anonymous';
   var p = profileMap[uid];
-  if (p) return p.username ? '@' + p.username : (p.display_name || uid.slice(0, 8));
-  return 'guest-' + uid.slice(0, 6);
+  if (p) {
+    if (p.display_name && p.username) return p.display_name + ' (@' + p.username + ')';
+    if (p.username) return '@' + p.username;
+    if (p.display_name) return p.display_name;
+  }
+  return 'anonymous · ' + uid.slice(0, 6);
 }
 
 function _agoLabel(ts) {
-  var s = (Date.now() - new Date(ts).getTime()) / 1000;
+  var t = new Date(ts).getTime();
+  if (!ts || isNaN(t)) return '—';
+  var s = (Date.now() - t) / 1000;
+  // A future timestamp used to render as "-1804588s ago". Clock skew and bad
+  // seed data are both real, so show something sane instead of negative time.
+  if (s < 0) return 'scheduled';
   if (s < 60) return Math.floor(s) + 's ago';
   if (s < 3600) return Math.floor(s / 60) + 'm ago';
   if (s < 86400) return Math.floor(s / 3600) + 'h ago';
@@ -7739,11 +7822,35 @@ async function loadAdminActivity(filterUserId) {
       .order('created_at', { ascending: false }).limit(75);
     if (_activityFilterUser) { sq = sq.eq('user_id', _activityFilterUser); eq = eq.eq('user_id', _activityFilterUser); }
 
-    var results = await Promise.all([sq, eq, _sb.from('profiles').select('id,username,display_name')]);
+    var results = await Promise.all([
+      sq, eq,
+      _sb.from('profiles').select('id,username,display_name'),
+      _sb.from('member_profiles').select('device_id,username,display_name'),
+      _sb.from('artists').select('id,slug,name,user_id')
+    ]);
     var streams = results[0].data || [];
     var events  = results[1].data || [];
     var profileMap = {};
-    (results[2].data || []).forEach(function(p){ profileMap[p.id] = p; });
+    (results[3].data || []).forEach(function(m){
+      profileMap[m.device_id] = { username: m.username, display_name: m.display_name };
+    });
+    // Auth profiles win over device rows for the same id
+    (results[2].data || []).forEach(function(p){
+      var prev = profileMap[p.id] || {};
+      profileMap[p.id] = {
+        username: p.username || prev.username,
+        display_name: p.display_name || prev.display_name
+      };
+    });
+    // An artist listening as themselves should read as the artist
+    (results[4].data || []).forEach(function(a){
+      if (!a.user_id) return;
+      var prev = profileMap[a.user_id] || {};
+      profileMap[a.user_id] = {
+        username: prev.username || a.slug,
+        display_name: prev.display_name || a.name
+      };
+    });
 
     var filterLbl = document.getElementById('activity-user-filter');
     var clearBtn  = document.getElementById('activity-clear-filter');
