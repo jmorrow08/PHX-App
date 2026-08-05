@@ -12,6 +12,10 @@
 <meta name="twitter:card" content="summary">
 <link rel="canonical" href="https://thephx.app/">
 <link rel="manifest" href="manifest.json">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <meta name="theme-color" content="#F97316">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -34,7 +38,8 @@ a:hover{color:var(--orange)}
 
 /* NAV */
 nav{position:fixed;top:0;left:0;right:0;z-index:1000;padding:0 clamp(1.2rem,4vw,3.5rem);height:64px;display:flex;align-items:center;justify-content:space-between;background:rgba(7,7,15,.85);backdrop-filter:blur(16px);border-bottom:1px solid var(--line)}
-.nav-logo{font-family:var(--disp);font-size:1.6rem;font-weight:700;letter-spacing:-.05em;color:var(--orange)}
+.nav-logo{font-family:var(--disp);font-size:1.6rem;font-weight:700;letter-spacing:-.05em;color:var(--orange);display:flex;align-items:center}
+.nav-logo img{height:34px;width:auto;display:block}
 .nav-links{display:flex;align-items:center;gap:2rem}
 .nav-links a{color:var(--muted);font-family:var(--disp);font-size:.88rem;font-weight:500}
 .nav-links a:hover{color:var(--white)}
@@ -144,7 +149,7 @@ footer{border-top:1px solid var(--line);padding:2rem clamp(1.2rem,4vw,3.5rem)}
 <body>
 
 <nav>
-  <a class="nav-logo" href="index.html">PHX</a>
+  <a class="nav-logo" href="index.html"><img src="/assets/logo-wordmark.png" alt="the PHX app"></a>
   <div class="nav-links">
     <a href="#how">How it works</a>
     <a href="#roster">Artists</a>

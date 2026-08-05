@@ -12,6 +12,10 @@
 <link rel="canonical" href="https://thephx.app/app">
 <meta name="twitter:card" content="summary">
 <link rel="manifest" href="manifest.json">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <meta name="theme-color" content="#F97316">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -46,6 +50,7 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
 .sidebar{background:var(--bg2);border-right:1px solid var(--line);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto}
 .sb-top{padding:1.3rem 1.2rem .9rem}
 .sb-logo{font-family:var(--disp);font-size:1.7rem;font-weight:700;letter-spacing:-.05em;color:var(--orange)}
+.sb-logo img{height:30px;width:auto;display:block}
 .sb-tagline{font-family:var(--mono);font-size:.62rem;color:var(--faint);letter-spacing:.14em;text-transform:uppercase;margin-top:.15rem}
 
 .pass-chip{flex-shrink:0;margin:.4rem 1rem .8rem;background:linear-gradient(150deg,#2A1206,#12070D 70%);border:1px solid rgba(249,115,22,.35);border-radius:14px;padding:1rem;position:relative;overflow:hidden}
@@ -226,6 +231,29 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
 .ap-album-title{font-family:var(--disp);font-size:1.05rem;font-weight:700}
 .ap-album-meta{font-size:.72rem;color:var(--muted);margin-top:2px}
 .track-row.no-audio{opacity:.62}
+/* Featured project: the one thing a first-time visitor should notice */
+.ap-feature{display:flex;gap:1rem;align-items:center;background:linear-gradient(140deg,rgba(249,115,22,.14),rgba(234,179,8,.05) 65%);border:1px solid rgba(249,115,22,.4);border-radius:14px;padding:1rem;cursor:pointer;transition:border-color .2s}
+.ap-feature:hover{border-color:var(--orange)}
+.ap-feature-cover{width:96px;height:96px;border-radius:10px;overflow:hidden;background:var(--card2);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:2rem;box-shadow:0 8px 24px rgba(7,7,15,.55)}
+.ap-feature-cover img{width:100%;height:100%;object-fit:cover}
+.ap-feature-kicker{font-family:var(--mono);font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;color:var(--orange);margin-bottom:.25rem}
+.ap-feature-title{font-family:var(--disp);font-size:1.5rem;font-weight:700;letter-spacing:-.03em;line-height:1.05}
+.ap-feature-tag{font-size:.8rem;color:var(--muted);margin-top:.3rem;line-height:1.45}
+.ap-feature-cta{font-size:.78rem;font-weight:700;color:var(--orange);margin-top:.45rem}
+/* Album shelf: horizontal, thumb-scrollable, Apple-Music-shaped */
+.ap-shelf{display:flex;gap:.8rem;overflow-x:auto;padding:.2rem .2rem .6rem;scrollbar-width:thin}
+.ap-alcard{width:128px;flex-shrink:0;cursor:pointer}
+.ap-alcard-cover{width:128px;height:128px;border-radius:10px;overflow:hidden;background:var(--card2);display:flex;align-items:center;justify-content:center;font-size:1.8rem;margin-bottom:.4rem;transition:transform .15s}
+.ap-alcard:hover .ap-alcard-cover{transform:translateY(-2px)}
+.ap-alcard-cover img{width:100%;height:100%;object-fit:cover}
+.ap-alcard-title{font-size:.82rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ap-alcard-meta{font-size:.68rem;color:var(--muted)}
+@media(max-width:640px){.ap-feature{flex-direction:row;padding:.8rem}.ap-feature-cover{width:76px;height:76px}.ap-feature-title{font-size:1.2rem}}
+/* About: written like a story, not a wall of text */
+.ap-about p{font-size:.9rem;line-height:1.75;color:var(--ink,#C9C9D6);margin-bottom:1rem}
+.ap-about p:first-of-type::first-letter{font-family:var(--disp);font-size:2.6rem;font-weight:700;color:var(--orange);float:left;line-height:.85;padding-right:.45rem;padding-top:.15rem}
+.ap-about blockquote{border-left:3px solid var(--orange);margin:1.2rem 0;padding:.4rem 0 .4rem 1rem;font-family:var(--disp);font-size:1.05rem;line-height:1.5;color:var(--white);font-style:italic}
+@media(max-width:640px){.ap-about p{font-size:.86rem;line-height:1.7}.ap-about blockquote{font-size:.95rem}}
 /* The poster photo carries the mood; the round tile is the identity people
    recognise from the feed. Bottom-aligned so it sits on the name's baseline. */
 .ap-idrow{display:flex;align-items:flex-end;gap:14px}
@@ -654,7 +682,7 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
 <!-- SIDEBAR -->
 <aside class="sidebar">
   <div class="sb-top">
-    <div class="sb-logo">PHX</div>
+    <div class="sb-logo"><img src="/assets/logo-wordmark.png" alt="the PHX app"></div>
     <div class="sb-tagline" id="sb-tagline">602 Culture. One App.</div>
   </div>
 
@@ -959,38 +987,11 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
         <div class="queue-section">
           <div class="queue-header">
             <span class="queue-label">Up Next</span>
-            <span style="font-size:.72rem;color:var(--muted)">4 tracks</span>
+            <span style="font-size:.72rem;color:var(--muted)" id="queue-count">—</span>
           </div>
-          <div class="queue-list track-list">
-            <div class="track-row" onclick="playTrack(this,'Against All Odds','Murkemz','ft. Freeway (Roc-A-Fella)','Recess EP · 2026','3:47','against-all-odds',8934,'🎵')">
-              <div class="track-num">2</div>
-              <div class="track-art">🎵</div>
-              <div class="track-info"><div class="track-title">Against All Odds</div><div class="track-feat">ft. Freeway (Roc-A-Fella) · 2026</div></div>
-              <div class="track-streams">—</div>
-              <div class="track-time">3:47</div>
-            </div>
-            <div class="track-row" onclick="playTrack(this,'Hadouken RMX','Murkemz','ft. Chris Webby','2026','4:12','hadouken',541000,'🎵')">
-              <div class="track-num">3</div>
-              <div class="track-art">🎵</div>
-              <div class="track-info"><div class="track-title">Hadouken RMX</div><div class="track-feat">ft. Chris Webby</div></div>
-              <div class="track-streams">—</div>
-              <div class="track-time">4:12</div>
-            </div>
-            <div class="track-row" onclick="playTrack(this,'Survive','Murkemz','ft. Inspectah Deck (Wu-Tang)','2025','3:58','survive',244000,'🎵')">
-              <div class="track-num">4</div>
-              <div class="track-art">🎵</div>
-              <div class="track-info"><div class="track-title">Survive</div><div class="track-feat">ft. Inspectah Deck (Wu-Tang)</div></div>
-              <div class="track-streams">—</div>
-              <div class="track-time">3:58</div>
-            </div>
-            <div class="track-row" onclick="playTrack(this,'The Ayatollah','Murkemz','Flagship Album','2025','4:33','ayatollah',12800,'🎵')">
-              <div class="track-num">5</div>
-              <div class="track-art">🎵</div>
-              <div class="track-info"><div class="track-title">The Ayatollah</div><div class="track-feat">Flagship Album · 2025</div></div>
-              <div class="track-streams">—</div>
-              <div class="track-time">4:33</div>
-            </div>
-          </div>
+          <!-- Filled from the live catalog — was four hard-coded rows whose
+               titles no longer matched what the database actually holds -->
+          <div class="queue-list track-list" id="queue-list"><div class="pf-empty">Loading…</div></div>
         </div>
       </div>
 
@@ -1003,7 +1004,7 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
               <div class="artist-avatar">M</div>
               <div>
                 <div class="artist-banner-name">Murkemz <span class="badge badge-orange" style="font-size:.6rem">PHX Founder</span></div>
-                <div class="artist-banner-meta">PHX Hip-Hop · 602 · Recess EP Out Now</div>
+                <div class="artist-banner-meta">PHX Hip-Hop · 602 · <b style="color:var(--orange)">Plug City — New Project</b></div>
               </div>
             </div>
             <div class="artist-body">
@@ -1016,6 +1017,13 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
               <div class="track-list" id="music-catalog"><div class="pf-empty">Loading catalog…</div></div>
             </div>
           </div>
+
+          <!-- Roster grows by itself as artists sign up — never hand-edited -->
+          <div class="sh" style="margin-top:1.2rem"><h3>PHX Roster</h3><a href="#" onclick="showArtistDirectory();return false">View all</a></div>
+          <div class="ap-shelf" id="phx-roster-rail"><div class="pf-empty">Loading…</div></div>
+
+          <div class="sh" style="margin-top:1rem"><h3>New Releases</h3></div>
+          <div class="ap-shelf" id="new-releases-rail"><div class="pf-empty">Loading…</div></div>
         </div>
 
         <div>
@@ -8050,49 +8058,131 @@ function artistTrackRowHtml(t, num) {
   '</div>';
 }
 
-// Discography, the way a music page should read: albums and EPs as bodies of
-// work with their own tracklists, then singles. Not one flat list.
-function renderArtistTracks() {
-  if (!_artistPageTracks.length && !artistPageCanEdit()) {
-    return '<div class="pf-empty">No live tracks yet — first drop coming.</div>';
-  }
+// Discography, structured like a real music service instead of a crowded
+// flat list: featured project → Top Songs → album shelf (tap to open) →
+// singles behind "View all". Albums open into their own tracklist view.
+var _apAlbumOpen = null;    // album id when viewing one release
+var _apSinglesAll = false;
+
+function _apAlbumMeta(al, count) {
+  var year = al.release_date ? new Date(al.release_date + 'T12:00:00').getFullYear() : '';
+  var kind = al.type === 'ep' ? 'EP' : al.type === 'single' ? 'Single' : 'Album';
+  return kind + (year ? ' · ' + year : '') + (count != null ? ' · ' + count + ' track' + (count === 1 ? '' : 's') : '');
+}
+
+function _apGrouped() {
   var byAlbum = {};
   _artistPageTracks.forEach(function(t) {
     var k = t.album_id || '_singles';
     (byAlbum[k] = byAlbum[k] || []).push(t);
   });
+  Object.keys(byAlbum).forEach(function(k) {
+    byAlbum[k].sort(k === '_singles'
+      ? function(a, b) { return (b.stream_count || 0) - (a.stream_count || 0); }
+      : function(a, b) { return (a.track_number || 99) - (b.track_number || 99); });
+  });
+  return byAlbum;
+}
+
+function apRefreshMusic() {
+  var p = document.getElementById('ap-panel-music');
+  if (p) p.innerHTML = renderArtistTracks();
+}
+function apOpenAlbum(id) { _apAlbumOpen = id || null; apRefreshMusic();
+  var p = document.getElementById('ap-panel-music'); if (p) p.scrollIntoView({ block: 'nearest' }); }
+function apToggleSingles() { _apSinglesAll = !_apSinglesAll; apRefreshMusic(); }
+
+function renderArtistTracks() {
+  if (!_artistPageTracks.length && !artistPageCanEdit()) {
+    return '<div class="pf-empty">No live tracks yet — first drop coming.</div>';
+  }
+  var byAlbum = _apGrouped();
+  var canEdit = artistPageCanEdit();
+
+  // ── One release, opened ──
+  if (_apAlbumOpen) {
+    var al = _artistAlbums.filter(function(x){ return x.id === _apAlbumOpen; })[0];
+    if (al) {
+      var list = byAlbum[al.id] || [];
+      var cover = safeUrl(al.cover_url);
+      return '<button class="pf-btn" style="margin-bottom:.8rem;padding:.35rem .85rem;font-size:.76rem" onclick="apOpenAlbum(null)">← All music</button>' +
+        '<div class="ap-album-head" style="margin-bottom:.8rem">' +
+          '<div class="ap-album-cover" style="width:84px;height:84px">' + (cover ? '<img src="' + cover + '" alt="">' : '💿') + '</div>' +
+          '<div><div class="ap-album-title" style="font-size:1.25rem">' + escapeHtml(al.title) + '</div>' +
+            '<div class="ap-album-meta">' + _apAlbumMeta(al, list.length) + '</div>' +
+            (canEdit ? '<div style="margin-top:.4rem"><label style="font-size:.7rem;color:var(--muted)">Who can play this release: </label>' +
+              '<select onchange="apSetAlbumTier(\'' + al.id + '\', this.value)" class="form-input" style="display:inline-block;width:auto;padding:.2rem .5rem;font-size:.74rem">' +
+                '<option value="">Everyone (free)</option><option value="native">Native pass +</option><option value="insider">Insider pass</option>' +
+              '</select></div>' : '') +
+          '</div>' +
+        '</div>' +
+        '<div class="track-list">' + list.map(function(t){ return artistTrackRowHtml(t, t.track_number || '·'); }).join('') + '</div>';
+    }
+    _apAlbumOpen = null;
+  }
 
   var html = '';
-  _artistAlbums.forEach(function(al) {
-    var list = (byAlbum[al.id] || []).slice()
-      .sort(function(a, b) { return (a.track_number || 99) - (b.track_number || 99); });
-    if (!list.length) return;
-    var cover = safeUrl(al.cover_url);
-    var year = al.release_date ? new Date(al.release_date + 'T12:00:00').getFullYear() : '';
-    var kind = al.type === 'ep' ? 'EP' : al.type === 'single' ? 'Single' : 'Album';
-    html += '<div class="ap-album">' +
-      '<div class="ap-album-head">' +
-        '<div class="ap-album-cover">' + (cover ? '<img src="' + cover + '" alt="">' : '💿') + '</div>' +
-        '<div><div class="ap-album-title">' + escapeHtml(al.title) + '</div>' +
-          '<div class="ap-album-meta">' + kind + (year ? ' · ' + year : '') + ' · ' + list.length +
-            ' track' + (list.length === 1 ? '' : 's') + '</div></div>' +
-      '</div>' +
-      '<div class="track-list">' +
-        list.map(function(t) { return artistTrackRowHtml(t, t.track_number || '·'); }).join('') +
-      '</div></div>';
-  });
 
-  var singles = (byAlbum['_singles'] || []).slice()
-    .sort(function(a, b) { return (b.stream_count || 0) - (a.stream_count || 0); });
-  if (singles.length) {
-    html += '<div class="ap-album"><div class="ap-album-head"><div>' +
-      '<div class="ap-album-title">Singles</div>' +
-      '<div class="ap-album-meta">' + singles.length + ' release' + (singles.length === 1 ? '' : 's') + '</div>' +
-    '</div></div><div class="track-list">' +
-      singles.map(function(t, i) { return artistTrackRowHtml(t, i + 1); }).join('') +
-    '</div></div>';
+  // ── Featured project — the reason people landed here ──
+  var feat = _artistAlbums.filter(function(a){ return a.featured; })[0];
+  if (feat) {
+    var fList = byAlbum[feat.id] || [];
+    var fCover = safeUrl(feat.cover_url);
+    html += '<div class="ap-feature" onclick="apOpenAlbum(\'' + feat.id + '\')">' +
+      '<div class="ap-feature-cover">' + (fCover ? '<img src="' + fCover + '" alt="">' : '💿') + '</div>' +
+      '<div class="ap-feature-body">' +
+        '<div class="ap-feature-kicker">● New Project</div>' +
+        '<div class="ap-feature-title">' + escapeHtml(feat.title) + '</div>' +
+        (feat.tagline ? '<div class="ap-feature-tag">' + escapeHtml(feat.tagline) + '</div>' : '') +
+        '<div class="ap-feature-cta">' + (fList.length ? 'Listen now →' : 'Coming soon — tracklist drops here first') + '</div>' +
+      '</div></div>';
   }
+
+  // ── Top Songs — the five that earn the plays ──
+  var top = _artistPageTracks.slice()
+    .sort(function(a, b) { return (b.stream_count || 0) - (a.stream_count || 0); })
+    .slice(0, 5);
+  if (top.length) {
+    html += '<div class="pf-sec" style="margin-top:1.1rem"><h3>Top Songs</h3></div>' +
+      '<div class="track-list">' + top.map(function(t, i){ return artistTrackRowHtml(t, i + 1); }).join('') + '</div>';
+  }
+
+  // ── Albums & EPs shelf — tap a cover to open it ──
+  var shelf = _artistAlbums.filter(function(al){ return (byAlbum[al.id] || []).length && !al.featured; });
+  if (feat && (byAlbum[feat.id] || []).length) shelf.unshift(feat);
+  if (shelf.length) {
+    html += '<div class="pf-sec"><h3>Albums &amp; EPs</h3></div>' +
+      '<div class="ap-shelf">' + shelf.map(function(al) {
+        var cover = safeUrl(al.cover_url);
+        return '<div class="ap-alcard" onclick="apOpenAlbum(\'' + al.id + '\')">' +
+          '<div class="ap-alcard-cover">' + (cover ? '<img src="' + cover + '" alt="" loading="lazy">' : '💿') + '</div>' +
+          '<div class="ap-alcard-title">' + escapeHtml(al.title) + '</div>' +
+          '<div class="ap-alcard-meta">' + _apAlbumMeta(al, null) + '</div>' +
+        '</div>';
+      }).join('') + '</div>';
+  }
+
+  // ── Singles — top three, the rest behind View all ──
+  var singles = byAlbum['_singles'] || [];
+  if (singles.length) {
+    var shown = _apSinglesAll ? singles : singles.slice(0, 3);
+    html += '<div class="pf-sec"><h3>Singles</h3>' +
+      (singles.length > 3 ? '<a href="#" onclick="apToggleSingles();return false">' +
+        (_apSinglesAll ? 'Show less' : 'View all (' + singles.length + ')') + '</a>' : '') + '</div>' +
+      '<div class="track-list">' + shown.map(function(t, i){ return artistTrackRowHtml(t, i + 1); }).join('') + '</div>';
+  }
+
   return html || '<div class="pf-empty">No live tracks yet — first drop coming.</div>';
+}
+
+// Owner control: tier-gate a whole release at once (per-track override lives
+// in the track editor). Beta note: with billing off, gating means "locked
+// teaser", so use it deliberately.
+async function apSetAlbumTier(albumId, tier) {
+  var res = await _sb.from('tracks').update({ exclusive_tier: tier || null }).eq('album_id', albumId).select('id');
+  if (res.error) { showToast('Could not update: ' + res.error.message); return; }
+  showToast('✓ ' + (res.data || []).length + ' tracks now ' + (tier ? 'require ' + tier + ' pass' : 'free for everyone'));
+  showArtistPage(_artistPage.slug);
 }
 
 // ── MY PAGE — one door to everything you are on PHX ────────────────────
@@ -8216,6 +8306,12 @@ function openTrackEditor(trackId) {
     '<select class="form-input" id="te-album" style="margin-bottom:.6rem">' + albumOpts + '</select>' +
     '<label class="form-label">Track #</label>' +
     '<input class="form-input" id="te-num" type="number" min="1" max="99" value="' + (t.track_number || '') + '" placeholder="Position on the release" style="margin-bottom:.6rem">' +
+    '<label class="form-label">Who can play it</label>' +
+    '<select class="form-input" id="te-tier" style="margin-bottom:.6rem">' +
+      '<option value=""' + (!t.exclusive_tier ? ' selected' : '') + '>Everyone (free)</option>' +
+      '<option value="native"' + (t.exclusive_tier === 'native' ? ' selected' : '') + '>Native pass and up</option>' +
+      '<option value="insider"' + (t.exclusive_tier === 'insider' ? ' selected' : '') + '>Insider pass only</option>' +
+    '</select>' +
     '<label class="form-label">Audio ' + (t.audio_url ? '<span style="color:var(--green)">· uploaded ✓</span>' : '<span style="color:var(--faint)">· none yet</span>') + '</label>' +
     '<input type="file" id="te-audio" accept="audio/*" class="form-input" style="margin-bottom:.9rem">' +
     '<button class="upgrade-btn" style="width:100%;margin:0 0 .5rem" onclick="saveTrackEditor(\'' + t.id + '\')">Save</button>' +
@@ -8231,7 +8327,8 @@ async function saveTrackEditor(trackId) {
       title: (document.getElementById('te-title') || {}).value || 'Untitled',
       featuring: (document.getElementById('te-feat') || {}).value || null,
       album_id: (document.getElementById('te-album') || {}).value || null,
-      track_number: parseInt((document.getElementById('te-num') || {}).value, 10) || null
+      track_number: parseInt((document.getElementById('te-num') || {}).value, 10) || null,
+      exclusive_tier: (document.getElementById('te-tier') || {}).value || null
     };
     var input = document.getElementById('te-audio');
     var f = input && input.files && input.files[0];
@@ -8409,6 +8506,66 @@ async function loadMusicCatalog() {
       (dur ? '<div class="track-time">' + dur + '</div>' : '') +
     '</div>';
   }).join('');
+
+  // Up Next: the most-played playable tracks, from real data
+  var q = document.getElementById('queue-list');
+  if (q) {
+    var playable = tracks.filter(function(t){ return t.audio_url; })
+      .sort(function(a, b){ return (b.stream_count || 0) - (a.stream_count || 0); }).slice(0, 4);
+    _setText('queue-count', playable.length + ' track' + (playable.length === 1 ? '' : 's'));
+    q.innerHTML = playable.length ? playable.map(function(t, i) {
+      var art = safeUrl(t.cover_url);
+      return '<div class="track-row" onclick="playTrackById(\'' + t.id + '\', this)">' +
+        '<div class="track-num">' + (i + 1) + '</div>' +
+        '<div class="track-art">' + (art ? '<img src="' + art + '" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:6px">' : '🎵') + '</div>' +
+        '<div class="track-info"><div class="track-title">' + escapeHtml(t.title) + '</div>' +
+          '<div class="track-feat">' + artistLinkHtml(t.artist_name, t.artist_slug, 'color:var(--muted)') + '</div></div>' +
+        '<div class="track-streams">' + fmtK(t.stream_count || 0) + '</div>' +
+      '</div>';
+    }).join('') : '<div class="pf-empty">Queue fills as audio is uploaded.</div>';
+  }
+
+  loadMusicRails();
+}
+
+// Roster + new releases: both read straight from the database, so a new
+// artist or album shows up here the moment it exists — no hand-editing.
+async function loadMusicRails() {
+  var rosterEl = document.getElementById('phx-roster-rail');
+  var relEl = document.getElementById('new-releases-rail');
+  if (!rosterEl && !relEl) return;
+  var r = await Promise.all([
+    _sb.from('artists').select('name,slug,avatar_url,genre').eq('status', 'active').order('monthly_listeners', { ascending: false }).limit(20),
+    _sb.from('albums').select('id,title,type,cover_url,release_date,artist_id,artists(name,slug)').order('created_at', { ascending: false }).limit(12)
+  ]);
+  if (rosterEl) {
+    var artists = r[0].data || [];
+    rosterEl.innerHTML = artists.length ? artists.map(function(a) {
+      var ava = safeUrl(a.avatar_url);
+      return '<div class="ap-alcard" style="text-align:center" onclick="showArtistPage(\'' + escapeHtml(a.slug) + '\')">' +
+        '<div class="ap-alcard-cover" style="border-radius:50%">' + (ava ? '<img src="' + ava + '" alt="" loading="lazy">' : '🎤') + '</div>' +
+        '<div class="ap-alcard-title">' + escapeHtml(a.name) + '</div>' +
+        '<div class="ap-alcard-meta">' + escapeHtml(a.genre || 'PHX Artist') + '</div>' +
+      '</div>';
+    }).join('') : '<div class="pf-empty">Roster fills as artists join.</div>';
+  }
+  if (relEl) {
+    var albums = (r[1].data || []).filter(function(al){ return al.artists && al.artists.slug; });
+    relEl.innerHTML = albums.length ? albums.map(function(al) {
+      var cover = safeUrl(al.cover_url);
+      return '<div class="ap-alcard" onclick="openAlbumFromMusic(\'' + escapeHtml(al.artists.slug) + '\',\'' + al.id + '\')">' +
+        '<div class="ap-alcard-cover">' + (cover ? '<img src="' + cover + '" alt="" loading="lazy">' : '💿') + '</div>' +
+        '<div class="ap-alcard-title">' + escapeHtml(al.title) + '</div>' +
+        '<div class="ap-alcard-meta">' + escapeHtml(al.artists.name) + '</div>' +
+      '</div>';
+    }).join('') : '<div class="pf-empty">New releases land here.</div>';
+  }
+}
+
+// Navigate to the artist page with a specific release open
+function openAlbumFromMusic(slug, albumId) {
+  _apAlbumOpen = albumId;
+  showArtistPage(slug);
 }
 
 function setCatalogGenre(g) { _catalogGenre = g || ''; loadMusicCatalog(); }
@@ -8517,11 +8674,24 @@ async function removeShow(showId) {
   if (_artistPage) showArtistPage(_artistPage.slug);
 }
 
+// A bio written in paragraphs deserves to read like one: real paragraph
+// breaks, a drop cap, and any line that is mostly a quote set as a pull
+// quote. All from the same plain-text bio field — artists just write.
 function renderArtistAbout(artist, shopUrl) {
   var links = artist.links || {};
   var linkHtml = profileLinksHtml(links);
-  return (artist.bio ? '<div class="pf-bio">' + escapeHtml(artist.bio) + '</div>' : '<div class="pf-empty">No bio yet.</div>') +
-    linkHtml +
+  var bioHtml = '<div class="pf-empty">No bio yet.</div>';
+  if (artist.bio) {
+    var paras = String(artist.bio).split(/\n\s*\n/).filter(function(p){ return p.trim(); });
+    bioHtml = '<div class="ap-about">' + paras.map(function(p) {
+      var text = p.trim().replace(/\s*\n\s*/g, ' ');
+      // A paragraph that is mostly one quotation reads as a pull quote
+      var q = text.match(/"([^"]{30,220})"/);
+      if (q && q[1].length / text.length > 0.55) return '<blockquote>“' + escapeHtml(q[1]) + '”</blockquote>';
+      return '<p>' + escapeHtml(text) + '</p>';
+    }).join('') + '</div>';
+  }
+  return bioHtml + linkHtml +
     (shopUrl ? '<div class="pf-links" style="margin-top:.5rem"><a class="pf-link" href="' + shopUrl + '" target="_blank" rel="noopener">Store ↗</a></div>' : '');
 }
 
@@ -8672,6 +8842,29 @@ function _routeProfileHash(delay) {
 }
 _whenDomReady(function(){ _routeProfileHash(300); });
 window.addEventListener('hashchange', function(){ _routeProfileHash(0); });
+
+// Vanity URLs: thephx.app/murkemz, thephx.app/jayemali. Vercel rewrites any
+// unknown single-segment path to this file; we resolve the slug against
+// artists → pages → usernames, in that order, and land on the right page.
+// The pretty path stays in the address bar.
+async function _routeVanityPath() {
+  var m = (window.location.pathname || '').match(/^\/([a-z0-9][a-z0-9._-]{1,40})\/?$/i);
+  if (!m) return;
+  var slug = m[1].toLowerCase();
+  if (['app', 'index', 'legal', 'admin', 'artist', 'tour'].indexOf(slug) !== -1) return;
+  if (_routeProfileHash(0)) return;   // an explicit #artist/... beats the path
+  try {
+    var a = await _sb.from('artists').select('slug').eq('slug', slug).maybeSingle();
+    if (a.data) { showArtistPage(a.data.slug); return; }
+    var pg = await _sb.from('pages').select('id').eq('slug', slug).maybeSingle();
+    if (pg.data) { showPageProfile(pg.data.id); return; }
+    var u = await _sb.from('public_profiles').select('id').eq('username', slug).maybeSingle();
+    if (u.data) { showMemberPage(u.data.id); return; }
+    var mp = await _sb.from('member_profiles').select('device_id').eq('username', slug).maybeSingle();
+    if (mp.data) { showMemberPage(mp.data.device_id); return; }
+  } catch (e) {}
+}
+_whenDomReady(function(){ setTimeout(_routeVanityPath, 250); });
 
 _whenDomReady(function(){ hydrateCatalogStats(); });
 
