@@ -1978,11 +1978,11 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
       <div style="font-size:1.4rem;font-weight:900;background:linear-gradient(135deg,#F97316,#EAB308);-webkit-background-clip:text;-webkit-text-fill-color:transparent">PHX</div>
       <button onclick="closeAuthModal()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem">✕</button>
     </div>
-    <button class="tb-btn" onclick="signInWithGoogle()" style="width:100%;display:flex;align-items:center;justify-content:center;gap:.6rem;padding:.7rem;margin-bottom:.9rem;background:#fff;color:#1f1f1f;border-color:#fff;font-weight:600">
+    <button class="tb-btn" id="google-signin-btn" onclick="signInWithGoogle()" style="display:none;width:100%;align-items:center;justify-content:center;gap:.6rem;padding:.7rem;margin-bottom:.9rem;background:#fff;color:#1f1f1f;border-color:#fff;font-weight:600">
       <svg width="17" height="17" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24s.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
       Continue with Google
     </button>
-    <div style="display:flex;align-items:center;gap:.6rem;margin-bottom:.9rem">
+    <div id="google-divider" style="display:none;align-items:center;gap:.6rem;margin-bottom:.9rem">
       <div style="flex:1;height:1px;background:rgba(255,255,255,.09)"></div>
       <span style="font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--faint)">or email</span>
       <div style="flex:1;height:1px;background:rgba(255,255,255,.09)"></div>
@@ -5708,7 +5708,21 @@ async function sendPasswordReset() {
 // comes back from the provider — same path as email signup.
 var PHX_TERMS_VERSION = '1.0';
 
+function applyAuthProviderVisibility() {
+  var b = document.getElementById('google-signin-btn');
+  var d = document.getElementById('google-divider');
+  if (b) b.style.display = _googleEnabled ? 'flex' : 'none';
+  if (d) d.style.display = _googleEnabled ? 'flex' : 'none';
+}
+
 async function signInWithGoogle() {
+  // Refuse even if the button is somehow reachable — invite-only means the
+  // code comes first, and OAuth would create an account before we could ask.
+  if (!_googleEnabled) {
+    var e = document.getElementById('auth-error');
+    if (e) { e.textContent = 'Google sign-in is off while PHX is invite-only. Use your invite code.'; e.style.display = 'block'; }
+    return;
+  }
   var errEl = document.getElementById('auth-error');
   // Same consent requirement as email signup when creating an account
   var termsEl = document.getElementById('auth-terms');
@@ -6486,6 +6500,10 @@ async function checkAccessAndOnboarding() {
 // out later, the code IS the gate now and stays as the growth loop.
 // ═══════════════════════════════════════════════════════════════════════
 var _requiresInvite = true;
+// Off until the OAuth flow can require an invite code BEFORE account
+// creation. Google can't reliably tell sign-in from sign-up, so leaving it
+// on would mint code-less accounts.
+var _googleEnabled = false;
 var _platformSettings = null;
 
 async function loadPlatformSettings() {
@@ -6494,6 +6512,11 @@ async function loadPlatformSettings() {
     if (res.data) {
       _platformSettings = res.data;
       _requiresInvite = !!res.data.signup_requires_invite;
+      _googleEnabled = !!res.data.google_signin_enabled;
+      applyAuthProviderVisibility();
+      // The invite field is computed once when a tab opens; re-run it now
+      // that the real settings have arrived (QA finding 38).
+      if (typeof setAuthTab === 'function') setAuthTab(_authTab || 'signin');
     }
   } catch (e) {}
 }
