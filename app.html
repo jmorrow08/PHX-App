@@ -2032,7 +2032,17 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
     <div id="auth-info" style="display:none;color:var(--green);font-size:.78rem;margin-bottom:.6rem"></div>
     <button class="upgrade-btn" id="auth-submit-btn" style="margin:0;width:100%" onclick="submitAuth()">Sign In</button>
     <button onclick="sendPasswordReset()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:.74rem;margin-top:.7rem;text-decoration:underline;padding:0">Forgot password?</button>
-    <div style="margin-top:.8rem;font-size:.7rem;color:var(--muted);line-height:1.5">By continuing you agree to the <a href="legal.html" target="_blank" style="color:var(--orange)">PHX Terms of Service &amp; Privacy Policy</a>.</div>
+    <!-- Explicit, affirmative consent on account creation. A passive "by
+         continuing" line is weaker than a checkbox the user actually ticks,
+         and we record the timestamp + version server-side. -->
+    <label id="auth-terms-wrap" style="display:none;align-items:flex-start;gap:.55rem;margin-top:.9rem;cursor:pointer">
+      <input type="checkbox" id="auth-terms" style="margin-top:.15rem;accent-color:var(--orange);flex-shrink:0">
+      <span style="font-size:.74rem;color:var(--muted);line-height:1.55">I agree to the
+        <a href="legal.html" target="_blank" style="color:var(--orange)">Terms of Service</a> and
+        <a href="legal.html#privacy" target="_blank" style="color:var(--orange)">Privacy Policy</a>,
+        and I'm 13 or older.</span>
+    </label>
+    <div id="auth-signin-terms" style="margin-top:.8rem;font-size:.7rem;color:var(--muted);line-height:1.5">By signing in you agree to the <a href="legal.html" target="_blank" style="color:var(--orange)">PHX Terms of Service &amp; Privacy Policy</a>.</div>
   </div>
 </div>
 
@@ -5427,6 +5437,10 @@ function setAuthTab(tab) {
   document.getElementById('auth-submit-btn').textContent = tab === 'signin' ? 'Sign In' : 'Create Account';
   var iw = document.getElementById('auth-invite-wrap');
   if (iw) iw.style.display = (tab === 'signup' && _requiresInvite) ? 'block' : 'none';
+  var tw = document.getElementById('auth-terms-wrap');
+  if (tw) tw.style.display = (tab === 'signup') ? 'flex' : 'none';
+  var st = document.getElementById('auth-signin-terms');
+  if (st) st.style.display = (tab === 'signup') ? 'none' : 'block';
 }
 
 async function sendPasswordReset() {
@@ -5453,8 +5467,19 @@ async function sendPasswordReset() {
 
 // OAuth: the invite code is stashed first, then redeemed when the session
 // comes back from the provider — same path as email signup.
+var PHX_TERMS_VERSION = '1.0';
+
 async function signInWithGoogle() {
   var errEl = document.getElementById('auth-error');
+  // Same consent requirement as email signup when creating an account
+  var termsEl = document.getElementById('auth-terms');
+  if (_authTab === 'signup' && termsEl && !termsEl.checked) {
+    if (errEl) { errEl.textContent = 'Please agree to the Terms of Service and Privacy Policy to continue.'; errEl.style.display = 'block'; }
+    var tw = document.getElementById('auth-terms-wrap');
+    if (tw) tw.style.display = 'flex';
+    return;
+  }
+  if (termsEl && termsEl.checked) { try { localStorage.setItem('phx_terms_ok', PHX_TERMS_VERSION); } catch (e) {} }
   var inviteEl = document.getElementById('auth-invite');
   var code = inviteEl ? (inviteEl.value || '').trim().toUpperCase() : '';
   if (code) { try { localStorage.setItem('phx_pending_invite', code); } catch (e) {} }
@@ -5498,6 +5523,13 @@ async function submitAuth() {
     // confirmation, so we redeem it once the session actually resolves.
     var inviteEl = document.getElementById('auth-invite');
     var inviteCode = inviteEl ? (inviteEl.value || '').trim().toUpperCase() : '';
+    var termsEl = document.getElementById('auth-terms');
+    if (termsEl && !termsEl.checked) {
+      errEl.textContent = 'Please agree to the Terms of Service and Privacy Policy to continue.';
+      errEl.style.display = 'block';
+      btn.disabled = false;
+      return;
+    }
     if (_requiresInvite && !inviteCode) {
       errEl.textContent = 'An invite code is required to join right now.';
       errEl.style.display = 'block';
@@ -5506,7 +5538,10 @@ async function submitAuth() {
     }
     if (inviteCode) { try { localStorage.setItem('phx_pending_invite', inviteCode); } catch (e) {} }
     res = await _sb.auth.signUp({ email: email, password: password,
-      options: { emailRedirectTo: window.location.origin + '/app.html' } });
+      options: {
+        emailRedirectTo: window.location.origin + '/app.html',
+        data: { terms_accepted: 'true', terms_version: PHX_TERMS_VERSION }
+      } });
     if (!res.error && res.data.user && !res.data.session) {
       infoEl.textContent = '✓ Check your email to confirm your account, then sign in.';
       infoEl.style.display = 'block';
@@ -6182,6 +6217,12 @@ async function redeemPendingInvite() {
       if (cd.pages_claimed) bits.push(cd.pages_claimed + ' page' + (cd.pages_claimed === 1 ? '' : 's'));
       if (cd.artists_claimed) bits.push('your artist page');
       showToast('✓ ' + (bits.join(' + ') || 'Your account') + ' is yours — edit anything in Profile');
+      // A claim code hands over an identity PHX already built, so skip the
+      // setup wizard — it would ask them to recreate what they were given.
+      // Plain invite codes fall through and DO get the full wizard.
+      try {
+        await _sb.rpc('mark_onboarded', { p_user_id: _authUser.id, p_username: cd.suggested_username || null });
+      } catch (e) {}
       if (typeof applyAccountRole === 'function') setTimeout(applyAccountRole, 400);
       if (typeof loadMyPages === 'function') setTimeout(loadMyPages, 600);
       return;
@@ -6273,6 +6314,7 @@ async function applyAccountRole() {
   loadPlatformSettings();
   if (!_authUser) {
     _accountRole = 'explorer';
+    _roleResolved = true;
     _whenDomReady(function(){ setRole('explorer'); });
     return;
   }
@@ -6289,6 +6331,7 @@ async function applyAccountRole() {
   else role = 'explorer';
   var label = p.display_name || (p.username ? '@' + p.username : (_authUser.email || '').split('@')[0]);
   _accountRole = role;   // the one place this is ever assigned
+  _roleResolved = true;
   _whenDomReady(function() {
     setRole(role);
     // Show the real account identity instead of the generic role label
@@ -6325,6 +6368,11 @@ _sb.auth.onAuthStateChange(function(event, session) {
     }
     return;
   }
+  // Resolve the role on the FIRST auth event even when nothing changed —
+  // a signed-out visitor produces no state change, so this is the only
+  // point at which we can safely conclude "this person is not signed in".
+  if (!_roleResolved) applyAccountRole();
+
   if ((!!wasUser) !== (!!_authUser)) {
     _myProfile = null;
     applyAccountRole();
@@ -6514,6 +6562,11 @@ async function reelLike(postId) {
 // the admin shell shouldn't render for a member either.
 // ═══════════════════════════════════════════════════════════════════════
 var _accountRole = 'explorer';   // server-verified; never set from the client
+// Removing admin nodes is DESTRUCTIVE and can't be undone, so it must never
+// run before the session has actually resolved. Without this gate the page
+// tore out the admin shell during the split second before auth returned —
+// which locked real admins out of their own panel on every refresh.
+var _roleResolved = false;
 var _viewAsActive = false;
 var _setRoleCore = setRole;
 
@@ -6549,6 +6602,7 @@ setRole = function(role) {
 // Admin surfaces are REMOVED from the DOM for non-admins, not just hidden —
 // a hidden node is still readable in devtools.
 function applyRoleVisibility() {
+  if (!_roleResolved) return;   // never destroy the shell before we know who this is
   var isAdmin = (_accountRole === 'admin' || _accountRole === 'super');
   if (!isAdmin) {
     ['nav-admin'].forEach(function(id) {

@@ -397,6 +397,42 @@ PHX is a web app, not a native app, which has a real ceiling:
 | 022–025 | Payout engine fixes | Drop auth FKs on subscriptions/payout_allocations (device-UUID phase), nullable columns for free-tier fund rows |
 | 026 | Auth roles + hardening + follows + push + recs | profiles.role, is_admin()/in_bootstrap()/require_admin() guarding set_post_hidden/resolve_report/update_payout_settings/approve_track/reject_track (open tracks_update policy dropped, run_monthly_payout EXECUTE revoked from anon), follows + toggle_follow, push_subscriptions, recommendations table, payout_delay_days=60 |
 | 027–028 | Push pipeline | pg_net extension + notifications-insert trigger → send-push edge function (verified 200 end-to-end) |
+| 029 | Creator/promoter page types | pages.page_type gains creator + promoter so all three partner lanes exist |
+| 030–031 | Profile media | profiles.banner_url, artists.links, member_profiles gains city/avatar_url/banner_url |
+| 032 | People search + merch secrets | search_people() across artists/pages/profiles/member_profiles, suggested_people(), artist_merch_secrets + merch_connections view, set_merch_connection/disconnect_merch, artist_support_stats() (earnings owner-or-admin only) |
+| 033 | Claim code RLS | claim_bundles readable only by admin (or bootstrap) |
+| 034 | Merch secrets unique | Dedupe + UNIQUE(artist_id) the table was missing |
+| 035 | Shows, fan photos, capabilities | shows table + upsert_show/delete_show (artist-or-page-owner-or-admin), feed_posts.product_id + product_review_status + tag_post_product/review_fan_photo/product_fan_photos, page_type_capabilities, search_all() incl. albums |
+| 036 | Simulation mode + pot ledger | payout_settings.simulation_mode/pot_monthly_funding_cents/free_play_rate_cents, pot_ledger (admin-only RLS), pot_balance/fund_pot/set_simulation_mode/seed_simulated_subscribers/simulate_listening/purge_simulation |
+| 037 | Payout engine v2 | Unused wallets CREDIT the pot; free-tier and anonymous plays are PAID from it, capped by real balance |
+| 038 | Artist referral leverage | artist_referral_stats() + ensure_artist_codes() — personal code and fans-brought-in per artist |
+| 039 | Beta gating + receipts | artist_earnings_view() withholds dollars while in beta; my_receipt() returns artists by listening share with no amounts |
+| 040 | **Signup fix + terms consent** | `profiles.display_name` was NOT NULL with no default while handle_new_user() inserted only (id, access_status) — **every real signup would have failed**. Added default, rewrote the trigger to seed a name from email/metadata, and added terms_accepted_at/terms_version + accept_terms() |
+| 041 | Claim codes skip the wizard | mark_onboarded() — a handed-over identity isn't asked to recreate itself; plain invites still get full onboarding |
+
+---
+
+## Access Control (current model)
+
+**Roles come only from the server.** `_accountRole` is assigned in exactly one place — after the signed-in `profiles` row returns. `setRole()` cannot escalate: calling `setRole('super')` from the console is inert for a member. Super may step *down* via View-As to preview a member experience, never anyone up.
+
+**Admin surfaces are removed from the DOM**, not hidden, for accounts that don't hold the role (a hidden node is still readable in devtools). This removal is gated behind `_roleResolved` so it can never run before auth resolves — without that gate it tore out the admin shell in the split second before the session returned, locking real admins out on every refresh.
+
+**Signup is invite-only** (`platform_public_settings.signup_requires_invite`). Account creation requires an explicit terms checkbox; acceptance is persisted as `terms_accepted_at` + `terms_version`, not just enforced client-side. Google OAuth carries the same gate.
+
+**Claim codes vs invite codes:** a claim code hands over an identity PHX pre-built (pages, artist record, artwork) and skips the setup wizard. An ordinary invite code runs the full 3-step wizard.
+
+## Money Visibility
+
+| Surface | Sees |
+|---|---|
+| Member receipt | Artists supported, ranked by **their own listening share**. No dollar amounts, no split, no pot. |
+| Artist page (public) | Fan-powered message, supporter count, plays. **No earnings.** |
+| Artist portal (beta) | Plays + listeners, and a plain "payouts haven't started" notice. **No dollars** while `simulation_mode` is on. |
+| Artist portal (live) | Their own earnings. |
+| Admin | Everything: pot ledger, splits, per-artist payouts. |
+
+The public split is never stated. Copy says "your pass supports the artists you play" — accurate — rather than implying every dollar reaches artists, which would misrepresent the one fact that drives the purchase.
 
 **Security model (bootstrap mode):** until the first `super` profile exists, admin RPCs stay open so the platform can be set up. The moment Jaye signs up and is promoted (`SELECT set_user_role('<his-auth-uid>','super')`), every admin/money RPC requires an authenticated admin JWT — the anon key alone can no longer moderate content, approve tracks, or touch payout settings.
 
