@@ -877,14 +877,8 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
         </div>
       </div>
       <br>
-      <div class="sh"><h3>🔥 Trending on PHX Music</h3><a href="#" onclick="showView('music')">Open Music →</a></div>
-      <div style="display:flex;flex-wrap:wrap;gap:.6rem">
-        <span class="badge badge-orange" style="font-size:.82rem;padding:.4rem .9rem">PHX (Song) 🎵</span>
-        <span class="badge badge-orange" style="font-size:.82rem;padding:.4rem .9rem">Murkemz 🎤</span>
-        <span class="badge badge-gold" style="font-size:.82rem;padding:.4rem .9rem">Recess EP · 2026</span>
-        <span class="badge badge-purple" style="font-size:.82rem;padding:.4rem .9rem">Hadouken RMX 🥊</span>
-        <span class="badge badge-teal" style="font-size:.82rem;padding:.4rem .9rem">South Phoenix Hip-Hop</span>
-      </div>
+      <div class="sh"><h3>🔥 Trending on PHX Music</h3><a href="#" onclick="showView('music');return false">Open Music →</a></div>
+      <div id="trending-rail" class="track-list"><div class="pf-empty">Loading…</div></div>
       </div><!-- /discover-default-content -->
     </div>
 
@@ -1013,45 +1007,8 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
                 <div class="astat"><div class="astat-val" id="murkemz-total">—</div><div class="astat-label">Total Streams</div></div>
                 <div class="astat"><div class="astat-val" style="color:var(--green)">💸</div><div class="astat-label">Paid From Your Pass</div></div>
               </div>
-              <div class="sh" style="margin-bottom:.6rem"><h3 style="font-size:.82rem">Full Catalog</h3><span class="badge badge-orange">5 tracks</span></div>
-              <div class="track-list">
-                <div class="track-row playing" onclick="playTrack(this,'PHX','Murkemz','Recess EP · 2026','Prod. PA. Dre','3:24','phx',15247,'🎵')">
-                  <div class="track-num" style="color:var(--orange)">▶</div>
-                  <div class="track-art">🎵</div>
-                  <div class="track-info"><div class="track-title">PHX</div><div class="track-feat">Recess EP · Prod. PA. Dre</div></div>
-                  <span class="track-exclusive">EXCLUSIVE</span>
-                  <div class="track-streams">—</div>
-                  <div class="track-time">3:24</div>
-                </div>
-                <div class="track-row" onclick="playTrack(this,'Against All Odds','Murkemz','ft. Freeway (Roc-A-Fella)','Recess EP · 2026','3:47','against-all-odds',8934,'🎵')">
-                  <div class="track-num">2</div>
-                  <div class="track-art">🎵</div>
-                  <div class="track-info"><div class="track-title">Against All Odds</div><div class="track-feat">ft. Freeway (Roc-A-Fella)</div></div>
-                  <div class="track-streams">—</div>
-                  <div class="track-time">3:47</div>
-                </div>
-                <div class="track-row" onclick="playTrack(this,'Hadouken RMX','Murkemz','ft. Chris Webby','2026','4:12','hadouken',541000,'🎵')">
-                  <div class="track-num">3</div>
-                  <div class="track-art">🎵</div>
-                  <div class="track-info"><div class="track-title">Hadouken RMX</div><div class="track-feat">ft. Chris Webby</div></div>
-                  <div class="track-streams">—</div>
-                  <div class="track-time">4:12</div>
-                </div>
-                <div class="track-row" onclick="playTrack(this,'Survive','Murkemz','ft. Inspectah Deck (Wu-Tang)','2025','3:58','survive',244000,'🎵')">
-                  <div class="track-num">4</div>
-                  <div class="track-art">🎵</div>
-                  <div class="track-info"><div class="track-title">Survive</div><div class="track-feat">ft. Inspectah Deck (Wu-Tang)</div></div>
-                  <div class="track-streams">—</div>
-                  <div class="track-time">3:58</div>
-                </div>
-                <div class="track-row" onclick="playTrack(this,'The Ayatollah','Murkemz','Flagship Album','2025','4:33','ayatollah',12800,'🎵')">
-                  <div class="track-num">5</div>
-                  <div class="track-art">🎵</div>
-                  <div class="track-info"><div class="track-title">The Ayatollah</div><div class="track-feat">Flagship Album · 2025</div></div>
-                  <div class="track-streams">—</div>
-                  <div class="track-time">4:33</div>
-                </div>
-              </div>
+              <div class="sh" style="margin-bottom:.6rem"><h3 style="font-size:.82rem">Full Catalog</h3><span class="badge badge-orange" id="catalog-count">—</span></div><div id="genre-chips" style="display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.7rem"></div>
+              <div class="track-list" id="music-catalog"><div class="pf-empty">Loading catalog…</div></div>
             </div>
           </div>
         </div>
@@ -1312,6 +1269,7 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
           </div>
           <br>
           <button class="tb-btn" style="width:100%;margin-bottom:.6rem" onclick="openProfileEditor()">Edit Profile</button>
+          <button class="tb-btn" style="width:100%;margin-bottom:.6rem" onclick="launchSetupWizard()">↻ Run setup again</button>
           <button class="tb-btn primary" style="width:100%;opacity:.6;cursor:default" disabled title="Membership billing is launching soon">Insider Pass — coming soon</button>
         </div>
         <div>
@@ -1469,6 +1427,11 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
             </div>
             <div class="form-field">
               <label class="form-label">Release Type</label>
+              <label class="form-label">Genre *</label>
+              <select class="form-select" id="track-genre" style="margin-bottom:.8rem">
+                <option value="">Select a genre…</option>
+              </select>
+              <label class="form-label">Release type</label>
               <select class="form-select" id="track-release-type">
                 <option value="single">Single</option>
                 <option value="album_track">Album track</option>
@@ -2110,7 +2073,7 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
 <!-- MINI PLAYER -->
 <div class="mini-player">
   <div class="mp-art">🎵</div>
-  <div class="mp-info" onclick="showView('music')" title="Open player"><div class="mp-title" id="mp-title">PHX</div><div class="mp-artist" id="mp-artist">Murkemz · Recess EP</div></div>
+  <div class="mp-info"><div class="mp-title" id="mp-title" onclick="showView('music')" style="cursor:pointer" title="Open player">PHX</div><div class="mp-artist" id="mp-artist">Murkemz · Recess EP</div></div>
   <div class="mp-controls">
     <button class="mp-btn" aria-label="Previous track" onclick="prevTrack()">⏮</button>
     <button class="mp-btn play" id="mp-play-btn" aria-label="Play or pause" onclick="togglePlay()">▶</button>
@@ -2268,7 +2231,9 @@ function showView(id) {
   if (id === 'artist-tracks' || id === 'artist-analytics' || id === 'artist-earnings') loadArtistDashboard();
   if (id === 'home') loadCityFeed();
   if (id === 'profile') loadMyPages();
-  if (id === 'discover') loadForYou();
+  if (id === 'discover') { loadForYou(); loadTrendingRail(); }
+  if (id === 'music') loadMusicCatalog();
+  if (id === 'artist-submit') populateGenreSelect();
   if (id === 'reels') loadReels();
   else pauseAllReels();
 
@@ -2941,9 +2906,24 @@ function playTrack(el, title, artist, feat, album, duration, trackId, streamCoun
   var parts = duration.split(':');
   totalSeconds = parseInt(parts[0]) * 60 + parseInt(parts[1]);
 
-  // Update mini player
+  // Update mini player. The artist name links to their page — previously
+  // there was no way to reach an artist from what was playing.
   document.getElementById('mp-title').textContent = title;
-  document.getElementById('mp-artist').textContent = artist + ' · ' + feat;
+  var mpArtist = document.getElementById('mp-artist');
+  var meta = TRACK_ARTIST[trackId] || {};
+  if (mpArtist) {
+    var sub = [artist, feat].filter(Boolean).join(' · ');
+    mpArtist.innerHTML = meta.slug
+      ? '<a href="#artist/' + escapeHtml(meta.slug) + '" onclick="event.stopPropagation();showArtistPage(\'' + escapeHtml(meta.slug) + '\');return false" style="color:inherit;text-decoration:underline;text-decoration-color:rgba(255,255,255,.25)">' + escapeHtml(artist) + '</a>' + (feat ? ' · ' + escapeHtml(feat) : '')
+      : escapeHtml(sub);
+  }
+  var mpArt = document.querySelector('.mp-art');
+  var coverUrl = safeUrl(TRACK_ART[trackId] || '');
+  if (mpArt) {
+    mpArt.innerHTML = coverUrl
+      ? '<img src="' + coverUrl + '" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:8px">'
+      : '🎵';
+  }
 
   // Update expanded player
   var titleBig = document.getElementById('np-title-big');
@@ -3693,7 +3673,7 @@ function renderFeedPost(p) {
 
   return '<div class="feed-post" id="post-' + p.id + '">' +
     '<div class="fp-header">' +
-      '<div class="fp-ava" style="background:' + bg + ';cursor:pointer" onclick="openAuthorProfile(\'' + (p.user_id||'') + '\',\'' + (p.page_id||'') + '\')">' + escapeHtml(p.author_avatar||'?') + '</div>' +
+      '<div class="fp-ava" style="background:' + bg + ';cursor:pointer" onclick="openAuthorProfile(\'' + (p.user_id||'') + '\',\'' + (p.page_id||'') + '\',\'' + escapeHtml(p.author_name||'').replace(/'/g,'') + '\')">' + escapeHtml(p.author_avatar||'?') + '</div>' +
       '<div class="fp-meta"><h4><span style="cursor:pointer" onclick="openAuthorProfile(\'' + (p.user_id||'') + '\',\'' + (p.page_id||'') + '\')">' + escapeHtml(p.author_name) + '</span> ' + badge +
         // Follow the author: pages > users; skip self + official PHX
         (p.page_id ? followBtnHtml('page', p.page_id) :
@@ -4620,6 +4600,8 @@ async function submitTrack() {
   if (!files.length) { showSubmitError('Please select at least one audio file.'); return; }
   if (!multi && !title) { showSubmitError('Track title is required.'); return; }
   if (multi && !album && !title) { showSubmitError('Give the project a name in Album / EP (or Track Title).'); return; }
+  var genreEl = document.getElementById('track-genre');
+  if (genreEl && !genreEl.value) { showSubmitError('Pick a genre so listeners can find this.'); return; }
   var agreeEl = document.getElementById('artist-agreement-check');
   if (agreeEl && !agreeEl.checked) { showSubmitError('You must agree to the Artist Distribution Agreement to submit.'); return; }
   if (errEl) errEl.style.display = 'none';
@@ -4719,6 +4701,7 @@ async function submitTrack() {
       album_id:       albumId,
       track_number:   multi ? i + 1 : null,
       release_type:   multi ? (relType === 'single' ? 'album_track' : relType) : relType,
+      genre:          (document.getElementById('track-genre') || {}).value || null,
       audio_url:      audioUrl,
       cover_url:      coverUrl,
       exclusive_tier: excTier,
@@ -5907,9 +5890,18 @@ async function savePageEditor(pageId) {
 // once, cache it, and route to whichever page actually exists.
 var _authorRouteCache = {};
 
-async function openAuthorProfile(userId, pageId) {
+// Seeded posts (like Murkemz's) carry an author_name but no user_id or
+// page_id, so clicking the avatar did nothing. Fall back to resolving the
+// name against the artist roster before giving up.
+async function openAuthorProfile(userId, pageId, authorName) {
   if (pageId) { showPageProfile(pageId); return; }   // brand/creator pages have real profiles
-  if (!userId) return;
+  if (!userId) {
+    if (authorName) {
+      var byName = await _sb.from('artists').select('slug').ilike('name', authorName).maybeSingle();
+      if (byName.data && byName.data.slug) { showArtistPage(byName.data.slug); return; }
+    }
+    return;
+  }
   if (_authorRouteCache[userId]) {
     var c = _authorRouteCache[userId];
     if (c.type === 'artist') showArtistPage(c.slug); else showMemberPage(userId);
@@ -6144,7 +6136,7 @@ async function renderStarterRail() {
           var t = byId[r.track_id];
           if (!t) return '';
           var art = (t.artists && t.artists.name) || '';
-          return '<div class="track-row" style="cursor:pointer" onclick="playStarterTrack(\'' + r.track_id + '\')">' +
+          return '<div class="track-row" style="cursor:pointer" onclick="playStarterTrack(\'' + r.track_id + '\', this)">' +
             '<div class="track-art">' + (safeUrl(t.cover_url)
               ? '<img src="' + safeUrl(t.cover_url) + '" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:6px">' : '🎵') + '</div>' +
             '<div class="track-info">' +
@@ -6170,10 +6162,39 @@ async function renderStarterRail() {
   } catch (e) { host.innerHTML = ''; }
 }
 
-function playStarterTrack(trackId) {
-  if (typeof playTrack === 'function') { playTrack(trackId); return; }
-  showView('music');
+// playTrack's first argument is the ROW ELEMENT, not an id — passing the id
+// threw on el.classList and every "Start here" row silently did nothing.
+function playStarterTrack(trackId, el) {
+  playTrackById(trackId, el || null);
 }
+
+// One place that knows how to start any track from its id. Everything that
+// only has an id (starter rail, trending, search, catalog) goes through here.
+async function playTrackById(trackId, el) {
+  var res = await _sb.from('tracks')
+    .select('id,title,featuring,producer,duration_seconds,cover_url,audio_url,exclusive_tier,stream_count,artists(name,slug)')
+    .eq('id', trackId).maybeSingle();
+  var t = res.data;
+  if (!t) { showToast('Track unavailable'); return; }
+  if (!canPlayTrack(t.exclusive_tier)) {
+    showToast('🔒 This track needs ' + (t.exclusive_tier === 'insider' ? 'an Insider' : 'a Native') + ' Pass');
+    return;
+  }
+  var mins = Math.floor((t.duration_seconds || 0) / 60), secs = (t.duration_seconds || 0) % 60;
+  var dur = t.duration_seconds ? (mins + ':' + (secs < 10 ? '0' : '') + secs) : '0:00';
+  var artistName = t.artists ? t.artists.name : 'PHX Artist';
+  if (t.cover_url) TRACK_ART[t.id] = t.cover_url;
+  if (t.artists) TRACK_ARTIST[t.id] = { name: artistName, slug: t.artists.slug };
+  playTrack(el || null, t.title, artistName,
+            t.featuring ? 'ft. ' + t.featuring : '',
+            t.producer ? 'Prod. ' + t.producer : '',
+            dur, t.id, t.stream_count || 0, '🎵');
+}
+
+// Remember art + artist for whatever is playing so the mini player can show
+// real cover art and link the artist name through to their page.
+var TRACK_ART = {};
+var TRACK_ARTIST = {};
 
 // ═══════════════════════════════════════════════════════════════════════
 // ACCESS GATE + ONBOARDING
@@ -6326,6 +6347,7 @@ async function renderOnboard() {
       : '') +
     '<button class="upgrade-btn" style="margin:0;width:100%" onclick="finishOnboarding()">Enter PHX</button>' +
     '<button onclick="finishOnboarding(true)" style="display:block;width:100%;background:none;border:none;color:var(--muted);cursor:pointer;font-size:.8rem;margin-top:.7rem;text-decoration:underline">Skip — show me what\'s hot</button>' +
+    '<button onclick="deferOnboarding()" style="display:block;width:100%;background:none;border:none;color:var(--faint);cursor:pointer;font-size:.76rem;margin-top:.45rem">Remind me later</button>' +
     '<div id="onb-msg" style="font-size:.78rem;color:var(--muted);margin-top:.55rem;min-height:1em"></div>'
   );
 }
@@ -6423,17 +6445,38 @@ async function finishOnboarding(skipFollows) {
   }
 }
 
+// Deferring is recorded so the wizard can nudge again in 24h instead of
+// vanishing the moment someone taps away.
+async function deferOnboarding() {
+  if (_authUser) { try { await _sb.rpc('defer_onboarding', { p_user_id: _authUser.id }); } catch (e) {} }
+  closeOnboard();
+  showToast('We\'ll remind you later');
+}
+
+// Reachable on demand from Profile, so setup is never a one-shot you can lose
+function launchSetupWizard() {
+  if (!_authUser) { openAuthModal(); return; }
+  startOnboarding();
+}
+
 // Decide on every session resolve: wall, onboarding, or straight in.
 async function checkAccessAndOnboarding() {
   if (!_authUser) return;
   try {
     var res = await _sb.from('profiles')
-      .select('access_status,username,onboarded_at,role').eq('id', _authUser.id).maybeSingle();
+      .select('access_status,username,onboarded_at,role,onboarding_deferred_at').eq('id', _authUser.id).maybeSingle();
     var p = res.data;
     if (!p) return;
     if (p.access_status === 'blocked') { showAccessWall('blocked'); return; }
     if (p.access_status !== 'active') { showAccessWall('pending'); return; }
-    if (!p.onboarded_at && p.role !== 'super' && p.role !== 'admin') { startOnboarding(); }
+    // Everyone completes setup, including admins and artists — they were
+    // skipped before, which is why the founder account had no @handle.
+    // A deferral quiets it for 24h rather than losing it forever.
+    if (!p.onboarded_at) {
+      var deferred = p.onboarding_deferred_at ? new Date(p.onboarding_deferred_at).getTime() : 0;
+      var quietFor = 24 * 3600 * 1000;
+      if (!deferred || (Date.now() - deferred) > quietFor) startOnboarding();
+    }
   } catch (e) {}
 }
 
@@ -7469,6 +7512,13 @@ async function showPageProfile(slugOrId) {
               '</div>';
             }).join('')
           : '') +
+        (pg.contact_email
+          ? '<div class="pf-sec"><h3>Get in touch</h3></div>' +
+            (pg.inquiry_blurb ? '<div class="pf-bio">' + escapeHtml(pg.inquiry_blurb) + '</div>' : '') +
+            '<div style="font-size:.82rem;color:var(--muted);margin-bottom:.9rem">' +
+              '📧 <a href="mailto:' + escapeHtml(pg.contact_email) + '" style="color:var(--orange)">' + escapeHtml(pg.contact_email) + '</a></div>' +
+            '<button class="pf-btn" onclick="openInquiryForm(\'' + pg.id + '\')">✉️ Send an inquiry</button>'
+          : '') +
         (pageCan(pg.page_type, 'menu') ? '<div class="pf-sec"><h3>Menu</h3></div><div class="pf-empty">Menu coming with PHX Eats.</div>' : '') +
         (pageCan(pg.page_type, 'perks') ? '<div class="pf-sec"><h3>Member perks</h3></div><div class="pf-empty">Perks launch with the partner program.</div>' : '') +
         '<div class="pf-sec"><h3>Posts</h3></div>' +
@@ -7483,6 +7533,75 @@ async function showPageProfile(slugOrId) {
         }).join('') : '<div class="pf-empty">No posts yet.</div>') +
       '</div>' +
     '</div>';
+}
+
+// Inquiry form — goes to the page's own contact address through the email
+// queue, so it starts delivering the moment Resend is switched on.
+var _inquiryPage = null;
+async function openInquiryForm(pageId) {
+  var res = await _sb.from('pages').select('id,name,contact_email,inquiry_topics,inquiry_blurb')
+    .eq('id', pageId).maybeSingle();
+  var pg = res.data; if (!pg) return;
+  _inquiryPage = pg;
+  var m = document.getElementById('inquiry-sheet');
+  if (!m) {
+    m = document.createElement('div');
+    m.id = 'inquiry-sheet';
+    m.style.cssText = 'position:fixed;inset:0;z-index:555;background:rgba(7,7,15,.9);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:1rem';
+    m.addEventListener('click', function(e){ if (e.target === m) closeInquiryForm(); });
+    document.body.appendChild(m);
+  }
+  m.style.display = 'flex';
+  var topics = pg.inquiry_topics || [];
+  m.innerHTML =
+    '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:18px;max-width:430px;width:100%;padding:1.5rem;max-height:92vh;overflow:auto">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.3rem">' +
+        '<div style="font-weight:800;font-size:1.05rem">Contact ' + escapeHtml(pg.name) + '</div>' +
+        '<button onclick="closeInquiryForm()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem">✕</button></div>' +
+      (pg.inquiry_blurb ? '<p style="color:var(--muted);font-size:.82rem;line-height:1.6;margin-bottom:1rem">' + escapeHtml(pg.inquiry_blurb) + '</p>' : '') +
+      '<input class="form-input" id="iq-name" placeholder="Your name *" style="margin-bottom:.55rem">' +
+      '<input class="form-input" id="iq-email" type="email" placeholder="Your email *" autocomplete="email" style="margin-bottom:.55rem">' +
+      '<input class="form-input" id="iq-phone" placeholder="Phone (optional)" style="margin-bottom:.55rem">' +
+      (topics.length
+        ? '<select class="form-select" id="iq-topic" style="margin-bottom:.55rem">' +
+            topics.map(function(t){ return '<option value="' + escapeHtml(t) + '">' + escapeHtml(t) + '</option>'; }).join('') +
+          '</select>'
+        : '') +
+      '<textarea class="form-input" id="iq-message" rows="4" placeholder="What are you inquiring about? *" style="margin-bottom:.9rem"></textarea>' +
+      '<button class="upgrade-btn" style="margin:0;width:100%" onclick="submitInquiry()">Send inquiry</button>' +
+      '<div id="iq-msg" style="font-size:.8rem;color:var(--muted);margin-top:.7rem;min-height:1em"></div>' +
+    '</div>';
+}
+function closeInquiryForm(){ var m=document.getElementById('inquiry-sheet'); if(m) m.style.display='none'; }
+
+async function submitInquiry() {
+  var msg = document.getElementById('iq-msg');
+  var v = function(id){ return ((document.getElementById(id)||{}).value || '').trim(); };
+  if (!v('iq-name') || !v('iq-email') || !v('iq-message')) {
+    if (msg) { msg.style.color='var(--red)'; msg.textContent='Name, email and a message are required.'; }
+    return;
+  }
+  if (msg) { msg.style.color='var(--muted)'; msg.textContent='Sending…'; }
+  var res = await _sb.rpc('submit_page_inquiry', {
+    p_page_id: _inquiryPage.id, p_name: v('iq-name'), p_email: v('iq-email'),
+    p_message: v('iq-message'), p_topic: v('iq-topic') || null, p_phone: v('iq-phone') || null
+  });
+  var d = res.data || {};
+  if (res.error || !d.ok) {
+    if (msg) {
+      msg.style.color='var(--red)';
+      msg.textContent = d.reason === 'rate_limited' ? 'Too many messages — try again later.'
+                      : d.reason === 'invalid_email' ? 'Check your email address.' : 'Could not send.';
+    }
+    return;
+  }
+  var sheet = document.getElementById('inquiry-sheet');
+  if (sheet) sheet.querySelector('div').innerHTML =
+    '<div style="text-align:center;padding:1.6rem 0">' +
+      '<div style="font-size:2rem;margin-bottom:.6rem">✉️</div>' +
+      '<div style="font-size:1.05rem;font-weight:700;margin-bottom:.4rem">Message sent.</div>' +
+      '<div style="color:var(--muted);font-size:.86rem;line-height:1.6">' + escapeHtml(_inquiryPage.name) + ' will get back to you directly.</div>' +
+      '<button class="pf-btn" style="margin-top:1.1rem" onclick="closeInquiryForm()">Close</button></div>';
 }
 
 function sharePageProfile(slug, name) {
@@ -7695,6 +7814,102 @@ function renderArtistMerchPanel(shopUrl) {
       '</div>';
     }).join('') + '</div>';
 }
+
+// Genre list for the submit form — sourced from the curated table so the
+// vocabulary stays consistent instead of drifting into free text.
+async function populateGenreSelect() {
+  var sel = document.getElementById('track-genre');
+  if (!sel || sel.options.length > 1) return;
+  var res = await _sb.from('genres').select('slug,label,icon,sort_order')
+    .eq('is_active', true).order('sort_order');
+  (res.data || []).forEach(function(g) {
+    var o = document.createElement('option');
+    o.value = g.slug;
+    o.textContent = g.icon + '  ' + g.label;
+    sel.appendChild(o);
+  });
+}
+
+// ── TRENDING RAIL (Discover) ───────────────────────────────────────────
+// Was five decorative badges that did nothing. Now real tracks you can play.
+async function loadTrendingRail() {
+  var el = document.getElementById('trending-rail');
+  if (!el) return;
+  var res = await _sb.rpc('tracks_by_genre', { p_genre: null, p_limit: 6 });
+  var tracks = res.data || [];
+  if (!tracks.length) { el.innerHTML = '<div class="pf-empty">No tracks yet.</div>'; return; }
+  el.innerHTML = tracks.map(function(t, i) {
+    var art = safeUrl(t.cover_url);
+    var locked = !canPlayTrack(t.exclusive_tier);
+    return '<div class="track-row' + (locked ? ' locked' : '') + '" onclick="playTrackById(\'' + t.id + '\', this)">' +
+      '<div class="track-num">' + (i+1) + '</div>' +
+      '<div class="track-art">' + (art ? '<img src="' + art + '" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:6px">' : '🎵') + '</div>' +
+      '<div class="track-info"><div class="track-title">' + escapeHtml(t.title) + '</div>' +
+        '<div class="track-feat">' +
+          (t.artist_slug
+            ? '<a href="#artist/' + escapeHtml(t.artist_slug) + '" onclick="event.stopPropagation();showArtistPage(\'' + escapeHtml(t.artist_slug) + '\');return false" style="color:var(--muted)">' + escapeHtml(t.artist_name) + '</a>'
+            : escapeHtml(t.artist_name || '')) + '</div></div>' +
+      '<div class="track-streams">' + fmtK(t.stream_count || 0) + '</div>' +
+    '</div>';
+  }).join('');
+}
+
+// ── PHX MUSIC CATALOG (live) ───────────────────────────────────────────
+// This was hard-coded markup for the 5 legacy tracks, so an approved track
+// never actually reached the music page. Now it renders from the database
+// and can be filtered by genre.
+var _catalogGenre = '';
+
+async function loadMusicCatalog() {
+  var list = document.getElementById('music-catalog');
+  if (!list) return;
+  var r = await Promise.all([
+    _sb.rpc('tracks_by_genre', { p_genre: _catalogGenre || null, p_limit: 100 }),
+    _sb.rpc('genre_counts')
+  ]);
+  var tracks = r[0].data || [];
+  var genres = r[1].data || [];
+
+  var chips = document.getElementById('genre-chips');
+  if (chips) {
+    chips.innerHTML = (genres.length > 1 || _catalogGenre)
+      ? '<button class="ap-chip' + (!_catalogGenre ? ' on' : '') + '" onclick="setCatalogGenre(\'\')">All</button>' +
+        genres.map(function(g) {
+          return '<button class="ap-chip' + (_catalogGenre === g.slug ? ' on' : '') + '" onclick="setCatalogGenre(\'' + escapeHtml(g.slug) + '\')">' +
+            g.icon + ' ' + escapeHtml(g.label) + ' <span style="opacity:.6">' + g.track_count + '</span></button>';
+        }).join('')
+      : '';
+  }
+  _setText('catalog-count', tracks.length + (tracks.length === 1 ? ' track' : ' tracks'));
+
+  if (!tracks.length) {
+    list.innerHTML = '<div class="pf-empty">No tracks in this genre yet.</div>';
+    return;
+  }
+  list.innerHTML = tracks.map(function(t, i) {
+    var locked = !canPlayTrack(t.exclusive_tier);
+    var mins = Math.floor((t.duration_seconds||0)/60), secs = (t.duration_seconds||0)%60;
+    var dur = t.duration_seconds ? (mins + ':' + (secs<10?'0':'') + secs) : '';
+    var art = safeUrl(t.cover_url);
+    var badge = t.exclusive_tier === 'insider' ? '<span class="track-exclusive">INSIDER</span>'
+              : t.exclusive_tier === 'native' ? '<span class="track-exclusive">NATIVE+</span>' : '';
+    return '<div class="track-row' + (locked ? ' locked' : '') + '" onclick="playTrackById(\'' + t.id + '\', this)">' +
+      '<div class="track-num">' + (i+1) + '</div>' +
+      '<div class="track-art">' + (art ? '<img src="' + art + '" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:6px">' : '🎵') + '</div>' +
+      '<div class="track-info"><div class="track-title">' + escapeHtml(t.title) + '</div>' +
+        '<div class="track-feat">' +
+          (t.artist_slug
+            ? '<a href="#artist/' + escapeHtml(t.artist_slug) + '" onclick="event.stopPropagation();showArtistPage(\'' + escapeHtml(t.artist_slug) + '\');return false" style="color:var(--muted)">' + escapeHtml(t.artist_name) + '</a>'
+            : escapeHtml(t.artist_name || '')) +
+          (t.featuring ? ' · ft. ' + escapeHtml(t.featuring) : '') + '</div></div>' +
+      badge +
+      '<div class="track-streams">' + fmtK(t.stream_count || 0) + '</div>' +
+      (dur ? '<div class="track-time">' + dur + '</div>' : '') +
+    '</div>';
+  }).join('');
+}
+
+function setCatalogGenre(g) { _catalogGenre = g || ''; loadMusicCatalog(); }
 
 // ── SHOWS ──────────────────────────────────────────────────────────────
 var _artistShows = [];
