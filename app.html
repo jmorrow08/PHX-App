@@ -218,6 +218,14 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
 .ap-kicker .loc{color:var(--muted);letter-spacing:.14em}
 .ap-vfy{display:flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;
   background:var(--orange);color:#fff;font-size:8px;font-weight:700}
+/* Discography sections: an album is a body of work, not rows in a flat list */
+.ap-album{margin-bottom:1.4rem}
+.ap-album-head{display:flex;align-items:center;gap:.8rem;margin-bottom:.6rem}
+.ap-album-cover{width:56px;height:56px;border-radius:8px;overflow:hidden;background:var(--card2);display:flex;align-items:center;justify-content:center;font-size:1.4rem;flex-shrink:0}
+.ap-album-cover img{width:100%;height:100%;object-fit:cover}
+.ap-album-title{font-family:var(--disp);font-size:1.05rem;font-weight:700}
+.ap-album-meta{font-size:.72rem;color:var(--muted);margin-top:2px}
+.track-row.no-audio{opacity:.62}
 /* The poster photo carries the mood; the round tile is the identity people
    recognise from the feed. Bottom-aligned so it sits on the name's baseline. */
 .ap-idrow{display:flex;align-items:flex-end;gap:14px}
@@ -674,6 +682,7 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
     <div class="sb-section">My PHX</div>
     <button class="nav-item" onclick="showView('mypass')"><span class="icon">💳</span>My Pass</button>
     <button class="nav-item" onclick="showView('profile')"><span class="icon">👤</span>Profile</button>
+    <button class="nav-item" onclick="openMyPage()"><span class="icon">⭐</span>My Page</button>
   </nav>
 
   <!-- ── ARTIST NAV — artists are members too: full community access ── -->
@@ -691,6 +700,7 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
     <button class="nav-item" onclick="showView('artist-submit')"><span class="icon">➕</span>Submit Track</button>
     <div class="sb-section">Account</div>
     <button class="nav-item" onclick="showView('artist-profile')"><span class="icon">👤</span>Artist Profile</button>
+    <button class="nav-item" onclick="openMyPage()"><span class="icon">⭐</span>My Page</button>
   </nav>
 
   <!-- ── ADMIN / SUPER NAV — browses the community as PHX App ── -->
@@ -709,6 +719,8 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
     <button class="nav-item" onclick="showView('admin-pot')"><span class="icon">🫙</span>Community Pot<span id="pot-nav-tag" class="section-tag tag-super" style="display:none">SUPER</span></button>
     <button class="nav-item" onclick="showView('admin-merch')"><span class="icon">🛍️</span>Merch</button>
     <button class="nav-item" onclick="showView('admin-activity')"><span class="icon">📡</span>Activity</button>
+    <div class="sb-section">My Pages</div>
+    <button class="nav-item" onclick="openMyPage()"><span class="icon">⭐</span>My Page</button>
     <div class="sb-section">My Artist</div>
     <button class="nav-item" onclick="showView('artist-tracks')"><span class="icon">🎼</span>My Tracks</button>
     <button class="nav-item" onclick="showView('artist-submit')"><span class="icon">⬆️</span>Submit Track</button>
@@ -7917,12 +7929,14 @@ async function showArtistPage(slug) {
       : Promise.resolve({ data: [] }),
     _sb.from('shows').select('*').eq('artist_id', artist.id).eq('status','live')
       .gte('starts_at', new Date(Date.now() - 6*3600*1000).toISOString())
-      .order('starts_at', { ascending: true })
+      .order('starts_at', { ascending: true }),
+    _sb.from('albums').select('*').eq('artist_id', artist.id).order('created_at', { ascending: true })
   ]);
   _artistPageTracks = results[0].data || [];
   var support = results[1].data || {};
   _artistMerch = results[2].data || [];
   _artistShows = results[3].data || [];
+  _artistAlbums = results[4].data || [];
   _merchFilter = 'all';
 
   var following = !!_myFollows['artist:' + artist.id];
@@ -7960,6 +7974,7 @@ async function showArtistPage(slug) {
       (_artistPageTracks.length ? '<button class="ap-play" onclick="playArtistTop()">▶ Play</button>' : '') +
       '<button class="ap-follow' + (following ? ' on' : '') + '" onclick="toggleFollowUI(\'artist\',\'' + artist.id + '\',this)">' +
         (following ? 'Following' : 'Follow') + '</button>' +
+      (artistPageCanEdit() ? '<button class="ap-follow" onclick="openArtistEditor()">✎ Edit page</button>' : '') +
     '</div>' +
 
     renderMoneyStrip(artist, support) +
@@ -8002,24 +8017,263 @@ function renderMoneyStrip(artist, support) {
   '</div>';
 }
 
+var _artistAlbums = [];
+
+function artistPageCanEdit() {
+  return !!(_authUser && _artistPage && _artistPage.user_id === _authUser.id) ||
+         currentRole === 'admin' || currentRole === 'super';
+}
+
+// One row, used inside album sections and the singles list. `num` is the
+// tracklist position (album track number or list index).
+function artistTrackRowHtml(t, num) {
+  var idx = _artistPageTracks.indexOf(t);
+  var locked = !canPlayTrack(t.exclusive_tier);
+  var noAudio = !t.audio_url;
+  var badge = t.exclusive_tier === 'insider' ? ' <span class="status-chip sc-insider" style="font-size:.6rem">Insider</span>'
+            : t.exclusive_tier === 'native' ? ' <span class="status-chip sc-native" style="font-size:.6rem">Native+</span>' : '';
+  var mins = Math.floor((t.duration_seconds || 0) / 60), secs = (t.duration_seconds || 0) % 60;
+  var dur = t.duration_seconds ? (mins + ':' + (secs < 10 ? '0' : '') + secs) : '';
+  var art = safeUrl(t.cover_url) || safeUrl((_artistPage || {}).avatar_url);
+  var canEdit = artistPageCanEdit();
+  return '<div class="track-row' + (locked ? ' locked' : '') + (noAudio ? ' no-audio' : '') +
+      '" onclick="playArtistPageTrack(this, ' + idx + ')">' +
+    '<div class="track-num">' + num + '</div>' +
+    '<div class="track-art">' + (art ? '<img src="' + art + '" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:6px">' : '🎵') + '</div>' +
+    '<div class="track-info"><div class="track-title">' + escapeHtml(t.title) + badge + '</div>' +
+      '<div class="track-feat">' +
+        (noAudio ? '<span style="color:var(--faint)">Audio coming soon</span>' : fmtK(t.stream_count || 0) + ' plays') +
+        (t.featuring ? ' · ft. ' + escapeHtml(t.featuring) : '') + '</div></div>' +
+    (canEdit ? '<button class="ap-navbtn" style="position:static;width:26px;height:26px;font-size:.7rem;flex-shrink:0" title="Edit track" ' +
+      'onclick="event.stopPropagation();openTrackEditor(\'' + t.id + '\')">✎</button>' : '') +
+    (dur ? '<div class="track-time">' + dur + '</div>' : '') +
+  '</div>';
+}
+
+// Discography, the way a music page should read: albums and EPs as bodies of
+// work with their own tracklists, then singles. Not one flat list.
 function renderArtistTracks() {
-  if (!_artistPageTracks.length) return '<div class="pf-empty">No live tracks yet — first drop coming.</div>';
-  return '<div class="track-list">' + _artistPageTracks.map(function(t, i) {
-    var locked = !canPlayTrack(t.exclusive_tier);
-    var badge = t.exclusive_tier === 'insider' ? ' <span class="status-chip sc-insider" style="font-size:.6rem">Insider</span>'
-              : t.exclusive_tier === 'native' ? ' <span class="status-chip sc-native" style="font-size:.6rem">Native+</span>' : '';
-    var mins = Math.floor((t.duration_seconds || 0) / 60), secs = (t.duration_seconds || 0) % 60;
-    var dur = t.duration_seconds ? (mins + ':' + (secs < 10 ? '0' : '') + secs) : '';
-    var art = safeUrl(t.cover_url) || safeUrl((_artistPage || {}).avatar_url);
-    return '<div class="track-row' + (locked ? ' locked' : '') + '" onclick="playArtistPageTrack(this, ' + i + ')">' +
-      '<div class="track-num">' + (i + 1) + '</div>' +
-      '<div class="track-art">' + (art ? '<img src="' + art + '" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:6px">' : '🎵') + '</div>' +
-      '<div class="track-info"><div class="track-title">' + escapeHtml(t.title) + badge + '</div>' +
-        '<div class="track-feat">' + fmtK(t.stream_count || 0) + ' plays' +
-          (t.featuring ? ' · ft. ' + escapeHtml(t.featuring) : '') + '</div></div>' +
-      (dur ? '<div class="track-time">' + dur + '</div>' : '') +
-    '</div>';
-  }).join('') + '</div>';
+  if (!_artistPageTracks.length && !artistPageCanEdit()) {
+    return '<div class="pf-empty">No live tracks yet — first drop coming.</div>';
+  }
+  var byAlbum = {};
+  _artistPageTracks.forEach(function(t) {
+    var k = t.album_id || '_singles';
+    (byAlbum[k] = byAlbum[k] || []).push(t);
+  });
+
+  var html = '';
+  _artistAlbums.forEach(function(al) {
+    var list = (byAlbum[al.id] || []).slice()
+      .sort(function(a, b) { return (a.track_number || 99) - (b.track_number || 99); });
+    if (!list.length) return;
+    var cover = safeUrl(al.cover_url);
+    var year = al.release_date ? new Date(al.release_date + 'T12:00:00').getFullYear() : '';
+    var kind = al.type === 'ep' ? 'EP' : al.type === 'single' ? 'Single' : 'Album';
+    html += '<div class="ap-album">' +
+      '<div class="ap-album-head">' +
+        '<div class="ap-album-cover">' + (cover ? '<img src="' + cover + '" alt="">' : '💿') + '</div>' +
+        '<div><div class="ap-album-title">' + escapeHtml(al.title) + '</div>' +
+          '<div class="ap-album-meta">' + kind + (year ? ' · ' + year : '') + ' · ' + list.length +
+            ' track' + (list.length === 1 ? '' : 's') + '</div></div>' +
+      '</div>' +
+      '<div class="track-list">' +
+        list.map(function(t) { return artistTrackRowHtml(t, t.track_number || '·'); }).join('') +
+      '</div></div>';
+  });
+
+  var singles = (byAlbum['_singles'] || []).slice()
+    .sort(function(a, b) { return (b.stream_count || 0) - (a.stream_count || 0); });
+  if (singles.length) {
+    html += '<div class="ap-album"><div class="ap-album-head"><div>' +
+      '<div class="ap-album-title">Singles</div>' +
+      '<div class="ap-album-meta">' + singles.length + ' release' + (singles.length === 1 ? '' : 's') + '</div>' +
+    '</div></div><div class="track-list">' +
+      singles.map(function(t, i) { return artistTrackRowHtml(t, i + 1); }).join('') +
+    '</div></div>';
+  }
+  return html || '<div class="pf-empty">No live tracks yet — first drop coming.</div>';
+}
+
+// ── MY PAGE — one door to everything you are on PHX ────────────────────
+// One login can be a person, an artist, and the owner of several Pages.
+// A single destination → jump straight there. Multiple → a picker sheet,
+// which doubles as the switcher for people managing several pages.
+async function openMyPage() {
+  if (!requireAuthAction('see your page')) return;
+  var dests = [];
+  var aRes = await _sb.from('artists').select('slug,name,avatar_url').eq('user_id', _authUser.id).maybeSingle();
+  if (aRes.data) dests.push({ kind: 'artist', label: aRes.data.name, sub: 'Artist page',
+    ava: aRes.data.avatar_url, go: function(){ showArtistPage(aRes.data.slug); } });
+  (_myPages || []).forEach(function(p) {
+    // The artist Page routes to the artist page anyway — don't list it twice
+    if (p.page_type === 'artist' && aRes.data) return;
+    dests.push({ kind: 'page', label: p.name, sub: (p.page_type || 'page') + ' page',
+      ava: p.avatar_url, emoji: p.avatar, go: function(){ showPageProfile(p.id); } });
+  });
+  var uid = _authUser.id;
+  dests.push({ kind: 'member', label: (_myProfile && _myProfile.username) ? '@' + _myProfile.username : 'My profile',
+    sub: 'Personal profile', ava: _myProfile && _myProfile.avatar_url,
+    go: function(){ showMemberPage(uid); } });
+
+  if (dests.length === 1) { dests[0].go(); return; }
+
+  window._myPageDests = dests;
+  _apModal('mypage-sheet',
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.9rem">' +
+      '<div style="font-weight:800;font-size:1.05rem">Your pages</div>' +
+      '<button onclick="document.getElementById(\'mypage-sheet\').style.display=\'none\'" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem">✕</button></div>' +
+    dests.map(function(d, i) {
+      return '<button onclick="document.getElementById(\'mypage-sheet\').style.display=\'none\';window._myPageDests[' + i + '].go()" ' +
+        'style="display:flex;align-items:center;gap:.7rem;width:100%;text-align:left;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:.65rem .8rem;margin-bottom:.45rem;cursor:pointer;color:var(--white)">' +
+        avatarHtml(d.ava, d.emoji || (d.label || '?').charAt(0).toUpperCase(), 'ava-sm', d.label) +
+        '<span style="flex:1;min-width:0"><span style="display:block;font-weight:700;font-size:.9rem">' + escapeHtml(d.label) + '</span>' +
+        '<span style="display:block;font-size:.72rem;color:var(--muted);text-transform:capitalize">' + escapeHtml(d.sub) + '</span></span>' +
+        '<span style="color:var(--muted)">→</span></button>';
+    }).join(''));
+}
+
+// ── OWNER EDITING ──────────────────────────────────────────────────────
+// The page is the artist's own storefront: photos, bio and every track are
+// editable in place by the owner (and staff). Server-side RLS enforces the
+// same boundary, so these controls are convenience, not the security wall.
+
+function _apModal(id, inner) {
+  var wrap = document.getElementById(id);
+  if (!wrap) {
+    wrap = document.createElement('div');
+    wrap.id = id;
+    wrap.style.cssText = 'position:fixed;inset:0;z-index:545;background:rgba(7,7,15,.88);backdrop-filter:blur(5px);display:flex;align-items:center;justify-content:center;padding:1rem';
+    wrap.addEventListener('click', function(e){ if (e.target === wrap) wrap.style.display = 'none'; });
+    document.body.appendChild(wrap);
+  }
+  wrap.style.display = 'flex';
+  wrap.innerHTML = '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;max-width:440px;width:100%;padding:1.4rem;max-height:90vh;overflow:auto">' + inner + '</div>';
+  return wrap;
+}
+
+function openArtistEditor() {
+  var a = _artistPage || {};
+  _apModal('artist-editor',
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">' +
+      '<div style="font-weight:800;font-size:1.05rem">Edit your page</div>' +
+      '<button onclick="document.getElementById(\'artist-editor\').style.display=\'none\'" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem">✕</button></div>' +
+    '<label class="form-label">Profile photo</label>' +
+    '<input type="file" id="ae-avatar" accept="image/*" class="form-input" style="margin-bottom:.6rem">' +
+    '<label class="form-label">Banner / poster photo</label>' +
+    '<input type="file" id="ae-banner" accept="image/*" class="form-input" style="margin-bottom:.6rem">' +
+    '<label class="form-label">About</label>' +
+    '<textarea class="form-input" id="ae-bio" rows="8" maxlength="4000" style="margin-bottom:.8rem;resize:vertical">' + escapeHtml(a.bio || '') + '</textarea>' +
+    '<button class="upgrade-btn" style="width:100%;margin:0" onclick="saveArtistEditor()">Save</button>' +
+    '<div id="ae-msg" style="font-size:.78rem;color:var(--muted);margin-top:.55rem;min-height:1em"></div>');
+}
+
+async function _uploadArtistImage(inputId, kind) {
+  var input = document.getElementById(inputId);
+  var f = input && input.files && input.files[0];
+  if (!f) return null;
+  var path = (_artistPage.id) + '/' + kind + '_' + Date.now() + '.' + (f.name.split('.').pop() || 'jpg');
+  var up = await _sb.storage.from('post-media').upload(path, f, { contentType: f.type, upsert: true });
+  if (up.error) throw new Error(up.error.message);
+  return _sb.storage.from('post-media').getPublicUrl(path).data.publicUrl;
+}
+
+async function saveArtistEditor() {
+  var msg = document.getElementById('ae-msg');
+  if (msg) { msg.style.color = 'var(--muted)'; msg.textContent = 'Saving…'; }
+  try {
+    var patch = { bio: (document.getElementById('ae-bio') || {}).value || null };
+    var avaUrl = await _uploadArtistImage('ae-avatar', 'avatar');
+    var banUrl = await _uploadArtistImage('ae-banner', 'banner');
+    if (avaUrl) patch.avatar_url = avaUrl;
+    if (banUrl) patch.banner_url = banUrl;
+    var res = await _sb.from('artists').update(patch).eq('id', _artistPage.id).select('id');
+    if (res.error || !(res.data || []).length) throw new Error(res.error ? res.error.message : 'not permitted');
+    document.getElementById('artist-editor').style.display = 'none';
+    showToast('✓ Page updated');
+    showArtistPage(_artistPage.slug);   // re-render with the new data
+  } catch (e) {
+    if (msg) { msg.style.color = 'var(--red)'; msg.textContent = 'Could not save: ' + e.message; }
+  }
+}
+
+function openTrackEditor(trackId) {
+  var t = _artistPageTracks.filter(function(x){ return x.id === trackId; })[0];
+  if (!t) return;
+  var albumOpts = '<option value="">Single (no album)</option>' + _artistAlbums.map(function(al) {
+    return '<option value="' + al.id + '"' + (t.album_id === al.id ? ' selected' : '') + '>' +
+      escapeHtml(al.title) + ' (' + (al.type || 'album') + ')</option>';
+  }).join('');
+  _apModal('track-editor',
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">' +
+      '<div style="font-weight:800;font-size:1.05rem">Edit track</div>' +
+      '<button onclick="document.getElementById(\'track-editor\').style.display=\'none\'" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem">✕</button></div>' +
+    '<label class="form-label">Title</label>' +
+    '<input class="form-input" id="te-title" maxlength="120" value="' + escapeHtml(t.title || '') + '" style="margin-bottom:.6rem">' +
+    '<label class="form-label">Featuring</label>' +
+    '<input class="form-input" id="te-feat" maxlength="200" value="' + escapeHtml(t.featuring || '') + '" placeholder="Optional" style="margin-bottom:.6rem">' +
+    '<label class="form-label">Release</label>' +
+    '<select class="form-input" id="te-album" style="margin-bottom:.6rem">' + albumOpts + '</select>' +
+    '<label class="form-label">Track #</label>' +
+    '<input class="form-input" id="te-num" type="number" min="1" max="99" value="' + (t.track_number || '') + '" placeholder="Position on the release" style="margin-bottom:.6rem">' +
+    '<label class="form-label">Audio ' + (t.audio_url ? '<span style="color:var(--green)">· uploaded ✓</span>' : '<span style="color:var(--faint)">· none yet</span>') + '</label>' +
+    '<input type="file" id="te-audio" accept="audio/*" class="form-input" style="margin-bottom:.9rem">' +
+    '<button class="upgrade-btn" style="width:100%;margin:0 0 .5rem" onclick="saveTrackEditor(\'' + t.id + '\')">Save</button>' +
+    '<button class="pf-btn" style="width:100%;color:var(--red);border-color:rgba(239,68,68,.4)" onclick="deleteTrack(\'' + t.id + '\')">Delete track</button>' +
+    '<div id="te-msg" style="font-size:.78rem;color:var(--muted);margin-top:.55rem;min-height:1em"></div>');
+}
+
+async function saveTrackEditor(trackId) {
+  var msg = document.getElementById('te-msg');
+  if (msg) { msg.style.color = 'var(--muted)'; msg.textContent = 'Saving…'; }
+  try {
+    var patch = {
+      title: (document.getElementById('te-title') || {}).value || 'Untitled',
+      featuring: (document.getElementById('te-feat') || {}).value || null,
+      album_id: (document.getElementById('te-album') || {}).value || null,
+      track_number: parseInt((document.getElementById('te-num') || {}).value, 10) || null
+    };
+    var input = document.getElementById('te-audio');
+    var f = input && input.files && input.files[0];
+    if (f) {
+      if (msg) msg.textContent = 'Uploading audio…';
+      var path = _artistPage.id + '/' + Date.now() + '_' + f.name.replace(/[^a-zA-Z0-9._-]/g, '-');
+      var up = await _sb.storage.from('track-audio').upload(path, f, { contentType: f.type });
+      if (up.error) throw new Error(up.error.message);
+      patch.audio_url = _sb.storage.from('track-audio').getPublicUrl(path).data.publicUrl;
+      // Real duration from the file itself — no more guessing
+      try {
+        patch.duration_seconds = Math.round(await new Promise(function(resolve, reject) {
+          var a = new Audio(); a.preload = 'metadata';
+          a.onloadedmetadata = function(){ resolve(a.duration || 0); };
+          a.onerror = reject;
+          a.src = URL.createObjectURL(f);
+          setTimeout(function(){ resolve(0); }, 8000);
+        })) || undefined;
+      } catch (e) {}
+      if (!patch.duration_seconds) delete patch.duration_seconds;
+    }
+    var res = await _sb.from('tracks').update(patch).eq('id', trackId).select('id');
+    if (res.error || !(res.data || []).length) throw new Error(res.error ? res.error.message : 'not permitted');
+    document.getElementById('track-editor').style.display = 'none';
+    showToast('✓ Track saved');
+    showArtistPage(_artistPage.slug);
+  } catch (e) {
+    if (msg) { msg.style.color = 'var(--red)'; msg.textContent = 'Could not save: ' + e.message; }
+  }
+}
+
+async function deleteTrack(trackId) {
+  if (!window.confirm('Delete this track from the page? Its play history is removed with it.')) return;
+  var msg = document.getElementById('te-msg');
+  var res = await _sb.from('tracks').delete().eq('id', trackId).select('id');
+  if (res.error || !(res.data || []).length) {
+    if (msg) { msg.style.color = 'var(--red)'; msg.textContent = 'Could not delete: ' + (res.error ? res.error.message : 'not permitted'); }
+    return;
+  }
+  document.getElementById('track-editor').style.display = 'none';
+  showToast('Track deleted');
+  showArtistPage(_artistPage.slug);
 }
 
 // Dual-fulfilment grid. Badges signal DELIVERY SPEED, not a shipping
@@ -8375,6 +8629,12 @@ function playArtistTop() {
 function playArtistPageTrack(el, idx) {
   var t = _artistPageTracks[idx];
   if (!t) return;
+  if (!t.audio_url) {
+    showToast(artistPageCanEdit()
+      ? 'No audio yet — tap ✎ on the track to upload it.'
+      : '🎧 Audio coming soon for this one.');
+    return;
+  }
   if (!canPlayTrack(t.exclusive_tier)) {
     var toast = document.getElementById('artist-page-lock-toast');
     if (toast) {
