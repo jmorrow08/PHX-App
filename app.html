@@ -185,6 +185,141 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
 .fan-payout-vs b,.fan-payout-vs strong{color:var(--white)}
 
 /* ═══════════════════════════════════════════════════════════════════════
+   ARTIST POSTER PAGE — the destination an Instagram bio link points at
+   Not a profile skeleton: a poster. Full-bleed photo, name set huge over
+   the gradient falloff, no avatar tile (the photo IS the identity).
+   Ordered for a stranger arriving cold: hear it → understand it → buy it → join.
+   ═══════════════════════════════════════════════════════════════════════ */
+.ap-hero{position:relative;height:min(520px,68vh);margin:-1px -1px 0;border-radius:var(--r-m) var(--r-m) 0 0;overflow:hidden;
+  background-size:cover;background-position:center top}
+.ap-hero.ap-gen{background:
+  radial-gradient(120% 130% at 15% 0%, rgba(249,115,22,.4) 0%, transparent 60%),
+  radial-gradient(120% 140% at 85% 15%, rgba(124,58,237,.34) 0%, transparent 62%),
+  linear-gradient(175deg,#2B1408 0%,#160B0C 52%,#0A0A12 100%)}
+.ap-hero.ap-gen::before{content:'';position:absolute;inset:0;
+  background:repeating-linear-gradient(48deg,rgba(241,241,248,.028) 0 16px,transparent 16px 32px)}
+/* The falloff: photo dissolves into page so type sits on solid ground */
+.ap-scrim{position:absolute;left:0;right:0;bottom:0;height:62%;
+  background:linear-gradient(180deg,rgba(7,7,15,0) 0%,rgba(7,7,15,.72) 46%,var(--bg) 100%)}
+.ap-navbtns{position:absolute;top:14px;left:14px;right:14px;display:flex;justify-content:space-between;z-index:4}
+.ap-navbtn{width:34px;height:34px;border-radius:50%;background:rgba(7,7,15,.45);backdrop-filter:blur(10px);
+  border:none;color:var(--white);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.ap-herotext{position:absolute;left:22px;right:22px;bottom:18px;z-index:3}
+.ap-kicker{display:flex;align-items:center;gap:7px;flex-wrap:wrap;
+  font:600 9px var(--mono);letter-spacing:.2em;color:var(--orange-l);text-transform:uppercase}
+.ap-kicker .sep{width:3px;height:3px;border-radius:50%;background:var(--muted)}
+.ap-kicker .loc{color:var(--muted);letter-spacing:.14em}
+.ap-vfy{display:flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;
+  background:var(--orange);color:#fff;font-size:8px;font-weight:700}
+.ap-name{font-family:var(--disp);font-size:clamp(2.6rem,11vw,3.75rem);line-height:.88;font-weight:700;
+  letter-spacing:-.05em;margin-top:10px;text-shadow:0 6px 40px rgba(7,7,15,.9);text-transform:uppercase}
+.ap-listeners{display:flex;align-items:baseline;gap:8px;margin-top:14px;flex-wrap:wrap}
+.ap-listeners b{font-family:var(--disp);font-size:1.2rem;font-weight:700;letter-spacing:-.02em}
+.ap-listeners span{font-size:.78rem;color:var(--muted)}
+.ap-trend{font:500 10px var(--mono);color:var(--green);margin-left:auto}
+/* Action bar */
+.ap-actions{display:flex;gap:9px;align-items:center;padding:16px 22px 0}
+.ap-play{flex:1;background:var(--orange);border:none;border-radius:100px;padding:14px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:8px;color:#fff;font-family:inherit;
+  font-size:.94rem;font-weight:600;box-shadow:0 8px 30px rgba(249,115,22,.4)}
+.ap-follow{border:1px solid rgba(241,241,248,.2);background:transparent;color:var(--white);border-radius:100px;
+  padding:14px 24px;font-family:inherit;font-size:.94rem;font-weight:600;cursor:pointer;white-space:nowrap}
+.ap-follow.on{border-color:var(--orange);color:var(--orange);background:rgba(249,115,22,.1)}
+.ap-icon{width:48px;height:48px;border:1px solid rgba(241,241,248,.2);background:transparent;border-radius:50%;
+  color:var(--muted);font-size:1rem;cursor:pointer;flex-shrink:0}
+/* Fan-powered strip — the thing no other platform can say */
+.ap-money{margin:18px 22px 0;border-radius:18px;padding:16px 18px;
+  background:linear-gradient(150deg,rgba(249,115,22,.16),rgba(13,13,22,0) 70%);border:1px solid rgba(249,115,22,.28)}
+.ap-money-tag{display:flex;align-items:center;gap:7px;font:600 9px var(--mono);letter-spacing:.18em;color:var(--orange-l)}
+.ap-money-tag i{width:6px;height:6px;border-radius:50%;background:var(--orange);display:block}
+.ap-money-line{font-family:var(--disp);font-size:1rem;line-height:1.4;font-weight:600;margin-top:9px}
+.ap-money-stats{display:flex;gap:22px;margin-top:14px;flex-wrap:wrap}
+.ap-money-stats b{display:block;font-family:var(--disp);font-size:1.25rem;font-weight:700;letter-spacing:-.025em}
+.ap-money-stats span{display:block;font-size:.66rem;color:var(--faint);margin-top:2px}
+/* Private-earnings callout, artist/admin only */
+.ap-private{margin-top:12px;padding:9px 11px;border-radius:10px;background:rgba(34,197,94,.08);
+  border:1px solid rgba(34,197,94,.24);font-size:.72rem;color:var(--muted);display:flex;gap:7px;align-items:center}
+/* Tabs */
+.ap-tabs{display:flex;gap:6px;padding:20px 22px 0;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.ap-tabs::-webkit-scrollbar{display:none}
+.ap-tab{border:none;border-radius:100px;padding:8px 16px;font-family:inherit;font-size:.8rem;font-weight:500;
+  background:var(--bg4);color:var(--muted);cursor:pointer;white-space:nowrap}
+.ap-tab.on{background:var(--white);color:var(--bg);font-weight:600}
+.ap-tab .n{font:600 9px var(--mono);color:var(--orange-l);margin-left:3px}
+.ap-tab.on .n{color:var(--orange-d)}
+.ap-panel{padding:18px 22px 0}
+.ap-panel[hidden]{display:none}
+/* Merch filter chips */
+.ap-chips{display:flex;gap:6px;margin-top:12px;flex-wrap:wrap}
+.ap-chip{border:none;border-radius:100px;padding:5px 12px;font-family:inherit;font-size:.7rem;font-weight:500;
+  background:var(--bg4);color:var(--muted);cursor:pointer}
+.ap-chip.on{background:var(--white);color:var(--bg);font-weight:600}
+.ap-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
+.ap-card{cursor:pointer}
+.ap-card-img{aspect-ratio:1;border-radius:14px;overflow:hidden;position:relative;background:var(--bg4);
+  display:flex;align-items:center;justify-content:center;font-size:1.8rem}
+.ap-card-img img{width:100%;height:100%;object-fit:cover;display:block}
+/* Fulfilment badge = delivery-speed signal, not a shipping address */
+.ap-badge{position:absolute;top:8px;left:8px;background:rgba(7,7,15,.75);backdrop-filter:blur(8px);
+  border-radius:100px;padding:3px 8px;font:600 8px var(--mono);letter-spacing:.08em;text-transform:uppercase}
+.ap-badge.ship{color:var(--orange-l)}
+.ap-badge.pod{color:var(--muted)}
+.ap-card-name{font-family:var(--disp);font-size:.82rem;font-weight:600;margin-top:8px;line-height:1.3}
+.ap-card-row{display:flex;align-items:center;gap:6px;margin-top:2px;flex-wrap:wrap}
+.ap-card-price{font-family:var(--disp);font-size:.82rem;font-weight:700;color:var(--orange-l)}
+.ap-card-note{font-size:.66rem;color:var(--faint)}
+.ap-card-note.low{color:var(--red)}
+.ap-card-note.rate{color:var(--gold)}
+/* Buy sheet */
+.ap-sheet-wrap{position:fixed;inset:0;z-index:540;background:rgba(7,7,15,.86);backdrop-filter:blur(6px);
+  display:flex;align-items:flex-end;justify-content:center;padding:0}
+.ap-sheet{background:var(--bg2);border:1px solid var(--border);border-radius:24px 24px 0 0;width:100%;
+  max-width:440px;max-height:92vh;overflow:auto;padding:0}
+.ap-sheet-head{padding:14px 20px;border-bottom:1px solid rgba(241,241,248,.06);
+  font:600 10px var(--mono);letter-spacing:.16em;display:flex;justify-content:space-between;align-items:center}
+.ap-sheet-body{padding:18px 20px 22px}
+.ap-sheet-img{height:180px;border-radius:14px;overflow:hidden;background:var(--bg4);display:flex;align-items:center;justify-content:center;font-size:2rem}
+.ap-sheet-img img{width:100%;height:100%;object-fit:cover}
+.ap-sheet-name{font-family:var(--disp);font-size:1.25rem;font-weight:700;letter-spacing:-.025em;margin-top:14px}
+.ap-sheet-price{font-family:var(--disp);font-size:1.12rem;font-weight:700;color:var(--orange-l)}
+.ap-sizes{display:flex;gap:6px;margin-top:14px;flex-wrap:wrap}
+.ap-size{border:1px solid rgba(241,241,248,.18);background:transparent;border-radius:9px;padding:8px 0;flex:1;min-width:46px;
+  text-align:center;font-family:inherit;font-size:.76rem;font-weight:600;color:var(--muted);cursor:pointer}
+.ap-size.on{border-color:var(--orange);background:rgba(249,115,22,.12);color:var(--orange-l)}
+.ap-note{margin-top:14px;padding:12px 14px;border-radius:12px;display:flex;gap:10px;align-items:flex-start}
+.ap-note.ship{background:rgba(249,115,22,.07)}
+.ap-note.pod{background:rgba(241,241,248,.03)}
+.ap-note b{display:block;font-family:var(--disp);font-size:.78rem;font-weight:600}
+.ap-note span{display:block;font-size:.72rem;color:var(--muted);margin-top:3px;line-height:1.5}
+.ap-buy{display:block;background:var(--orange);border:none;border-radius:14px;padding:14px;text-align:center;
+  font-family:inherit;font-size:.9rem;font-weight:600;color:#fff;margin-top:14px;cursor:pointer;text-decoration:none;
+  box-shadow:0 8px 28px rgba(249,115,22,.3)}
+.ap-handoff{font-size:.7rem;color:var(--faint);text-align:center;margin-top:9px;line-height:1.5}
+/* Shows + conversion footer */
+.ap-show{display:flex;align-items:center;gap:14px;padding:12px 0;border-bottom:1px solid rgba(241,241,248,.06)}
+.ap-show:last-child{border-bottom:none}
+.ap-date{text-align:center;flex-shrink:0;width:38px}
+.ap-date .m{font:600 9px var(--mono);letter-spacing:.1em;color:var(--orange)}
+.ap-date .d{font-family:var(--disp);font-size:1.35rem;font-weight:700;letter-spacing:-.03em;line-height:1}
+.ap-cta{margin:26px 22px 22px;border-radius:20px;padding:20px;text-align:center;
+  background:linear-gradient(150deg,#2A1206,#0D0D16 65%);border:1px solid rgba(249,115,22,.3)}
+.ap-cta h4{font-family:var(--disp);font-size:1.2rem;line-height:1.25;font-weight:700;letter-spacing:-.03em}
+.ap-cta p{font-size:.76rem;color:var(--muted);margin-top:8px;line-height:1.55}
+.ap-cta button{width:100%;background:var(--orange);border:none;border-radius:100px;padding:13px;margin-top:14px;
+  font-family:inherit;font-size:.86rem;font-weight:600;color:#fff;cursor:pointer;box-shadow:0 8px 28px rgba(249,115,22,.35)}
+@media(min-width:900px){
+  .ap-hero{height:400px}
+  .ap-herotext{left:44px;right:44px;bottom:28px}
+  .ap-name{font-size:clamp(3.4rem,6vw,5.2rem)}
+  .ap-actions,.ap-tabs,.ap-panel{padding-left:44px;padding-right:44px}
+  .ap-money{margin-left:44px;margin-right:44px}
+  .ap-cta{margin-left:44px;margin-right:44px}
+  .ap-grid{grid-template-columns:repeat(auto-fill,minmax(190px,1fr))}
+  .ap-sheet-wrap{align-items:center}
+  .ap-sheet{border-radius:24px}
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
    PROFILE PAGES — one design system, three identities
    Artists, members and brand pages share this skeleton (hero → identity →
    actions → stats → modules) so PHX reads as one product. What differs is
@@ -554,6 +689,8 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
     <button class="nav-item" onclick="showView('admin-artists')"><span class="icon">🎤</span>Artists</button>
     <button class="nav-item" onclick="showView('admin-content')"><span class="icon">🎵</span>Content</button>
     <button class="nav-item" onclick="showView('admin-reports')"><span class="icon">🚨</span>Reports<span class="nav-badge" id="reports-nav-badge" style="display:none">0</span></button>
+    <button class="nav-item" onclick="showView('admin-roster')"><span class="icon">🗂️</span>Roster</button>
+    <button class="nav-item" onclick="showView('admin-merch')"><span class="icon">🛍️</span>Merch</button>
     <button class="nav-item" onclick="showView('admin-activity')"><span class="icon">📡</span>Activity</button>
     <div class="sb-section">My Artist</div>
     <button class="nav-item" onclick="showView('artist-tracks')"><span class="icon">🎼</span>My Tracks</button>
@@ -1574,6 +1711,31 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
     </div>
 
     <!-- ADMIN — REPORTS QUEUE -->
+    <!-- ADMIN — MASTER ROSTER: every identity + outstanding claim codes -->
+    <div class="view" id="v-admin-roster">
+      <div class="card" style="margin-bottom:1rem">
+        <div class="sh" style="margin-bottom:.6rem"><h3>Claim codes</h3>
+          <button class="tb-btn" style="margin-left:auto;font-size:.74rem;padding:.28rem .6rem" onclick="loadAdminRoster()">↻ Refresh</button></div>
+        <div style="font-size:.78rem;color:var(--muted);margin-bottom:.7rem">Hand these to the person they belong to. Signing up with the code transfers ownership instantly.</div>
+        <div id="admin-claim-codes"><div class="pf-empty">Loading…</div></div>
+      </div>
+      <div class="card">
+        <div class="sh" style="margin-bottom:.6rem"><h3>Everyone on PHX</h3><span class="badge badge-orange" id="roster-count">…</span></div>
+        <div id="admin-roster-list"><div class="pf-empty">Loading…</div></div>
+      </div>
+    </div>
+
+    <!-- ADMIN — MERCH CONNECTIONS (stores are PHX-operated; artists never log in) -->
+    <div class="view" id="v-admin-merch">
+      <div class="card">
+        <div class="sh" style="margin-bottom:.3rem"><h3>Merch connections</h3>
+          <button class="tb-btn" style="margin-left:auto;font-size:.74rem;padding:.28rem .6rem" onclick="loadMerchConnections()">↻ Refresh</button></div>
+        <div style="font-size:.78rem;color:var(--muted);margin-bottom:.9rem">Every store is operated by PHX. Artists don't manage products.</div>
+        <div id="merch-conn-list"><div class="pf-empty">Loading…</div></div>
+      </div>
+      <div class="card" style="margin-top:1rem" id="merch-conn-editor" style="display:none"></div>
+    </div>
+
     <div class="view" id="v-admin-reports">
       <div class="card">
         <div class="sh" style="margin-bottom:.75rem">
@@ -1896,6 +2058,7 @@ var titles = {
   events:'PHX Events', eats:'PHX Eats', audio:'PHX Audio',
   drops:'PHX Drops', cuts:'PHX Cuts', mypass:'My PHX Pass', profile:'My Profile',
   'member-page':'Profile', 'artist-page':'Artist', 'artist-directory':'Browse PHX', 'page-profile':'Page',
+  'admin-roster':'Roster', 'admin-merch':'Merch Connections',
   'artist-tracks':'My Tracks', 'artist-analytics':'Analytics',
   'artist-earnings':'Earnings', 'artist-submit':'Submit Track', 'artist-profile':'Artist Profile',
   'admin-dashboard':'Platform Dashboard', 'admin-members':'Members',
@@ -1920,6 +2083,8 @@ function showView(id) {
   if (id === 'admin-activity') loadAdminActivity(_activityFilterUser);
   if (id === 'admin-content') { loadPendingTracks(); loadAdminOps(); }
   if (id === 'admin-reports') loadReports();
+  if (id === 'admin-roster') loadAdminRoster();
+  if (id === 'admin-merch') loadMerchConnections();
   if (id === 'artist-tracks' || id === 'artist-analytics' || id === 'artist-earnings') loadArtistDashboard();
   if (id === 'home') loadCityFeed();
   if (id === 'profile') loadMyPages();
@@ -4427,6 +4592,182 @@ function resetSubmitForm() {
   if (succEl) succEl.style.display = 'none';
 }
 
+// ═══════════════════════════════════════════════════════════════════════
+// ADMIN — MASTER ROSTER
+// One place to see every identity on PHX and which claim codes are still
+// outstanding. Previously you couldn't tell who existed or what was unclaimed.
+// ═══════════════════════════════════════════════════════════════════════
+async function loadAdminRoster() {
+  var codesEl = document.getElementById('admin-claim-codes');
+  var listEl = document.getElementById('admin-roster-list');
+  if (!listEl) return;
+
+  var r = await Promise.all([
+    _sb.from('claim_bundles').select('*'),
+    _sb.from('artists').select('id,name,slug,avatar_url,verified,status,total_streams'),
+    _sb.from('pages').select('id,name,slug,page_type,avatar_url,is_verified,is_claimed'),
+    _sb.from('member_profiles').select('device_id,username,display_name,avatar_url,city'),
+    _sb.from('profiles').select('id,username,display_name,avatar_url,role,access_status')
+  ]);
+  var bundles = r[0].data || [], artists = r[1].data || [], pages = r[2].data || [],
+      members = r[3].data || [], accounts = r[4].data || [];
+
+  if (codesEl) {
+    codesEl.innerHTML = bundles.length ? bundles.map(function(b) {
+      var claimed = !!b.claimed_by;
+      var grants = [];
+      if (b.page_ids && b.page_ids.length) grants.push(b.page_ids.length + ' page' + (b.page_ids.length === 1 ? '' : 's'));
+      if (b.artist_ids && b.artist_ids.length) grants.push('artist page');
+      return '<div style="display:flex;align-items:center;gap:.7rem;padding:.6rem .75rem;border:1px solid ' +
+          (claimed ? 'rgba(241,241,248,.08)' : 'rgba(249,115,22,.3)') + ';border-radius:10px;margin-bottom:.45rem;flex-wrap:wrap">' +
+        '<code style="font-family:var(--mono);font-size:.9rem;font-weight:700;color:' + (claimed ? 'var(--faint)' : 'var(--orange)') + ';letter-spacing:.1em">' + escapeHtml(b.code) + '</code>' +
+        '<div style="flex:1;min-width:120px"><div style="font-size:.84rem;font-weight:600">' + escapeHtml(b.suggested_display_name || b.suggested_username || '—') + '</div>' +
+          '<div style="font-size:.72rem;color:var(--muted)">Grants ' + (grants.join(' + ') || 'access') + ' · role: ' + escapeHtml(b.grants_role || 'member') + '</div></div>' +
+        (claimed
+          ? '<span class="badge" style="font-size:.62rem;color:var(--green);border:1px solid rgba(34,197,94,.3)">Claimed</span>'
+          : '<button class="tb-btn" style="font-size:.7rem;padding:.25rem .6rem" onclick="copyClaimCode(\'' + escapeHtml(b.code) + '\',this)">Copy</button>') +
+      '</div>';
+    }).join('')
+    // Codes are admin-JWT gated at the database. Switching the demo role chip
+    // isn't a login, so say so rather than implying none exist.
+    : (_authUser
+        ? '<div class="pf-empty">No claim codes yet.</div>'
+        : '<div class="pf-empty">🔒 Sign in with your admin account to view claim codes.</div>');
+  }
+
+  function row(ava, name, sub, tag, tagColor, onclick) {
+    var u = safeUrl(ava);
+    return '<div class="artist-card"' + (onclick ? ' style="cursor:pointer" onclick="' + onclick + '"' : '') + '>' +
+      '<div class="artist-card-ava" style="background:linear-gradient(135deg,var(--orange-d),var(--purple));overflow:hidden">' +
+        (u ? '<img src="' + u + '" alt="" style="width:100%;height:100%;object-fit:cover">' : escapeHtml((name||'?').charAt(0).toUpperCase())) + '</div>' +
+      '<div style="flex:1;min-width:0"><div class="artist-card-name">' + escapeHtml(name) + '</div>' +
+        '<div class="artist-card-meta">' + escapeHtml(sub) + '</div></div>' +
+      (tag ? '<span class="badge" style="font-size:.6rem;color:' + tagColor + ';border:1px solid rgba(241,241,248,.14)">' + tag + '</span>' : '') +
+    '</div>';
+  }
+
+  var total = artists.length + pages.length + members.length;
+  _setText('roster-count', total + ' identities');
+
+  listEl.innerHTML =
+    '<div class="pf-sec" style="margin-top:0"><h3>Artists</h3><span class="badge badge-orange">' + artists.length + '</span></div>' +
+    artists.map(function(a) {
+      return row(a.avatar_url, a.name, (a.slug || 'no slug') + ' · ' + fmtK(a.total_streams||0) + ' plays',
+                 a.status === 'active' ? 'Live' : 'Off', a.status === 'active' ? 'var(--green)' : 'var(--faint)',
+                 a.slug ? "showArtistPage('" + escapeHtml(a.slug) + "')" : '');
+    }).join('') +
+    '<div class="pf-sec"><h3>Pages</h3><span class="badge badge-orange">' + pages.length + '</span></div>' +
+    pages.map(function(p) {
+      return row(p.avatar_url, p.name, (PAGE_TYPE_LABEL[p.page_type] || p.page_type) + ' · ' + (p.slug || 'no slug'),
+                 p.is_claimed ? 'Claimed' : 'Unclaimed', p.is_claimed ? 'var(--green)' : 'var(--orange)',
+                 p.slug ? "showPageProfile('" + escapeHtml(p.slug) + "')" : '');
+    }).join('') +
+    '<div class="pf-sec"><h3>Members</h3><span class="badge badge-orange">' + members.length + '</span></div>' +
+    members.map(function(m) {
+      var acct = accounts.filter(function(a){ return a.id === m.device_id; })[0];
+      return row(m.avatar_url, m.display_name || ('@' + m.username), '@' + m.username + (m.city ? ' · ' + m.city : ''),
+                 acct ? (acct.role || 'member') : 'device', acct ? 'var(--teal)' : 'var(--faint)',
+                 "showMemberPage('" + m.device_id + "')");
+    }).join('');
+}
+
+function copyClaimCode(code, btn) {
+  if (navigator.clipboard) navigator.clipboard.writeText(code);
+  btn.textContent = '✓ Copied';
+  setTimeout(function(){ btn.textContent = 'Copy'; }, 1500);
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// ADMIN — MERCH CONNECTIONS (4d)
+// Stores are PHX-operated. Tokens are written through an admin-guarded RPC
+// into artist_merch_secrets — never onto the public artists row.
+// ═══════════════════════════════════════════════════════════════════════
+async function loadMerchConnections() {
+  var el = document.getElementById('merch-conn-list');
+  if (!el) return;
+  var res = await _sb.from('merch_connections').select('*').order('name');
+  var rows = res.data || [];
+  if (!rows.length) { el.innerHTML = '<div class="pf-empty">No artists yet.</div>'; return; }
+
+  el.innerHTML = rows.map(function(c) {
+    var badges = [];
+    if (c.direct_ship_count > 0) badges.push('<span class="badge" style="font-size:.6rem;color:var(--orange-l);border:1px solid rgba(249,115,22,.35)">DIRECT SHIP</span>');
+    if (c.pod_count > 0) badges.push('<span class="badge" style="font-size:.6rem;color:var(--muted);border:1px solid rgba(241,241,248,.14)">POD</span>');
+    if (!badges.length) badges.push('<span class="badge" style="font-size:.6rem;color:var(--faint);border:1px solid rgba(241,241,248,.1)">NOT SET</span>');
+    var live = c.merch_enabled && c.product_count > 0;
+    var src = [c.merch_external_url ? c.merch_external_url.replace(/^https?:\/\//,'') : null,
+               c.has_token ? 'Fourthwall' : null].filter(Boolean).join(' + ') || '—';
+    var ava = safeUrl(c.avatar_url);
+    return '<div style="display:flex;align-items:center;gap:.7rem;padding:.7rem .2rem;border-bottom:1px solid var(--border);flex-wrap:wrap">' +
+      '<div class="artist-card-ava" style="width:32px;height:32px;background:linear-gradient(135deg,var(--orange-d),var(--purple));overflow:hidden;flex-shrink:0">' +
+        (ava ? '<img src="' + ava + '" alt="" style="width:100%;height:100%;object-fit:cover">' : escapeHtml((c.name||'?').charAt(0))) + '</div>' +
+      '<div style="flex:1;min-width:110px"><div style="font-size:.86rem;font-weight:600">' + escapeHtml(c.name) + '</div>' +
+        '<div style="font-size:.7rem;color:var(--muted)">' + escapeHtml(src) + '</div></div>' +
+      '<div style="display:flex;gap:.3rem;flex-wrap:wrap">' + badges.join('') + '</div>' +
+      '<div style="font-size:.82rem;font-weight:700;min-width:24px;text-align:center">' + (c.product_count || 0) + '</div>' +
+      '<span class="badge" style="font-size:.6rem;color:' + (live ? 'var(--green)' : 'var(--faint)') + ';border:1px solid ' + (live ? 'rgba(34,197,94,.28)' : 'rgba(241,241,248,.12)') + '">' + (live ? 'LIVE' : 'OFF') + '</span>' +
+      '<button class="tb-btn" style="font-size:.7rem;padding:.25rem .6rem" onclick="openMerchConnEditor(\'' + c.artist_id + '\')">Connect</button>' +
+    '</div>';
+  }).join('');
+}
+
+async function openMerchConnEditor(artistId) {
+  var res = await _sb.from('merch_connections').select('*').eq('artist_id', artistId).maybeSingle();
+  var c = res.data; if (!c) return;
+  var box = document.getElementById('merch-conn-editor');
+  if (!box) return;
+  box.style.display = 'block';
+  box.innerHTML =
+    '<div class="sh" style="margin-bottom:.6rem"><h3>Connect a store — ' + escapeHtml(c.name) + '</h3>' +
+      '<button class="tb-btn" style="margin-left:auto;font-size:.72rem;padding:.24rem .55rem" onclick="document.getElementById(\'merch-conn-editor\').style.display=\'none\'">✕</button></div>' +
+    '<div style="font-size:.78rem;color:var(--muted);line-height:1.6;margin-bottom:.9rem">' +
+      'Create the shop under the PHX partner account, then paste the Storefront token. PHX renders the products natively; checkout hands off to the provider.</div>' +
+    '<label class="form-label">Fulfilment mode</label>' +
+    '<select class="form-select" id="mc-mode" style="margin-bottom:.6rem">' +
+      ['none','direct','pod','mixed'].map(function(m) {
+        return '<option value="' + m + '"' + (c.merch_mode === m ? ' selected' : '') + '>' +
+          ({none:'Not set', direct:'Artist-shipped only', pod:'Made to order only', mixed:'Both'})[m] + '</option>';
+      }).join('') + '</select>' +
+    '<label class="form-label">Artist store URL (artist-shipped)</label>' +
+    '<input class="form-input" id="mc-url" placeholder="murkmerch.com" value="' + escapeHtml(c.merch_external_url || '') + '" style="margin-bottom:.6rem">' +
+    '<label class="form-label">Fourthwall storefront token</label>' +
+    '<input class="form-input" id="mc-token" type="password" placeholder="' + (c.has_token ? 'ptkn_••••••••  (saved — leave blank to keep)' : 'ptkn_…') + '" style="margin-bottom:.35rem;font-family:var(--mono)">' +
+    (c.has_token
+      ? '<div style="display:flex;align-items:center;gap:.4rem;font-size:.72rem;color:var(--green);margin-bottom:.6rem">✓ Token saved' + (c.verified_at ? ' · ' + new Date(c.verified_at).toLocaleDateString() : '') + '</div>'
+      : '') +
+    '<div style="padding:.6rem .75rem;border-radius:10px;background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.2);font-size:.72rem;color:var(--muted);line-height:1.55;margin-bottom:.8rem">' +
+      'Stored in <b style="color:var(--white)">artist_merch_secrets</b> — service-role only, never on the public artists row.</div>' +
+    '<div style="display:flex;gap:.5rem;flex-wrap:wrap">' +
+      '<button class="upgrade-btn" style="margin:0;flex:1;padding:.6rem" onclick="saveMerchConn(\'' + artistId + '\')">Save connection</button>' +
+      (c.has_token || c.merch_enabled ? '<button class="tb-btn" onclick="disconnectMerch(\'' + artistId + '\')">Disconnect</button>' : '') +
+    '</div>' +
+    '<div id="mc-status" style="font-size:.76rem;color:var(--muted);margin-top:.6rem"></div>';
+}
+
+async function saveMerchConn(artistId) {
+  var st = document.getElementById('mc-status');
+  if (st) st.textContent = 'Saving…';
+  var res = await _sb.rpc('set_merch_connection', {
+    p_artist_id: artistId,
+    p_provider: 'fourthwall',
+    p_token: (document.getElementById('mc-token')||{}).value || null,
+    p_shop_domain: null,
+    p_merch_mode: (document.getElementById('mc-mode')||{}).value || null,
+    p_external_url: (document.getElementById('mc-url')||{}).value || null
+  });
+  if (res.error) { if (st) st.textContent = 'Denied: ' + res.error.message; return; }
+  if (st) st.textContent = '✓ Saved';
+  loadMerchConnections();
+}
+
+async function disconnectMerch(artistId) {
+  if (!confirm('Disconnect this store? Products stay in the database but stop showing.')) return;
+  var res = await _sb.rpc('disconnect_merch', { p_artist_id: artistId });
+  if (res.error) { showToast('Denied'); return; }
+  document.getElementById('merch-conn-editor').style.display = 'none';
+  loadMerchConnections();
+}
+
 // ── ADMIN: PENDING TRACKS ───────────────────────────────────────────────
 async function loadPendingTracks() {
   var feed  = document.getElementById('pending-tracks-feed');
@@ -4568,13 +4909,44 @@ async function runMusicSearch(query) {
 
   _lastSearchResults = tracks;
 
-  if (!tracks.length) {
+  // People search: artists, pages AND members. Members were previously
+  // unfindable, so the only way to follow someone was to stumble across a
+  // post of theirs — a broken social loop for a platform built on following.
+  var peopleRes = await _sb.rpc('search_people', { p_q: query, p_limit: 12 });
+  var people = peopleRes.data || [];
+
+  if (!tracks.length && !people.length) {
     resultsEl.innerHTML = '<div style="color:var(--muted);font-size:.84rem;padding:.5rem 0">No results for "' + escapeHtml(query) + '".</div>';
     return;
   }
 
-  resultsEl.innerHTML = '<div class="sh" style="margin-bottom:.5rem"><h3>Search Results</h3></div>' +
-    tracks.map(function(t, i) { return renderSearchResultRow(t, i); }).join('');
+  var kindLabel = { artist: 'Artist', page: 'Page', member: 'Member' };
+  var peopleHtml = people.length
+    ? '<div class="pf-sec" style="margin-top:0"><h3>People &amp; Pages</h3><span class="badge badge-orange">' + people.length + '</span></div>' +
+      people.map(function(p) {
+        var target = p.kind === 'artist' ? "showArtistPage('" + escapeHtml(p.slug) + "')"
+                   : p.kind === 'page'   ? "showPageProfile('" + escapeHtml(p.slug || p.id) + "')"
+                   : "showMemberPage('" + p.id + "')";
+        var ava = safeUrl(p.avatar_url);
+        return '<div class="artist-card" style="cursor:pointer" onclick="' + target + '">' +
+          '<div class="artist-card-ava" style="background:linear-gradient(135deg,var(--orange-d),var(--purple));overflow:hidden">' +
+            (ava ? '<img src="' + ava + '" alt="" style="width:100%;height:100%;object-fit:cover">'
+                 : escapeHtml((p.name||'?').charAt(0).toUpperCase())) + '</div>' +
+          '<div style="flex:1;min-width:0"><div class="artist-card-name">' + escapeHtml(p.name) +
+            (p.verified ? ' <span class="badge badge-orange" style="font-size:.6rem">✓</span>' : '') + '</div>' +
+            '<div class="artist-card-meta">' + escapeHtml(p.subtitle || '') + '</div></div>' +
+          '<span class="badge" style="font-size:.6rem;color:var(--faint);border:1px solid rgba(241,241,248,.14)">' +
+            (kindLabel[p.kind] || '') + '</span>' +
+        '</div>';
+      }).join('')
+    : '';
+
+  var trackHtml = tracks.length
+    ? '<div class="pf-sec"><h3>Tracks</h3><span class="badge badge-orange">' + tracks.length + '</span></div>' +
+      tracks.map(function(t, i) { return renderSearchResultRow(t, i); }).join('')
+    : '';
+
+  resultsEl.innerHTML = peopleHtml + trackHtml;
 }
 
 function escapeHtml(s) {
@@ -5259,39 +5631,64 @@ async function renderOnboard() {
     return;
   }
 
-  // step 3 — follow artists; this is what makes the first feed non-empty
-  var aRes = await _sb.from('artists').select('id,name,genre,avatar_url,slug')
-    .eq('status', 'active').order('total_streams', { ascending: false }).limit(12);
-  var artists = aRes.data || [];
+  // step 3 — follow artists AND people. Following artists seeds the music
+  // recommendations; following people is what makes the City Feed non-empty
+  // on day one. A feed with nothing in it is the fastest way to lose someone.
+  var r3 = await Promise.all([
+    _sb.from('artists').select('id,name,genre,avatar_url,slug')
+      .eq('status', 'active').order('total_streams', { ascending: false }).limit(12),
+    _sb.rpc('suggested_people', { p_exclude: _authUser ? _authUser.id : null, p_limit: 8 })
+  ]);
+  var artists = r3[0].data || [];
+  var people = r3[1].data || [];
+
+  function tile(kind, id, name, sub, avatar) {
+    var u = safeUrl(avatar);
+    return '<div id="onb-' + kind + '-' + id + '" onclick="onbToggleFollow(\'' + kind + '\',\'' + id + '\')" ' +
+      'style="cursor:pointer;border:1px solid var(--border);border-radius:11px;padding:.65rem .5rem;text-align:center">' +
+      '<div style="width:44px;height:44px;border-radius:50%;margin:0 auto .4rem;background:linear-gradient(135deg,#EA580C,#7C3AED);display:flex;align-items:center;justify-content:center;font-weight:700;overflow:hidden">' +
+        (u ? '<img src="' + u + '" alt="" style="width:100%;height:100%;object-fit:cover">' : escapeHtml((name || '?').charAt(0).toUpperCase())) +
+      '</div>' +
+      '<div style="font-size:.78rem;font-weight:600;line-height:1.2">' + escapeHtml(name) + '</div>' +
+      '<div style="font-size:.66rem;color:var(--muted)">' + escapeHtml(sub || '') + '</div>' +
+    '</div>';
+  }
+  var gridOpen = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:.55rem;margin-bottom:1rem">';
+
   m.innerHTML = shell(
-    '<div style="font-size:1.2rem;font-weight:800;margin-bottom:.35rem">Follow a few artists</div>' +
-    '<p style="color:var(--muted);font-size:.85rem;margin-bottom:1rem">Your feed and recommendations start here. Tap to follow.</p>' +
-    '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:.55rem;margin-bottom:1.1rem">' +
-      artists.map(function (a) {
-        return '<div id="onb-a-' + a.id + '" onclick="onbToggleFollow(\'' + a.id + '\')" style="cursor:pointer;border:1px solid var(--border);border-radius:11px;padding:.65rem .5rem;text-align:center">' +
-          '<div style="width:44px;height:44px;border-radius:50%;margin:0 auto .4rem;background:linear-gradient(135deg,#EA580C,#7C3AED);display:flex;align-items:center;justify-content:center;font-weight:700;overflow:hidden">' +
-            (safeUrl(a.avatar_url) ? '<img src="' + safeUrl(a.avatar_url) + '" alt="" style="width:100%;height:100%;object-fit:cover">' : escapeHtml((a.name || '?').charAt(0))) +
-          '</div>' +
-          '<div style="font-size:.78rem;font-weight:600;line-height:1.2">' + escapeHtml(a.name) + '</div>' +
-          '<div style="font-size:.66rem;color:var(--muted)">' + escapeHtml(a.genre || '') + '</div>' +
-        '</div>';
-      }).join('') +
-    '</div>' +
+    '<div style="font-size:1.2rem;font-weight:800;margin-bottom:.35rem">Build your PHX</div>' +
+    '<p style="color:var(--muted);font-size:.85rem;margin-bottom:1rem">Follow a few artists to start your music, and a few people to fill your feed.</p>' +
+    (artists.length
+      ? '<div style="font:600 .68rem var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:.5rem">Artists</div>' +
+        gridOpen + artists.map(function(a){ return tile('artist', a.id, a.name, a.genre); }).join('') + '</div>'
+      : '') +
+    (people.length
+      ? '<div style="font:600 .68rem var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:.5rem">People &amp; pages</div>' +
+        gridOpen + people.map(function(p) {
+          return tile(p.kind === 'page' ? 'page' : 'user', p.id, p.name, p.subtitle);
+        }).join('') + '</div>'
+      : '') +
     '<button class="upgrade-btn" style="margin:0;width:100%" onclick="finishOnboarding()">Enter PHX</button>' +
     '<button onclick="finishOnboarding(true)" style="display:block;width:100%;background:none;border:none;color:var(--muted);cursor:pointer;font-size:.8rem;margin-top:.7rem;text-decoration:underline">Skip — show me what\'s hot</button>' +
     '<div id="onb-msg" style="font-size:.78rem;color:var(--muted);margin-top:.55rem;min-height:1em"></div>'
   );
 }
 
-function onbToggleFollow(id) {
-  var el = document.getElementById('onb-a-' + id);
-  var i = _onbFollows.indexOf(id);
+// Artists go through complete_onboarding (which also seeds recommendations);
+// people/pages are followed directly since that RPC only takes artist ids.
+var _onbPeople = [];
+function onbToggleFollow(kind, id) {
+  var el = document.getElementById('onb-' + kind + '-' + id);
+  var list = (kind === 'artist') ? _onbFollows : _onbPeople;
+  var key = (kind === 'artist') ? id : kind + ':' + id;
+  var i = list.indexOf(key);
+  var base = 'cursor:pointer;border-radius:11px;padding:.65rem .5rem;text-align:center;border:1px solid ';
   if (i >= 0) {
-    _onbFollows.splice(i, 1);
-    if (el) el.style.cssText = 'cursor:pointer;border:1px solid var(--border);border-radius:11px;padding:.65rem .5rem;text-align:center';
+    list.splice(i, 1);
+    if (el) el.style.cssText = base + 'var(--border)';
   } else {
-    _onbFollows.push(id);
-    if (el) el.style.cssText = 'cursor:pointer;border:1px solid var(--orange);background:rgba(249,115,22,.1);border-radius:11px;padding:.65rem .5rem;text-align:center';
+    list.push(key);
+    if (el) el.style.cssText = base + 'var(--orange);background:rgba(249,115,22,.1)';
   }
 }
 
@@ -5328,9 +5725,20 @@ async function onbNext(skip) {
 }
 
 async function finishOnboarding(skipFollows) {
-  if (skipFollows) _onbFollows = [];
+  if (skipFollows) { _onbFollows = []; _onbPeople = []; }
   var msg = document.getElementById('onb-msg');
   if (msg) msg.textContent = 'Setting up…';
+  // Follow the selected people/pages up front so the feed has content the
+  // moment they land on it
+  var persona = currentPersona();
+  await Promise.all(_onbPeople.map(function(key) {
+    var parts = key.split(':');
+    return _sb.rpc('toggle_follow', {
+      p_follower_id: _authUser ? _authUser.id : getGuestId(),
+      p_followee_type: parts[0], p_followee_id: parts[1],
+      p_follower_name: persona.name
+    }).then(function(){}, function(){});
+  }));
   try {
     var res = await _sb.rpc('complete_onboarding', {
       p_user_id: _authUser.id,
@@ -6355,6 +6763,18 @@ function profileLinksHtml(links) {
   return out.length ? '<div class="pf-links">' + out.join('') + '</div>' : '';
 }
 
+// ═══════════════════════════════════════════════════════════════════════
+// ARTIST POSTER PAGE
+// Built for a stranger arriving from an Instagram bio link: the photo is
+// the identity (no avatar tile competing with it), then hear it → understand
+// why it matters → buy → join. Earnings are deliberately NOT public — the
+// public strip carries the story and the supporter count; dollars appear
+// only for the artist themselves or an admin.
+// ═══════════════════════════════════════════════════════════════════════
+var _artistPage = null;
+var _artistMerch = [];
+var _merchFilter = 'all';
+
 async function showArtistPage(slug) {
   showView('artist-page');
   try { window.location.hash = 'artist/' + slug; } catch (e) {}
@@ -6365,66 +6785,255 @@ async function showArtistPage(slug) {
   var aRes = await _sb.from('artists').select('*').eq('slug', slug).maybeSingle();
   var artist = aRes.data;
   if (!artist) {
-    el.innerHTML = '<div class="pf-empty">Artist not found. <a href="#" style="color:var(--orange)" onclick="showArtistDirectory();return false">Browse all artists →</a></div>';
+    el.innerHTML = '<div class="pf-empty">Artist not found. <a href="#" style="color:var(--orange)" onclick="showArtistDirectory();return false">Browse PHX →</a></div>';
     return;
   }
-  var tRes = await _sb.from('tracks').select('*').eq('artist_id', artist.id).eq('status', 'live').order('stream_count', { ascending: false });
-  _artistPageTracks = tRes.data || [];
+  _artistPage = artist;
 
-  var merchUrl = artist.merch_enabled ? (artist.merch_external_url || artist.fourthwall_shop_url) : null;
+  var results = await Promise.all([
+    _sb.from('tracks').select('*').eq('artist_id', artist.id).eq('status','live').order('stream_count', { ascending: false }),
+    _sb.rpc('artist_support_stats', { p_artist_id: artist.id }),
+    artist.merch_enabled
+      ? _sb.from('merch_catalog').select('*').eq('artist_id', artist.id).order('position', { ascending: true })
+      : Promise.resolve({ data: [] })
+  ]);
+  _artistPageTracks = results[0].data || [];
+  var support = results[1].data || {};
+  _artistMerch = results[2].data || [];
+  _merchFilter = 'all';
+
   var following = !!_myFollows['artist:' + artist.id];
+  var shopUrl = safeUrl(artist.merch_external_url || artist.fourthwall_shop_url || '');
+  var hero = safeUrl(artist.banner_url) || safeUrl(artist.avatar_url);
 
-  var trackRows = _artistPageTracks.length ? _artistPageTracks.map(function(t, i) {
+  el.innerHTML =
+    '<div class="ap-hero' + (hero ? '' : ' ap-gen') + '"' +
+        (hero ? ' style="background-image:url(\'' + hero + '\')"' : '') + '>' +
+      '<div class="ap-scrim"></div>' +
+      '<div class="ap-navbtns">' +
+        '<button class="ap-navbtn" title="Back" onclick="showArtistDirectory()">←</button>' +
+        '<button class="ap-navbtn" title="Share" onclick="shareArtistPage(\'' + escapeHtml(artist.slug) + '\',\'' + escapeHtml(artist.name).replace(/'/g,'') + '\')">↗</button>' +
+      '</div>' +
+      '<div class="ap-herotext">' +
+        '<div class="ap-kicker"><span>PHX Artist</span>' +
+          (artist.city ? '<span class="sep"></span><span class="loc">' + escapeHtml(artist.city) + '</span>' : '') +
+          (artist.verified ? '<span class="ap-vfy">✓</span>' : '') +
+        '</div>' +
+        '<div class="ap-name">' + escapeHtml(artist.name) + '</div>' +
+        '<div class="ap-listeners">' +
+          '<b>' + fmtK(artist.monthly_listeners || 0) + '</b><span>monthly listeners</span>' +
+          '<span class="ap-trend">' + fmtK(artist.total_streams || 0) + ' plays</span>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+
+    '<div class="ap-actions">' +
+      (_artistPageTracks.length ? '<button class="ap-play" onclick="playArtistTop()">▶ Play</button>' : '') +
+      '<button class="ap-follow' + (following ? ' on' : '') + '" onclick="toggleFollowUI(\'artist\',\'' + artist.id + '\',this)">' +
+        (following ? 'Following' : 'Follow') + '</button>' +
+    '</div>' +
+
+    renderMoneyStrip(artist, support) +
+
+    '<div class="ap-tabs" id="ap-tabs">' +
+      '<button class="ap-tab on" data-tab="music" onclick="apTab(\'music\')">Music</button>' +
+      (_artistMerch.length ? '<button class="ap-tab" data-tab="merch" onclick="apTab(\'merch\')">Merch <span class="n">' + _artistMerch.length + '</span></button>' : '') +
+      '<button class="ap-tab" data-tab="about" onclick="apTab(\'about\')">About</button>' +
+    '</div>' +
+
+    '<div class="ap-panel" id="ap-panel-music">' + renderArtistTracks() + '</div>' +
+    '<div class="ap-panel" id="ap-panel-merch" hidden>' + renderArtistMerchPanel(shopUrl) + '</div>' +
+    '<div class="ap-panel" id="ap-panel-about" hidden>' + renderArtistAbout(artist, shopUrl) + '</div>' +
+
+    '<div class="ap-cta">' +
+      '<h4>Want your money<br>to reach ' + escapeHtml(artist.name) + '?</h4>' +
+      '<p>Your pass pays the Phoenix artists you actually play — with a receipt every month.</p>' +
+      '<button onclick="showView(\'mypass\')">Get your PHX pass</button>' +
+    '</div>';
+}
+
+// Public: the story + how many people fund them. Never a dollar figure.
+// Artist/admin: the same strip plus their real earnings.
+function renderMoneyStrip(artist, support) {
+  var supporters = support.supporters || 0;
+  var priv = '';
+  if (support.can_see_earnings) {
+    priv = '<div class="ap-private">🔒 <span><b>$' + ((support.earned_cents || 0) / 100).toFixed(2) +
+           '</b> earned on PHX — visible only to you and PHX admins.</span></div>';
+  }
+  return '<div class="ap-money">' +
+    '<div class="ap-money-tag"><i></i>Fan-powered</div>' +
+    '<div class="ap-money-line">Streaming ' + escapeHtml(artist.name) + ' here pays ' + escapeHtml(artist.name) + '.<br>' +
+      'Not a pool. <span style="color:var(--orange-l)">Them.</span></div>' +
+    '<div class="ap-money-stats">' +
+      '<div><b>' + supporters + '</b><span>' + (supporters === 1 ? 'member funding them' : 'members funding them') + '</span></div>' +
+      '<div><b>' + fmtK(artist.total_streams || 0) + '</b><span>plays that paid out</span></div>' +
+    '</div>' + priv +
+  '</div>';
+}
+
+function renderArtistTracks() {
+  if (!_artistPageTracks.length) return '<div class="pf-empty">No live tracks yet — first drop coming.</div>';
+  return '<div class="track-list">' + _artistPageTracks.map(function(t, i) {
     var locked = !canPlayTrack(t.exclusive_tier);
-    var tierBadge = t.exclusive_tier === 'insider' ? ' <span class="status-chip sc-insider" style="font-size:.6rem">Insider</span>'
-                  : t.exclusive_tier === 'native' ? ' <span class="status-chip sc-native" style="font-size:.6rem">Native+</span>' : '';
+    var badge = t.exclusive_tier === 'insider' ? ' <span class="status-chip sc-insider" style="font-size:.6rem">Insider</span>'
+              : t.exclusive_tier === 'native' ? ' <span class="status-chip sc-native" style="font-size:.6rem">Native+</span>' : '';
     var mins = Math.floor((t.duration_seconds || 0) / 60), secs = (t.duration_seconds || 0) % 60;
     var dur = t.duration_seconds ? (mins + ':' + (secs < 10 ? '0' : '') + secs) : '';
-    var art = safeUrl(t.cover_url) || safeUrl(artist.avatar_url); // fall back to artist art, never an empty tile
+    var art = safeUrl(t.cover_url) || safeUrl((_artistPage || {}).avatar_url);
     return '<div class="track-row' + (locked ? ' locked' : '') + '" onclick="playArtistPageTrack(this, ' + i + ')">' +
       '<div class="track-num">' + (i + 1) + '</div>' +
       '<div class="track-art">' + (art ? '<img src="' + art + '" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:6px">' : '🎵') + '</div>' +
-      '<div class="track-info"><div class="track-title">' + escapeHtml(t.title) + tierBadge + '</div>' +
-        '<div class="track-feat">' + escapeHtml([t.featuring ? 'ft. ' + t.featuring : '', t.producer ? 'Prod. ' + t.producer : ''].filter(Boolean).join(' · ')) + '</div></div>' +
-      '<div class="track-streams">' + fmtK(t.stream_count) + '</div>' +
+      '<div class="track-info"><div class="track-title">' + escapeHtml(t.title) + badge + '</div>' +
+        '<div class="track-feat">' + fmtK(t.stream_count || 0) + ' plays' +
+          (t.featuring ? ' · ft. ' + escapeHtml(t.featuring) : '') + '</div></div>' +
       (dur ? '<div class="track-time">' + dur + '</div>' : '') +
     '</div>';
-  }).join('') : '<div class="pf-empty">No live tracks yet — first drop coming.</div>';
+  }).join('') + '</div>';
+}
 
-  var statBits = [
-    '<b>' + fmtK(artist.total_streams) + '</b> streams',
-    '<b>' + fmtK(artist.monthly_listeners) + '</b> monthly listeners',
-    '<b>' + _artistPageTracks.length + '</b> track' + (_artistPageTracks.length === 1 ? '' : 's')
-  ];
+// Dual-fulfilment grid. Badges signal DELIVERY SPEED, not a shipping
+// address — the full shipping detail lives in the buy sheet.
+function renderArtistMerchPanel(shopUrl) {
+  if (!_artistMerch.length) {
+    return shopUrl ? '<a class="pf-btn" href="' + shopUrl + '" target="_blank" rel="noopener">🛍️ Shop the store ↗</a>' : '';
+  }
+  var hasShip = _artistMerch.some(function(p){ return p.fulfilment === 'direct_ship'; });
+  var hasPod  = _artistMerch.some(function(p){ return p.fulfilment === 'pod'; });
+  // Chips only appear when both paths exist — a single-path artist sees none
+  var chips = (hasShip && hasPod)
+    ? '<div class="ap-chips">' +
+        [['all','All'],['direct_ship','From the artist'],['pod','Made to order']].map(function(c) {
+          return '<button class="ap-chip' + (_merchFilter === c[0] ? ' on' : '') + '" onclick="apMerchFilter(\'' + c[0] + '\')">' + c[1] + '</button>';
+        }).join('') +
+      '</div>' : '';
 
-  el.innerHTML =
-    '<div style="margin-bottom:.8rem"><a href="#" style="color:var(--muted);font-size:.78rem" onclick="showArtistDirectory();return false">← All artists</a></div>' +
-    '<div class="pf">' +
-      profileHeroHtml({
-        name: artist.name, avatar_url: artist.avatar_url, banner_url: artist.banner_url,
-        verified: artist.verified,
-        meta: [artist.genre, artist.city || 'Phoenix'].filter(Boolean).join(' · ')
-      }) +
-      '<div class="pf-body">' +
-        '<div class="pf-actions">' +
-          (_artistPageTracks.length ? '<button class="pf-play" title="Play ' + escapeHtml(artist.name) + '" onclick="playArtistTop()">▶</button>' : '') +
-          '<button class="pf-btn' + (following ? ' on' : '') + '" id="artist-page-follow-btn" onclick="toggleFollowUI(\'artist\',\'' + artist.id + '\',this)">' +
-            (following ? '✓ Following' : '+ Follow') + '</button>' +
-          '<button class="pf-btn" onclick="shareArtistPage(\'' + escapeHtml(artist.slug) + '\',\'' + escapeHtml(artist.name).replace(/'/g, '') + '\')">↗ Share</button>' +
+  var items = _artistMerch.filter(function(p){ return _merchFilter === 'all' || p.fulfilment === _merchFilter; });
+
+  return '<div class="pf-sec" style="margin-top:0"><h3>Merch</h3>' +
+      (shopUrl ? '<a href="' + shopUrl + '" target="_blank" rel="noopener">Shop all ↗</a>' : '') + '</div>' +
+    chips +
+    '<div class="ap-grid">' + items.map(function(p) {
+      var img = (p.images && p.images[0] && p.images[0].url) ? safeUrl(p.images[0].url) : '';
+      var isShip = p.fulfilment === 'direct_ship';
+      var soldOut = isShip && p.stock_qty !== null && p.stock_qty <= 0;
+      var badgeTxt = isShip ? 'Artist ships' : p.fulfilment === 'digital' ? 'Instant' : p.fulfilment === 'pickup' ? 'At the show' : 'Made to order';
+      var note = soldOut ? '<span class="ap-card-note low">Sold out</span>'
+        : (isShip && p.stock_qty !== null && p.stock_qty <= 5) ? '<span class="ap-card-note low">· only ' + p.stock_qty + ' left</span>'
+        : (p.review_count > 0) ? '<span class="ap-card-note rate">· ★ ' + (p.avg_rating || '') + ' (' + p.review_count + ')</span>'
+        : '';
+      return '<div class="ap-card"' + (soldOut ? ' style="opacity:.5"' : ' onclick="openBuySheet(\'' + p.id + '\')"') + '>' +
+        '<div class="ap-card-img">' +
+          (img ? '<img src="' + img + '" alt="' + escapeHtml(p.name) + '" loading="lazy">' : '👕') +
+          '<span class="ap-badge ' + (isShip ? 'ship' : 'pod') + '">' + badgeTxt + '</span>' +
         '</div>' +
-        '<div class="pf-stats">' + statBits.join('<span class="dot">·</span>') + '</div>' +
-        (artist.bio ? '<div class="pf-bio">' + escapeHtml(artist.bio) + '</div>' : '') +
-        profileLinksHtml(artist.links) +
-        '<div class="pf-sec"><h3>Popular</h3><span class="badge badge-orange">' + _artistPageTracks.length + ' live</span></div>' +
-        '<div class="track-list">' + trackRows + '</div>' +
-        '<div id="artist-merch-grid"></div>' +
+        '<div class="ap-card-name">' + escapeHtml(p.name) + '</div>' +
+        '<div class="ap-card-row"><span class="ap-card-price">$' + ((p.price_cents||0)/100).toFixed(0) + '</span>' + note + '</div>' +
+      '</div>';
+    }).join('') + '</div>';
+}
+
+function renderArtistAbout(artist, shopUrl) {
+  var links = artist.links || {};
+  var linkHtml = profileLinksHtml(links);
+  return (artist.bio ? '<div class="pf-bio">' + escapeHtml(artist.bio) + '</div>' : '<div class="pf-empty">No bio yet.</div>') +
+    linkHtml +
+    (shopUrl ? '<div class="pf-links" style="margin-top:.5rem"><a class="pf-link" href="' + shopUrl + '" target="_blank" rel="noopener">Store ↗</a></div>' : '');
+}
+
+function apTab(name) {
+  ['music','merch','about'].forEach(function(t) {
+    var p = document.getElementById('ap-panel-' + t);
+    if (p) p.hidden = (t !== name);
+  });
+  document.querySelectorAll('#ap-tabs .ap-tab').forEach(function(b) {
+    b.classList.toggle('on', b.dataset.tab === name);
+  });
+}
+
+function apMerchFilter(f) {
+  _merchFilter = f;
+  var shopUrl = safeUrl((_artistPage||{}).merch_external_url || (_artistPage||{}).fourthwall_shop_url || '');
+  var panel = document.getElementById('ap-panel-merch');
+  if (panel) panel.innerHTML = renderArtistMerchPanel(shopUrl);
+}
+
+// ── BUY SHEET — names the destination BEFORE the tap ───────────────────
+// A handoff that surprises people reads as bait-and-switch. Both paths
+// state where checkout finishes and who handles support.
+function openBuySheet(productId) {
+  var p = _artistMerch.filter(function(x){ return x.id === productId; })[0];
+  if (!p) return;
+  var isShip = p.fulfilment === 'direct_ship';
+  var img = (p.images && p.images[0] && p.images[0].url) ? safeUrl(p.images[0].url) : '';
+  var price = '$' + ((p.price_cents||0)/100).toFixed(2);
+  var artistName = (_artistPage || {}).name || 'the artist';
+  var sizes = (p.variants && p.variants.length)
+    ? p.variants.filter(function(v){ return v && v.size; })
+    : [];
+
+  var wrap = document.getElementById('ap-sheet-wrap');
+  if (!wrap) {
+    wrap = document.createElement('div');
+    wrap.id = 'ap-sheet-wrap';
+    wrap.className = 'ap-sheet-wrap';
+    wrap.addEventListener('click', function(e){ if (e.target === wrap) closeBuySheet(); });
+    document.body.appendChild(wrap);
+  }
+  wrap.style.display = 'flex';
+
+  var checkout = safeUrl(p.checkout_url || '');
+  var buyLabel = isShip
+    ? 'Buy on ' + escapeHtml((checkout || '').replace(/^https?:\/\//,'').split('/')[0] || 'the store') + ' ↗'
+    : 'Checkout on Fourthwall — ' + price + ' ↗';
+  var handoff = isShip
+    ? 'You\'ll finish checkout on ' + escapeHtml(artistName) + '\'s own store.<br>PHX takes <b style="color:var(--green)">0%</b>.'
+    : 'Secure checkout by Fourthwall, who handle<br>shipping, returns and support.';
+
+  wrap.innerHTML =
+    '<div class="ap-sheet">' +
+      '<div class="ap-sheet-head" style="color:' + (isShip ? 'var(--orange-l)' : 'var(--muted)') + '">' +
+        '<span>' + (isShip ? 'Shipped by ' + escapeHtml(artistName) : 'Made to order') + '</span>' +
+        '<button onclick="closeBuySheet()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem">✕</button>' +
+      '</div>' +
+      '<div class="ap-sheet-body">' +
+        '<div class="ap-sheet-img">' + (img ? '<img src="' + img + '" alt="">' : '👕') + '</div>' +
+        '<div class="ap-sheet-name">' + escapeHtml(p.name) + '</div>' +
+        '<div class="ap-card-row" style="margin-top:6px"><span class="ap-sheet-price">' + price + '</span>' +
+          (isShip && p.stock_qty !== null && p.stock_qty <= 5 ? '<span class="ap-card-note low">· only ' + p.stock_qty + ' left</span>' : '') +
+          (p.review_count > 0 ? '<span class="ap-card-note rate">★ ' + (p.avg_rating||'') + ' · ' + p.review_count + ' fan photos</span>' : '') +
+        '</div>' +
+        (sizes.length ? '<div class="ap-sizes">' + sizes.map(function(v, i) {
+          return '<button class="ap-size' + (i === 0 ? ' on' : '') + '" onclick="apPickSize(this)">' + escapeHtml(v.size) + '</button>';
+        }).join('') + '</div>' : '') +
+        '<div class="ap-note ' + (isShip ? 'ship' : 'pod') + '">' +
+          '<span style="font-size:.9rem">' + (isShip ? '📦' : '🖨️') + '</span>' +
+          '<div><b>' + (isShip ? 'Packed and shipped by ' + escapeHtml(artistName) : 'Printed when you order') + '</b>' +
+          '<span>' + escapeHtml(p.ship_note || (isShip ? 'Ships in 2–3 days.' : 'Arrives in 7–10 days.')) + '</span></div>' +
+        '</div>' +
+        (checkout
+          ? '<a class="ap-buy" href="' + checkout + '" target="_blank" rel="noopener" onclick="logMerchClick(\'' + p.id + '\')">' + buyLabel + '</a>'
+          : '<button class="ap-buy" onclick="showToast(\'This one drops soon.\')">Coming soon</button>') +
+        '<div class="ap-handoff">' + handoff + '</div>' +
       '</div>' +
     '</div>';
+}
 
-  // Merch loads AFTER the container exists. Previously this fired before
-  // innerHTML was assigned, so it always bailed on a missing element and
-  // no products ever rendered.
-  if (artist.merch_enabled) loadArtistMerch(artist.id, merchUrl);
+function closeBuySheet() {
+  var w = document.getElementById('ap-sheet-wrap');
+  if (w) w.style.display = 'none';
+}
+function apPickSize(btn) {
+  btn.parentNode.querySelectorAll('.ap-size').forEach(function(b){ b.classList.remove('on'); });
+  btn.classList.add('on');
+}
+function logMerchClick(productId) {
+  var p = _artistMerch.filter(function(x){ return x.id === productId; })[0];
+  if (!p) return;
+  _sb.from('merch_events').insert({
+    artist_id: p.artist_id, product_id: p.id, event_type: 'click',
+    session_id: (typeof SESSION_ID !== 'undefined' ? SESSION_ID : null)
+  }).then(function(){}, function(){});
 }
 
 // Play button on the hero = start the artist's top track
