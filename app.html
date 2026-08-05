@@ -2134,6 +2134,10 @@ function requireAuthAction(what) {
 }
 
 function openJoinSheet(what) {
+  // Passive triggers (navigation gates) respect a dismissal for the rest of
+  // the session — "Keep looking around" has to actually mean that. Explicit
+  // actions (tapping Post, Follow…) always reopen it.
+  if (!what && sessionStorage.getItem('phx_join_dismissed')) return;
   var m = document.getElementById('join-sheet');
   if (!m) {
     m = document.createElement('div');
@@ -2155,7 +2159,10 @@ function openJoinSheet(what) {
       '<button onclick="closeJoinSheet()" style="display:block;width:100%;background:none;border:none;color:var(--faint);cursor:pointer;font-size:.78rem;margin-top:.9rem;text-decoration:underline">Keep looking around</button>' +
     '</div>';
 }
-function closeJoinSheet(){ var m=document.getElementById('join-sheet'); if(m) m.style.display='none'; }
+function closeJoinSheet(){
+  try { sessionStorage.setItem('phx_join_dismissed', '1'); } catch (e) {}
+  var m = document.getElementById('join-sheet'); if (m) m.style.display = 'none';
+}
 
 // ── REQUEST ACCESS ─────────────────────────────────────────────────────
 function openAccessRequest() {
@@ -2432,8 +2439,15 @@ function setRole(role) {
   var activeBt = document.getElementById(btGroupMap[role]);
   if (activeBt) activeBt.style.display = '';
 
-  // Navigate to default view for this role
-  showView(r.defaultView);
+  // Navigate to default view for this role — unless the visitor arrived on a
+  // public deep link (thephx.app/murkemz, #artist/...). Role resolution is
+  // async, so without this check it landed AFTER deep-link routing and yanked
+  // people off the page they were sent to, straight into the join sheet.
+  var pathname = (window.location.pathname || '').replace(/\/$/, '');
+  var onPublicDeepLink = /^#(artist|page)\//.test(window.location.hash || '') ||
+    (/^\/[a-z0-9][a-z0-9._-]{1,40}$/i.test(pathname) &&
+     ['/app', '/index', '/legal', '/app.html', '/index.html'].indexOf(pathname.toLowerCase()) === -1);
+  if (!onPublicDeepLink) showView(r.defaultView);
 
   // Re-render feed — persona and admin moderation controls depend on role
   if (_cityFeedLoaded) loadCityFeed(true);
