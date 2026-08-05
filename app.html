@@ -3306,10 +3306,14 @@ async function loadCityFeed(force) {
   // Report counts per post — negative signals demote in ranking
   // (Instagram value-model pattern: score subtracts P(negative feedback))
   var reportCounts = {};
-  var repRes = await _sb.from('reports').select('target_id').eq('target_type', 'post');
-  (repRes.data || []).forEach(function(r) {
-    reportCounts[r.target_id] = (reportCounts[r.target_id] || 0) + 1;
-  });
+  // Members can no longer read `reports` (reporter anonymity), so this
+  // demotion signal is admin-only now; the feed simply ranks without it.
+  if (_accountRole === 'admin' || _accountRole === 'super') {
+    var repRes = await _sb.rpc('admin_reports', { p_status: '' });
+    (repRes.data || []).forEach(function(r) {
+      reportCounts[r.target_id] = (reportCounts[r.target_id] || 0) + 1;
+    });
+  }
 
   var sorted = data.slice();
   if (_feedSort === 'tracks') {
@@ -3885,11 +3889,9 @@ function shareCurrentTrackToFeed() {
 var _notifPanelOpen = false;
 
 async function loadNotifications() {
-  var res = await _sb.from('notifications')
-    .select('*')
-    .eq('recipient_id', getGuestId())
-    .order('created_at', { ascending: false })
-    .limit(30);
+  // The notifications table is owner-gated now; device-era identities have
+  // no auth.uid(), so read through the RPC that checks the id server-side.
+  var res = await _sb.rpc('my_notifications', { p_user_id: getGuestId(), p_limit: 30 });
   var items = res.data || [];
   var unread = items.filter(function(n){ return !n.is_read; }).length;
   var badge = document.getElementById('notif-badge');
@@ -4026,11 +4028,7 @@ async function loadReports() {
   if (!feed) return;
   feed.innerHTML = '<span style="color:var(--muted);font-size:.84rem">Loading…</span>';
 
-  var res = await _sb.from('reports')
-    .select('*')
-    .eq('status', 'pending')
-    .order('created_at', { ascending: true })
-    .limit(50);
+  var res = await _sb.rpc('admin_reports', { p_status: 'pending' });
   var reports = res.data || [];
 
   if (badge) badge.textContent = reports.length + ' pending';
@@ -5124,7 +5122,7 @@ async function generateInviteCode() {
 async function loadMerchConnections() {
   var el = document.getElementById('merch-conn-list');
   if (!el) return;
-  var res = await _sb.from('merch_connections').select('*').order('name');
+  var res = await _sb.rpc('admin_merch_connections');
   var rows = res.data || [];
   if (!rows.length) { el.innerHTML = '<div class="pf-empty">No artists yet.</div>'; return; }
 
@@ -5151,8 +5149,9 @@ async function loadMerchConnections() {
 }
 
 async function openMerchConnEditor(artistId) {
-  var res = await _sb.from('merch_connections').select('*').eq('artist_id', artistId).maybeSingle();
-  var c = res.data; if (!c) return;
+  var res = await _sb.rpc('admin_merch_connections');
+  var c = (res.data || []).filter(function(x){ return x.artist_id === artistId; })[0];
+  if (!c) return;
   var box = document.getElementById('merch-conn-editor');
   if (!box) return;
   box.style.display = 'block';
@@ -5396,10 +5395,20 @@ async function runMusicSearch(query) {
   resultsEl.innerHTML = peopleHtml + trackHtml;
 }
 
+// textContent->innerHTML only encodes & < > — it leaves " and ' intact.
+// This output is interpolated into HTML ATTRIBUTES in ~20 places
+// (value="…", alt="…", title="…"), so a saved name containing a quote could
+// break out of the attribute and inject handlers. Encode quotes and
+// backtick too, which makes the same function safe in both contexts.
 function escapeHtml(s) {
-  var d = document.createElement('div');
-  d.textContent = s;
-  return d.innerHTML;
+  if (s === null || s === undefined) return '';
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+    .replace(/`/g, '&#96;');
 }
 
 // Lightweight toast — used by onboarding, claim codes, merch, invite copy
@@ -5752,7 +5761,7 @@ async function showMemberPage(userId) {
     // Identity lives in one of two places: `profiles` for real auth accounts,
     // `member_profiles` for device-era members created before sign-up existed.
     // Look in both so every author in the feed resolves to a real page.
-    var pRes = await _sb.from('profiles')
+    var pRes = await _sb.from('public_profiles')
       .select('id,username,display_name,avatar_url,banner_url,bio,city,created_at,founding_number')
       .eq('id', userId).maybeSingle();
     var p = pRes.data;
@@ -7824,7 +7833,7 @@ async function loadAdminActivity(filterUserId) {
 
     var results = await Promise.all([
       sq, eq,
-      _sb.from('profiles').select('id,username,display_name'),
+      _sb.from('public_profiles').select('id,username,display_name'),
       _sb.from('member_profiles').select('device_id,username,display_name'),
       _sb.from('artists').select('id,slug,name,user_id')
     ]);
