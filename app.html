@@ -1761,6 +1761,13 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
     <!-- ADMIN — MASTER ROSTER: every identity + outstanding claim codes -->
     <div class="view" id="v-admin-roster">
       <div class="card" style="margin-bottom:1rem">
+        <div class="sh" style="margin-bottom:.6rem"><h3>Access requests</h3>
+          <span class="badge badge-orange" id="access-req-count">…</span>
+          <button class="tb-btn" style="margin-left:auto;font-size:.74rem;padding:.28rem .6rem" onclick="loadAccessRequests()">↻</button></div>
+        <div style="font-size:.78rem;color:var(--muted);margin-bottom:.7rem">Approving mints a single-use code and queues the email. Waitlisting keeps them for later.</div>
+        <div id="access-requests-list"><div class="pf-empty">Loading…</div></div>
+      </div>
+      <div class="card" style="margin-bottom:1rem">
         <div class="sh" style="margin-bottom:.6rem"><h3>Claim codes</h3>
           <button class="tb-btn" style="margin-left:auto;font-size:.74rem;padding:.28rem .6rem" onclick="loadAdminRoster()">↻ Refresh</button></div>
         <div style="font-size:.78rem;color:var(--muted);margin-bottom:.7rem">Hand these to the person they belong to. Signing up with the code transfers ownership instantly.</div>
@@ -2130,7 +2137,115 @@ var titles = {
   'admin-activity':'Activity', 'artist-page':'Artist', 'artist-directory':'PHX Artists',
 };
 
+// ═══════════════════════════════════════════════════════════════════════
+// ACCESS GATE — members-only app, public storefront.
+// Artist and page profiles stay open on purpose: the /a/<slug> link-preview
+// pages exist so an Instagram bio works, and a locked door with nothing
+// behind it converts far worse than a page that shows the artist and THEN
+// asks you to join. Everything else needs an account.
+// ═══════════════════════════════════════════════════════════════════════
+var PUBLIC_VIEWS = ['artist-page', 'page-profile', 'artist-directory', 'member-page'];
+
+function requiresAuth(viewId) {
+  return !_authUser && PUBLIC_VIEWS.indexOf(viewId) === -1;
+}
+
+// Any member action by a signed-out visitor opens this instead of failing.
+function requireAuthAction(what) {
+  if (_authUser) return true;
+  openJoinSheet(what || null);
+  return false;
+}
+
+function openJoinSheet(what) {
+  var m = document.getElementById('join-sheet');
+  if (!m) {
+    m = document.createElement('div');
+    m.id = 'join-sheet';
+    m.style.cssText = 'position:fixed;inset:0;z-index:560;background:rgba(7,7,15,.9);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:1rem';
+    m.addEventListener('click', function(e){ if (e.target === m) closeJoinSheet(); });
+    document.body.appendChild(m);
+  }
+  m.style.display = 'flex';
+  m.innerHTML =
+    '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:18px;max-width:420px;width:100%;padding:1.8rem;text-align:center">' +
+      '<div style="font-size:1.5rem;font-weight:900;background:linear-gradient(135deg,#F97316,#EAB308);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:.8rem">PHX</div>' +
+      '<div style="font-size:1.15rem;font-weight:800;margin-bottom:.5rem">' +
+        (what ? escapeHtml(what) + ' is for members' : 'PHX is invite-only') + '</div>' +
+      '<p style="color:var(--muted);font-size:.88rem;line-height:1.6;margin-bottom:1.2rem">' +
+        'Sign in with your invite code, or request access and we\'ll send you one as spots open.</p>' +
+      '<button class="upgrade-btn" style="margin:0;width:100%" onclick="closeJoinSheet();openAuthModal()">Sign in / Use a code</button>' +
+      '<button class="pf-btn" style="width:100%;margin-top:.6rem;justify-content:center" onclick="closeJoinSheet();openAccessRequest()">Request access</button>' +
+      '<button onclick="closeJoinSheet()" style="display:block;width:100%;background:none;border:none;color:var(--faint);cursor:pointer;font-size:.78rem;margin-top:.9rem;text-decoration:underline">Keep looking around</button>' +
+    '</div>';
+}
+function closeJoinSheet(){ var m=document.getElementById('join-sheet'); if(m) m.style.display='none'; }
+
+// ── REQUEST ACCESS ─────────────────────────────────────────────────────
+function openAccessRequest() {
+  var m = document.getElementById('access-request-sheet');
+  if (!m) {
+    m = document.createElement('div');
+    m.id = 'access-request-sheet';
+    m.style.cssText = 'position:fixed;inset:0;z-index:565;background:rgba(7,7,15,.9);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:1rem';
+    m.addEventListener('click', function(e){ if (e.target === m) closeAccessRequest(); });
+    document.body.appendChild(m);
+  }
+  m.style.display = 'flex';
+  m.innerHTML =
+    '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:18px;max-width:430px;width:100%;padding:1.6rem;max-height:92vh;overflow:auto">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.4rem">' +
+        '<div style="font-weight:800;font-size:1.05rem">Request access</div>' +
+        '<button onclick="closeAccessRequest()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem">✕</button></div>' +
+      '<p style="color:var(--muted);font-size:.82rem;line-height:1.6;margin-bottom:1rem">' +
+        'PHX opens one person at a time. Tell us who you are and what you do in the city.</p>' +
+      '<input class="form-input" id="ar-name" placeholder="Your name *" style="margin-bottom:.55rem">' +
+      '<input class="form-input" id="ar-email" type="email" placeholder="Email *" autocomplete="email" style="margin-bottom:.55rem">' +
+      '<input class="form-input" id="ar-title" placeholder="What do you call yourself? (artist, DJ, promoter…)" style="margin-bottom:.55rem">' +
+      '<input class="form-input" id="ar-role" placeholder="What do you do in Phoenix?" style="margin-bottom:.55rem">' +
+      '<input class="form-input" id="ar-ig" placeholder="@instagram (optional)" style="margin-bottom:.55rem">' +
+      '<textarea class="form-input" id="ar-reason" rows="3" placeholder="Why do you want in?" style="margin-bottom:.9rem"></textarea>' +
+      '<button class="upgrade-btn" style="margin:0;width:100%" onclick="submitAccessRequest()">Send request</button>' +
+      '<div id="ar-msg" style="font-size:.8rem;color:var(--muted);margin-top:.7rem;min-height:1em"></div>' +
+    '</div>';
+}
+function closeAccessRequest(){ var m=document.getElementById('access-request-sheet'); if(m) m.style.display='none'; }
+
+async function submitAccessRequest() {
+  var msg = document.getElementById('ar-msg');
+  var v = function(id){ return ((document.getElementById(id)||{}).value || '').trim(); };
+  if (!v('ar-name') || !v('ar-email')) {
+    if (msg) { msg.style.color = 'var(--red)'; msg.textContent = 'Name and email are required.'; }
+    return;
+  }
+  if (msg) { msg.style.color = 'var(--muted)'; msg.textContent = 'Sending…'; }
+  var res = await _sb.rpc('submit_access_request', {
+    p_email: v('ar-email'), p_name: v('ar-name'), p_title: v('ar-title') || null,
+    p_city_role: v('ar-role') || null, p_reason: v('ar-reason') || null,
+    p_instagram: v('ar-ig') || null,
+    p_device_fp: (typeof DEVICE_FP !== 'undefined' ? DEVICE_FP : null)
+  });
+  var d = res.data || {};
+  if (res.error || !d.ok) {
+    if (msg) {
+      msg.style.color = 'var(--red)';
+      msg.textContent = d.reason === 'rate_limited' ? 'Too many requests — try again later.'
+                      : d.reason === 'invalid_email' ? 'Check your email address.'
+                      : 'Could not send. Try again.';
+    }
+    return;
+  }
+  var sheet = document.getElementById('access-request-sheet');
+  if (sheet) sheet.querySelector('div').innerHTML =
+    '<div style="text-align:center;padding:1.4rem 0">' +
+      '<div style="font-size:2rem;margin-bottom:.6rem">🏙️</div>' +
+      '<div style="font-size:1.05rem;font-weight:700;margin-bottom:.4rem">Request received.</div>' +
+      '<div style="color:var(--muted);font-size:.86rem;line-height:1.6">We\'ll email your code as spots open. The fastest way in is an artist\'s code — ask the one who sent you here.</div>' +
+      '<button class="pf-btn" style="margin-top:1.1rem" onclick="closeAccessRequest()">Close</button></div>';
+}
+
 function showView(id) {
+  if (requiresAuth(id)) { openJoinSheet(null); return; }
   document.querySelectorAll('.view').forEach(function(v){ v.classList.remove('active'); });
   document.querySelectorAll('.nav-item').forEach(function(n){ n.classList.remove('active'); });
   var view = document.getElementById('v-'+id);
@@ -3349,6 +3464,18 @@ async function loadCityFeed(force) {
 }
 
 function renderComposer() {
+  // A signed-out visitor gets an invitation, not a text box that will fail
+  // server-side. The write RPCs now refuse anonymous authors outright.
+  if (!_authUser) {
+    return '<div class="feed-post" style="margin-bottom:1rem;text-align:center">' +
+      '<div style="font-size:.92rem;font-weight:700;margin-bottom:.35rem">Join the conversation</div>' +
+      '<div style="font-size:.82rem;color:var(--muted);line-height:1.55;margin-bottom:.9rem">' +
+        'PHX is invite-only. Sign in with your code, or request access.</div>' +
+      '<div style="display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap">' +
+        '<button class="upgrade-btn" style="margin:0;width:auto;padding:.55rem 1.2rem" onclick="openAuthModal()">Sign in</button>' +
+        '<button class="pf-btn" onclick="openAccessRequest()">Request access</button>' +
+      '</div></div>';
+  }
   var persona = currentPersona();
   var opts = personaOptions();
   var identityChip;
@@ -3602,6 +3729,7 @@ function renderFeedPost(p) {
 
 // ── Likes: one per device, toggle on/off ──
 async function togglePostLike(postId) {
+  if (!requireAuthAction('Liking posts')) return;
   var btn = document.getElementById('like-btn-' + postId);
   var countEl = document.getElementById('like-count-' + postId);
   if (!btn) return;
@@ -3652,6 +3780,7 @@ async function loadComments(postId) {
 }
 
 async function submitComment(postId) {
+  if (!requireAuthAction('Commenting')) return;
   var input = document.getElementById('comment-input-' + postId);
   if (!input) return;
   var content = input.value.trim();
@@ -3678,6 +3807,7 @@ async function submitComment(postId) {
 
 // ── Posting ──
 async function submitFeedPost() {
+  if (!requireAuthAction('Posting')) return;
   var textEl = document.getElementById('composer-text');
   var trackSel = document.getElementById('composer-track');
   var errEl = document.getElementById('composer-error');
@@ -3798,6 +3928,7 @@ function updateNpLikeButton() {
 }
 
 async function toggleCurrentTrackLike() {
+  if (!requireAuthAction('Saving songs')) return;
   var uuid = currentTrackUuid();
   if (!uuid) return;
   var { data, error } = await _sb.rpc('toggle_track_like', { p_track_id: uuid, p_user_id: getGuestId() });
@@ -3984,6 +4115,7 @@ var REPORT_CATEGORIES = [
 var _reportTarget = null;
 
 function openReportModal(targetType, targetId) {
+  if (!requireAuthAction('Reporting')) return;
   _reportTarget = { type: targetType, id: targetId };
   var modal = document.getElementById('report-modal');
   var cats = document.getElementById('report-categories');
@@ -4663,6 +4795,7 @@ function resetSubmitForm() {
 // ═══════════════════════════════════════════════════════════════════════
 async function loadAdminRoster() {
   loadAdminInvites();
+  loadAccessRequests();
   var codesEl = document.getElementById('admin-claim-codes');
   var listEl = document.getElementById('admin-roster-list');
   if (!listEl) return;
@@ -5042,6 +5175,48 @@ async function doPurgeSim() {
   var d = res.data || {};
   _simStatus('✓ Removed ' + (d.streams_removed||0) + ' plays, ' + (d.subscriptions_removed||0) + ' members, ' + (d.ledger_removed||0) + ' ledger rows.');
   loadPotDashboard();
+}
+
+// ── ACCESS REQUESTS (admin) ────────────────────────────────────────────
+async function loadAccessRequests() {
+  var el = document.getElementById('access-requests-list');
+  if (!el) return;
+  var res = await _sb.rpc('admin_access_requests', { p_status: 'pending' });
+  if (res.error) {
+    el.innerHTML = '<div class="pf-empty">🔒 Sign in with your admin account to review requests.</div>';
+    _setText('access-req-count', '—');
+    return;
+  }
+  var rows = res.data || [];
+  _setText('access-req-count', rows.length + ' pending');
+  if (!rows.length) { el.innerHTML = '<div class="pf-empty">✓ No pending requests.</div>'; return; }
+
+  el.innerHTML = rows.map(function(r) {
+    var bits = [r.title, r.city_role || r.role_wanted].filter(Boolean).join(' · ');
+    return '<div style="padding:.75rem .8rem;border:1px solid var(--border);border-radius:10px;margin-bottom:.5rem">' +
+      '<div style="display:flex;justify-content:space-between;gap:.6rem;flex-wrap:wrap;align-items:baseline">' +
+        '<div style="font-size:.9rem;font-weight:700">' + escapeHtml(r.name || r.email) + '</div>' +
+        '<div style="font-size:.72rem;color:var(--faint)">' + escapeHtml(r.email) + '</div></div>' +
+      (bits ? '<div style="font-size:.76rem;color:var(--orange-l);margin-top:.15rem">' + escapeHtml(bits) + '</div>' : '') +
+      (r.instagram ? '<div style="font-size:.74rem;color:var(--muted)">' + escapeHtml(r.instagram) + '</div>' : '') +
+      (r.reason || r.note ? '<div style="font-size:.8rem;color:var(--muted);margin-top:.4rem;line-height:1.5">' + escapeHtml(r.reason || r.note) + '</div>' : '') +
+      '<div style="display:flex;gap:.4rem;margin-top:.6rem;flex-wrap:wrap">' +
+        '<button class="tb-btn" style="font-size:.72rem;color:var(--green);border-color:rgba(34,197,94,.3)" onclick="reviewAccess(\'' + r.id + '\',\'approved\',this)">✓ Approve + send code</button>' +
+        '<button class="tb-btn" style="font-size:.72rem" onclick="reviewAccess(\'' + r.id + '\',\'waitlisted\',this)">Waitlist</button>' +
+        '<button class="tb-btn" style="font-size:.72rem;color:var(--red);border-color:rgba(239,68,68,.3)" onclick="reviewAccess(\'' + r.id + '\',\'denied\',this)">Deny</button>' +
+      '</div></div>';
+  }).join('');
+}
+
+async function reviewAccess(id, decision, btn) {
+  btn.disabled = true;
+  btn.textContent = 'Working…';
+  var res = await _sb.rpc('review_access_request', { p_id: id, p_decision: decision });
+  var d = res.data || {};
+  if (res.error || !d.ok) { btn.textContent = 'Denied'; return; }
+  if (d.code) showToast('Approved — code ' + d.code + ' queued to send');
+  else showToast(decision === 'denied' ? 'Request denied' : 'Added to waitlist');
+  loadAccessRequests();
 }
 
 // ── INVITE / REFERRAL TRACKING ─────────────────────────────────────────
@@ -6484,6 +6659,7 @@ async function loadMyFollows() {
 }
 
 async function toggleFollowUI(type, id, btn) {
+  if (!requireAuthAction('Following')) return;
   if (btn) btn.disabled = true;
   var { data, error } = await _sb.rpc('toggle_follow', {
     p_follower_id: getGuestId(), p_followee_type: type, p_followee_id: id,
