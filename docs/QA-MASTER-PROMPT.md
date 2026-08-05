@@ -2,14 +2,14 @@
 
 Paste the block below into a fresh Claude Code session (or a Cowork agent) pointed at this repo. It runs a full adversarial audit of the live app.
 
-**Run it as super admin.** Sign in first at https://phx-app.vercel.app/app with the `alijayem1` account — admin surfaces are removed from the DOM for anyone else, so an unauthenticated run cannot test them.
+**Run it as super admin.** Sign in first at https://thephx.app/app with the `alijayem1` account — admin surfaces are removed from the DOM for anyone else, so an unauthenticated run cannot test them.
 
 ---
 
 ## The prompt
 
 ```
-You are QA-auditing PHX, a live music + social platform at https://phx-app.vercel.app/app
+You are QA-auditing PHX, a live music + social platform at https://thephx.app/app
 (repo: this directory; main file phx/app.html; backend: Supabase project dnzvtathfpjelffjnqrc).
 
 Read phx/README.md first — it documents the role model, money-visibility rules and

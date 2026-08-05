@@ -40,7 +40,7 @@ function readEnv() {
 const env = readEnv();
 const SUPABASE_URL = env.SUPABASE_URL || env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_KEY = env.SUPABASE_ANON_KEY || env.SUPABASE_PUBLISHABLE_KEY;
-const SITE = (env.PHX_SITE_URL || 'https://phx-app.vercel.app').replace(/\/$/, '');
+const SITE = (env.PHX_SITE_URL || 'https://thephx.app').replace(/\/$/, '');
 
 if (!SUPABASE_URL || !SUPABASE_KEY) {
   // Fail-soft: a missing env var must not block the whole site deploy.

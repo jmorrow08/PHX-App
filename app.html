@@ -8,7 +8,8 @@
 <meta property="og:title" content="PHX App — Phoenix scene membership">
 <meta property="og:description" content="Stream Phoenix artists. Your pass pays the artists you actually play — with a receipt to prove it.">
 <meta property="og:type" content="website">
-<meta property="og:url" content="https://phx-app.vercel.app/app.html">
+<meta property="og:url" content="https://thephx.app/app">
+<link rel="canonical" href="https://thephx.app/app">
 <meta name="twitter:card" content="summary">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#F97316">
@@ -105,6 +106,12 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
 .feed-post:hover{background:rgba(241,241,248,.015);border-color:var(--line)}
 .fp-header{display:flex;align-items:center;gap:.75rem;margin-bottom:.7rem}
 .fp-ava{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--disp);font-size:1rem;font-weight:600;flex-shrink:0}
+/* Any avatar container: photo layers over the emoji/initial fallback beneath */
+.has-ava{position:relative;overflow:hidden}
+.avatar-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:inherit;display:block}
+.ava-sm{width:32px;height:32px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:.85rem;flex-shrink:0;background:var(--card2)}
+.artist-link{color:inherit;text-decoration:none;cursor:pointer}
+.artist-link:hover{color:var(--orange);text-decoration:underline}
 .fp-meta h4{font-family:var(--disp);font-size:.92rem;font-weight:600}
 .fp-meta span{font-size:.74rem;color:var(--faint)}
 .fp-body{font-size:.9rem;line-height:1.6;color:var(--white);margin-bottom:.8rem}
@@ -211,6 +218,15 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
 .ap-kicker .loc{color:var(--muted);letter-spacing:.14em}
 .ap-vfy{display:flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;
   background:var(--orange);color:#fff;font-size:8px;font-weight:700}
+/* The poster photo carries the mood; the round tile is the identity people
+   recognise from the feed. Bottom-aligned so it sits on the name's baseline. */
+.ap-idrow{display:flex;align-items:flex-end;gap:14px}
+.ap-idcol{flex:1;min-width:0}
+.ap-ava{width:88px;height:88px;border-radius:50%;flex-shrink:0;background:var(--card2);
+  border:3px solid rgba(255,255,255,.92);box-shadow:0 8px 26px rgba(7,7,15,.7);
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--disp);font-size:2.1rem;font-weight:700;color:var(--white)}
+@media(max-width:640px){.ap-ava{width:60px;height:60px;font-size:1.4rem;border-width:2px}.ap-idrow{gap:10px}}
 .ap-name{font-family:var(--disp);font-size:clamp(2.6rem,11vw,3.75rem);line-height:.88;font-weight:700;
   letter-spacing:-.05em;margin-top:10px;text-shadow:0 6px 40px rgba(7,7,15,.9);text-transform:uppercase}
 .ap-listeners{display:flex;align-items:baseline;gap:8px;margin-top:14px;flex-wrap:wrap}
@@ -615,7 +631,7 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
 .reel video{width:100%;height:100%;object-fit:contain;background:#000}
 .reel-overlay{position:absolute;left:0;right:0;bottom:0;padding:1rem;background:linear-gradient(transparent,rgba(0,0,0,.75));display:flex;align-items:flex-end;gap:.75rem}
 .reel-info{flex:1;min-width:0}
-.reel-author{font-family:var(--disp);font-size:.9rem;font-weight:600;color:#fff;margin-bottom:.2rem}
+.reel-author{display:flex;align-items:center;gap:.4rem;font-family:var(--disp);font-size:.9rem;font-weight:600;color:#fff;margin-bottom:.2rem}
 .reel-caption{font-size:.8rem;color:rgba(255,255,255,.85);overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 .reel-actions{display:flex;flex-direction:column;gap:.9rem;align-items:center}
 .reel-act{background:none;border:none;color:#fff;cursor:pointer;font-size:1.5rem;display:flex;flex-direction:column;align-items:center;gap:.15rem;text-shadow:0 2px 8px rgba(0,0,0,.6)}
@@ -765,33 +781,10 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
         </div>
 
         <div>
-          <div class="sh"><h3>🎵 Trending on PHX Music</h3><a href="#" onclick="showView('music')">Open Music</a></div>
-          <div style="display:flex;flex-direction:column;gap:.6rem">
-            <div class="track-row playing" onclick="showView('music')">
-              <div class="track-num">1</div>
-              <div class="track-art">🎵</div>
-              <div class="track-info"><div class="track-title">PHX <span class="badge badge-orange" style="font-size:.6rem">EXCLUSIVE</span></div><div class="track-feat">Murkemz · Recess EP · 2026</div></div>
-              <div class="track-streams">—</div>
-            </div>
-            <div class="track-row" onclick="showView('music')">
-              <div class="track-num">2</div>
-              <div class="track-art">🎵</div>
-              <div class="track-info"><div class="track-title">Hadouken RMX</div><div class="track-feat">Murkemz ft. Chris Webby</div></div>
-              <div class="track-streams">—</div>
-            </div>
-            <div class="track-row" onclick="showView('music')">
-              <div class="track-num">3</div>
-              <div class="track-art">🎵</div>
-              <div class="track-info"><div class="track-title">Survive</div><div class="track-feat">Murkemz ft. Inspectah Deck</div></div>
-              <div class="track-streams">—</div>
-            </div>
-            <div class="track-row" onclick="showView('music')">
-              <div class="track-num">4</div>
-              <div class="track-art">🎵</div>
-              <div class="track-info"><div class="track-title">Against All Odds</div><div class="track-feat">Murkemz ft. Freeway</div></div>
-              <div class="track-streams">—</div>
-            </div>
-          </div>
+          <div class="sh"><h3>🎵 Trending on PHX Music</h3><a href="#" onclick="showView('music');return false">Open Music</a></div>
+          <!-- Live rail. This used to be four hard-coded rows whose artist
+               names were plain text and whose ranking never changed. -->
+          <div id="feed-trending-rail" class="track-list"><div class="pf-empty">Loading…</div></div>
 
           <br>
           <div class="sh"><h3>What's Coming to PHX App</h3></div>
@@ -2229,7 +2222,7 @@ function showView(id) {
   if (id === 'artist-earnings') loadArtistReferral();
   if (id === 'admin-merch') loadMerchConnections();
   if (id === 'artist-tracks' || id === 'artist-analytics' || id === 'artist-earnings') loadArtistDashboard();
-  if (id === 'home') loadCityFeed();
+  if (id === 'home') { loadCityFeed(); loadTrendingRail(); }
   if (id === 'profile') loadMyPages();
   if (id === 'discover') { loadForYou(); loadTrendingRail(); }
   if (id === 'music') loadMusicCatalog();
@@ -3016,7 +3009,7 @@ async function loadAdminStreamData() {
   feed.innerHTML = '<span style="color:var(--muted);font-size:.84rem">Loading…</span>';
 
   // Pull total streams from cached track counters
-  var trackRes = await _sb.from('tracks').select('title,stream_count,artist_id,artists(name)');
+  var trackRes = await _sb.from('tracks').select('title,stream_count,artist_id,artists(name,slug)');
   if (trackRes.data) {
     var total = trackRes.data.reduce(function(s, t){ return s + (t.stream_count || 0); }, 0);
     var kpiEl = document.getElementById('admin-streams-today');
@@ -3040,7 +3033,8 @@ async function loadAdminStreamData() {
           '</div>' +
           '<span style="font-size:.7rem;color:var(--muted);min-width:28px">' + pct + '%</span>' +
         '</div>' +
-        '<div style="font-size:.72rem;color:var(--muted)">' + artistName + '</div>' +
+        '<div style="font-size:.72rem;color:var(--muted)">' +
+          artistLinkHtml(artistName, t.artists && t.artists.slug) + '</div>' +
       '</div>';
     });
     topHtml += '</div>';
@@ -3079,12 +3073,38 @@ async function loadAdminStreamData() {
   }
 }
 
+// Canonical public origin. Every link we hand someone — share, invite, OG —
+// must point at the real domain, not whichever preview host happens to be
+// serving this page.
+var SITE_URL = 'https://thephx.app';
+
+// Identity gate. Supabase resolves the session asynchronously, so anything
+// that asks "who is this?" at startup must wait for the first auth event —
+// otherwise a signed-in member looks anonymous for a beat and gets handed a
+// throwaway guest handle that then sticks. Declared here (above the startup
+// calls below) because this file executes top-to-bottom.
+var _authResolved = false;
+var _authWaiters = [];
+function whenAuthResolved() {
+  if (_authResolved) return Promise.resolve();
+  return new Promise(function(resolve) {
+    _authWaiters.push(resolve);
+    setTimeout(resolve, 4000);   // never hang the UI on a silent auth failure
+  });
+}
+function _markAuthResolved() {
+  if (_authResolved) return;
+  _authResolved = true;
+  _authWaiters.splice(0).forEach(function(fn) { try { fn(); } catch (e) {} });
+}
+
 // Load live stream counts + profile + city feed + liked songs + pages + notifs on startup
 loadStreamCounts();
 loadPageCapabilities();
 Promise.all([loadMyPages(), loadMyProfile(), loadMyFollows()]).then(function(){ loadCityFeed(); });
 loadMyTrackLikes();
 loadNotifications();
+loadTrendingRail();   // City Feed is the landing view, so it never gets a showView() call
 attachArtistFollowButtons();
 
 // ── PWA INSTALL PROMPT ───────────────────────────────────────────────
@@ -3222,15 +3242,19 @@ var _myProfile = null; // {username, display_name} from member_profiles
 // @username; page owners add their Pages; admins add the official
 // PHX App voice. The picker only renders when there's a real choice.
 function personaOptions() {
+  // These are VOICES, not separate accounts. One login can speak as itself,
+  // as any Page it owns, and — for staff — as the platform. The suffixes are
+  // there because an unlabelled list of three names reads like three logins.
   var opts = [];
   if (currentRole === 'admin' || currentRole === 'super') {
-    opts.push({ id: 'official', label: '🏙️ PHX App (Official)' });
+    opts.push({ id: 'official', label: '🏙️ PHX App — platform voice' });
   }
   var personal = (_myProfile && _myProfile.username) ? '@' + _myProfile.username
     : ((ROLES[currentRole] || {}).chipName || 'PHX Member');
-  opts.push({ id: 'personal', label: '👤 ' + personal });
+  opts.push({ id: 'personal', label: '👤 ' + personal + ' — you' });
   _myPages.forEach(function(p) {
-    opts.push({ id: 'page:' + p.id, label: (p.avatar || '⭐') + ' ' + p.name });
+    var kind = p.page_type === 'artist' ? 'artist page' : (p.page_type || 'page') + ' page';
+    opts.push({ id: 'page:' + p.id, label: (p.avatar || '⭐') + ' ' + p.name + ' — your ' + kind });
   });
   return opts;
 }
@@ -3316,7 +3340,44 @@ async function _autoClaimUsername() {
   return null;
 }
 
+// Paint the signed-in member's real photo over the sidebar initial. Called
+// after setRole(), which writes textContent and would otherwise wipe the img.
+function paintMyAvatar() {
+  var url = safeUrl((_myProfile && _myProfile.avatar_url) || '');
+  ['profile-ava-initial', 'sb-other-ava'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    var existing = el.querySelector('.avatar-img');
+    if (existing) existing.remove();
+    if (url) {
+      el.classList.add('has-ava');
+      el.insertAdjacentHTML('beforeend',
+        '<img class="avatar-img" src="' + url + '" alt="" onerror="this.remove()">');
+    } else {
+      el.classList.remove('has-ava');
+    }
+  });
+}
+
 async function loadMyProfile() {
+  // Wait until we know whether anyone is signed in. Without this the guest
+  // branch below wins the race and mints a throwaway @handle for an account
+  // that already has one.
+  await whenAuthResolved();
+
+  // A signed-in account is the single source of truth for identity.
+  // `member_profiles` is the device-era fallback for members who joined
+  // before sign-up existed — reading it while signed in is what made a
+  // real account show a stranger's random handle in the composer.
+  if (_authUser) {
+    var pRes = await _sb.from('profiles')
+      .select('username,display_name,avatar_url,banner_url,bio,city')
+      .eq('id', _authUser.id).maybeSingle();
+    _myProfile = pRes.data || null;
+    paintMyAvatar();
+    return;
+  }
+
   var res = await _sb.from('member_profiles').select('*').eq('device_id', getGuestId()).maybeSingle();
   _myProfile = res.data || null;
   if (!_myProfile) {
@@ -3342,11 +3403,27 @@ async function claimUsername() {
     if (errEl) { errEl.textContent = 'Username must be 3–20 characters (letters, numbers, _ or .).'; errEl.style.display = 'block'; }
     return;
   }
-  var { data, error } = await _sb.rpc('claim_username', {
-    p_device_id: getGuestId(),
-    p_username: uname,
-    p_display_name: (dispInput ? dispInput.value : '') || null
-  });
+  var dispName = (dispInput ? dispInput.value : '') || null;
+
+  // Signed-in accounts own a row in `profiles`; device-era guests own one in
+  // `member_profiles`. Writing to the wrong one is why a saved handle used to
+  // vanish on the next load.
+  var data, error;
+  if (_authUser) {
+    var upd = await _sb.rpc('update_my_profile', {
+      p_user_id: _authUser.id, p_username: uname,
+      p_display_name: dispName, p_city: null, p_bio: null
+    });
+    error = upd.error;
+    data = upd.data ? { ok: upd.data.ok, username: uname,
+                        reason: upd.data.reason === 'username_taken' ? 'taken' : upd.data.reason } : null;
+  } else {
+    var claimed = await _sb.rpc('claim_username', {
+      p_device_id: getGuestId(), p_username: uname, p_display_name: dispName
+    });
+    error = claimed.error; data = claimed.data;
+  }
+
   if (error || !data || !data.ok) {
     var msg = (data && data.reason === 'taken') ? '@' + uname + ' is already taken — try another.' :
               (data && data.reason === 'reserved') ? 'That username is reserved.' :
@@ -3354,7 +3431,7 @@ async function claimUsername() {
     if (errEl) { errEl.textContent = msg; errEl.style.display = 'block'; }
     return;
   }
-  _myProfile = { username: data.username, display_name: (dispInput ? dispInput.value : '') || null };
+  _myProfile = { username: data.username, display_name: dispName };
   localStorage.setItem('phx_username_prompted', '1');
   document.getElementById('username-modal').style.display = 'none';
   trackEvent('username_claim', 'profile', getGuestId(), { username: data.username });
@@ -3366,6 +3443,64 @@ function dismissUsernameModal() {
   document.getElementById('username-modal').style.display = 'none';
 }
 
+// Posts store only an emoji for their author, so real pictures are resolved
+// in one batched pass per feed load. Deliberately not denormalised onto the
+// post: a stored URL would freeze the picture at publish time and never
+// follow the person when they change it.
+var _avatarCache = {};      // 'user:<id>' | 'page:<id>' | 'name:<artist>' -> url|null
+var _artistSlugByName = {}; // author_name -> slug, so seeded posts stay clickable
+var _artistSlugByUser = {}; // author user_id -> slug
+
+function _uniq(list) {
+  var seen = {}, out = [];
+  list.forEach(function(v) { if (v && !seen[v]) { seen[v] = 1; out.push(v); } });
+  return out;
+}
+
+async function resolveAuthorAvatars(posts) {
+  var need = function(kind, val) { return val && !((kind + ':' + val) in _avatarCache); };
+  var userIds = _uniq(posts.filter(function(p){ return need('user', p.user_id); }).map(function(p){ return p.user_id; }));
+  var pageIds = _uniq(posts.filter(function(p){ return need('page', p.page_id); }).map(function(p){ return p.page_id; }));
+  var names   = _uniq(posts.filter(function(p){
+    return !p.user_id && !p.page_id && need('name', p.author_name);
+  }).map(function(p){ return p.author_name; }));
+
+  var none = { data: [] };
+  // An author id can be an auth account, a device-era member, or an artist.
+  // Fixed order so the merge below is deterministic rather than a race.
+  var res = await Promise.all([
+    userIds.length ? _sb.from('public_profiles').select('id,avatar_url').in('id', userIds) : none,
+    userIds.length ? _sb.from('member_profiles').select('device_id,avatar_url').in('device_id', userIds) : none,
+    userIds.length ? _sb.from('artists').select('user_id,avatar_url,slug').in('user_id', userIds) : none,
+    pageIds.length ? _sb.from('pages').select('id,avatar_url').in('id', pageIds) : none,
+    names.length   ? _sb.from('artists').select('name,avatar_url,slug').in('name', names) : none
+  ]);
+
+  (res[0].data || []).forEach(function(x){ if (x.avatar_url) _avatarCache['user:' + x.id] = x.avatar_url; });
+  (res[1].data || []).forEach(function(x){ if (x.avatar_url) _avatarCache['user:' + x.device_id] = x.avatar_url; });
+  // Artist photo wins for anyone who has one — it's the face people recognise.
+  (res[2].data || []).forEach(function(x){
+    if (x.avatar_url) _avatarCache['user:' + x.user_id] = x.avatar_url;
+    if (x.slug) _artistSlugByUser[x.user_id] = x.slug;
+  });
+  (res[3].data || []).forEach(function(x){ if (x.avatar_url) _avatarCache['page:' + x.id] = x.avatar_url; });
+  (res[4].data || []).forEach(function(x){
+    if (x.avatar_url) _avatarCache['name:' + x.name] = x.avatar_url;
+    if (x.slug) _artistSlugByName[x.name] = x.slug;
+  });
+
+  // Record the misses too, so a picture-less author isn't re-queried forever.
+  userIds.forEach(function(id){ if (!('user:' + id in _avatarCache)) _avatarCache['user:' + id] = null; });
+  pageIds.forEach(function(id){ if (!('page:' + id in _avatarCache)) _avatarCache['page:' + id] = null; });
+  names.forEach(function(n){ if (!('name:' + n in _avatarCache)) _avatarCache['name:' + n] = null; });
+}
+
+function authorAvatarUrl(p) {
+  return (p.page_id && _avatarCache['page:' + p.page_id]) ||
+         (p.user_id && _avatarCache['user:' + p.user_id]) ||
+         (p.author_name && _avatarCache['name:' + p.author_name]) || '';
+}
+
 async function loadCityFeed(force) {
   if (_cityFeedLoaded && !force) return;
   var container = document.getElementById('city-feed-container');
@@ -3374,7 +3509,7 @@ async function loadCityFeed(force) {
   // Posts + this device's likes, in parallel
   var results = await Promise.all([
     _sb.from('feed_posts')
-      .select('*, tracks(id,title,featuring,exclusive_tier,stream_count,duration_seconds,audio_url,artist_id,artists(name))')
+      .select('*, tracks(id,title,featuring,exclusive_tier,stream_count,duration_seconds,audio_url,artist_id,artists(name,slug))')
       .order('created_at', { ascending: false })
       .limit(30),
     _sb.from('post_likes').select('post_id').eq('user_id', getGuestId())
@@ -3393,7 +3528,7 @@ async function loadCityFeed(force) {
     .map(function(p){ return p.shared_post_id; });
   if (missingShared.length) {
     var sharedRes = await _sb.from('feed_posts')
-      .select('*, tracks(id,title,featuring,exclusive_tier,stream_count,duration_seconds,audio_url,artists(name))')
+      .select('*, tracks(id,title,featuring,exclusive_tier,stream_count,duration_seconds,audio_url,artists(name,slug))')
       .in('id', missingShared);
     (sharedRes.data || []).forEach(function(p){ _feedPosts[p.id] = p; });
   }
@@ -3409,6 +3544,11 @@ async function loadCityFeed(force) {
       reportCounts[r.target_id] = (reportCounts[r.target_id] || 0) + 1;
     });
   }
+
+  // Real pictures for every author in this batch (including reposted originals)
+  var forAvatars = data.slice();
+  Object.keys(_feedPosts).forEach(function(k){ forAvatars.push(_feedPosts[k]); });
+  try { await resolveAuthorAvatars(forAvatars); } catch (e) {}
 
   var sorted = data.slice();
   if (_feedSort === 'tracks') {
@@ -3612,7 +3752,7 @@ function handleComposerMedia(input) {
 async function populateComposerTracks() {
   var sel = document.getElementById('composer-track');
   if (!sel || sel.options.length > 1) return;
-  var { data } = await _sb.from('tracks').select('id,title,artists(name)').eq('status','live').order('title');
+  var { data } = await _sb.from('tracks').select('id,title,artists(name,slug)').eq('status','live').order('title');
   (data || []).forEach(function(t) {
     var opt = document.createElement('option');
     opt.value = t.id;
@@ -3631,17 +3771,21 @@ function renderFeedPost(p) {
               p.author_role === 'artist' ? '<span class="badge badge-orange" style="font-size:.65rem">Artist</span>' : '';
   var liked = !!_myPostLikes[p.id];
   var isAdminRole = (currentRole === 'admin' || currentRole === 'super');
+  var authorClick = 'openAuthorProfile(&quot;' + (p.user_id || '') + '&quot;,&quot;' + (p.page_id || '') +
+                    '&quot;,&quot;' + escapeHtml(String(p.author_name || '').replace(/["'\\]/g, '')) + '&quot;)';
 
   // Attached track card — playable inline, IG-music-sticker style
   var trackCard = '';
   if (p.tracks) {
     var t = p.tracks;
+    rememberTrackArtist(t);
     var artistName = t.artists ? t.artists.name : '';
     trackCard = '<div class="track-row" style="background:var(--bg4);border:1px solid var(--border);margin-top:.6rem" ' +
       'onclick="playPostTrack(\'' + p.id + '\')">' +
       '<div class="track-art">🎵</div>' +
       '<div class="track-info"><div class="track-title">' + escapeHtml(t.title) + '</div>' +
-        '<div class="track-feat">' + escapeHtml(artistName) + (t.featuring ? ' ft. ' + escapeHtml(t.featuring) : '') + '</div></div>' +
+        '<div class="track-feat">' + artistLinkHtml(artistName, t.artists && t.artists.slug) +
+          (t.featuring ? ' ft. ' + escapeHtml(t.featuring) : '') + '</div></div>' +
       '<div class="track-streams">▶ ' + formatCount(t.stream_count || 0) + '</div>' +
     '</div>';
   }
@@ -3652,7 +3796,10 @@ function renderFeedPost(p) {
     var orig = _feedPosts[p.shared_post_id];
     if (orig) {
       repostEmbed = '<div style="border:1px solid var(--border);border-radius:10px;padding:.7rem .8rem;margin-top:.6rem;background:var(--bg4);cursor:pointer" onclick="scrollToPost(\'' + orig.id + '\')">' +
-        '<div style="font-size:.76rem;font-weight:700;margin-bottom:.25rem">' + escapeHtml(orig.author_avatar||'?') + ' ' + escapeHtml(orig.author_name) + '</div>' +
+        '<div style="display:flex;align-items:center;gap:.4rem;font-size:.76rem;font-weight:700;margin-bottom:.25rem">' +
+          avatarHtml(authorAvatarUrl(orig), orig.author_avatar || '?', 'ava-sm', orig.author_name,
+                     'style="width:22px;height:22px;font-size:.7rem"') +
+          '<span>' + escapeHtml(orig.author_name) + '</span></div>' +
         '<div style="font-size:.8rem;color:var(--muted)">' + escapeHtml((orig.content||'').slice(0,180)) + ((orig.content||'').length > 180 ? '…' : '') + '</div>' +
         (orig.tracks ? '<div style="font-size:.74rem;color:var(--teal);margin-top:.3rem">🎵 ' + escapeHtml(orig.tracks.title) + '</div>' : '') +
       '</div>';
@@ -3673,8 +3820,11 @@ function renderFeedPost(p) {
 
   return '<div class="feed-post" id="post-' + p.id + '">' +
     '<div class="fp-header">' +
-      '<div class="fp-ava" style="background:' + bg + ';cursor:pointer" onclick="openAuthorProfile(\'' + (p.user_id||'') + '\',\'' + (p.page_id||'') + '\',\'' + escapeHtml(p.author_name||'').replace(/'/g,'') + '\')">' + escapeHtml(p.author_avatar||'?') + '</div>' +
-      '<div class="fp-meta"><h4><span style="cursor:pointer" onclick="openAuthorProfile(\'' + (p.user_id||'') + '\',\'' + (p.page_id||'') + '\')">' + escapeHtml(p.author_name) + '</span> ' + badge +
+      avatarHtml(authorAvatarUrl(p), p.author_avatar || '?', 'fp-ava', p.author_name,
+                 'style="background:' + bg + ';cursor:pointer" onclick="' + authorClick + '"') +
+      // The name routes exactly like the avatar — it used to drop author_name,
+      // so clicking a seeded artist's name silently did nothing.
+      '<div class="fp-meta"><h4><span style="cursor:pointer" onclick="' + authorClick + '">' + escapeHtml(p.author_name) + '</span> ' + badge +
         // Follow the author: pages > users; skip self + official PHX
         (p.page_id ? followBtnHtml('page', p.page_id) :
          (p.user_id && p.user_id !== getGuestId() && p.author_role !== 'admin') ? followBtnHtml('user', p.user_id) : '') +
@@ -3740,12 +3890,17 @@ async function loadComments(postId) {
   var { data } = await _sb.from('post_comments')
     .select('*').eq('post_id', postId)
     .order('created_at', { ascending: true }).limit(50);
+  try { await resolveAuthorAvatars(data || []); } catch (e) {}
   var listHtml = (data || []).map(function(c) {
     var d = new Date(c.created_at);
     var diff = Math.floor((Date.now() - d.getTime()) / 60000);
     var when = diff < 1 ? 'now' : diff < 60 ? diff + 'm' : diff < 1440 ? Math.floor(diff/60) + 'h' : Math.floor(diff/1440) + 'd';
-    return '<div style="display:flex;gap:.5rem;margin-bottom:.55rem;font-size:.82rem">' +
-      '<strong style="white-space:nowrap">' + escapeHtml(c.author_name) + '</strong>' +
+    var cClick = 'openAuthorProfile(&quot;' + (c.user_id || '') + '&quot;,&quot;' + (c.page_id || '') +
+                 '&quot;,&quot;' + escapeHtml(String(c.author_name || '').replace(/["'\\]/g, '')) + '&quot;)';
+    return '<div style="display:flex;gap:.5rem;margin-bottom:.55rem;font-size:.82rem;align-items:flex-start">' +
+      avatarHtml(authorAvatarUrl(c), c.author_avatar || '👤', 'ava-sm', c.author_name,
+                 'style="width:24px;height:24px;font-size:.72rem;cursor:pointer" onclick="' + cClick + '"') +
+      '<strong style="white-space:nowrap;cursor:pointer" onclick="' + cClick + '">' + escapeHtml(c.author_name) + '</strong>' +
       '<span style="flex:1">' + escapeHtml(c.content) + '</span>' +
       '<span style="color:var(--muted);font-size:.7rem">' + when + '</span>' +
     '</div>';
@@ -3848,7 +4003,7 @@ async function submitFeedPost() {
 async function shareFeedPost(postId) {
   var p = _feedPosts[postId];
   var text = p ? (p.author_name + ' on PHX: ' + p.content.slice(0, 140)) : 'Check out PHX App';
-  var url = 'https://phx-app.vercel.app/app?post=' + postId;
+  var url = SITE_URL + '/app?post=' + postId;
   trackEvent('post_share', 'post', postId, {});
   if (navigator.share) {
     navigator.share({ title: 'PHX App', text: text, url: url }).catch(function(){});
@@ -3958,7 +4113,7 @@ async function repostToFeed(postId) {
 }
 
 async function copyPostLink(postId, btn) {
-  var url = 'https://phx-app.vercel.app/app?post=' + postId;
+  var url = SITE_URL + '/app?post=' + postId;
   try {
     await navigator.clipboard.writeText(url);
     btn.textContent = '✓ Copied';
@@ -4289,7 +4444,7 @@ async function loadForYou() {
   var results = await Promise.all([
     _sb.from('track_likes').select('track_id').eq('user_id', gid),
     _sb.from('user_events').select('target_id').eq('user_id', gid).eq('event_type', 'play_30s').limit(200),
-    _sb.from('tracks').select('id,title,featuring,exclusive_tier,stream_count,duration_seconds,audio_url,artist_id,created_at,artists(name)').eq('status','live'),
+    _sb.from('tracks').select('id,title,featuring,exclusive_tier,stream_count,duration_seconds,audio_url,artist_id,created_at,artists(name,slug)').eq('status','live'),
     _sb.rpc('get_cooccurrence_recs', { p_user_id: gid, p_limit: 10 }),
     _sb.from('recommendations').select('track_id,score').eq('user_id', gid).eq('model','lightfm')
   ]);
@@ -4341,6 +4496,7 @@ async function loadForYou() {
 
   _forYouTracks = candidates.map(function(c){ return c.t; });
   rail.innerHTML = _forYouTracks.map(function(t, i) {
+    rememberTrackArtist(t);
     var artistName = t.artists ? t.artists.name : 'Unknown Artist';
     var locked = !canPlayTrack(t.exclusive_tier);
     var tierBadge = t.exclusive_tier === 'insider' ? '<span class="status-chip sc-insider" style="font-size:.6rem">Insider</span>' :
@@ -4349,7 +4505,7 @@ async function loadForYou() {
       '<div class="track-num">▶</div>' +
       '<div class="track-art">🎵</div>' +
       '<div class="track-info"><div class="track-title">' + escapeHtml(t.title) + ' ' + tierBadge + '</div>' +
-        '<div class="track-feat">' + escapeHtml(artistName) + (t.featuring ? ' ft. ' + escapeHtml(t.featuring) : '') + '</div></div>' +
+        '<div class="track-feat">' + artistLinkHtml(artistName, t.artists && t.artists.slug) + (t.featuring ? ' ft. ' + escapeHtml(t.featuring) : '') + '</div></div>' +
       '<div class="track-streams">' + formatCount(t.stream_count || 0) + '</div>' +
     '</div>';
   }).join('');
@@ -5064,7 +5220,7 @@ async function loadArtistReferral() {
   var d = res.data || {};
   if (!d.ok) { el.innerHTML = '<div class="pf-empty">🔒 Sign in as this artist to see your invite stats.</div>'; return; }
 
-  var link = 'https://phx-app.vercel.app/app?invite=' + encodeURIComponent(d.code || '');
+  var link = SITE_URL + '/app?invite=' + encodeURIComponent(d.code || '');
   el.innerHTML =
     '<div style="display:flex;align-items:center;gap:.7rem;flex-wrap:wrap;margin-bottom:.9rem">' +
       '<code style="font-family:var(--mono);font-size:1.35rem;font-weight:700;color:var(--orange);letter-spacing:.14em">' +
@@ -5373,7 +5529,7 @@ async function loadPendingTracks() {
 
   var { data, error } = await _sb
     .from('tracks')
-    .select('id, title, featuring, producer, release_type, audio_url, status, submitted_at, artists(name)')
+    .select('id, title, featuring, producer, release_type, audio_url, status, submitted_at, artists(name,slug)')
     .eq('status', 'pending')
     .order('submitted_at', { ascending: true });
 
@@ -5483,7 +5639,7 @@ async function runMusicSearch(query) {
 
   var titleRes = await _sb
     .from('tracks')
-    .select('id,title,featuring,producer,duration_seconds,audio_url,exclusive_tier,stream_count,artist_id,artists(name)')
+    .select('id,title,featuring,producer,duration_seconds,audio_url,exclusive_tier,stream_count,artist_id,artists(name,slug)')
     .eq('status', 'live')
     .ilike('title', like)
     .limit(15);
@@ -5491,7 +5647,7 @@ async function runMusicSearch(query) {
   var byArtistRes = artistIds.length
     ? await _sb
         .from('tracks')
-        .select('id,title,featuring,producer,duration_seconds,audio_url,exclusive_tier,stream_count,artist_id,artists(name)')
+        .select('id,title,featuring,producer,duration_seconds,audio_url,exclusive_tier,stream_count,artist_id,artists(name,slug)')
         .eq('status', 'live')
         .in('artist_id', artistIds)
         .limit(15)
@@ -5595,6 +5751,29 @@ function safeUrl(u) {
   return String(u).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
+// One avatar renderer for every surface. The emoji/initial is rendered first
+// and the photo layers on top of it, so a dead image URL degrades to the
+// fallback instead of leaving a blank circle.
+function avatarHtml(url, fallback, cls, name, attrs) {
+  var src = safeUrl(url);
+  return '<div class="' + (cls || 'ava-sm') + ' has-ava"' + (attrs ? ' ' + attrs : '') + '>' +
+    escapeHtml(fallback || '?') +
+    (src ? '<img class="avatar-img" src="' + src + '" alt="' + escapeHtml(name || '') +
+           '" loading="lazy" onerror="this.remove()">' : '') +
+  '</div>';
+}
+
+// Artist names are how people move around PHX — every one of them should be a
+// door, not a label. Without a slug there's nowhere to go, so render plain text.
+function artistLinkHtml(name, slug, style) {
+  if (!name) return '';
+  var label = escapeHtml(name);
+  if (!slug) return label;
+  var s = escapeHtml(slug);
+  return '<a href="#artist/' + s + '" class="artist-link"' + (style ? ' style="' + style + '"' : '') +
+    ' onclick="event.stopPropagation();showArtistPage(\'' + s + '\');return false">' + label + '</a>';
+}
+
 // Tier hierarchy for gating playback (not search itself)
 function tierRank(role) {
   return { explorer:0, native:1, insider:2, artist:3, admin:3, super:3 }[role] || 0;
@@ -5607,6 +5786,7 @@ function canPlayTrack(exclusiveTier) {
 }
 
 function renderSearchResultRow(t, idx) {
+  rememberTrackArtist(t);
   var artistName = t.artists ? t.artists.name : 'Unknown Artist';
   var locked = !canPlayTrack(t.exclusive_tier);
   var tierBadge = t.exclusive_tier === 'insider' ? '<span class="status-chip sc-insider" style="font-size:.6rem">Insider</span>' :
@@ -5616,7 +5796,7 @@ function renderSearchResultRow(t, idx) {
     '<div class="track-num">▶</div>' +
     '<div class="track-art">🎵</div>' +
     '<div class="track-info"><div class="track-title">' + escapeHtml(t.title) + ' ' + tierBadge + '</div>' +
-      '<div class="track-feat">' + escapeHtml(artistName) + (t.featuring ? ' ft. ' + escapeHtml(t.featuring) : '') + '</div></div>' +
+      '<div class="track-feat">' + artistLinkHtml(artistName, t.artists && t.artists.slug) + (t.featuring ? ' ft. ' + escapeHtml(t.featuring) : '') + '</div></div>' +
     '<div class="track-streams">' + streams + '</div>' +
   '</div>';
 }
@@ -5909,6 +6089,10 @@ var _authorRouteCache = {};
 // name against the artist roster before giving up.
 async function openAuthorProfile(userId, pageId, authorName) {
   if (pageId) { showPageProfile(pageId); return; }   // brand/creator pages have real profiles
+  // The feed already resolved these while fetching avatars — use them rather
+  // than paying for another round trip on every click.
+  if (userId && _artistSlugByUser[userId]) { showArtistPage(_artistSlugByUser[userId]); return; }
+  if (authorName && _artistSlugByName[authorName]) { showArtistPage(_artistSlugByName[authorName]); return; }
   if (!userId) {
     if (authorName) {
       var byName = await _sb.from('artists').select('slug').ilike('name', authorName).maybeSingle();
@@ -5981,7 +6165,7 @@ async function showMemberPage(userId) {
 
     // What this member is into — their liked tracks double as taste signal
     var likesRes = await _sb.from('track_likes')
-      .select('track_id,tracks(id,title,cover_url,artists(name))')
+      .select('track_id,tracks(id,title,cover_url,artists(name,slug))')
       .eq('user_id', userId).limit(6);
     var likes = (likesRes.data || []).filter(function(l){ return l.tracks; });
 
@@ -6209,6 +6393,14 @@ async function playTrackById(trackId, el) {
 // real cover art and link the artist name through to their page.
 var TRACK_ART = {};
 var TRACK_ARTIST = {};
+
+// Every surface that renders a track should register it, so the artist name
+// in the mini player stays clickable no matter where playback started.
+function rememberTrackArtist(t) {
+  if (!t || !t.id || !t.artists || !t.artists.slug) return;
+  TRACK_ARTIST[t.id] = { name: t.artists.name, slug: t.artists.slug };
+  if (t.cover_url && !TRACK_ART[t.id]) TRACK_ART[t.id] = t.cover_url;
+}
 
 // ═══════════════════════════════════════════════════════════════════════
 // ACCESS GATE + ONBOARDING
@@ -6671,6 +6863,7 @@ async function applyAccountRole() {
         if (on) on.textContent = label;
       }
     }
+    paintMyAvatar();   // after setRole(), which rewrites the tile's textContent
   });
 }
 
@@ -6678,6 +6871,7 @@ async function applyAccountRole() {
 _sb.auth.onAuthStateChange(function(event, session) {
   var wasUser = _authUser;
   _authUser = session ? session.user : null;
+  _markAuthResolved();   // identity is now known — release anything waiting on it
   var btn = document.getElementById('auth-btn');
   if (btn) btn.textContent = _authUser ? '👤 ' + (_authUser.email || '').split('@')[0] + ' · Log Out' : 'Log In';
   if (event === 'PASSWORD_RECOVERY') {
@@ -6699,8 +6893,10 @@ _sb.auth.onAuthStateChange(function(event, session) {
     _myProfile = null;
     applyAccountRole();
     loadMyProfile().then(function() {
-      // Fresh account with no @username → claim it now
-      if (_authUser && !_myProfile) {
+      // Fresh account with no @username → claim it now. The row itself may
+      // exist (the signup trigger creates it) with a null handle, so test the
+      // handle rather than the row.
+      if (_authUser && !(_myProfile && _myProfile.username)) {
         var m = document.getElementById('username-modal');
         if (m) m.style.display = 'flex';
       }
@@ -6817,11 +7013,12 @@ async function loadReels() {
   var container = document.getElementById('reels-container');
   if (!container) return;
   var res = await _sb.from('feed_posts')
-    .select('id,author_name,author_avatar,content,likes_count,comments_count,media_url,created_at')
+    .select('id,user_id,page_id,author_name,author_avatar,content,likes_count,comments_count,media_url,created_at')
     .not('media_url', 'is', null)
     .order('created_at', { ascending: false })
     .limit(30);
   var videos = (res.data || []).filter(function(p){ return /\.(mp4|webm|mov)(\?|$)/i.test(p.media_url || ''); });
+  try { await resolveAuthorAvatars(videos); } catch (e) {}
 
   if (!videos.length) {
     container.innerHTML = '<div class="reels-empty">🎬 No video posts yet.<br><br>Post a video from the City Feed composer — camera or upload — and it lands here.</div>';
@@ -6834,7 +7031,12 @@ async function loadReels() {
       '<video src="' + p.media_url + '" loop playsinline preload="metadata" onclick="this.paused?this.play():this.pause()"></video>' +
       '<div class="reel-overlay">' +
         '<div class="reel-info">' +
-          '<div class="reel-author">' + (p.author_avatar||'👤') + ' ' + escapeHtml(p.author_name) + '</div>' +
+          '<div class="reel-author">' +
+            avatarHtml(authorAvatarUrl(p), p.author_avatar || '👤', 'ava-sm', p.author_name,
+                       'style="width:26px;height:26px;font-size:.75rem;cursor:pointer" onclick="' +
+                       'openAuthorProfile(&quot;' + (p.user_id||'') + '&quot;,&quot;' + (p.page_id||'') + '&quot;,&quot;' +
+                       escapeHtml(String(p.author_name||'').replace(/["\'\\]/g,'')) + '&quot;)"') +
+            '<span>' + escapeHtml(p.author_name) + '</span></div>' +
           '<div class="reel-caption">' + escapeHtml(p.content||'') + '</div>' +
         '</div>' +
         '<div class="reel-actions">' +
@@ -7198,7 +7400,7 @@ async function loadAdminOps() {
     var results = await Promise.all([
       _sb.from('profiles').select('id,username,display_name,tier,role,created_at').order('created_at', { ascending: false }).limit(50),
       _sb.from('artists').select('id,name,slug,total_streams,status,verified').order('total_streams', { ascending: false }),
-      _sb.from('tracks').select('title,stream_count,status,exclusive_tier,artists(name)').order('stream_count', { ascending: false }),
+      _sb.from('tracks').select('title,stream_count,status,exclusive_tier,artists(name,slug)').order('stream_count', { ascending: false }),
       _sb.from('subscriptions').select('tier,amount_cents,status'),
       _sb.from('artist_payouts').select('artist_id,total_streams,total_earnings_cents,status'),
       _sb.from('payout_periods').select('total_subscription_revenue_cents,pot_total_cents,pot_free_tier_cents,pot_platform_cents,streams_paid_cents,period_start,status').order('period_start', { ascending: false }),
@@ -7474,6 +7676,13 @@ async function showPageProfile(slugOrId) {
     el.innerHTML = '<div class="pf-empty">Page not found. <a href="#" style="color:var(--orange)" onclick="showArtistDirectory();return false">Browse PHX →</a></div>';
     return;
   }
+  // An artist Page and an artist record are the same person. The artist page
+  // is the richer one (catalog, merch, shows), so send visitors there rather
+  // than to a second, thinner profile with the same name on it.
+  if (pg.page_type === 'artist' && pg.owner_id) {
+    var aliasRes = await _sb.from('artists').select('slug').eq('user_id', pg.owner_id).maybeSingle();
+    if (aliasRes.data && aliasRes.data.slug) { showArtistPage(aliasRes.data.slug); return; }
+  }
   if (pg.slug) { try { window.location.hash = 'page/' + pg.slug; } catch (e) {} }
 
   var pgRes = await Promise.all([
@@ -7729,14 +7938,20 @@ async function showArtistPage(slug) {
         '<button class="ap-navbtn" title="Share" onclick="shareArtistPage(\'' + escapeHtml(artist.slug) + '\',\'' + escapeHtml(artist.name).replace(/'/g,'') + '\')">↗</button>' +
       '</div>' +
       '<div class="ap-herotext">' +
-        '<div class="ap-kicker"><span>PHX Artist</span>' +
-          (artist.city ? '<span class="sep"></span><span class="loc">' + escapeHtml(artist.city) + '</span>' : '') +
-          (artist.verified ? '<span class="ap-vfy">✓</span>' : '') +
-        '</div>' +
-        '<div class="ap-name">' + escapeHtml(artist.name) + '</div>' +
-        '<div class="ap-listeners">' +
-          '<b>' + fmtK(artist.monthly_listeners || 0) + '</b><span>monthly listeners</span>' +
-          '<span class="ap-trend">' + fmtK(artist.total_streams || 0) + ' plays</span>' +
+        '<div class="ap-idrow">' +
+          avatarHtml(artist.avatar_url, (artist.name || '?').charAt(0).toUpperCase(),
+                     'ap-ava', artist.name) +
+          '<div class="ap-idcol">' +
+            '<div class="ap-kicker"><span>PHX Artist</span>' +
+              (artist.city ? '<span class="sep"></span><span class="loc">' + escapeHtml(artist.city) + '</span>' : '') +
+              (artist.verified ? '<span class="ap-vfy">✓</span>' : '') +
+            '</div>' +
+            '<div class="ap-name">' + escapeHtml(artist.name) + '</div>' +
+            '<div class="ap-listeners">' +
+              '<b>' + fmtK(artist.monthly_listeners || 0) + '</b><span>monthly listeners</span>' +
+              '<span class="ap-trend">' + fmtK(artist.total_streams || 0) + ' plays</span>' +
+            '</div>' +
+          '</div>' +
         '</div>' +
       '</div>' +
     '</div>' +
@@ -7856,12 +8071,23 @@ async function populateGenreSelect() {
 // ── TRENDING RAIL (Discover) ───────────────────────────────────────────
 // Was five decorative badges that did nothing. Now real tracks you can play.
 async function loadTrendingRail() {
-  var el = document.getElementById('trending-rail');
-  if (!el) return;
+  // Two places show this rail: Discover and the City Feed sidebar. Same data,
+  // same markup — the sidebar copy used to be hard-coded and drifted.
+  var targets = ['trending-rail', 'feed-trending-rail']
+    .map(function(id){ return document.getElementById(id); })
+    .filter(Boolean);
+  if (!targets.length) return;
+
   var res = await _sb.rpc('tracks_by_genre', { p_genre: null, p_limit: 6 });
   var tracks = res.data || [];
-  if (!tracks.length) { el.innerHTML = '<div class="pf-empty">No tracks yet.</div>'; return; }
-  el.innerHTML = tracks.map(function(t, i) {
+  if (!tracks.length) {
+    targets.forEach(function(el){ el.innerHTML = '<div class="pf-empty">No tracks yet.</div>'; });
+    return;
+  }
+  var html = tracks.map(function(t, i) {
+    // tracks_by_genre returns flat columns, so feed the mini-player cache here
+    if (t.artist_slug) TRACK_ARTIST[t.id] = { name: t.artist_name, slug: t.artist_slug };
+    if (t.cover_url) TRACK_ART[t.id] = t.cover_url;
     var art = safeUrl(t.cover_url);
     var locked = !canPlayTrack(t.exclusive_tier);
     return '<div class="track-row' + (locked ? ' locked' : '') + '" onclick="playTrackById(\'' + t.id + '\', this)">' +
@@ -7869,12 +8095,11 @@ async function loadTrendingRail() {
       '<div class="track-art">' + (art ? '<img src="' + art + '" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:6px">' : '🎵') + '</div>' +
       '<div class="track-info"><div class="track-title">' + escapeHtml(t.title) + '</div>' +
         '<div class="track-feat">' +
-          (t.artist_slug
-            ? '<a href="#artist/' + escapeHtml(t.artist_slug) + '" onclick="event.stopPropagation();showArtistPage(\'' + escapeHtml(t.artist_slug) + '\');return false" style="color:var(--muted)">' + escapeHtml(t.artist_name) + '</a>'
-            : escapeHtml(t.artist_name || '')) + '</div></div>' +
+          artistLinkHtml(t.artist_name, t.artist_slug, 'color:var(--muted)') + '</div></div>' +
       '<div class="track-streams">' + fmtK(t.stream_count || 0) + '</div>' +
     '</div>';
   }).join('');
+  targets.forEach(function(el){ el.innerHTML = html; });
 }
 
 // ── PHX MUSIC CATALOG (live) ───────────────────────────────────────────
@@ -8238,7 +8463,7 @@ async function loadAdminActivity(filterUserId) {
   _activityFilterUser = filterUserId || null;
   try {
     var sq = _sb.from('stream_events')
-      .select('listened_at,user_id,user_tier,counted,seconds_listened,tracks(title),artists(name)')
+      .select('listened_at,user_id,user_tier,counted,seconds_listened,tracks(title),artists(name,slug)')
       .order('listened_at', { ascending: false }).limit(75);
     var eq = _sb.from('user_events')
       .select('created_at,user_id,event_type,entity_type,entity_id,metadata')

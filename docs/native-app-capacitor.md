@@ -29,8 +29,8 @@ const config: CapacitorConfig = {
   appName: 'PHX',
   webDir: 'www',
   server: {
-    url: 'https://phx-app.vercel.app/app',
-    allowNavigation: ['phx-app.vercel.app', 'dnzvtathfpjelffjnqrc.supabase.co'],
+    url: 'https://thephx.app/app',
+    allowNavigation: ['thephx.app', 'dnzvtathfpjelffjnqrc.supabase.co'],
   },
   ios: { contentInset: 'automatic' },
 };
@@ -78,7 +78,7 @@ API for both, free tier is generous).
 - [ ] Apple Developer account ($99/yr) — enroll as the LLC once approved
 - [ ] Google Play Console ($25 one-time)
 - [ ] 1024×1024 app icon + splash (replace the murkmerch placeholder URLs)
-- [ ] Privacy policy URL → https://phx-app.vercel.app/legal (already live)
+- [ ] Privacy policy URL → https://thephx.app/legal (already live)
 - [ ] App Privacy questionnaire: collects email, usage data (streams/likes), no tracking across apps
 - [ ] Screenshots: 6.7" + 5.5" iPhone, tablet optional
 - [ ] Age rating: 12+ (user-generated content with moderation + report flow — both already built, Apple checks for them)

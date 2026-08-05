@@ -3,7 +3,7 @@
 PHX is a fan-powered music streaming platform built for Phoenix city culture. Artists earn directly from their fans' subscriptions — no pool, no middlemen, no label cuts.
 
 **Stack:** Vanilla JS · Supabase (Postgres + Storage + RLS) · Vercel · Chart.js  
-**Live:** phx-app.vercel.app  
+**Live:** thephx.app  
 **DB:** Supabase project `dnzvtathfpjelffjnqrc` (us-west-1, AktivOrbit org)
 
 ---
