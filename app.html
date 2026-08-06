@@ -107,7 +107,23 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
 .card-title{font-family:var(--mono);font-size:.66rem;font-weight:600;text-transform:uppercase;letter-spacing:.16em;color:var(--faint);margin-bottom:1rem}
 
 /* FEED — hairlines, not boxes. Instagram density. */
-.feed-post{background:transparent;border:none;border-bottom:1px solid var(--line);border-radius:0;padding:1.1rem .2rem;margin-bottom:0;transition:background var(--t) var(--ease)}
+.feed-post{background:var(--bg2);border:1px solid var(--line);border-radius:16px;padding:1rem 1.1rem;margin-bottom:.9rem;transition:border-color var(--t) var(--ease)}
+.feed-post:hover{border-color:rgba(249,115,22,.25)}
+/* Composer: avatar + pill input + icon bar, the shape people know from every
+   social app — not a bare form */
+.composer{background:var(--bg2);border:1px solid var(--line);border-radius:16px;padding:1rem 1.1rem;margin-bottom:1rem}
+.composer-top{display:flex;gap:.7rem;align-items:flex-start}
+.composer-input{flex:1;background:var(--bg3);border:1px solid transparent;border-radius:14px;padding:.7rem .95rem;color:var(--white);font-family:inherit;font-size:.9rem;line-height:1.5;resize:none;min-height:46px;transition:border-color var(--t) var(--ease)}
+.composer-input:focus{outline:none;border-color:rgba(249,115,22,.45);background:var(--bg4)}
+.composer-bar{display:flex;align-items:center;gap:.4rem;margin-top:.7rem;flex-wrap:wrap}
+.cp-icon{width:38px;height:38px;border-radius:50%;background:var(--bg3);border:1px solid var(--line);color:var(--white);cursor:pointer;font-size:1rem;display:inline-flex;align-items:center;justify-content:center;transition:border-color var(--t) var(--ease)}
+.cp-icon:hover{border-color:rgba(249,115,22,.45)}
+.cp-track{background:var(--bg3);border:1px solid var(--line);border-radius:999px;color:var(--muted);font-size:.76rem;padding:.45rem .8rem;max-width:180px}
+.cp-post{margin-left:auto;background:linear-gradient(135deg,var(--orange),#EA8C08);border:none;border-radius:999px;color:#fff;font-weight:700;font-size:.86rem;padding:.55rem 1.5rem;cursor:pointer;font-family:var(--disp);letter-spacing:.01em}
+.cp-post:active{transform:scale(.97)}
+.persona-chip{display:inline-flex;align-items:center;gap:.4rem;background:var(--bg3);border:1px solid var(--line);border-radius:999px;padding:.3rem .4rem .3rem .75rem;font-size:.74rem;color:var(--muted)}
+.persona-chip select{background:transparent;color:var(--white);border:none;font-size:.76rem;max-width:190px}
+.persona-chip select:focus{outline:none}
 .feed-post:hover{background:rgba(241,241,248,.015);border-color:var(--line)}
 .fp-header{display:flex;align-items:center;gap:.75rem;margin-bottom:.7rem}
 .fp-ava{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--disp);font-size:1rem;font-weight:600;flex-shrink:0}
@@ -728,6 +744,7 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
     <button class="nav-item" onclick="showView('artist-submit')"><span class="icon">➕</span>Submit Track</button>
     <div class="sb-section">Account</div>
     <button class="nav-item" onclick="showView('artist-profile')"><span class="icon">👤</span>Artist Profile</button>
+    <button class="nav-item" onclick="showView('mypass')"><span class="icon">💳</span>My Pass</button>
     <button class="nav-item" onclick="openMyPage()"><span class="icon">⭐</span>My Page</button>
   </nav>
 
@@ -736,6 +753,7 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
     <div class="sb-section">Community</div>
     <button class="nav-item" onclick="showView('home')"><span class="icon">🏙️</span>City Feed</button>
     <button class="nav-item" onclick="showView('discover')"><span class="icon">🔍</span>Discover</button>
+    <button class="nav-item" onclick="showView('reels')"><span class="icon">🎬</span>Reels</button>
     <button class="nav-item" onclick="showView('music')"><span class="icon">🎵</span>PHX Music</button>
     <div class="sb-section">Platform OS</div>
     <button class="nav-item active" onclick="showView('admin-dashboard')"><span class="icon">📊</span>Dashboard</button>
@@ -1210,15 +1228,17 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
         <div>
           <!-- THE RECEIPT — where my money went this month -->
           <div class="receipt">
+            <!-- Percentages only — the receipt names WHO your listening
+                 supported, never dollar splits. Same rule as the live
+                 receipt renderer: money stays in the artist portal + admin. -->
             <div class="receipt-head"><span>THE RECEIPT · SAMPLE</span><span>JUL 2026</span></div>
-            <div class="receipt-row receipt-divider" style="margin-top:.7rem;border-top:none;border-bottom:1px dashed rgba(36,27,16,.35)"><span>PHX NATIVE PASS</span><b>$15.00</b></div>
-            <div class="receipt-row total"><span>TO PHOENIX ARTISTS</span><b style="color:#C2410C">$7.50</b></div>
+            <div class="receipt-row receipt-divider" style="margin-top:.7rem;border-top:none;border-bottom:1px dashed rgba(36,27,16,.35)"><span>YOUR LISTENING</span><b>PAID YOUR ARTISTS</b></div>
             <div class="receipt-artist">
-              <div class="receipt-artist-line"><span>MURKEMZ</span><span><span class="pct">86%</span><b>$6.45</b></span></div>
+              <div class="receipt-artist-line"><span>MURKEMZ</span><span><span class="pct">86%</span> of your listening</span></div>
               <div class="receipt-bar"><div class="receipt-bar-fill" style="width:86%"></div></div>
             </div>
             <div class="receipt-artist">
-              <div class="receipt-artist-line"><span>+ EVERY ARTIST YOU PLAY</span><span><span class="pct">14%</span><b>$1.05</b></span></div>
+              <div class="receipt-artist-line"><span>+ EVERY ARTIST YOU PLAY</span><span><span class="pct">14%</span></span></div>
               <div class="receipt-bar"><div class="receipt-bar-fill" style="width:14%"></div></div>
             </div>
             <div class="receipt-foot"><span>SAMPLE RECEIPT · YOURS ARRIVES MONTHLY</span><span class="receipt-barcode"></span></div>
@@ -1288,7 +1308,7 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
         <div>
           <div class="card">
             <div class="card-title">Listening Activity</div>
-            <canvas id="activity-chart" height="180"></canvas>
+            <div style="position:relative;height:200px"><canvas id="activity-chart"></canvas></div>
           </div>
           <!-- MY PAGES — one account, many identities (FB Pages model) -->
           <div class="card" style="margin-top:1.2rem">
@@ -1606,7 +1626,7 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
           <span class="badge badge-teal" style="margin-left:.5rem">● Live</span>
           <button class="tb-btn" style="margin-left:auto;font-size:.76rem;padding:.3rem .65rem" onclick="loadAdminStreamData()">↻ Refresh</button>
         </div>
-        <div id="admin-stream-feed" style="min-height:80px;display:flex;align-items:center;justify-content:center">
+        <div id="admin-stream-feed" style="min-height:80px;max-height:300px;overflow-y:auto;display:flex;align-items:center;justify-content:center">
           <span style="color:var(--muted);font-size:.84rem">Loading…</span>
         </div>
       </div>
@@ -1955,8 +1975,8 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
   <button class="bt-item" data-view="artist-earnings" onclick="btNav('artist-earnings',this)">
     <span class="bt-icon">💰</span><span class="bt-lbl">Earnings</span>
   </button>
-  <button class="bt-item" data-view="artist-submit" onclick="btNav('artist-submit',this)">
-    <span class="bt-icon">➕</span><span class="bt-lbl">Submit</span>
+  <button class="bt-item" data-view="reels" onclick="btNav('reels',this)">
+    <span class="bt-icon">🎬</span><span class="bt-lbl">Reels</span>
   </button>
 </nav>
 <nav class="bottom-tabs" id="bt-admin" style="display:none" aria-label="Admin navigation">
@@ -1968,6 +1988,9 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
   </button>
   <button class="bt-item" data-view="admin-content" onclick="btNav('admin-content',this)">
     <span class="bt-icon">🎵</span><span class="bt-lbl">Content</span>
+  </button>
+  <button class="bt-item" data-view="reels" onclick="btNav('reels',this)">
+    <span class="bt-icon">🎬</span><span class="bt-lbl">Reels</span>
   </button>
   <button class="bt-item" data-view="admin-system" onclick="btNav('admin-system',this)">
     <span class="bt-icon">⚙️</span><span class="bt-lbl">Settings</span>
@@ -2085,8 +2108,10 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
 
 <!-- MINI PLAYER -->
 <div class="mini-player">
-  <div class="mp-art">🎵</div>
-  <div class="mp-info"><div class="mp-title" id="mp-title" onclick="showView('music')" style="cursor:pointer" title="Open player">PHX</div><div class="mp-artist" id="mp-artist">Murkemz · Recess EP</div></div>
+  <!-- Tapping the art or title opens the full player (Now Playing + Up Next),
+       same gesture as Apple Music's bottom bar -->
+  <div class="mp-art" onclick="openFullPlayer()" style="cursor:pointer" title="Open player">🎵</div>
+  <div class="mp-info" onclick="openFullPlayer()" title="Open player"><div class="mp-title" id="mp-title">PHX</div><div class="mp-artist" id="mp-artist">Murkemz · Recess EP</div></div>
   <div class="mp-controls">
     <button class="mp-btn" aria-label="Previous track" onclick="prevTrack()">⏮</button>
     <button class="mp-btn play" id="mp-play-btn" aria-label="Play or pause" onclick="togglePlay()">▶</button>
@@ -2099,6 +2124,14 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
 
 <script>
 // ── VIEW SWITCHING ─────────────────────────────────────────────────────
+function openFullPlayer() {
+  showView('music');
+  setTimeout(function() {
+    var np = document.querySelector('.music-player-expanded');
+    if (np) np.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 120);
+}
+
 var titles = {
   home:'City Feed', discover:'Discover PHX', music:'PHX Music', reels:'Reels',
   events:'PHX Events', eats:'PHX Eats', audio:'PHX Audio',
@@ -3026,6 +3059,9 @@ window.addEventListener('load', function() {
       },
       options: {
         responsive: true,
+        // Without this the canvas keeps its aspect ratio and balloons to fill
+        // whatever width it gets — on mobile that meant a comically tall chart
+        maintainAspectRatio: false,
         plugins: { legend: { labels: { color:'#6B7280', font:{size:10} } } },
         scales: {
           x: { grid:{color:'rgba(255,255,255,.04)'}, ticks:{color:'#6B7280'} },
@@ -3632,51 +3668,47 @@ function renderComposer() {
   }
   var persona = currentPersona();
   var opts = personaOptions();
+  var myAva = (_myProfile && _myProfile.avatar_url) || '';
   var identityChip;
   if (opts.length > 1) {
-    // Multiple identities (admin voice or owned Pages) → picker
     var choice = localStorage.getItem('phx_persona_choice') || opts[0].id;
-    identityChip = '<div style="display:flex;align-items:center;gap:.45rem;margin-bottom:.5rem;font-size:.76rem;color:var(--muted)">' +
-      'Posting as <select onchange="setPersonaChoice(this.value)" aria-label="Post as" ' +
-        'style="background:var(--bg3);color:var(--white);border:1px solid var(--border);border-radius:8px;font-size:.76rem;padding:.25rem .45rem">' +
+    identityChip = '<div class="persona-chip">Posting as' +
+      '<select onchange="setPersonaChoice(this.value)" aria-label="Post as">' +
         opts.map(function(o) {
           return '<option value="' + o.id + '"' + (o.id === choice ? ' selected' : '') + '>' + escapeHtml(o.label) + '</option>';
         }).join('') +
       '</select>' +
-      (persona.role === 'admin' ? ' <span class="badge badge-orange" style="font-size:.6rem">Official</span>' : '') +
-      ' <a href="#" style="color:var(--orange);font-size:.7rem" onclick="editUsername();return false" aria-label="Change username">✏️</a>' +
+      '<a href="#" style="color:var(--orange)" onclick="editUsername();return false" aria-label="Change username">✏️</a>' +
     '</div>';
   } else {
-    identityChip = '<div style="display:flex;align-items:center;gap:.45rem;margin-bottom:.5rem;font-size:.76rem;color:var(--muted)">' +
-      'Posting as <strong style="color:var(--white)">' + persona.avatar + ' ' + escapeHtml(persona.name) + '</strong>' +
-      ' <a href="#" style="color:var(--orange);font-size:.7rem" onclick="editUsername();return false" aria-label="Change username">✏️ change</a>' +
-    '</div>';
+    identityChip = '<div class="persona-chip"><strong style="color:var(--white)">' + persona.avatar + ' ' + escapeHtml(persona.name) + '</strong>' +
+      '<a href="#" style="color:var(--orange)" onclick="editUsername();return false" aria-label="Change username">✏️</a></div>';
   }
-  return '<div class="feed-post" style="margin-bottom:1rem">' +
-    identityChip +
-    '<textarea id="composer-text" class="form-input" rows="2" maxlength="1000" ' +
-      'placeholder="What\'s happening in the city?" ' +
-      'style="resize:none;width:100%;font-family:inherit;margin-bottom:.6rem"></textarea>' +
-    '<div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap">' +
-      '<select id="composer-track" class="form-select" style="flex:1;min-width:150px;font-size:.8rem;padding:.4rem .6rem">' +
-        '<option value="">🎵 Attach a track (optional)</option>' +
+  return '<div class="composer">' +
+    '<div class="composer-top">' +
+      avatarHtml(myAva, persona.avatar || '👤', 'ava-sm', persona.name, 'style="width:40px;height:40px;font-size:1.05rem"') +
+      '<textarea id="composer-text" class="composer-input" rows="2" maxlength="1000" placeholder="What\'s happening in the city?"></textarea>' +
+    '</div>' +
+    '<div class="composer-bar">' +
+      identityChip +
+      '<select id="composer-track" class="cp-track" title="Attach a track">' +
+        '<option value="">🎵 Add track</option>' +
       '</select>' +
       '<input type="file" id="composer-media" accept="video/mp4,video/webm,video/quicktime,image/jpeg,image/png,image/webp,image/gif" style="display:none" onchange="handleComposerMedia(this)">' +
       '<input type="file" id="composer-camera" accept="image/*,video/*" capture="environment" style="display:none" onchange="handleComposerMedia(this)">' +
-      '<button class="tb-btn" style="font-size:.78rem" title="Record with camera" onclick="document.getElementById(\'composer-camera\').click()">📷 Camera</button>' +
-      '<button class="tb-btn" id="composer-media-btn" style="font-size:.78rem" title="Upload from library" onclick="document.getElementById(\'composer-media\').click()">🖼️ Upload</button>' +
-      '<button class="upgrade-btn" style="width:auto;padding:.5rem 1.2rem;font-size:.82rem;margin:0" id="composer-post-btn" onclick="submitFeedPost()">Post</button>' +
+      '<button class="cp-icon" title="Record with camera" onclick="document.getElementById(\'composer-camera\').click()">📷</button>' +
+      '<button class="cp-icon" id="composer-media-btn" title="Add a photo or video" onclick="document.getElementById(\'composer-media\').click()">🖼️</button>' +
+      '<button class="cp-post" id="composer-post-btn" onclick="submitFeedPost()">Post</button>' +
     '</div>' +
     '<div id="composer-media-name" style="display:none;font-size:.74rem;color:var(--green);margin-top:.4rem"></div>' +
     '<div id="composer-media-preview" style="display:none;margin-top:.6rem"></div>' +
     '<div id="composer-error" style="display:none;color:var(--red);font-size:.78rem;margin-top:.4rem"></div>' +
   '</div>' +
-  // Feed views — Popular is the default (IG/TikTok pattern)
-  '<div style="display:flex;gap:.5rem;margin-bottom:.8rem;flex-wrap:wrap">' +
+  '<div style="display:flex;gap:.5rem;margin-bottom:.9rem;flex-wrap:wrap">' +
     ['top:🔥 Popular', 'latest:🕐 Latest', 'following:⭐ Following', 'tracks:🎵 Music'].map(function(v) {
       var parts = v.split(':');
       var active = _feedSort === parts[0];
-      return '<button class="tb-btn" style="font-size:.76rem;' + (active ? 'color:var(--orange);border-color:rgba(249,115,22,.4)' : '') + '" onclick="setFeedSort(\'' + parts[0] + '\')">' + parts[1] + '</button>';
+      return '<button class="tb-btn" style="border-radius:999px;font-size:.76rem;' + (active ? 'color:var(--orange);border-color:rgba(249,115,22,.4)' : '') + '" onclick="setFeedSort(\'' + parts[0] + '\')">' + parts[1] + '</button>';
     }).join('') +
   '</div>';
 }
@@ -5894,6 +5926,12 @@ function setAuthTab(tab) {
   if (tw) tw.style.display = (tab === 'signup') ? 'flex' : 'none';
   var st = document.getElementById('auth-signin-terms');
   if (st) st.style.display = (tab === 'signup') ? 'none' : 'block';
+  // Sign-in accepts @username too; signup needs a real email address
+  var em = document.getElementById('auth-email');
+  if (em) {
+    em.placeholder = tab === 'signin' ? 'you@email.com or @username' : 'you@email.com';
+    em.type = tab === 'signin' ? 'text' : 'email';
+  }
 }
 
 async function sendPasswordReset() {
@@ -5972,15 +6010,24 @@ async function signInWithGoogle() {
 }
 
 async function submitAuth() {
-  var email = (document.getElementById('auth-email') || {}).value || '';
+  var email = ((document.getElementById('auth-email') || {}).value || '').trim();
   var password = (document.getElementById('auth-password') || {}).value || '';
   var errEl = document.getElementById('auth-error');
   var infoEl = document.getElementById('auth-info');
   errEl.style.display = 'none'; infoEl.style.display = 'none';
   if (!email || password.length < 8) {
-    errEl.textContent = 'Enter a valid email and a password of 8+ characters.';
+    errEl.textContent = 'Enter your email or @username and a password of 8+ characters.';
     errEl.style.display = 'block';
     return;
+  }
+  // Instagram-style: the sign-in box takes @username OR email. Anything
+  // without an @-domain is treated as a username and resolved server-side.
+  if (_authTab !== 'signup' && email.indexOf('@') !== 0 && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+    var lookup = await _sb.rpc('login_email_for', { p_username: email.replace(/^@/, '') });
+    if (lookup.data) email = lookup.data;
+  } else if (_authTab !== 'signup' && email.indexOf('@') === 0) {
+    var lookup2 = await _sb.rpc('login_email_for', { p_username: email.slice(1) });
+    if (lookup2.data) email = lookup2.data;
   }
   var btn = document.getElementById('auth-submit-btn');
   btn.disabled = true;
@@ -6878,6 +6925,13 @@ async function applyAccountRole() {
   else if (p.tier === 'native') role = 'native';
   else role = 'explorer';
   var label = p.display_name || (p.username ? '@' + p.username : (_authUser.email || '').split('@')[0]);
+  // Security model: staff/artist DOM is REMOVED for lower roles, not hidden.
+  // So when someone signs IN and their role needs surfaces this page load
+  // already stripped, the only honest fix is a one-time reload — otherwise
+  // they land on a blank shell until they refresh by hand.
+  var needsAdminDom = (role === 'super' || role === 'admin') && !document.getElementById('nav-admin');
+  var needsArtistDom = role === 'artist' && !document.getElementById('nav-artist');
+  if (needsAdminDom || needsArtistDom) { window.location.reload(); return; }
   _accountRole = role;   // the one place this is ever assigned
   _roleResolved = true;
   _whenDomReady(function() {
@@ -8215,11 +8269,9 @@ async function openMyPage() {
     dests.push({ kind: 'page', label: p.name, sub: (p.page_type || 'page') + ' page',
       ava: p.avatar_url, emoji: p.avatar, go: function(){ showPageProfile(p.id); } });
   });
-  var uid = _authUser.id;
-  dests.push({ kind: 'member', label: (_myProfile && _myProfile.username) ? '@' + _myProfile.username : 'My profile',
-    sub: 'Personal profile', ava: _myProfile && _myProfile.avatar_url,
-    go: function(){ showMemberPage(uid); } });
-
+  // Pages only — the personal profile lives under Profile in the sidebar,
+  // listing it here twice read as "three accounts" instead of one.
+  if (!dests.length) { showToast('No pages yet — create one from Profile → Pages.'); return; }
   if (dests.length === 1) { dests[0].go(); return; }
 
   window._myPageDests = dests;
@@ -8472,6 +8524,7 @@ async function loadTrendingRail() {
 // never actually reached the music page. Now it renders from the database
 // and can be filtered by genre.
 var _catalogGenre = '';
+var _catalogExpanded = false;
 
 async function loadMusicCatalog() {
   var list = document.getElementById('music-catalog');
@@ -8499,7 +8552,9 @@ async function loadMusicCatalog() {
     list.innerHTML = '<div class="pf-empty">No tracks in this genre yet.</div>';
     return;
   }
-  list.innerHTML = tracks.map(function(t, i) {
+  // Spotlight shows the hits, not the archive: six rows, then View all
+  var shown = _catalogExpanded ? tracks : tracks.slice(0, 6);
+  list.innerHTML = shown.map(function(t, i) {
     var locked = !canPlayTrack(t.exclusive_tier);
     var mins = Math.floor((t.duration_seconds||0)/60), secs = (t.duration_seconds||0)%60;
     var dur = t.duration_seconds ? (mins + ':' + (secs<10?'0':'') + secs) : '';
@@ -8519,7 +8574,11 @@ async function loadMusicCatalog() {
       '<div class="track-streams">' + fmtK(t.stream_count || 0) + '</div>' +
       (dur ? '<div class="track-time">' + dur + '</div>' : '') +
     '</div>';
-  }).join('');
+  }).join('') +
+  (tracks.length > 6
+    ? '<button class="pf-btn" style="width:100%;justify-content:center;margin-top:.5rem" onclick="_catalogExpanded=!_catalogExpanded;loadMusicCatalog()">' +
+        (_catalogExpanded ? 'Show less' : 'View all ' + tracks.length + ' tracks') + '</button>'
+    : '');
 
   // Up Next: the most-played playable tracks, from real data
   var q = document.getElementById('queue-list');
