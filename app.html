@@ -8789,14 +8789,18 @@ function openAlbumFromMusic(slug, albumId) {
 
 function setCatalogGenre(g) { _catalogGenre = g || ''; loadMusicCatalog(); }
 
-// A show happens in the VENUE's timezone, not the viewer's. Rendering with
-// the browser's zone showed a Phoenix fan "6:00 PM" for a 7:00 PM Albuquerque
-// door time — Arizona skips DST, New Mexico doesn't. Always show venue-local,
-// and name the zone so nobody has to guess.
+// Everything else in PHX renders in the VIEWER's local timezone — that's the
+// browser default and it's what we want. Shows are the one exception: a show
+// in a city happens in that city's time, so a Phoenix fan was seeing "6:00 PM"
+// for a 7:00 PM Albuquerque door time (Arizona skips DST, New Mexico doesn't).
+// A LIVESTREAM has no venue — it happens at the same instant everywhere — so
+// it goes back to the viewer's own zone. Either way the zone is named, so
+// nobody has to guess, and we never say where the VIEWER is.
 function showTimeParts(s) {
-  var tz = s.timezone || 'America/Phoenix';
   var d = new Date(s.starts_at);
-  var opt = { timeZone: tz };
+  // Livestream → viewer's zone (undefined lets Intl use the local default)
+  var tz = s.is_stream ? undefined : (s.timezone || 'America/Phoenix');
+  var opt = tz ? { timeZone: tz } : {};
   try {
     return {
       mon:  d.toLocaleDateString('en-US', Object.assign({ month: 'short' }, opt)).toUpperCase(),

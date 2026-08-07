@@ -21,7 +21,7 @@
         },
         {
           "key": "X-Frame-Options",
-          "value": "SAMEORIGIN"
+          "value": "DENY"
         },
         {
           "key": "Referrer-Policy",
@@ -29,7 +29,11 @@
         },
         {
           "key": "Permissions-Policy",
-          "value": "geolocation=(), microphone=(), payment=()"
+          "value": "geolocation=(), microphone=(), camera=(), payment=()"
+        },
+        {
+          "key": "Content-Security-Policy-Report-Only",
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://dnzvtathfpjelffjnqrc.supabase.co https://cdn.shopify.com https://murkmerch.com; media-src 'self' blob: data: https://dnzvtathfpjelffjnqrc.supabase.co https://cdn.shopify.com; connect-src 'self' https://dnzvtathfpjelffjnqrc.supabase.co wss://dnzvtathfpjelffjnqrc.supabase.co https://cdn.jsdelivr.net https://fonts.googleapis.com https://fonts.gstatic.com; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
         }
       ]
     },
@@ -79,6 +83,28 @@
         {
           "key": "Cache-Control",
           "value": "public, max-age=0, s-maxage=3600, stale-while-revalidate=86400"
+        }
+      ]
+    },
+    {
+      "source": "/assets/video/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
+    {
+      "source": "/assets/fonts/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        },
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
         }
       ]
     }
