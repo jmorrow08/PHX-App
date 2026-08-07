@@ -1,4 +1,6 @@
 # PHX — Algorithm Decisions (locked)
+
+> STATUS: current as of 2026-08-07 — locked decisions
 _Decided by Jaye, 2026-08-03. These set the `V` weights in the ranking formula. Revisit only deliberately._
 
 ---

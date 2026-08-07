@@ -1,4 +1,6 @@
 # PHX — Beta Build Plan
+
+> STATUS: superseded by PHX-Master-Status-and-Loose-Ends.md — most gaps listed here have since closed (auth roles, bootstrap, invite gate)
 ### Everything it takes to get real users signed up and the first artist live
 *Prepared July 30, 2026 · Based on a full audit of the phx codebase, the live Supabase project (dnzvtathfpjelffjnqrc), the Lytbub Technologies stack, and deep research into streaming law, payout rails, audio infra, and merch integrations.*
 

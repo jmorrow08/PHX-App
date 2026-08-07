@@ -1,4 +1,6 @@
 # PHX — Launch Strategy
+
+> STATUS: current as of 2026-08-07
 ### How to take over Phoenix culture, starting from one artist
 *July 30, 2026 · Built from competitor teardowns (EVEN, Audiomack, Bandcamp, SoundCloud FPR, UnitedMasters, Partiful/Dice) and Phoenix-scene research. Aligned with the atomic-network plan in your PHX strategy docs.*
 

@@ -1533,34 +1533,12 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
       </div>
     </div>
 
-    <!-- ARTIST — PROFILE -->
+    <!-- ARTIST — PROFILE: loads the signed-in artist's real row; saves write
+         back through the owner RLS policy. Was a hard-coded Murkemz mock with
+         dead "coming soon" buttons. -->
     <div class="view" id="v-artist-profile">
-      <div class="grid-2">
-        <div class="card">
-          <div class="card-title">Artist Profile</div>
-          <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1.5rem">
-            <div style="width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,var(--orange),var(--purple));display:flex;align-items:center;justify-content:center;font-size:2rem;font-weight:700;flex-shrink:0">M</div>
-            <div>
-              <div style="font-size:1.1rem;font-weight:800">Murkemz</div>
-              <div style="font-size:.82rem;color:var(--orange)">PHX Founder · Verified Artist</div>
-              <div style="font-size:.76rem;color:var(--muted)">@murkemz</div>
-            </div>
-          </div>
-          <div class="form-field"><label class="form-label">Display Name</label><input class="form-input" type="text" value="Murkemz"></div>
-          <div class="form-field"><label class="form-label">Genre</label><input class="form-input" type="text" value="PHX Hip-Hop"></div>
-          <div class="form-field"><label class="form-label">Bio</label><textarea class="form-input" rows="3" style="resize:vertical">Phoenix-based rapper, founder of PHX App. Known for collabs with Freeway (Roc-A-Fella), Inspectah Deck (Wu-Tang), and Chris Webby.</textarea></div>
-          <div class="form-field"><label class="form-label">City</label><input class="form-input" type="text" value="Phoenix, AZ"></div>
-          <button class="upgrade-btn" disabled style="opacity:.6;cursor:default" title="Profile editing ships with the artist portal">Save Changes — coming soon</button>
-        </div>
-        <div class="card">
-          <div class="card-title">Social Links</div>
-          <div class="form-field"><label class="form-label">Instagram</label><input class="form-input" type="text" placeholder="@handle"></div>
-          <div class="form-field"><label class="form-label">Twitter / X</label><input class="form-input" type="text" placeholder="@handle"></div>
-          <div class="form-field"><label class="form-label">Spotify</label><input class="form-input" type="text" placeholder="Artist URL"></div>
-          <div class="form-field"><label class="form-label">Apple Music</label><input class="form-input" type="text" placeholder="Artist URL"></div>
-          <div class="form-field"><label class="form-label">Website</label><input class="form-input" type="text" placeholder="https://"></div>
-          <button class="upgrade-btn" disabled style="opacity:.6;cursor:default" title="Profile editing ships with the artist portal">Save Links — coming soon</button>
-        </div>
+      <div class="grid-2" id="artist-profile-editor">
+        <div class="card"><div class="pf-empty">Loading your artist profile…</div></div>
       </div>
     </div>
 
@@ -2193,7 +2171,7 @@ function openJoinSheet(what) {
     '</div>';
 }
 function closeJoinSheet(){
-  try { sessionStorage.setItem('phx_join_dismissed', '1'); } catch (e) {}
+  try { sessionStorage.setItem('phx_join_dismissed', '1'); } catch (e) { reportFailure('closeJoinSheet', e); }
   var m = document.getElementById('join-sheet'); if (m) m.style.display = 'none';
 }
 
@@ -2282,6 +2260,7 @@ function showView(id) {
   if (id === 'artist-earnings') loadArtistReferral();
   if (id === 'admin-merch') loadMerchConnections();
   if (id === 'artist-tracks' || id === 'artist-analytics' || id === 'artist-earnings') loadArtistDashboard();
+  if (id === 'artist-profile') loadArtistProfileEditor();
   if (id === 'home') { loadCityFeed(); loadTrendingRail(); }
   if (id === 'profile') loadMyPages();
   if (id === 'discover') { loadForYou(); loadTrendingRail(); }
@@ -2563,6 +2542,19 @@ function getDeviceId() {
 
 // ── BEHAVIORAL EVENT TRACKING ─────────────────────────────────────────
 // All events land in user_events table. Powers future recommendations + fraud ML.
+// Silent failure is how production bugs hide. Every catch that used to be
+// empty now routes here: always visible in the console, and best-effort
+// logged to user_events so the ops digest can count what actually breaks.
+// Guarded so a failing logger can never take the app down or loop.
+function reportFailure(where, e) {
+  try { console.error('[PHX] ' + where + ':', e); } catch (ignore) {}
+  try {
+    trackEvent('client_error', 'error', null, {
+      where: where, message: String((e && e.message) || e).slice(0, 300)
+    });
+  } catch (ignore) {}
+}
+
 function trackEvent(eventType, entityType, entityId, metadata) {
   if (!_sb) return;
   var payload = {
@@ -2618,12 +2610,9 @@ function uuidv4() {
 }
 
 // Persist a guest UUID per browser so the same device can't spam
-function getGuestId() {
-  var key = 'phx_guest_id';
-  var id = localStorage.getItem(key);
-  if (!id) { id = uuidv4(); localStorage.setItem(key, id); }
-  return id;
-}
+// getGuestId() lives in the auth section (auth id when signed in, device
+// UUID for guests). A duplicate declaration used to sit here — two function
+// declarations in one scope meant only hoisting order decided which ran.
 
 // One session ID per page load — deduplicates the same track within one visit
 var SESSION_ID = Math.random().toString(36).slice(2) + Date.now().toString(36);
@@ -2868,7 +2857,7 @@ if ('mediaSession' in navigator) {
           playbackRate: 1,
           position: PHX_AUDIO.currentTime
         });
-      } catch (e) {}
+      } catch (e) { reportFailure('seekToFraction', e); }
     }
   });
 }
@@ -3165,7 +3154,7 @@ function whenAuthResolved() {
 function _markAuthResolved() {
   if (_authResolved) return;
   _authResolved = true;
-  _authWaiters.splice(0).forEach(function(fn) { try { fn(); } catch (e) {} });
+  _authWaiters.splice(0).forEach(function(fn) { try { fn(); } catch (e) { reportFailure('_markAuthResolved', e); } });
 }
 
 // Load live stream counts + profile + city feed + liked songs + pages + notifs on startup
@@ -3618,7 +3607,7 @@ async function loadCityFeed(force) {
   // Real pictures for every author in this batch (including reposted originals)
   var forAvatars = data.slice();
   Object.keys(_feedPosts).forEach(function(k){ forAvatars.push(_feedPosts[k]); });
-  try { await resolveAuthorAvatars(forAvatars); } catch (e) {}
+  try { await resolveAuthorAvatars(forAvatars); } catch (e) { reportFailure('loadCityFeed', e); }
 
   var sorted = data.slice();
   if (_feedSort === 'tracks') {
@@ -3956,7 +3945,7 @@ async function loadComments(postId) {
   var { data } = await _sb.from('post_comments')
     .select('*').eq('post_id', postId)
     .order('created_at', { ascending: true }).limit(50);
-  try { await resolveAuthorAvatars(data || []); } catch (e) {}
+  try { await resolveAuthorAvatars(data || []); } catch (e) { reportFailure('loadComments', e); }
   var listHtml = (data || []).map(function(c) {
     var d = new Date(c.created_at);
     var diff = Math.floor((Date.now() - d.getTime()) / 60000);
@@ -4856,7 +4845,7 @@ async function submitTrack() {
   var coverUrl = null;
   var coverSrc = _coverFile || _coverExtracted;
   if (!coverSrc) {
-    try { coverSrc = await extractId3Cover(files[0]); } catch (e) {}
+    try { coverSrc = await extractId3Cover(files[0]); } catch (e) { reportFailure('fail', e); }
   }
   if (coverSrc) {
     if (progLbl) progLbl.textContent = 'Uploading cover art…';
@@ -5984,12 +5973,12 @@ async function signInWithGoogle() {
     if (tw) tw.style.display = 'flex';
     return;
   }
-  if (termsEl && termsEl.checked) { try { localStorage.setItem('phx_terms_ok', PHX_TERMS_VERSION); } catch (e) {} }
+  if (termsEl && termsEl.checked) { try { localStorage.setItem('phx_terms_ok', PHX_TERMS_VERSION); } catch (e) { reportFailure('signInWithGoogle', e); } }
   var inviteEl = document.getElementById('auth-invite');
   var code = inviteEl ? (inviteEl.value || '').trim().toUpperCase() : '';
-  if (code) { try { localStorage.setItem('phx_pending_invite', code); } catch (e) {} }
+  if (code) { try { localStorage.setItem('phx_pending_invite', code); } catch (e) { reportFailure('signInWithGoogle', e); } }
   var pending = '';
-  try { pending = localStorage.getItem('phx_pending_invite') || ''; } catch (e) {}
+  try { pending = localStorage.getItem('phx_pending_invite') || ''; } catch (e) { reportFailure('signInWithGoogle', e); }
   if (_requiresInvite && !pending) {
     if (errEl) {
       errEl.textContent = 'Enter your invite code first — PHX is invite-only right now.';
@@ -6050,7 +6039,7 @@ async function submitAuth() {
       btn.disabled = false;
       return;
     }
-    if (inviteCode) { try { localStorage.setItem('phx_pending_invite', inviteCode); } catch (e) {} }
+    if (inviteCode) { try { localStorage.setItem('phx_pending_invite', inviteCode); } catch (e) { reportFailure('submitAuth', e); } }
     res = await _sb.auth.signUp({ email: email, password: password,
       options: {
         emailRedirectTo: window.location.origin + '/app.html',
@@ -6193,7 +6182,7 @@ async function openAuthorProfile(userId, pageId, authorName) {
       showArtistPage(res.data.slug);
       return;
     }
-  } catch (e) {}
+  } catch (e) { reportFailure('openAuthorProfile', e); }
   _authorRouteCache[userId] = { type: 'member' };
   showMemberPage(userId);
 }
@@ -6379,7 +6368,7 @@ async function openMerchItem(productId) {
     } else {
       showToast('This one drops soon.');
     }
-  } catch (e) {}
+  } catch (e) { reportFailure('openMerchItem', e); }
 }
 
 // ── STARTER RAIL ───────────────────────────────────────────────────────
@@ -6525,7 +6514,7 @@ async function submitWallCode() {
   var code = (el ? el.value : '').trim().toUpperCase();
   if (!code) { msg.textContent = 'Enter your code.'; return; }
   msg.style.color = 'var(--muted)'; msg.textContent = 'Checking…';
-  try { localStorage.setItem('phx_pending_invite', code); } catch (e) {}
+  try { localStorage.setItem('phx_pending_invite', code); } catch (e) { reportFailure('submitWallCode', e); }
   await redeemPendingInvite();
   var res = await _sb.from('profiles').select('access_status').eq('id', _authUser.id).maybeSingle();
   if (res.data && res.data.access_status === 'active') {
@@ -6537,7 +6526,7 @@ async function submitWallCode() {
   }
 }
 
-async function signOutNow() { try { await _sb.auth.signOut(); } catch (e) {} location.reload(); }
+async function signOutNow() { try { await _sb.auth.signOut(); } catch (e) { reportFailure('signOutNow', e); } location.reload(); }
 function closeOnboard() { var m = document.getElementById('onboard-modal'); if (m) m.style.display = 'none'; }
 
 // ── 3-step setup, runs once ─────────────────────────────────────────────
@@ -6682,7 +6671,7 @@ async function onbNext(skip) {
             var pub = _sb.storage.from('post-media').getPublicUrl(path);
             _onbAvatarUrl = pub.data ? pub.data.publicUrl : null;
           }
-        } catch (e) {}
+        } catch (e) { reportFailure('onbNext', e); }
       }
     }
     _onbStep = 3; renderOnboard(); return;
@@ -6735,7 +6724,7 @@ async function finishOnboarding(skipFollows) {
 // Deferring is recorded so the wizard can nudge again in 24h instead of
 // vanishing the moment someone taps away.
 async function deferOnboarding() {
-  if (_authUser) { try { await _sb.rpc('defer_onboarding', { p_user_id: _authUser.id }); } catch (e) {} }
+  if (_authUser) { try { await _sb.rpc('defer_onboarding', { p_user_id: _authUser.id }); } catch (e) { reportFailure('deferOnboarding', e); } }
   closeOnboard();
   showToast('We\'ll remind you later');
 }
@@ -6764,7 +6753,7 @@ async function checkAccessAndOnboarding() {
       var quietFor = 24 * 3600 * 1000;
       if (!deferred || (Date.now() - deferred) > quietFor) startOnboarding();
     }
-  } catch (e) {}
+  } catch (e) { reportFailure('checkAccessAndOnboarding', e); }
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -6791,14 +6780,14 @@ async function loadPlatformSettings() {
       // that the real settings have arrived (QA finding 38).
       if (typeof setAuthTab === 'function') setAuthTab(_authTab || 'signin');
     }
-  } catch (e) {}
+  } catch (e) { reportFailure('loadPlatformSettings', e); }
 }
 
 // Redeem whatever code was entered at signup, once we actually have a session.
 async function redeemPendingInvite() {
   if (!_authUser) return;
   var code = '';
-  try { code = localStorage.getItem('phx_pending_invite') || ''; } catch (e) {}
+  try { code = localStorage.getItem('phx_pending_invite') || ''; } catch (e) { reportFailure('redeemPendingInvite', e); }
   if (!code) return;
   // A code can either CLAIM pre-built pages/artist records (handed to someone
   // whose page PHX built for them) or be an ordinary referral invite. Try the
@@ -6807,7 +6796,7 @@ async function redeemPendingInvite() {
     var cRes = await _sb.rpc('redeem_claim_code', { p_code: code, p_user_id: _authUser.id });
     var cd = cRes.data || {};
     if (cd.ok) {
-      try { localStorage.removeItem('phx_pending_invite'); } catch (e) {}
+      try { localStorage.removeItem('phx_pending_invite'); } catch (e) { reportFailure('redeemPendingInvite', e); }
       var bits = [];
       if (cd.pages_claimed) bits.push(cd.pages_claimed + ' page' + (cd.pages_claimed === 1 ? '' : 's'));
       if (cd.artists_claimed) bits.push('your artist page');
@@ -6817,12 +6806,12 @@ async function redeemPendingInvite() {
       // Plain invite codes fall through and DO get the full wizard.
       try {
         await _sb.rpc('mark_onboarded', { p_user_id: _authUser.id, p_username: cd.suggested_username || null });
-      } catch (e) {}
+      } catch (e) { reportFailure('redeemPendingInvite', e); }
       if (typeof applyAccountRole === 'function') setTimeout(applyAccountRole, 400);
       if (typeof loadMyPages === 'function') setTimeout(loadMyPages, 600);
       return;
     }
-  } catch (e) {}
+  } catch (e) { reportFailure('redeemPendingInvite', e); }
 
   try {
     var res = await _sb.rpc('redeem_invite_code', {
@@ -6831,14 +6820,14 @@ async function redeemPendingInvite() {
     });
     var d = res.data || {};
     if (d.ok) {
-      try { localStorage.removeItem('phx_pending_invite'); } catch (e) {}
+      try { localStorage.removeItem('phx_pending_invite'); } catch (e) { reportFailure('redeemPendingInvite', e); }
       if (d.founding_number) {
         showToast('🔥 You\'re PHX Native #' + d.founding_number + ' — rate locked for life');
       }
     } else if (d.reason === 'already_redeemed' || d.reason === 'invalid_code') {
-      try { localStorage.removeItem('phx_pending_invite'); } catch (e) {}
+      try { localStorage.removeItem('phx_pending_invite'); } catch (e) { reportFailure('redeemPendingInvite', e); }
     }
-  } catch (e) {}
+  } catch (e) { reportFailure('redeemPendingInvite', e); }
 }
 
 // Everyone gets a code the first time they open the referral panel.
@@ -6886,7 +6875,7 @@ function copyReferralLink(code) {
     if (navigator.share) { navigator.share({ title: 'Join me on PHX', text: 'Use my code ' + code, url: link }); return; }
     navigator.clipboard.writeText(link);
     showToast('Invite link copied');
-  } catch (e) {}
+  } catch (e) { reportFailure('copyReferralLink', e); }
 }
 
 // /app?ref=CODE prefills the signup form from a shared link
@@ -6894,7 +6883,7 @@ function copyReferralLink(code) {
   var params = new URLSearchParams(window.location.search);
   var ref = params.get('ref');
   if (!ref) return;
-  try { localStorage.setItem('phx_pending_invite', ref.toUpperCase()); } catch (e) {}
+  try { localStorage.setItem('phx_pending_invite', ref.toUpperCase()); } catch (e) { reportFailure('copyReferralLink', e); }
 }());
 
 // Role + identity derived from the signed-in account. This replaces the
@@ -7017,6 +7006,7 @@ async function toggleFollowUI(type, id, btn) {
   });
   if (btn) btn.disabled = false;
   if (error || !data) return;
+  if (data.reason === 'not_signed_in') { openJoinSheet('Following'); return; }
   _myFollows[type + ':' + id] = data.following;
   if (btn) {
     btn.textContent = data.following ? '✓ Following' : '+ Follow';
@@ -7106,7 +7096,7 @@ async function loadReels() {
     .order('created_at', { ascending: false })
     .limit(30);
   var videos = (res.data || []).filter(function(p){ return /\.(mp4|webm|mov)(\?|$)/i.test(p.media_url || ''); });
-  try { await resolveAuthorAvatars(videos); } catch (e) {}
+  try { await resolveAuthorAvatars(videos); } catch (e) { reportFailure('loadReels', e); }
 
   if (!videos.length) {
     container.innerHTML = '<div class="reels-empty">🎬 No video posts yet.<br><br>Post a video from the City Feed composer — camera or upload — and it lands here.</div>';
@@ -7771,7 +7761,7 @@ async function showPageProfile(slugOrId) {
     var aliasRes = await _sb.from('artists').select('slug').eq('user_id', pg.owner_id).maybeSingle();
     if (aliasRes.data && aliasRes.data.slug) { showArtistPage(aliasRes.data.slug); return; }
   }
-  if (pg.slug) { try { window.location.hash = 'page/' + pg.slug; } catch (e) {} }
+  if (pg.slug) { try { window.location.hash = 'page/' + pg.slug; } catch (e) { reportFailure('showPageProfile', e); } }
 
   var pgRes = await Promise.all([
     _sb.from('feed_posts')
@@ -7984,7 +7974,7 @@ var _merchFilter = 'all';
 
 async function showArtistPage(slug) {
   showView('artist-page');
-  try { window.location.hash = 'artist/' + slug; } catch (e) {}
+  try { window.location.hash = 'artist/' + slug; } catch (e) { reportFailure('showArtistPage', e); }
   var el = document.getElementById('artist-page-content');
   if (!el) return;
   el.innerHTML = '<div class="pf-empty">Loading artist…</div>';
@@ -8253,6 +8243,107 @@ async function apSetAlbumTier(albumId, tier) {
   showArtistPage(_artistPage.slug);
 }
 
+// ── ARTIST PROFILE EDITOR (portal) ─────────────────────────────────────
+// The signed-in artist's own row, editable in place. Writes go through the
+// owner RLS policy on `artists` — no special RPC needed.
+var _myArtistRow = null;
+
+async function loadArtistProfileEditor() {
+  var el = document.getElementById('artist-profile-editor');
+  if (!el) return;
+  if (!_authUser) { el.innerHTML = '<div class="card"><div class="pf-empty">Sign in to edit your artist profile.</div></div>'; return; }
+  var r = await _sb.from('artists').select('*').eq('user_id', _authUser.id).maybeSingle();
+  _myArtistRow = r.data || null;
+  if (!_myArtistRow) {
+    el.innerHTML = '<div class="card"><div class="card-title">Artist Profile</div>' +
+      '<div class="pf-empty">No artist page is linked to this account yet.<br><br>' +
+      'If you have a claim code, redeem it from the sign-in screen — it links your finished artist page to this login.</div></div>';
+    return;
+  }
+  var a = _myArtistRow;
+  var links = a.links || {};
+  function f(label, id, val, ph) {
+    return '<div class="form-field"><label class="form-label">' + label + '</label>' +
+      '<input class="form-input" type="text" id="' + id + '" value="' + escapeHtml(val || '') + '" placeholder="' + (ph || '') + '"></div>';
+  }
+  el.innerHTML =
+    '<div class="card">' +
+      '<div class="card-title">Artist Profile</div>' +
+      '<div style="display:flex;align-items:center;gap:1rem;margin-bottom:1.2rem">' +
+        avatarHtml(a.avatar_url, (a.name || '?').charAt(0).toUpperCase(), 'ava-sm', a.name, 'style="width:72px;height:72px;font-size:1.8rem"') +
+        '<div><div style="font-size:1.1rem;font-weight:800">' + escapeHtml(a.name || '') + '</div>' +
+          (a.verified ? '<div style="font-size:.82rem;color:var(--orange)">✓ Verified Artist</div>' : '') +
+          '<div style="font-size:.76rem;color:var(--muted)">thephx.app/' + escapeHtml(a.slug || '') + '</div></div>' +
+      '</div>' +
+      '<div class="form-field"><label class="form-label">Profile photo</label><input class="form-input" type="file" id="apf-avatar" accept="image/*"></div>' +
+      '<div class="form-field"><label class="form-label">Banner / poster</label><input class="form-input" type="file" id="apf-banner" accept="image/*"></div>' +
+      f('Display Name', 'apf-name', a.name) +
+      f('Genre', 'apf-genre', a.genre, 'e.g. PHX Hip-Hop') +
+      '<div class="form-field"><label class="form-label">Bio</label><textarea class="form-input" id="apf-bio" rows="5" style="resize:vertical">' + escapeHtml(a.bio || '') + '</textarea></div>' +
+      f('City', 'apf-city', a.city, 'Phoenix, AZ') +
+      '<button class="upgrade-btn" style="margin:0" onclick="saveArtistProfile()">Save Changes</button>' +
+      '<div id="apf-msg" style="font-size:.78rem;color:var(--muted);margin-top:.5rem;min-height:1em"></div>' +
+    '</div>' +
+    '<div class="card">' +
+      '<div class="card-title">Social Links</div>' +
+      f('Instagram', 'apl-instagram', links.instagram, 'https://instagram.com/…') +
+      f('Twitter / X', 'apl-twitter', links.twitter, 'https://x.com/…') +
+      f('Spotify', 'apl-spotify', links.spotify, 'Artist URL') +
+      f('YouTube', 'apl-youtube', links.youtube, 'Channel URL') +
+      f('TikTok', 'apl-tiktok', links.tiktok, 'https://tiktok.com/@…') +
+      f('Website', 'apl-website', links.website, 'https://') +
+      '<button class="upgrade-btn" style="margin:0" onclick="saveArtistLinks()">Save Links</button>' +
+      '<div id="apl-msg" style="font-size:.78rem;color:var(--muted);margin-top:.5rem;min-height:1em"></div>' +
+    '</div>';
+}
+
+async function _apfUpload(inputId, kind) {
+  var input = document.getElementById(inputId);
+  var fFile = input && input.files && input.files[0];
+  if (!fFile) return null;
+  var path = _myArtistRow.id + '/' + kind + '_' + Date.now() + '.' + (fFile.name.split('.').pop() || 'jpg');
+  var up = await _sb.storage.from('post-media').upload(path, fFile, { contentType: fFile.type, upsert: true });
+  if (up.error) throw new Error(up.error.message);
+  return _sb.storage.from('post-media').getPublicUrl(path).data.publicUrl;
+}
+
+async function saveArtistProfile() {
+  var msg = document.getElementById('apf-msg');
+  if (msg) { msg.style.color = 'var(--muted)'; msg.textContent = 'Saving…'; }
+  try {
+    var v = function(id){ return ((document.getElementById(id) || {}).value || '').trim(); };
+    var patch = { name: v('apf-name') || _myArtistRow.name, genre: v('apf-genre') || null,
+                  bio: v('apf-bio') || null, city: v('apf-city') || null };
+    var ava = await _apfUpload('apf-avatar', 'avatar');
+    var ban = await _apfUpload('apf-banner', 'banner');
+    if (ava) patch.avatar_url = ava;
+    if (ban) patch.banner_url = ban;
+    var res = await _sb.from('artists').update(patch).eq('id', _myArtistRow.id).select('id');
+    if (res.error || !(res.data || []).length) throw new Error(res.error ? res.error.message : 'not permitted');
+    if (msg) { msg.style.color = 'var(--green)'; msg.textContent = '✓ Saved — live on your page now'; }
+    loadArtistProfileEditor();
+  } catch (e) {
+    if (msg) { msg.style.color = 'var(--red)'; msg.textContent = 'Could not save: ' + e.message; }
+  }
+}
+
+async function saveArtistLinks() {
+  var msg = document.getElementById('apl-msg');
+  if (msg) { msg.style.color = 'var(--muted)'; msg.textContent = 'Saving…'; }
+  var v = function(id){ return ((document.getElementById(id) || {}).value || '').trim() || undefined; };
+  var links = {};
+  ['instagram','twitter','spotify','youtube','tiktok','website'].forEach(function(k) {
+    var val = v('apl-' + k);
+    if (val) links[k] = val;
+  });
+  var res = await _sb.from('artists').update({ links: links }).eq('id', _myArtistRow.id).select('id');
+  if (res.error || !(res.data || []).length) {
+    if (msg) { msg.style.color = 'var(--red)'; msg.textContent = 'Could not save: ' + (res.error ? res.error.message : 'not permitted'); }
+    return;
+  }
+  if (msg) { msg.style.color = 'var(--green)'; msg.textContent = '✓ Links saved'; }
+}
+
 // ── MY PAGE — one door to everything you are on PHX ────────────────────
 // One login can be a person, an artist, and the owner of several Pages.
 // A single destination → jump straight there. Multiple → a picker sheet,
@@ -8413,7 +8504,7 @@ async function saveTrackEditor(trackId) {
           a.src = URL.createObjectURL(f);
           setTimeout(function(){ resolve(0); }, 8000);
         })) || undefined;
-      } catch (e) {}
+      } catch (e) { reportFailure('saveTrackEditor', e); }
       if (!patch.duration_seconds) delete patch.duration_seconds;
     }
     var res = await _sb.from('tracks').update(patch).eq('id', trackId).select('id');
@@ -8935,7 +9026,7 @@ async function _routeVanityPath() {
     if (u.data) { showMemberPage(u.data.id); return; }
     var mp = await _sb.from('member_profiles').select('device_id').eq('username', slug).maybeSingle();
     if (mp.data) { showMemberPage(mp.data.device_id); return; }
-  } catch (e) {}
+  } catch (e) { reportFailure('_routeVanityPath', e); }
 }
 _whenDomReady(function(){ setTimeout(_routeVanityPath, 250); });
 

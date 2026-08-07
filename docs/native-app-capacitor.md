@@ -1,5 +1,7 @@
 # PHX Native App — Capacitor Wrapper Guide
 
+> STATUS: current as of 2026-08-07 — roadmap guide, not yet executed
+
 Goal: ship PHX to the App Store and Play Store with **bulletproof background
 audio** (the one thing the web app can't fully deliver on iOS) while keeping
 one codebase — the exact same HTML/JS deployed to Vercel.

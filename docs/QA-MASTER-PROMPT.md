@@ -1,5 +1,7 @@
 # PHX — Master QA Prompt
 
+> STATUS: current as of 2026-08-07
+
 Paste the block below into a fresh Claude Code session (or a Cowork agent) pointed at this repo. It runs a full adversarial audit of the live app.
 
 **Run it as super admin.** Sign in first at https://thephx.app/app with the `alijayem1` account — admin surfaces are removed from the DOM for anyone else, so an unauthenticated run cannot test them.

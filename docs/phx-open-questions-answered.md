@@ -1,4 +1,6 @@
 # PHX — Five Questions, Answered
+
+> STATUS: current as of 2026-08-07
 _2026-08-03. Research-backed; sources at the end of each section. Companion to `phx-algorithm-decisions.md`._
 
 ---

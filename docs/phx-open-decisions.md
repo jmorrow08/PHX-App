@@ -1,4 +1,6 @@
 # PHX — Open Product Decisions
+
+> STATUS: superseded in part by phx-algorithm-decisions.md and phx-open-questions-answered.md — kept because app.html code comments reference it
 _Drafted 2026-07-30 for Jaye. These are the calls only the founder can make; each has a recommendation and what it takes to build._
 
 ## 1. Payout weighting: per-stream vs listen-time

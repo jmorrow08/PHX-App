@@ -1,4 +1,6 @@
 # PHX — Redesign Prompt for Claude
+
+> STATUS: historical one-shot prompt — kept for reference
 *Paste everything below the line into a fresh Claude session (ideally with the phx folder connected so it can see app.html, index.html, shared.css). It contains the full context, constraints, and direction needed to redesign the app end to end without you having to explain anything.*
 
 ---

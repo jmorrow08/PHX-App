@@ -1,5 +1,7 @@
 # Recommendation Engine Research — Verified Findings & PHX Roadmap
 
+> STATUS: current as of 2026-08-07 — reference (linked from README)
+
 *Deep research run: 2026-07-01 · 23 sources fetched · 112 claims extracted · 25 adversarially verified (3-vote panels) · 24 confirmed, 1 refuted*
 
 ## The Big Insight

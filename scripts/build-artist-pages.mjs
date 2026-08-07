@@ -82,7 +82,7 @@ async function fetchArtists() {
 
 // ── page template ─────────────────────────────────────────────────────────
 function renderPage(a) {
-  const url = `${SITE}/a/${a.slug}`;
+  const url = `${SITE}/${a.slug}`;
   const appUrl = `${SITE}/app?artist=${encodeURIComponent(a.slug)}`;
   const title = `${a.name} on PHX`;
 
@@ -208,11 +208,18 @@ let count = 0;
 const missingArt = [];
 for (const a of artists) {
   if (!a.slug) continue;
+  const html = renderPage(a);
   const dir = join(ROOT, 'a', a.slug);
   mkdirSync(dir, { recursive: true });
-  writeFileSync(join(dir, 'index.html'), renderPage(a), 'utf8');
+  writeFileSync(join(dir, 'index.html'), html, 'utf8');
+  // ALSO emit the page at the root as <slug>.html. With cleanUrls, Vercel
+  // serves it at thephx.app/<slug> — and the filesystem beats the SPA
+  // rewrite, so crawlers hitting the pretty vanity link get real OG tags
+  // instead of the JS app (which renders nothing for them). Real browsers
+  // bounce into the app via the UA-guarded redirect in the page.
+  writeFileSync(join(ROOT, `${a.slug}.html`), html, 'utf8');
   const noArt = !a.banner_url && !a.avatar_url;
-  console.log(`  ✓ /a/${a.slug}  (${a.name})${noArt ? '   ⚠ no artwork — preview falls back to the app icon' : ''}`);
+  console.log(`  ✓ /a/${a.slug} + /${a.slug}  (${a.name})${noArt ? '   ⚠ no artwork — preview falls back to the app icon' : ''}`);
   if (noArt) missingArt.push(a.name);
   count++;
 }

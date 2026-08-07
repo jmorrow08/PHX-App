@@ -1,5 +1,7 @@
 # PHX DB Hardening + Gap Fixes — Applied 2026-07-30
 
+> STATUS: shipped — kept for reference (migrations 029–033 applied 2026-07-30)
+
 Migrations 029–033 applied directly to Supabase project `dnzvtathfpjelffjnqrc` (README's migration table ends at 028; this documents what changed since).
 
 ## 029 — function_search_path + view hardening
