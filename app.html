@@ -983,7 +983,6 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
           </div>
           <div class="np-side-actions">
             <button class="np-side-btn" id="np-like-btn" title="Like" onclick="toggleCurrentTrackLike()">♥</button>
-            <button class="np-side-btn" title="Add to queue">+</button>
             <button class="np-side-btn" title="Share to City Feed" onclick="shareCurrentTrackToFeed()">↗</button>
           </div>
         </div>
@@ -992,13 +991,13 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
           <div class="progress-times"><span id="elapsed-time">0:00</span><span id="total-time">0:00</span></div>
         </div>
         <div class="np-controls">
-          <button class="ctrl-btn" title="Shuffle">⇄</button>
+          <button class="ctrl-btn" id="ctrl-shuffle" title="Shuffle" aria-pressed="false" onclick="toggleShuffle()">⇄</button>
           <button class="ctrl-btn" title="Previous" onclick="prevTrack()">⏮</button>
           <button class="ctrl-btn ctrl-skip" title="-15s" onclick="skipSeconds(-15)">«15</button>
           <button class="ctrl-btn play" id="play-btn" onclick="togglePlay()">▶</button>
           <button class="ctrl-btn ctrl-skip" title="+15s" onclick="skipSeconds(15)">15»</button>
           <button class="ctrl-btn" title="Next" onclick="nextTrack()">⏭</button>
-          <button class="ctrl-btn" title="Repeat">↺</button>
+          <button class="ctrl-btn" id="ctrl-repeat" title="Repeat" aria-pressed="false" onclick="toggleRepeat()">↺</button>
         </div>
 
         <!-- Queue — visible inline (Apple Music style, not hidden in a bottom sheet) -->
@@ -1219,8 +1218,8 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
             <div class="pass-tier-label">PHX Native — Member</div>
             <div class="pass-since">Your founding number is assigned when passes launch · $15/mo</div>
             <div class="pass-wallet-btns">
-              <button class="wallet-btn">🍎 Apple Wallet</button>
-              <button class="wallet-btn">🤖 Google Wallet</button>
+              <button class="wallet-btn" disabled style="opacity:.5;cursor:default" title="Wallet passes ship with billing">🍎 Apple Wallet — soon</button>
+              <button class="wallet-btn" disabled style="opacity:.5;cursor:default" title="Wallet passes ship with billing">🤖 Google Wallet — soon</button>
             </div>
           </div>
           <div style="font-size:.8rem;color:var(--faint);text-align:center;margin-top:.4rem">Founding numbers are permanent — 1,000 total, first come first served.</div>
@@ -1245,7 +1244,7 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
           </div>
           <div class="receipt-actions">
             <button class="receipt-share-btn" onclick="if(navigator.share)navigator.share({title:'PHX — With Receipts',text:'On PHX your pass pays the Phoenix artists you actually stream — with a receipt to prove it.'})">Share PHX ↗</button>
-            <button class="receipt-ghost-btn">History</button>
+            <button class="receipt-ghost-btn" onclick="showReceiptHistory()">History</button>
           </div>
           <div style="font-size:.78rem;color:var(--faint);text-align:center;margin-top:.9rem">Sample receipt — yours is generated from your real listening each month.</div>
         </div>
@@ -1900,19 +1899,17 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
           </div>
         </div>
         <div class="card">
-          <div class="card-title">Platform Health</div>
-          <div class="fin-row"><span class="fin-label">Database</span><span class="fin-val" style="color:var(--green)">● Healthy</span></div>
-          <div class="fin-row"><span class="fin-label">Supabase</span><span class="fin-val" style="color:var(--green)">● us-west-1 · online</span></div>
-          <div class="fin-row"><span class="fin-label">Stripe</span><span class="fin-val" style="color:var(--orange)">○ Test mode</span></div>
-          <div class="fin-row"><span class="fin-label">Vercel CDN</span><span class="fin-val" style="color:var(--green)">● Global · live</span></div>
-          <div class="fin-row" style="border:none"><span class="fin-label">Stream tracking</span><span class="fin-val" style="color:var(--green)">● Active</span></div>
+          <div class="card-title">Platform Health <button class="tb-btn" style="float:right;font-size:.68rem;padding:.2rem .5rem" onclick="loadPlatformHealth()">↻</button></div>
+          <!-- Was five hardcoded green dots. These are live probes now. -->
+          <div id="platform-health"><div class="pf-empty" style="padding:.6rem 0">Checking…</div></div>
         </div>
         <div class="card">
           <div class="card-title">Danger Zone</div>
           <div style="display:flex;flex-direction:column;gap:.75rem;margin-top:.3rem">
-            <button class="tb-btn" style="width:100%;color:var(--orange);border-color:rgba(249,115,22,.3);text-align:left">🔄 Force Payout Recalculation</button>
-            <button class="tb-btn" style="width:100%;color:var(--blue);border-color:rgba(59,130,246,.3);text-align:left">📤 Export Member CSV</button>
-            <button class="tb-btn" style="width:100%;color:var(--red);border-color:rgba(239,68,68,.3);text-align:left">🔒 Maintenance Mode</button>
+            <!-- Maintenance Mode was removed rather than left as a dead button:
+                 there is no backing flag for it anywhere. -->
+            <button class="tb-btn" style="width:100%;color:var(--orange);border-color:rgba(249,115,22,.3);text-align:left" onclick="forcePayoutRecalc(this)">🔄 Force Payout Recalculation</button>
+            <button class="tb-btn" style="width:100%;color:var(--blue);border-color:rgba(59,130,246,.3);text-align:left" onclick="exportMembersCsv(this)">📤 Export Member CSV</button>
           </div>
         </div>
       </div>
@@ -2251,6 +2248,7 @@ function showView(id) {
   if (id === 'home') renderStarterRail();
   if (id === 'mypass') { loadReferralPanel(); loadMyReceipt(); }
   if (id === 'admin-dashboard') { loadAdminStreamData(); loadAdminOps(); }
+  if (id === 'admin-system') loadPlatformHealth();
   if (id === 'admin-members' || id === 'admin-artists' || id === 'admin-financials') loadAdminOps();
   if (id === 'admin-activity') loadAdminActivity(_activityFilterUser);
   if (id === 'admin-content') { loadPendingTracks(); loadAdminOps(); }
@@ -2534,11 +2532,8 @@ var DEVICE_FP = (function() {
 }());
 
 // Combine localStorage UUID with canvas FP for the stream user_id seed
-function getDeviceId() {
-  var uid = getGuestId();
-  // XOR the canvas FP into the UUID so spoofing one alone isn't enough
-  return uid + ':' + DEVICE_FP;
-}
+// getDeviceId() removed — it returned guestId+fingerprint and had zero
+// call sites. Identity comes from the session now.
 
 // ── BEHAVIORAL EVENT TRACKING ─────────────────────────────────────────
 // All events land in user_events table. Powers future recommendations + fraud ML.
@@ -2758,6 +2753,7 @@ function playAudio() {
   streamData.playing = true;
   document.querySelectorAll('.ctrl-btn.play, .mp-btn.play').forEach(function(b){ b.textContent = '⏸'; });
   startStreamTimer(streamData.currentTrack);
+  // Autoplay rejection is an expected browser policy outcome, not a fault
   if (PHX_AUDIO && PHX_AUDIO.src) PHX_AUDIO.play().catch(function(){});
   if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
 }
@@ -2791,9 +2787,39 @@ function playTrackByKey(key) {
   playTrack(row, m.title, m.artist, m.feat, m.album, m.duration, key, m.streamCount, '🎵');
 }
 
+// Shuffle and repeat were decorative buttons with no handler. Both are real
+// now and both feed nextTrack(), including the auto-advance at track end.
+var _shuffleOn = false, _repeatOn = false;
+
+function toggleShuffle() {
+  _shuffleOn = !_shuffleOn;
+  var b = document.getElementById('ctrl-shuffle');
+  if (b) { b.style.color = _shuffleOn ? 'var(--orange)' : ''; b.setAttribute('aria-pressed', String(_shuffleOn)); }
+  showToast(_shuffleOn ? 'Shuffle on' : 'Shuffle off');
+}
+
+function toggleRepeat() {
+  _repeatOn = !_repeatOn;
+  var b = document.getElementById('ctrl-repeat');
+  if (b) { b.style.color = _repeatOn ? 'var(--orange)' : ''; b.setAttribute('aria-pressed', String(_repeatOn)); }
+  showToast(_repeatOn ? 'Repeat this track' : 'Repeat off');
+}
+
 function nextTrack() {
+  if (_repeatOn && PHX_AUDIO && PHX_AUDIO.src) {
+    PHX_AUDIO.currentTime = 0; prog = 0;
+    PHX_AUDIO.play().catch(function(){});
+    return;
+  }
   var order = Object.keys(TRACK_META);
+  if (!order.length) return;
   var idx = order.indexOf(streamData.currentTrack);
+  if (_shuffleOn && order.length > 1) {
+    var pick = idx;
+    while (pick === idx) pick = Math.floor(Math.random() * order.length);
+    playTrackByKey(order[pick]);
+    return;
+  }
   playTrackByKey(order[(idx + 1) % order.length]);
 }
 
@@ -4061,6 +4087,7 @@ async function shareFeedPost(postId) {
   var url = SITE_URL + '/app?post=' + postId;
   trackEvent('post_share', 'post', postId, {});
   if (navigator.share) {
+    // A cancelled share sheet rejects; that's the user saying no, not an error
     navigator.share({ title: 'PHX App', text: text, url: url }).catch(function(){});
   } else {
     try {
@@ -5624,45 +5651,11 @@ async function loadPendingTracks() {
   feed.innerHTML = html;
 }
 
-async function approveTrack(id, btn) {
-  btn.disabled = true;
-  btn.textContent = 'Approving…';
-  var { error } = await _sb.from('tracks').update({ status: 'live', is_active: true }).eq('id', id);
-  if (error) { btn.textContent = 'Error'; return; }
-  var row = btn.closest('div[style*="background:var(--bg4)"]');
-  if (row) {
-    row.style.borderColor = 'rgba(34,197,94,.4)';
-    row.style.background = 'rgba(34,197,94,.06)';
-    row.querySelector('div').insertAdjacentHTML('beforeend',
-      '<span style="display:block;font-size:.74rem;color:var(--green);font-weight:600;margin-top:.2rem">✓ Approved — now live</span>');
-    btn.style.display = 'none';
-    var rejectBtn = row.querySelector('[onclick*="rejectTrack"]');
-    if (rejectBtn) rejectBtn.style.display = 'none';
-  }
-  // Refresh pending count badge
-  loadPendingTracks();
-}
-
-async function rejectTrack(id, btn) {
-  var reason = prompt('Reason for rejection (optional, shown to artist):') || '';
-  btn.disabled = true;
-  btn.textContent = 'Rejecting…';
-  var { error } = await _sb.from('tracks')
-    .update({ status: 'rejected', rejection_reason: reason || null })
-    .eq('id', id);
-  if (error) { btn.textContent = 'Error'; return; }
-  var row = btn.closest('div[style*="background:var(--bg4)"]');
-  if (row) {
-    row.style.borderColor = 'rgba(239,68,68,.4)';
-    row.style.background = 'rgba(239,68,68,.06)';
-    row.querySelector('div').insertAdjacentHTML('beforeend',
-      '<span style="display:block;font-size:.74rem;color:var(--red);font-weight:600;margin-top:.2rem">✕ Rejected' + (reason ? ' — ' + reason : '') + '</span>');
-    btn.style.display = 'none';
-    var approveBtn = row.querySelector('[onclick*="approveTrack"]');
-    if (approveBtn) approveBtn.style.display = 'none';
-  }
-  loadPendingTracks();
-}
+// approveTrack / rejectTrack live in the admin section below and go through
+// the approve_track / reject_track RPCs (which enforce admin server-side).
+// A second, earlier copy used to sit here writing to `tracks` directly —
+// dead by hoisting order, but exactly the kind of code someone edits by
+// mistake and then wonders why nothing changed.
 
 // ── MUSIC SEARCH ─────────────────────────────────────────────────────────
 // Search is available to every tier — Spotify/Apple gate playback, not search.
@@ -6300,61 +6293,8 @@ async function showMemberPage(userId) {
 // Products are admin-managed (merch_products.managed_by = 'admin') and render
 // natively in PHX styling; checkout hands off to the provider. Supports both
 // print-on-demand and artist-shipped inventory.
-async function loadArtistMerch(artistId, shopUrl) {
-  var el = document.getElementById('artist-merch-grid');
-  if (!el || !artistId) return;
-  try {
-    var res = await _sb.from('merch_catalog').select('*')
-      .eq('artist_id', artistId).order('position', { ascending: true });
-    var items = res.data || [];
-    if (!items.length) {
-      // No catalog rows but the artist has a shop — still give fans the door
-      el.innerHTML = (shopUrl && safeUrl(shopUrl))
-        ? '<div class="pf-sec"><h3>Merch</h3></div>' +
-          '<a class="pf-btn" href="' + safeUrl(shopUrl) + '" target="_blank" rel="noopener">🛍️ Shop the store ↗</a>'
-        : '';
-      return;
-    }
-
-    el.innerHTML =
-      '<div class="pf-sec"><h3>Merch</h3>' +
-        (shopUrl && safeUrl(shopUrl)
-          ? '<a href="' + safeUrl(shopUrl) + '" target="_blank" rel="noopener">Shop all ↗</a>' : '') +
-      '</div>' +
-      '<div class="pf-merch">' +
-      items.map(function(p) {
-        var img = (p.images && p.images[0] && p.images[0].url) ? safeUrl(p.images[0].url) : '';
-        var price = '$' + ((p.price_cents || 0) / 100).toFixed(2);
-        var ship = p.fulfilment === 'direct_ship'
-          ? (p.ship_note || 'Ships from the artist')
-          : (p.fulfilment === 'pickup' ? 'Pick up at a show'
-          : (p.fulfilment === 'digital' ? 'Instant download' : 'Made to order · 7–10 days'));
-        var soldOut = (p.fulfilment === 'direct_ship' && p.stock_qty !== null && p.stock_qty <= 0);
-        var reviews = p.review_count > 0
-          ? '<div style="font-size:.68rem;color:var(--gold);margin-top:.2rem">★ ' + (p.avg_rating || '') + ' · ' + p.review_count + ' fan photo' + (p.review_count === 1 ? '' : 's') + '</div>'
-          : '';
-        return '<div class="pf-prod' + (soldOut ? ' sold' : '') + '"' +
-                 (soldOut ? '' : ' onclick="openMerchItem(\'' + p.id + '\')"') + '>' +
-          '<div class="pf-prod-img">' +
-            (img ? '<img src="' + img + '" alt="' + escapeHtml(p.name) + '" loading="lazy">' : '👕') +
-          '</div>' +
-          '<div class="pf-prod-body">' +
-            '<div class="pf-prod-name">' + escapeHtml(p.name) + '</div>' +
-            '<div class="pf-prod-price">' + price + '</div>' +
-            '<div class="pf-prod-ship">' + escapeHtml(soldOut ? 'Sold out' : ship) + '</div>' +
-            reviews +
-          '</div></div>';
-      }).join('') + '</div>';
-
-    // attribution: prove to the artist that PHX drove the traffic
-    items.forEach(function(p) {
-      _sb.from('merch_events').insert({
-        artist_id: artistId, product_id: p.id, event_type: 'impression',
-        session_id: (typeof SESSION_ID !== 'undefined' ? SESSION_ID : null)
-      }).then(function(){}, function(){});
-    });
-  } catch (e) { el.innerHTML = ''; }
-}
+// loadArtistMerch() removed — superseded by the merch panel rendered inline
+// with the artist page; had zero call sites.
 
 async function openMerchItem(productId) {
   try {
@@ -7813,13 +7753,13 @@ async function showPageProfile(slugOrId) {
         // Modules render per the page TYPE's declared capabilities
         (pageCan(pg.page_type, 'shows') && pageShows.length
           ? '<div class="pf-sec"><h3>Upcoming</h3></div>' + pageShows.map(function(s) {
-              var d = new Date(s.starts_at);
+              var tp = showTimeParts(s);
               var ticket = safeUrl(s.ticket_url);
               return '<div class="ap-show">' +
-                '<div class="ap-date"><div class="m">' + d.toLocaleDateString('en-US',{month:'short'}).toUpperCase() + '</div>' +
-                  '<div class="d">' + d.getDate() + '</div></div>' +
+                '<div class="ap-date"><div class="m">' + tp.mon + '</div>' +
+                  '<div class="d">' + tp.day + '</div></div>' +
                 '<div style="flex:1;min-width:0"><div style="font-family:var(--disp);font-size:.9rem;font-weight:600">' + escapeHtml(s.title) + '</div>' +
-                  '<div style="font-size:.74rem;color:var(--muted)">' + escapeHtml([s.venue, s.city].filter(Boolean).join(' · ')) + '</div></div>' +
+                  '<div style="font-size:.74rem;color:var(--muted)">' + escapeHtml(tp.time) + ' · ' + escapeHtml([s.venue, s.city].filter(Boolean).join(' · ')) + '</div></div>' +
                 (ticket ? '<a class="pf-btn" style="padding:.35rem .85rem;font-size:.74rem" href="' + ticket + '" target="_blank" rel="noopener">Tickets ↗</a>' : '') +
               '</div>';
             }).join('')
@@ -8243,6 +8183,119 @@ async function apSetAlbumTier(albumId, tier) {
   if (res.error) { showToast('Could not update: ' + res.error.message); return; }
   showToast('✓ ' + (res.data || []).length + ' tracks now ' + (tier ? 'require ' + tier + ' pass' : 'free for everyone'));
   showArtistPage(_artistPage.slug);
+}
+
+// ── ADMIN: real health probes, real danger-zone actions ────────────────
+// Every row below is measured, not asserted. A dashboard that always says
+// "Healthy" is worse than no dashboard — it teaches you to stop looking.
+async function loadPlatformHealth() {
+  var el = document.getElementById('platform-health');
+  if (!el) return;
+  var t0 = Date.now();
+  var r = await Promise.all([
+    _sb.from('tracks').select('id', { count: 'exact', head: true }),
+    _sb.from('stream_events').select('id', { count: 'exact', head: true })
+      .gte('listened_at', new Date(Date.now() - 24*3600*1000).toISOString()),
+    _sb.from('tracks').select('id', { count: 'exact', head: true }).is('audio_url', null).eq('status','live'),
+    _sb.from('platform_public_settings').select('*').maybeSingle()
+  ]);
+  var ms = Date.now() - t0;
+  var dbOk = !r[0].error;
+  var plays24 = r[1].count || 0;
+  var silent = r[2].count || 0;
+  var billingLive = false;   // Stripe is not wired yet — say so plainly
+
+  function row(label, ok, text) {
+    return '<div class="fin-row"><span class="fin-label">' + label + '</span>' +
+      '<span class="fin-val" style="color:' + (ok ? 'var(--green)' : 'var(--orange)') + '">' +
+      (ok ? '● ' : '○ ') + escapeHtml(text) + '</span></div>';
+  }
+  el.innerHTML =
+    row('Database', dbOk, dbOk ? 'reachable · ' + ms + 'ms' : 'unreachable') +
+    row('Plays (24h)', plays24 > 0, plays24 + ' recorded') +
+    row('Tracks missing audio', silent === 0, silent === 0 ? 'none' : silent + ' live w/o audio') +
+    row('Billing', billingLive, 'not connected — beta') +
+    '<div class="fin-row" style="border:none"><span class="fin-label">Checked</span>' +
+      '<span class="fin-val" style="color:var(--muted)">' + new Date().toLocaleTimeString() + '</span></div>';
+}
+
+async function forcePayoutRecalc(btn) {
+  if (!window.confirm('Recalculate the current pending payout period?\n\nPaid periods are never touched — this only re-runs pending ones.')) return;
+  var label = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Recalculating…';
+  var res = await _sb.rpc('run_monthly_payout_guarded', { p_period_start: null, p_period_end: null });
+  btn.disabled = false; btn.textContent = label;
+  if (res.error) { showToast('Failed: ' + res.error.message); return; }
+  var d = res.data || {};
+  showToast(d.ok === false ? ('Not run: ' + (d.reason || 'refused')) : '✓ Payout period recalculated');
+  if (typeof loadAdminOps === 'function') loadAdminOps();
+}
+
+async function exportMembersCsv(btn) {
+  var label = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Building…';
+  var res = await _sb.from('profiles')
+    .select('id,username,display_name,role,tier,access_status,city,founding_number,created_at')
+    .order('created_at');
+  btn.disabled = false; btn.textContent = label;
+  if (res.error) { showToast('Export failed: ' + res.error.message); return; }
+  var rows = res.data || [];
+  if (!rows.length) { showToast('No members to export.'); return; }
+  var cols = Object.keys(rows[0]);
+  var esc = function(v) {
+    var t = (v === null || v === undefined) ? '' : String(v);
+    return /[",\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t;
+  };
+  var csv = cols.join(',') + '\n' +
+    rows.map(function(r){ return cols.map(function(c){ return esc(r[c]); }).join(','); }).join('\n');
+  var url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = 'phx-members-' + new Date().toISOString().slice(0,10) + '.csv';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 2000);
+  showToast('✓ Exported ' + rows.length + ' members');
+}
+
+// Receipt history — my_receipt already takes a month, so this needed a UI,
+// not a backend. Last six months, most recent first.
+async function showReceiptHistory() {
+  if (!requireAuthAction('Your receipt history')) return;
+  _apModal('receipt-history',
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">' +
+      '<div style="font-weight:800;font-size:1.05rem">Receipt history</div>' +
+      '<button onclick="document.getElementById(\'receipt-history\').style.display=\'none\'" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem">✕</button></div>' +
+    '<div id="rh-body"><div class="pf-empty">Loading…</div></div>');
+  var months = [];
+  for (var i = 0; i < 6; i++) {
+    var d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - i);
+    months.push(d.toISOString().slice(0, 10));
+  }
+  var results = await Promise.all(months.map(function(m) {
+    return _sb.rpc('my_receipt', { p_user_id: getGuestId(), p_month: m });
+  }));
+  var html = results.map(function(res, i) {
+    var d = res.data || {};
+    var label = new Date(months[i] + 'T12:00:00').toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    if (!d.artists || !d.artists.length) {
+      return '<div style="padding:.6rem 0;border-bottom:1px solid var(--border)">' +
+        '<div style="font-weight:700;font-size:.86rem">' + escapeHtml(label) + '</div>' +
+        '<div style="font-size:.76rem;color:var(--muted)">No plays</div></div>';
+    }
+    return '<div style="padding:.7rem 0;border-bottom:1px solid var(--border)">' +
+      '<div style="display:flex;justify-content:space-between;align-items:baseline">' +
+        '<div style="font-weight:700;font-size:.86rem">' + escapeHtml(label) + '</div>' +
+        '<div style="font-size:.74rem;color:var(--muted)">' + d.total_plays + ' plays · ' + d.artist_count + ' artists</div></div>' +
+      d.artists.slice(0, 3).map(function(a) {
+        return '<div style="display:flex;justify-content:space-between;font-size:.78rem;color:var(--muted);margin-top:.25rem">' +
+          '<span>' + escapeHtml(a.name) + '</span><span>' + a.share_pct + '%</span></div>';
+      }).join('') +
+    '</div>';
+  }).join('');
+  var body = document.getElementById('rh-body');
+  if (body) body.innerHTML = html +
+    '<div style="font-size:.72rem;color:var(--faint);margin-top:.8rem;text-align:center">' +
+    'Receipts show who your listening supported — never dollar amounts.</div>';
 }
 
 // ── ARTIST PROFILE EDITOR (portal) ─────────────────────────────────────
@@ -8736,6 +8789,27 @@ function openAlbumFromMusic(slug, albumId) {
 
 function setCatalogGenre(g) { _catalogGenre = g || ''; loadMusicCatalog(); }
 
+// A show happens in the VENUE's timezone, not the viewer's. Rendering with
+// the browser's zone showed a Phoenix fan "6:00 PM" for a 7:00 PM Albuquerque
+// door time — Arizona skips DST, New Mexico doesn't. Always show venue-local,
+// and name the zone so nobody has to guess.
+function showTimeParts(s) {
+  var tz = s.timezone || 'America/Phoenix';
+  var d = new Date(s.starts_at);
+  var opt = { timeZone: tz };
+  try {
+    return {
+      mon:  d.toLocaleDateString('en-US', Object.assign({ month: 'short' }, opt)).toUpperCase(),
+      day:  d.toLocaleDateString('en-US', Object.assign({ day: 'numeric' }, opt)),
+      time: d.toLocaleTimeString('en-US', Object.assign({ hour: 'numeric', minute: '2-digit', timeZoneName: 'short' }, opt))
+    };
+  } catch (e) {
+    return { mon: d.toLocaleDateString('en-US',{month:'short'}).toUpperCase(),
+             day: String(d.getDate()),
+             time: d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}) };
+  }
+}
+
 // ── SHOWS ──────────────────────────────────────────────────────────────
 var _artistShows = [];
 function renderArtistShows(artist) {
@@ -8745,9 +8819,8 @@ function renderArtistShows(artist) {
       (canEdit ? '<button class="pf-btn" onclick="openShowEditor(null)">+ Add a show</button>' : '');
   }
   return _artistShows.map(function(s) {
-    var d = new Date(s.starts_at);
-    var mon = d.toLocaleDateString('en-US',{month:'short'}).toUpperCase();
-    var day = d.getDate();
+    var tp = showTimeParts(s);
+    var mon = tp.mon, day = tp.day;
     var ticket = safeUrl(s.ticket_url);
     var meta = [s.venue, s.city].filter(Boolean).join(' · ');
     var price = s.is_free ? 'Free entry' : (s.price_text || '');
@@ -8755,7 +8828,7 @@ function renderArtistShows(artist) {
       '<div class="ap-date"><div class="m">' + mon + '</div><div class="d">' + day + '</div></div>' +
       '<div style="flex:1;min-width:0">' +
         '<div style="font-family:var(--disp);font-size:.9rem;font-weight:600">' + escapeHtml(s.title) + '</div>' +
-        '<div style="font-size:.74rem;color:var(--muted);margin-top:2px">' + escapeHtml(meta) +
+        '<div style="font-size:.74rem;color:var(--muted);margin-top:2px">' + escapeHtml(tp.time) + ' · ' + escapeHtml(meta) +
           (price ? ' · ' + escapeHtml(price) : '') + '</div>' +
       '</div>' +
       (ticket
@@ -8871,12 +8944,8 @@ function apTab(name) {
   });
 }
 
-function apMerchFilter(f) {
-  _merchFilter = f;
-  var shopUrl = safeUrl((_artistPage||{}).merch_external_url || (_artistPage||{}).fourthwall_shop_url || '');
-  var panel = document.getElementById('ap-panel-merch');
-  if (panel) panel.innerHTML = renderArtistMerchPanel(shopUrl);
-}
+// apMerchFilter() removed — the fulfilment filter chips were deliberately
+// dropped from the merch panel, leaving this handler unreachable.
 
 // ── BUY SHEET — names the destination BEFORE the tap ───────────────────
 // A handoff that surprises people reads as bait-and-switch. Both paths
