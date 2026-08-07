@@ -823,7 +823,15 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
   <div class="content" style="padding-bottom:80px">
 
     <!-- HOME / CITY FEED -->
-    <div class="view active" id="v-home">
+    <!-- The view that ships ACTIVE. Starts neutral — auth resolves a beat
+         later, and a signed-in member must never flash "invite only". -->
+    <div class="view active" id="v-locked">
+      <div id="locked-body" style="max-width:520px;margin:14vh auto 0;text-align:center;padding:0 1rem">
+        <div style="color:var(--muted);font-size:.86rem">Loading…</div>
+      </div>
+    </div>
+
+    <div class="view" id="v-home">
       <div id="starter-rail"></div>
       <!-- KPI stats row removed from member view (owner decision 2026-07-04):
            platform stats belong on the landing page, not the daily feed —
@@ -2130,6 +2138,43 @@ var titles = {
 // ═══════════════════════════════════════════════════════════════════════
 var PUBLIC_VIEWS = ['artist-page', 'page-profile', 'artist-directory', 'member-page'];
 
+// The signed-out destination. Not a dead end: artist pages stay public
+// because that's the whole funnel — someone taps a link in Murkemz's bio,
+// hears a track, THEN hits the wall. Only the member surfaces are locked.
+var LOCKED_COPY = {
+  home:      { icon: '🏙️', title: 'The City Feed is for members', line: 'Posts, comments and the daily pulse of the city — inside the app.' },
+  discover:  { icon: '🔍', title: 'Discover is for members',       line: 'Personalised picks built from what you actually play.' },
+  reels:     { icon: '🎬', title: 'Reels are for members',         line: 'Video from Phoenix artists and the people around them.' },
+  music:     { icon: '🎵', title: 'PHX Music is for members',      line: 'The full local catalogue, and every play pays the artist.' },
+  mypass:    { icon: '💳', title: 'Your pass lives inside',        line: 'Your founding number, your receipt, your impact.' },
+  _default:  { icon: '🔒', title: 'PHX is invite-only',            line: 'Members stream Phoenix artists — and their pass pays the artists they actually play.' }
+};
+
+function showLockedGate(attemptedView) {
+  document.querySelectorAll('.view').forEach(function(v){ v.classList.remove('active'); });
+  document.querySelectorAll('.nav-item').forEach(function(n){ n.classList.remove('active'); });
+  var view = document.getElementById('v-locked');
+  if (view) view.classList.add('active');
+  var titleEl = document.getElementById('page-title');
+  if (titleEl) titleEl.textContent = 'PHX';
+
+  var c = LOCKED_COPY[attemptedView] || LOCKED_COPY._default;
+  var body = document.getElementById('locked-body');
+  if (!body) return;
+  body.innerHTML =
+    '<div style="font-size:2.4rem;margin-bottom:.6rem">' + c.icon + '</div>' +
+    '<div style="font-family:var(--disp);font-size:1.5rem;font-weight:700;letter-spacing:-.02em;margin-bottom:.5rem">' +
+      escapeHtml(c.title) + '</div>' +
+    '<p style="color:var(--muted);font-size:.92rem;line-height:1.6;margin-bottom:1.4rem">' +
+      escapeHtml(c.line) + '</p>' +
+    '<button class="upgrade-btn" style="margin:0 auto;width:auto;padding:.7rem 1.8rem" onclick="openAuthModal()">Sign in / Use a code</button>' +
+    '<button class="pf-btn" style="margin:.6rem auto 0;justify-content:center" onclick="openAccessRequest()">Request access</button>' +
+    '<div style="margin-top:1.8rem;padding-top:1.4rem;border-top:1px solid var(--border)">' +
+      '<div style="font-size:.78rem;color:var(--faint);margin-bottom:.7rem">Anyone can browse the roster — no account needed.</div>' +
+      '<button class="pf-btn" style="margin:0 auto;justify-content:center" onclick="showArtistDirectory()">Browse Phoenix artists →</button>' +
+    '</div>';
+}
+
 function requiresAuth(viewId) {
   return !_authUser && PUBLIC_VIEWS.indexOf(viewId) === -1;
 }
@@ -2236,7 +2281,9 @@ async function submitAccessRequest() {
 }
 
 function showView(id) {
-  if (requiresAuth(id)) { openJoinSheet(null); return; }
+  // Returning early used to leave whatever was already active on screen —
+  // which is how a signed-out visitor ended up reading the City Feed.
+  if (requiresAuth(id)) { showLockedGate(id); return; }
   document.querySelectorAll('.view').forEach(function(v){ v.classList.remove('active'); });
   document.querySelectorAll('.nav-item').forEach(function(n){ n.classList.remove('active'); });
   var view = document.getElementById('v-'+id);
@@ -3588,6 +3635,10 @@ function authorAvatarUrl(p) {
 
 async function loadCityFeed(force) {
   if (_cityFeedLoaded && !force) return;
+  // Members only. The gate hides the view, but there's no reason to fetch
+  // and render posts nobody signed out is allowed to read.
+  await whenAuthResolved();
+  if (!_authUser) return;
   var container = document.getElementById('city-feed-container');
   if (!container || !_sb) return;
 
