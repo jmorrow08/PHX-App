@@ -4210,8 +4210,10 @@ function shareCurrentTrackToFeed() {
 var _notifPanelOpen = false;
 
 async function loadNotifications() {
-  // The notifications table is owner-gated now; device-era identities have
-  // no auth.uid(), so read through the RPC that checks the id server-side.
+  // Notifications belong to logins. Guests have none and — since the anon
+  // execute revoke — get a 401 for asking, so don't ask.
+  await whenAuthResolved();
+  if (!_authUser) return;
   var res = await _sb.rpc('my_notifications', { p_user_id: getGuestId(), p_limit: 30 });
   var items = res.data || [];
   var unread = items.filter(function(n){ return !n.is_read; }).length;
