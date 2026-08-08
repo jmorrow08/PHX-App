@@ -5420,7 +5420,8 @@ async function loadArtistReferral() {
   var d = res.data || {};
   if (!d.ok) { el.innerHTML = '<div class="pf-empty">🔒 Sign in as this artist to see your invite stats.</div>'; return; }
 
-  var link = SITE_URL + '/app?invite=' + encodeURIComponent(d.code || '');
+  // ?ref= is the only param the signup flow parses — ?invite= went nowhere
+  var link = SITE_URL + '/app?ref=' + encodeURIComponent(d.code || '');
   el.innerHTML =
     '<div style="display:flex;align-items:center;gap:.7rem;flex-wrap:wrap;margin-bottom:.9rem">' +
       '<code style="font-family:var(--mono);font-size:1.35rem;font-weight:700;color:var(--orange);letter-spacing:.14em">' +
