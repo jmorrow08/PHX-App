@@ -8107,13 +8107,17 @@ function pageTypeIcon(pageType) {
 async function showArtistDirectory() {
   showView('artist-directory');
   var el = document.getElementById('artist-directory-list');
+  // Public roster shows ARTISTS only. The full city roster (creators,
+  // businesses) is for signed-in members — the door, not the whole house.
+  await whenAuthResolved();
+  var showPages = !!_authUser;
   var results = await Promise.all([
     _sb.from('artists').select('*').eq('status', 'active').order('total_streams', { ascending: false }),
-    _sb.from('pages').select('*').not('slug', 'is', null).order('name')
+    showPages ? _sb.from('pages').select('*').not('slug', 'is', null).order('name') : Promise.resolve({ data: [] })
   ]);
   var artists = results[0].data || [];
   var pages = results[1].data || [];
-  _setText('artist-directory-count', (artists.length + pages.length) + ' on PHX');
+  _setText('artist-directory-count', showPages ? (artists.length + pages.length) + ' on PHX' : artists.length + ' artists');
   if (!el) return;
 
   function avaHtml(name, url) {
@@ -8143,7 +8147,10 @@ async function showArtistDirectory() {
 
   el.innerHTML =
     (artists.length ? '<div class="pf-sec"><h3>Artists</h3><span class="badge badge-orange">' + artists.length + '</span></div>' + artistHtml : '') +
-    (pages.length ? '<div class="pf-sec"><h3>Creators &amp; Businesses</h3><span class="badge badge-orange">' + pages.length + '</span></div>' + pageHtml : '') ||
+    (pages.length ? '<div class="pf-sec"><h3>Creators &amp; Businesses</h3><span class="badge badge-orange">' + pages.length + '</span></div>' + pageHtml : '') +
+    (!showPages
+      ? '<div style="margin-top:1.2rem;padding:1rem 1.2rem;background:var(--bg3);border:1px dashed rgba(249,115,22,.4);border-radius:12px;font-size:.84rem;color:var(--muted)">🌵 Members see the whole city — creators, businesses, and the people behind them. PHX is invite-only; ask the artist who sent you.</div>'
+      : '') ||
     '<div class="pf-empty">Nobody here yet.</div>';
 }
 
