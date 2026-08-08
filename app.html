@@ -1058,25 +1058,9 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
           <div class="sh"><h3>Your Listening Impact</h3><span class="badge badge-teal">PHX Difference</span></div>
           <div class="fan-payout-card">
             <div class="fan-payout-title">Where Your Listening Went</div>
-            <!-- Artist listening-share bars (percentages only) -->
-            <div style="margin:.6rem 0 .9rem">
-              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.25rem;font-size:.82rem">
-                <span style="font-weight:600">Murkemz</span>
-                <span style="color:var(--green);font-weight:700" id="payout-artist-1-amt">86%</span>
-              </div>
-              <div style="background:rgba(255,255,255,.07);border-radius:6px;height:8px">
-                <div style="width:86%;background:linear-gradient(90deg,var(--orange),var(--green));height:8px;border-radius:6px"></div>
-              </div>
-              <div style="font-size:.72rem;color:var(--muted);margin-top:.2rem">of your listening this month</div>
-            </div>
-            <div style="margin:.4rem 0 .9rem">
-              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.25rem;font-size:.82rem">
-                <span style="font-weight:600;color:var(--muted)">2 other artists</span>
-                <span style="color:var(--teal);font-weight:700">14%</span>
-              </div>
-              <div style="background:rgba(255,255,255,.07);border-radius:6px;height:8px">
-                <div style="width:14%;background:var(--teal);height:8px;border-radius:6px"></div>
-              </div>
+            <!-- Real per-artist shares of THIS account's listening this month -->
+            <div id="listening-went-bars">
+              <div style="font-size:.8rem;color:var(--muted);margin:.6rem 0 .9rem">Play something — this fills in with the real split of your listening this month.</div>
             </div>
             <div class="fan-payout-vs">
               On the big platforms, local artists compete with global megastars for fractions of a cent. On PHX, <strong>your listening directly supports the Phoenix artists you play</strong> — and your pass unlocks the whole city: music now, eats, events, drops and more as they launch.
@@ -1092,22 +1076,6 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
             <div style="margin-top:.75rem;font-size:.75rem;color:var(--muted)">Paid passes open at launch — everything is free to explore until then.</div>
           </div>
 
-          <!-- PHX Roster -->
-          <div class="sh"><h3>PHX Roster</h3><a href="#" onclick="showArtistDirectory();return false">All Artists</a></div>
-          <div class="artist-card" onclick="showArtistPage('murkemz')" style="cursor:pointer">
-            <div class="artist-card-ava" style="background:linear-gradient(135deg,var(--orange-d),var(--purple))">M</div>
-            <div style="flex:1">
-              <div class="artist-card-name">Murkemz <span class="badge badge-orange" style="font-size:.6rem">Founder</span></div>
-              <div class="artist-card-meta">PHX Hip-Hop · South Phoenix · Recess EP Out Now</div>
-            </div>
-          </div>
-          <div class="artist-card" style="opacity:.5;cursor:default">
-            <div class="artist-card-ava" style="background:linear-gradient(135deg,var(--red),var(--purple))">+</div>
-            <div style="flex:1">
-              <div class="artist-card-name" style="color:var(--muted)">More Phoenix artists joining soon</div>
-              <div class="artist-card-meta">Artists list free — apply in the app</div>
-            </div>
-          </div>
         </div>
       </div>
 
@@ -2157,7 +2125,7 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
     <button class="mp-btn" aria-label="Next track" onclick="nextTrack()">⏭</button>
   </div>
   <div class="mp-bar"><div class="mp-fill" id="mp-fill"></div></div>
-  <div class="mp-time" id="mp-time">1:12 / 3:24</div>
+  <div class="mp-time" id="mp-time">0:00 / 0:00</div>
   <div class="mp-stream-live" id="mp-stream-indicator" style="display:none">● 30s counting</div>
 </div>
 
@@ -2365,7 +2333,7 @@ function showView(id) {
   if (id === 'home') { loadCityFeed(); loadTrendingRail(); }
   if (id === 'profile') loadMyPages();
   if (id === 'discover') { loadForYou(); loadTrendingRail(); }
-  if (id === 'music') loadMusicCatalog();
+  if (id === 'music') { loadMusicCatalog(); loadListeningWent(); }
   if (id === 'artist-submit') populateGenreSelect();
   if (id === 'reels') loadReels();
   else pauseAllReels();
@@ -2914,9 +2882,14 @@ function nextTrack() {
     PHX_AUDIO.play().catch(function(){});
     return;
   }
+  // The real queue wins: advance through whatever list playback started from
+  var qn = queueAdvance(1);
+  if (qn) { playTrackById(qn.id); return; }
+  // Legacy demo tracks only
   var order = Object.keys(TRACK_META);
   if (!order.length) return;
   var idx = order.indexOf(streamData.currentTrack);
+  if (idx === -1) return;
   if (_shuffleOn && order.length > 1) {
     var pick = idx;
     while (pick === idx) pick = Math.floor(Math.random() * order.length);
@@ -2934,8 +2907,11 @@ function prevTrack() {
     prog = 0;
     return;
   }
+  var qp = queueAdvance(-1);
+  if (qp) { playTrackById(qp.id); return; }
   var order = Object.keys(TRACK_META);
   var idx = order.indexOf(streamData.currentTrack);
+  if (idx === -1) return;
   playTrackByKey(order[(idx - 1 + order.length) % order.length]);
 }
 
@@ -3058,6 +3034,8 @@ setInterval(function() {
     var elapsed = realDur ? PHX_AUDIO.currentTime : (prog / 100) * totalSeconds;
     var elEl = document.getElementById('elapsed-time');
     if (elEl) elEl.textContent = fmtTime(elapsed);
+    var mpT = document.getElementById('mp-time');
+    if (mpT) mpT.textContent = fmtTime(elapsed) + ' / ' + fmtTime(totalSeconds);
   }
 }, 300);
 
@@ -3065,6 +3043,8 @@ function playTrack(el, title, artist, feat, album, duration, trackId, streamCoun
   // Static onclick args carry legacy counts — live DB counts win
   var _lc = _liveTrackCounts[(title || '').toLowerCase()];
   if (_lc != null) streamCount = _lc;
+  // Whatever list this came from becomes the play queue (feeds Up Next)
+  if (typeof _resolveQueueFor === 'function') _resolveQueueFor(trackId);
   // Close out listen-time on the previous track, start the new clock
   _startListen(trackId);
   // Update track rows
@@ -6636,6 +6616,122 @@ async function playTrackById(trackId, el) {
             dur, t.id, t.stream_count || 0, '🎵');
 }
 
+// "Where Your Listening Went" — the REAL split of this account's counted
+// streams this month, per artist. No listening yet = an honest prompt.
+async function loadListeningWent() {
+  var el = document.getElementById('listening-went-bars');
+  if (!el || !_authUser) return;
+  try {
+    var monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
+    var res = await _sb.from('stream_events')
+      .select('artist_id,counted,artists(name,slug)')
+      .eq('user_id', _authUser.id).eq('counted', true)
+      .gte('listened_at', monthStart).limit(1000);
+    var rows = res.data || [];
+    if (!rows.length) return; // keep the play-something prompt
+    var byArtist = {};
+    rows.forEach(function(s) {
+      var name = (s.artists && s.artists.name) || 'PHX artist';
+      byArtist[name] = byArtist[name] || { n: 0, slug: s.artists && s.artists.slug };
+      byArtist[name].n++;
+    });
+    var names = Object.keys(byArtist).sort(function(a, b){ return byArtist[b].n - byArtist[a].n; });
+    var total = rows.length;
+    var palette = ['linear-gradient(90deg,var(--orange),var(--green))', 'var(--teal)', 'var(--purple-l)', 'var(--gold)'];
+    el.innerHTML = names.slice(0, 4).map(function(name, i) {
+      var pct = Math.round(byArtist[name].n / total * 100);
+      return '<div style="margin:.6rem 0 .9rem"' + (byArtist[name].slug ? ' onclick="showArtistPage(\'' + escapeHtml(byArtist[name].slug) + '\')" role="button" style="cursor:pointer"' : '') + '>' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.25rem;font-size:.82rem;margin:.6rem 0 .25rem">' +
+          '<span style="font-weight:600">' + escapeHtml(name) + '</span>' +
+          '<span style="color:var(--green);font-weight:700">' + pct + '%</span></div>' +
+        '<div style="background:rgba(255,255,255,.07);border-radius:6px;height:8px">' +
+          '<div style="width:' + pct + '%;background:' + palette[i % palette.length] + ';height:8px;border-radius:6px"></div></div>' +
+      '</div>';
+    }).join('') + '<div style="font-size:.72rem;color:var(--muted);margin-top:.2rem">of your listening this month</div>';
+  } catch (e) { reportFailure('loadListeningWent', e); }
+}
+
+// ── PLAY QUEUE — the real up-next. Whatever list you start playback from
+// (catalog, artist page, search, the queue itself) becomes the queue, and
+// next/prev walk THAT list. The panel shows what actually comes next.
+var _playQueue = [];   // [{id,title,artist_name,artist_slug,cover_url,stream_count}]
+var _queuePos = -1;
+var _musicCatalogTracks = [];
+
+function _normalizeQueueTrack(t) {
+  return {
+    id: t.id,
+    title: t.title || '',
+    artist_name: t.artist_name || (t.artists && t.artists.name) || (_artistPage && _artistPage.name) || '',
+    artist_slug: t.artist_slug || (t.artists && t.artists.slug) || (_artistPage && _artistPage.slug) || '',
+    cover_url: t.cover_url || null,
+    stream_count: t.stream_count || 0
+  };
+}
+
+// Figure out which visible list this track came from and make it the queue.
+function _resolveQueueFor(trackId) {
+  var apActive = (function(){ var v = document.getElementById('v-artist-page'); return v && v.classList.contains('active'); })();
+  var candidates = apActive
+    ? [_artistPageTracks, (typeof _musicCatalogTracks !== 'undefined' ? _musicCatalogTracks : []), (typeof _lastSearchResults !== 'undefined' ? _lastSearchResults : [])]
+    : [(typeof _musicCatalogTracks !== 'undefined' ? _musicCatalogTracks : []), _artistPageTracks, (typeof _lastSearchResults !== 'undefined' ? _lastSearchResults : [])];
+  for (var c = 0; c < candidates.length; c++) {
+    var list = (candidates[c] || []).filter(function(t){ return t && t.id && t.audio_url; });
+    var idx = -1;
+    for (var i = 0; i < list.length; i++) if (list[i].id === trackId) { idx = i; break; }
+    if (idx !== -1) {
+      _playQueue = list.map(_normalizeQueueTrack);
+      _queuePos = idx;
+      renderUpNext();
+      return;
+    }
+  }
+  // Unknown context (legacy keys, single deep link): queue of one
+  _playQueue = [];
+  _queuePos = -1;
+  renderUpNext();
+}
+
+function queueAdvance(dir) {
+  if (_playQueue.length < 2) return null;
+  if (typeof _shuffleOn !== 'undefined' && _shuffleOn) {
+    var pick = _queuePos;
+    while (pick === _queuePos) pick = Math.floor(Math.random() * _playQueue.length);
+    _queuePos = pick;
+  } else {
+    _queuePos = (_queuePos + dir + _playQueue.length) % _playQueue.length;
+  }
+  return _playQueue[_queuePos];
+}
+
+// The Up Next panel mirrors the live queue: what's actually coming after
+// the current song, in order. Falls back to a hint before anything plays.
+function renderUpNext() {
+  var q = document.getElementById('queue-list');
+  if (!q) return;
+  if (_playQueue.length < 2 || _queuePos === -1) {
+    if (_playQueue.length === 0) return; // leave the default most-played list
+    _setText('queue-count', 'end of queue');
+    q.innerHTML = '<div class="pf-empty">Last one in this list — pick another track to build a new queue.</div>';
+    return;
+  }
+  var upcoming = [];
+  for (var i = 1; i < _playQueue.length && upcoming.length < 4; i++) {
+    upcoming.push(_playQueue[(_queuePos + i) % _playQueue.length]);
+  }
+  _setText('queue-count', upcoming.length + ' up next');
+  q.innerHTML = upcoming.map(function(t, i) {
+    var art = safeUrl(t.cover_url);
+    return '<div class="track-row" onclick="playTrackById(\'' + t.id + '\', this)">' +
+      '<div class="track-num">' + (i + 1) + '</div>' +
+      '<div class="track-art">' + (art ? '<img src="' + art + '" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:6px">' : '🎵') + '</div>' +
+      '<div class="track-info"><div class="track-title">' + escapeHtml(t.title) + '</div>' +
+        '<div class="track-feat">' + escapeHtml(t.artist_name || '') + '</div></div>' +
+      '<div class="track-streams">' + fmtK(t.stream_count || 0) + '</div>' +
+    '</div>';
+  }).join('');
+}
+
 // Remember art + artist for whatever is playing so the mini player can show
 // real cover art and link the artist name through to their page.
 var TRACK_ART = {};
@@ -9112,6 +9208,7 @@ async function loadMusicCatalog() {
   ]);
   var tracks = r[0].data || [];
   var genres = r[1].data || [];
+  _musicCatalogTracks = tracks;   // queue source for catalog playback
 
   var chips = document.getElementById('genre-chips');
   if (chips) {
