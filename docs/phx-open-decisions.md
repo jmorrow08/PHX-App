@@ -5,6 +5,8 @@ _Drafted 2026-07-30 for Jaye. These are the calls only the founder can make; eac
 
 ## 1. Payout weighting: per-stream vs listen-time
 
+> ✅ **DECIDED & SHIPPED 2026-08-08** — capped time-weighting is live in `run_monthly_payout` v2 (each counted play worth `min(seconds,240)/240` of a full play, 30s floor), plus the tier-aware rate cap (`wallet ÷ 1000` → Native 0.75¢, Insider 1.45¢ per full play) and a bugfix making the engine honor the `counted` anti-fraud flag. Verified by rollback simulation. **Still open: the platform-share % (currently 50) — founder call pending, one settings row to change.**
+
 **Today:** a stream "qualifies" at 30 seconds of continuous play (same threshold Spotify/Apple use). Your wallet splits across artists by *count of qualifying streams*, with anti-fraud caps (max 1,000 counted streams/user/month, hourly distinct-track gate).
 
 **The tension you spotted is real, and it cuts both ways:**

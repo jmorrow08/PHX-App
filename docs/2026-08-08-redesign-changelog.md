@@ -26,3 +26,10 @@ Admin → Activity = every play (who, what, seconds listened, counted/capped) + 
 
 ## Deferred to the next pass (deliberate, not forgotten)
 Comment replies (one level), PHX reactions set (🔥 Heat, 🐦‍🔥 Risen, 🌵 City Love, 🥶 Chills, 🔁 On Repeat), PHX Points ledger, watermark Clip & Share export (share = link today), Favorites shelf, 20-second logged-out previews on artist pages, full tier-aware My Pass, wiring `tiers.capabilities` into UI gating, the full admin-surface split. Rationale: none block the code handout, and social-schema changes hours before first users is how launches break.
+
+## Late addition — payout engine v2 (same day)
+- **Time-weighted payouts live:** each counted play = `min(seconds listened, 240)/240` of a full play (30s floor). Deep listening pays more; skims pay a fraction; 4-min cap kills length-farming.
+- **Tier-aware rate cap:** per-full-play ceiling = wallet ÷ 1000 → Native 0.75¢, Insider **1.45¢** — the bigger pass genuinely pays artists more.
+- **Bugfix:** the engine now honors `counted` (previously uncounted/farmed streams could earn).
+- **Landing split sweep:** every public "50%" removed per the README internal-only policy; design prompt patched so it can't regenerate.
+- **Open:** platform-share % (50 today) — founder decision; `update payout_settings set platform_share_pct = …` when called.
