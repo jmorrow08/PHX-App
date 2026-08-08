@@ -1205,7 +1205,7 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
           <div id="points-panel" style="display:none;margin-top:.8rem;padding:.8rem 1rem;background:var(--bg3);border:1px solid rgba(249,115,22,.25);border-radius:12px;text-align:center">
             <div style="font-size:1.4rem;font-weight:800;color:var(--gold)" id="points-balance">0</div>
             <div style="font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)">PHX Points</div>
-            <div style="font-size:.72rem;color:var(--muted);margin-top:.4rem">Earn by listening, posting, and bringing people in. Redeem for free months, merch and early drops when the store opens.</div>
+            <div style="font-size:.72rem;color:var(--muted);margin-top:.4rem">Earn by listening, posting, and bringing people in. Redeem for merch and early access to drops when the store opens.</div>
           </div>
         </div>
         <div>
@@ -4144,28 +4144,55 @@ async function toggleComments(postId) {
   await loadComments(postId);
 }
 
+var _replyTarget = {};   // postId -> {id, name} of the comment being replied to
+
+function setReplyTarget(postId, commentId, name) {
+  _replyTarget[postId] = commentId ? { id: commentId, name: name } : null;
+  var hint = document.getElementById('reply-hint-' + postId);
+  var input = document.getElementById('comment-input-' + postId);
+  if (hint) {
+    hint.style.display = commentId ? '' : 'none';
+    if (commentId) hint.innerHTML = '↩️ Replying to <b>' + escapeHtml(name) + '</b> <a href="#" style="color:var(--orange)" onclick="setReplyTarget(\'' + postId + '\', null); return false">✕ cancel</a>';
+  }
+  if (input && commentId) input.focus();
+}
+
+function _renderCommentRow(c, postId, isReply) {
+  var d = new Date(c.created_at);
+  var diff = Math.floor((Date.now() - d.getTime()) / 60000);
+  var when = diff < 1 ? 'now' : diff < 60 ? diff + 'm' : diff < 1440 ? Math.floor(diff/60) + 'h' : Math.floor(diff/1440) + 'd';
+  var cClick = 'openAuthorProfile(&quot;' + (c.user_id || '') + '&quot;,&quot;' + (c.page_id || '') +
+               '&quot;,&quot;' + escapeHtml(String(c.author_name || '').replace(/["'\\]/g, '')) + '&quot;)';
+  var safeName = escapeHtml(String(c.author_name || '').replace(/["'\\]/g, ''));
+  return '<div style="display:flex;gap:.5rem;margin-bottom:.55rem;font-size:.82rem;align-items:flex-start' + (isReply ? ';margin-left:2rem' : '') + '">' +
+    avatarHtml(authorAvatarUrl(c), c.author_avatar || '👤', 'ava-sm', c.author_name,
+               'style="width:24px;height:24px;font-size:.72rem;cursor:pointer" onclick="' + cClick + '"') +
+    '<strong style="white-space:nowrap;cursor:pointer" onclick="' + cClick + '">' + escapeHtml(c.author_name) + '</strong>' +
+    '<span style="flex:1">' + escapeHtml(c.content) + '</span>' +
+    '<span style="color:var(--muted);font-size:.7rem">' + when + '</span>' +
+    (!isReply ? '<a href="#" style="color:var(--muted);font-size:.7rem" onclick="setReplyTarget(\'' + postId + '\',\'' + c.id + '\',\'' + safeName + '\');return false">Reply</a>' : '') +
+  '</div>';
+}
+
 async function loadComments(postId) {
   var box = document.getElementById('comments-' + postId);
   if (!box) return;
   var { data } = await _sb.from('post_comments')
     .select('*').eq('post_id', postId)
-    .order('created_at', { ascending: true }).limit(50);
+    .order('created_at', { ascending: true }).limit(80);
   try { await resolveAuthorAvatars(data || []); } catch (e) { reportFailure('loadComments', e); }
-  var listHtml = (data || []).map(function(c) {
-    var d = new Date(c.created_at);
-    var diff = Math.floor((Date.now() - d.getTime()) / 60000);
-    var when = diff < 1 ? 'now' : diff < 60 ? diff + 'm' : diff < 1440 ? Math.floor(diff/60) + 'h' : Math.floor(diff/1440) + 'd';
-    var cClick = 'openAuthorProfile(&quot;' + (c.user_id || '') + '&quot;,&quot;' + (c.page_id || '') +
-                 '&quot;,&quot;' + escapeHtml(String(c.author_name || '').replace(/["'\\]/g, '')) + '&quot;)';
-    return '<div style="display:flex;gap:.5rem;margin-bottom:.55rem;font-size:.82rem;align-items:flex-start">' +
-      avatarHtml(authorAvatarUrl(c), c.author_avatar || '👤', 'ava-sm', c.author_name,
-                 'style="width:24px;height:24px;font-size:.72rem;cursor:pointer" onclick="' + cClick + '"') +
-      '<strong style="white-space:nowrap;cursor:pointer" onclick="' + cClick + '">' + escapeHtml(c.author_name) + '</strong>' +
-      '<span style="flex:1">' + escapeHtml(c.content) + '</span>' +
-      '<span style="color:var(--muted);font-size:.7rem">' + when + '</span>' +
-    '</div>';
+  // One-level threading: top-level comments with their replies beneath
+  var all = data || [];
+  var replies = {};
+  all.forEach(function(c) {
+    if (c.parent_comment_id) (replies[c.parent_comment_id] = replies[c.parent_comment_id] || []).push(c);
+  });
+  var listHtml = all.filter(function(c){ return !c.parent_comment_id; }).map(function(c) {
+    return _renderCommentRow(c, postId, false) +
+      (replies[c.id] || []).map(function(r){ return _renderCommentRow(r, postId, true); }).join('');
   }).join('');
   box.innerHTML = (listHtml || '<div style="color:var(--muted);font-size:.8rem;margin-bottom:.5rem">No comments yet.</div>') +
+    '<div id="reply-hint-' + postId + '" style="display:none;font-size:.72rem;color:var(--muted);margin:.3rem 0"></div>' +
     '<div style="display:flex;gap:.5rem;margin-top:.5rem">' +
       '<input class="form-input" id="comment-input-' + postId + '" maxlength="500" placeholder="Add a comment…" ' +
         'style="flex:1;font-size:.82rem;padding:.45rem .7rem" ' +
@@ -4182,9 +4209,11 @@ async function submitComment(postId) {
   if (!content) return;
   input.disabled = true;
   var persona = currentPersona();
+  var target = _replyTarget[postId];
   var { data, error } = await _sb.rpc('add_post_comment', {
     p_post_id: postId, p_user_id: getGuestId(),
-    p_author_name: persona.name, p_content: content
+    p_author_name: persona.name, p_content: content,
+    p_parent_id: target ? target.id : null
   });
   input.disabled = false;
   if (error || !data || !data.ok) {
@@ -4197,6 +4226,7 @@ async function submitComment(postId) {
   var countEl = document.getElementById('comment-count-' + postId);
   if (countEl) countEl.textContent = (parseInt(countEl.textContent)||0) + 1;
   trackEvent('post_comment', 'post', postId, {});
+  _replyTarget[postId] = null;
   await loadComments(postId);
 }
 
@@ -7248,11 +7278,10 @@ async function loadReferralPanel() {
       '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:.6rem;margin-bottom:.9rem">' +
         '<div><div style="font-size:1.15rem;font-weight:700">' + (d.signed_up || 0) + '</div><div style="font-size:.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em">Joined</div></div>' +
         '<div><div style="font-size:1.15rem;font-weight:700;color:var(--green)">' + (d.qualified || 0) + '</div><div style="font-size:.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em">Qualified</div></div>' +
-        '<div><div style="font-size:1.15rem;font-weight:700;color:var(--gold)">' + (d.months_banked || 0) + '</div><div style="font-size:.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em">Months banked</div></div>' +
       '</div>' +
       (d.founding_number ? '<div style="font-size:.78rem;color:var(--orange-l);margin-bottom:.5rem">🔥 PHX Native #' + d.founding_number + ' — rate locked for life</div>' : '') +
       (d.next_milestone ? '<div style="font-size:.76rem;color:var(--muted)">Next at ' + d.next_milestone.at + ' referrals: <b style="color:var(--white)">' + escapeHtml(d.next_milestone.reward) + '</b></div>' : '') +
-      '<div style="font-size:.72rem;color:var(--faint);margin-top:.7rem">Free months land after a friend has been here 30 days and actually listened — keeps the rewards honest.</div>';
+      '<div style="font-size:.72rem;color:var(--faint);margin-top:.7rem">A referral counts after your friend has been here 30 days and actually listened — keeps the numbers honest.</div>';
   } catch (e) {
     el.innerHTML = '<div style="color:var(--muted);font-size:.85rem">Couldn\'t load referrals.</div>';
   }
