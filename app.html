@@ -3062,8 +3062,21 @@ function fmtTime(s) {
 }
 
 var _listenFlushTick = 0;
+var _previewGated = {};   // trackId -> true once the guest gate fired
+
 setInterval(function() {
   if (streamData.playing) {
+    // Logged-out preview: 20 seconds, then the door. Under the 30s stream
+    // threshold on purpose — a preview can never pollute payout counts.
+    if (!_authUser && PHX_AUDIO && PHX_AUDIO.src && PHX_AUDIO.currentTime >= 20) {
+      pauseAudio();   // always stops at 20s for guests, even on replay
+      if (!_previewGated[streamData.currentTrack]) {
+        _previewGated[streamData.currentTrack] = true;
+        showToast('🔒 That\'s the 20-second preview — join PHX to hear the full track');
+        setTimeout(function(){ if (!_authUser) openAuthModal(); }, 900);
+      }
+      return;
+    }
     _listen.seconds += 0.3;
     if (++_listenFlushTick >= 50) { _listenFlushTick = 0; _finalizeListen(); } // flush ~15s
 
@@ -7373,6 +7386,7 @@ async function loadReferralPanel() {
     }
     var left = d.unlimited ? 'Unlimited' : (d.invites_left + ' left');
     var link = window.location.origin + '/app?ref=' + encodeURIComponent(d.code);
+    // Deliberately no signup counts here — attribution lives in admin only.
     el.innerHTML =
       '<div style="font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:.5rem">Your invite code</div>' +
       '<div style="display:flex;align-items:center;gap:.7rem;flex-wrap:wrap;margin-bottom:.9rem">' +
@@ -7380,16 +7394,46 @@ async function loadReferralPanel() {
         '<button class="tb-btn" style="font-size:.75rem" onclick="copyReferralLink(\'' + escapeHtml(d.code) + '\')">Copy link</button>' +
         '<span style="font-size:.72rem;color:var(--muted)">' + escapeHtml(left) + '</span>' +
       '</div>' +
-      '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:.6rem;margin-bottom:.9rem">' +
-        '<div><div style="font-size:1.15rem;font-weight:700">' + (d.signed_up || 0) + '</div><div style="font-size:.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em">Joined</div></div>' +
-        '<div><div style="font-size:1.15rem;font-weight:700;color:var(--green)">' + (d.qualified || 0) + '</div><div style="font-size:.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em">Qualified</div></div>' +
-      '</div>' +
       (d.founding_number ? '<div style="font-size:.78rem;color:var(--orange-l);margin-bottom:.5rem">🔥 PHX Native #' + d.founding_number + ' — rate locked for life</div>' : '') +
-      (d.next_milestone ? '<div style="font-size:.76rem;color:var(--muted)">Next at ' + d.next_milestone.at + ' referrals: <b style="color:var(--white)">' + escapeHtml(d.next_milestone.reward) + '</b></div>' : '') +
-      '<div style="font-size:.72rem;color:var(--faint);margin-top:.7rem">A referral counts after your friend has been here 30 days and actually listened — keeps the numbers honest.</div>';
+      '<div style="font-size:.72rem;color:var(--faint);margin-top:.3rem">Share it — everyone who joins on your code is part of your corner of the city.</div>' +
+      (_canMintCodes
+        ? '<div style="margin-top:1rem;padding-top:.9rem;border-top:1px solid var(--border)">' +
+            '<div style="font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:.5rem">Hand out codes</div>' +
+            '<div style="display:flex;gap:.5rem;flex-wrap:wrap">' +
+              '<button class="tb-btn" style="font-size:.76rem" onclick="mintPartnerCode(\'member\', this)">＋ Member code</button>' +
+              '<button class="tb-btn" style="font-size:.76rem" onclick="mintPartnerCode(\'artist\', this)">＋ Artist code</button>' +
+            '</div>' +
+            '<div id="partner-code-result" style="display:none;margin-top:.7rem;padding:.7rem .9rem;background:var(--bg4);border:1px solid var(--border);border-radius:10px"></div>' +
+            '<div style="font-size:.7rem;color:var(--faint);margin-top:.5rem">One use each. A member code makes a fan; an artist code makes an artist page. Give them out however you like.</div>' +
+          '</div>'
+        : '');
   } catch (e) {
     el.innerHTML = '<div style="color:var(--muted);font-size:.85rem">Couldn\'t load referrals.</div>';
   }
+}
+
+// Partner minting (Bryce + flagged managers): one-use typed codes from My
+// Pass. Attribution is automatic — the code carries who minted it, the
+// redemption records who used it, both visible in Admin → Roster.
+async function mintPartnerCode(role, btn) {
+  if (btn) { btn.disabled = true; btn.textContent = 'Generating…'; }
+  var res = await _sb.rpc('mint_partner_code', { p_role: role });
+  if (btn) { btn.disabled = false; btn.textContent = role === 'artist' ? '＋ Artist code' : '＋ Member code'; }
+  if (res.error || !res.data || !res.data.ok) {
+    showToast('Could not generate: ' + ((res.data && res.data.reason) || (res.error && res.error.message) || 'unknown'));
+    return;
+  }
+  var out = document.getElementById('partner-code-result');
+  if (out) {
+    out.style.display = 'block';
+    out.innerHTML =
+      '<div style="font-size:.7rem;color:var(--muted);margin-bottom:.3rem">' + (role === 'artist' ? '🎤 Artist' : '👤 Member') + ' code · 1 use</div>' +
+      '<div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap">' +
+        '<code style="font-size:1.2rem;font-weight:800;letter-spacing:.14em;color:var(--orange)">' + escapeHtml(res.data.code) + '</code>' +
+        '<button class="tb-btn" style="font-size:.72rem;padding:.25rem .55rem" onclick="copyReferralLink(\'' + escapeHtml(res.data.code) + '\')">Copy link</button>' +
+      '</div>';
+  }
+  trackEvent('partner_code_minted', 'code', null, { role: role });
 }
 
 function copyReferralLink(code) {
@@ -7443,9 +7487,10 @@ async function applyAccountRole() {
   }
   await redeemPendingInvite();
   checkAccessAndOnboarding();
-  var res = await _sb.from('profiles').select('role,tier,display_name,username,allow_multi_page,signup_attrib').eq('id', _authUser.id).maybeSingle();
+  var res = await _sb.from('profiles').select('role,tier,display_name,username,allow_multi_page,signup_attrib,can_mint_codes').eq('id', _authUser.id).maybeSingle();
   var p = res.data || {};
   _allowMultiPage = !!p.allow_multi_page;
+  _canMintCodes = !!p.can_mint_codes;
   _accountTier = p.tier || 'explorer';
   // Attach first-touch attribution to the profile, once
   try {
@@ -7837,6 +7882,7 @@ async function reelLike(postId) {
 // ═══════════════════════════════════════════════════════════════════════
 var _accountRole = 'explorer';   // server-verified; never set from the client
 var _allowMultiPage = false;     // only Jaye + Bryce; set from profiles.allow_multi_page
+var _canMintCodes = false;       // partner minting (Bryce + admins); profiles.can_mint_codes
 var _accountTier = 'explorer';   // profiles.tier, for tier-aware UI
 // Removing admin nodes is DESTRUCTIVE and can't be undone, so it must never
 // run before the session has actually resolved. Without this gate the page
