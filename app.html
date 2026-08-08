@@ -1327,11 +1327,11 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
               <select class="form-select" id="new-page-type" style="margin-bottom:.5rem">
                 <option value="artist">🎤 Artist</option>
                 <option value="creator">📸 Creator (podcast / photo / video / chef)</option>
-                <option value="restaurant">🍽️ Restaurant / Food</option>
-                <option value="clothing">👕 Clothing / Brand</option>
-                <option value="venue">🏟️ Venue</option>
-                <option value="promoter">🎟️ Event Promoter</option>
-                <option value="brand">💼 Business</option>
+                <option value="food_drink">🍽️ Food &amp; Drink (restaurant, café, bar, food truck)</option>
+                <option value="style_care">💈 Style &amp; Care (barber, salon, spa, tattoo, nails)</option>
+                <option value="fitness_wellness">🏋️ Fitness &amp; Wellness (trainer, gym, studio, coach)</option>
+                <option value="retail_brands">🛍️ Retail &amp; Brands (clothing, sneakers, shops)</option>
+                <option value="nightlife_events">🎟️ Nightlife &amp; Events (venue, promoter)</option>
                 <option value="other">⭐ Other</option>
               </select>
               <div style="display:flex;gap:.5rem">
@@ -1756,8 +1756,8 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
       </div>
       <div class="card" style="margin-bottom:1rem">
         <div class="sh" style="margin-bottom:.6rem"><h3>Invites &amp; referrals</h3>
-          <button class="tb-btn" style="margin-left:auto;font-size:.74rem;padding:.28rem .6rem" onclick="generateInviteCode()">+ Generate code</button></div>
-        <div style="font-size:.78rem;color:var(--muted);margin-bottom:.7rem">Who invited whom. Every signup must redeem a code — there is no open sign-up.</div>
+          <button class="tb-btn" style="margin-left:auto;font-size:.74rem;padding:.28rem .6rem" onclick="openCodeGen()">+ Generate code</button></div>
+        <div style="font-size:.78rem;color:var(--muted);margin-bottom:.7rem">Who invited whom. Every signup must redeem a code — there is no open sign-up. Codes are typed: an <strong>Artist</strong> code lands the person in the artist lane, a <strong>Member</strong> code in the member lane.</div>
         <div id="admin-invites"><div class="pf-empty">Loading…</div></div>
       </div>
       <div class="card">
@@ -1991,6 +1991,30 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
 </div>
 
 <!-- AUTH MODAL — Supabase email/password -->
+<!-- TYPED CODE GENERATOR (admin) -->
+<div id="codegen-modal" role="dialog" aria-modal="true" aria-label="Generate onboarding code" style="display:none;position:fixed;inset:0;z-index:530;background:rgba(7,7,15,.88);backdrop-filter:blur(5px);align-items:center;justify-content:center;padding:1rem">
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;max-width:420px;width:100%;padding:1.5rem">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+      <div style="font-size:1.05rem;font-weight:800">Generate onboarding code</div>
+      <button onclick="closeCodeGen()" aria-label="Close" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem">✕</button>
+    </div>
+    <label class="form-label">Who is this code for?</label>
+    <div style="display:flex;gap:.5rem;margin:.35rem 0 .3rem">
+      <button class="tb-btn primary" id="cg-btn-member" style="flex:1" onclick="codeGenSetType('member')">👤 Member</button>
+      <button class="tb-btn" id="cg-btn-artist" style="flex:1" onclick="codeGenSetType('artist')">🎤 Artist</button>
+    </div>
+    <div id="cg-hint" style="font-size:.72rem;color:var(--muted);margin-bottom:.8rem"></div>
+    <div class="form-field"><label class="form-label">Label (who's it for — your note)</label>
+      <input class="form-input" id="cg-label" type="text" placeholder="e.g. Bryce's cousin / DJ Sol"></div>
+    <div class="form-field"><label class="form-label">Starting tier</label>
+      <select class="form-select" id="cg-tier"></select></div>
+    <div class="form-field"><label class="form-label">Number of uses</label>
+      <input class="form-input" id="cg-uses" type="number" min="1" value="1" style="width:120px"></div>
+    <button class="upgrade-btn" id="cg-submit" style="margin:.4rem 0 0;width:100%" onclick="generateTypedCode()">Generate code</button>
+    <div id="cg-result" style="display:none;margin-top:1rem;padding:.8rem;background:var(--bg4);border:1px solid var(--border);border-radius:10px"></div>
+  </div>
+</div>
+
 <div id="auth-modal" role="dialog" aria-modal="true" aria-label="Sign in or create account" style="display:none;position:fixed;inset:0;z-index:520;background:rgba(7,7,15,.88);backdrop-filter:blur(5px);align-items:center;justify-content:center;padding:1rem">
   <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;max-width:400px;width:100%;padding:1.5rem">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
@@ -4501,7 +4525,8 @@ async function loadMyPages() {
   _myPages = res.data || [];
   if (!list) return;
   var activeId = localStorage.getItem('phx_active_page');
-  var typeIcons = { artist:'🎤', creator:'📸', restaurant:'🍽️', clothing:'👕', venue:'🏟️', promoter:'🎟️', brand:'💼', other:'⭐' };
+  var typeIcons = { artist:'🎤', creator:'📸', food_drink:'🍽️', style_care:'💈', fitness_wellness:'🏋️', retail_brands:'🛍️', nightlife_events:'🎟️', other:'⭐',
+                    restaurant:'🍽️', clothing:'👕', venue:'🏟️', promoter:'🎟️', brand:'💼' };
 
   var personalRow = '<div style="display:flex;align-items:center;gap:.6rem;padding:.55rem .6rem;border-radius:8px;margin-bottom:.35rem;' +
     (!activeId ? 'background:rgba(249,115,22,.1);border:1px solid rgba(249,115,22,.3)' : 'border:1px solid transparent') + '">' +
@@ -4527,6 +4552,18 @@ async function loadMyPages() {
   }).join('');
 
   list.innerHTML = personalRow + pageRows;
+
+  // Single-identity model: only flagged accounts (Jaye, Bryce) can add pages.
+  // Everyone else manages the page(s) they already own but can't spawn more.
+  var addBtn = document.getElementById('add-page-btn');
+  if (addBtn) addBtn.style.display = _allowMultiPage ? '' : 'none';
+  var pagesIntro = document.querySelector('#v-profile .card .sh h3');
+  if (!_allowMultiPage) {
+    var introTxt = list.previousElementSibling;
+    // Trim the "run many pages" pitch for single-identity accounts
+    var pitch = list.parentElement ? list.parentElement.querySelector('div[style*="margin-bottom:.8rem"]') : null;
+    if (pitch && _myPages.length === 0) pitch.textContent = 'Your PHX identity. Artist and business pages are invite-based right now.';
+  }
 }
 
 function setActivePage(pageId) {
@@ -4545,14 +4582,17 @@ async function createPage() {
     if (errEl) { errEl.textContent = 'Page name must be at least 2 characters.'; errEl.style.display = 'block'; }
     return;
   }
-  var typeIcons = { artist:'🎤', creator:'📸', restaurant:'🍽️', clothing:'👕', venue:'🏟️', promoter:'🎟️', brand:'💼', other:'⭐' };
+  var typeIcons = { artist:'🎤', creator:'📸', food_drink:'🍽️', style_care:'💈', fitness_wellness:'🏋️', retail_brands:'🛍️', nightlife_events:'🎟️', other:'⭐',
+                    restaurant:'🍽️', clothing:'👕', venue:'🏟️', promoter:'🎟️', brand:'💼' };
   var ptype = typeEl ? typeEl.value : 'other';
   var { data, error } = await _sb.rpc('create_page', {
-    p_owner_id: getGuestId(), p_name: name, p_page_type: ptype, p_avatar: typeIcons[ptype] || '⭐'
+    p_owner_id: (_authUser && _authUser.id) ? _authUser.id : getGuestId(), p_name: name, p_page_type: ptype, p_avatar: typeIcons[ptype] || '⭐'
   });
   if (error || !data || !data.ok) {
     if (errEl) {
-      errEl.textContent = (data && data.reason === 'max_pages') ? 'Limit reached — 5 pages per account.' : 'Could not create page.';
+      errEl.textContent = (data && data.reason === 'max_pages') ? 'Page limit reached.'
+        : (data && data.reason === 'multi_page_disabled') ? 'Extra pages are invite-based right now.'
+        : 'Could not create page.';
       errEl.style.display = 'block';
     }
     return;
@@ -5549,17 +5589,59 @@ async function loadAdminInvites() {
       : '<div class="pf-empty" style="padding-top:.6rem">No referrals recorded yet.</div>');
 }
 
-async function generateInviteCode() {
-  var label = prompt('Label for this code (who is it for?):');
-  if (label === null) return;
-  var res = await _sb.rpc('ensure_invite_code', {
-    p_user_id: _authUser ? _authUser.id : getGuestId(),
-    p_artist_id: null,
-    p_label: label || 'PHX invite'
+// Typed code generator — you choose the lane (and tier) at mint time.
+function openCodeGen() {
+  var m = document.getElementById('codegen-modal');
+  if (m) { m.style.display = 'flex'; codeGenSetType('member'); }
+}
+function closeCodeGen() {
+  var m = document.getElementById('codegen-modal');
+  if (m) m.style.display = 'none';
+}
+var _codeGenType = 'member';
+function codeGenSetType(t) {
+  _codeGenType = t;
+  document.getElementById('cg-btn-member').className = 'tb-btn' + (t === 'member' ? ' primary' : '');
+  document.getElementById('cg-btn-artist').className = 'tb-btn' + (t === 'artist' ? ' primary' : '');
+  // Tier options swap with the lane
+  var sel = document.getElementById('cg-tier');
+  if (sel) {
+    sel.innerHTML = t === 'artist'
+      ? '<option value="">Default (Full Artist)</option><option value="headline">Headline Artist (top)</option><option value="basic">Basic Artist (limited)</option>'
+      : '<option value="">Default (Native)</option><option value="insider">Insider (top member)</option><option value="native">Native</option><option value="free">Free</option>';
+  }
+  var hint = document.getElementById('cg-hint');
+  if (hint) hint.textContent = t === 'artist'
+    ? 'They redeem → artist account + artist onboarding. Give this to Phoenix artists.'
+    : 'They redeem → member account. Give this to fans and supporters.';
+}
+async function generateTypedCode() {
+  var label = (document.getElementById('cg-label') || {}).value || null;
+  var tier = (document.getElementById('cg-tier') || {}).value || null;
+  var uses = parseInt((document.getElementById('cg-uses') || {}).value, 10);
+  if (!uses || uses < 1) uses = 1;
+  var btn = document.getElementById('cg-submit');
+  if (btn) { btn.disabled = true; btn.textContent = 'Generating…'; }
+  var res = await _sb.rpc('admin_mint_code', {
+    p_role: _codeGenType, p_label: label, p_tier: tier, p_max_uses: uses
   });
-  if (res.error) { showToast('Could not generate — admin sign-in required'); return; }
-  var code = res.data && (res.data.code || res.data);
-  if (code) showToast('Code: ' + code);
+  if (btn) { btn.disabled = false; btn.textContent = 'Generate code'; }
+  if (res.error || !res.data || !res.data.ok) {
+    var reason = (res.data && res.data.reason) || (res.error && res.error.message) || 'unknown';
+    showToast(reason === 'admin_required' ? 'Admin sign-in required' : 'Could not generate: ' + reason);
+    return;
+  }
+  var out = document.getElementById('cg-result');
+  if (out) {
+    out.style.display = 'block';
+    out.innerHTML = '<div style="font-size:.74rem;color:var(--muted);margin-bottom:.3rem">' +
+      (_codeGenType === 'artist' ? '🎤 Artist' : '👤 Member') + ' code' + (tier ? ' · ' + tier : '') + ' · ' + uses + ' use' + (uses > 1 ? 's' : '') + '</div>' +
+      '<div style="display:flex;gap:.5rem;align-items:center">' +
+        '<code style="font-size:1.3rem;font-weight:800;letter-spacing:.15em;color:var(--orange)">' + escapeHtml(res.data.code) + '</code>' +
+        '<button class="tb-btn" style="font-size:.72rem;padding:.25rem .55rem" onclick="copyClaimCode(\'' + res.data.code + '\', this)">Copy</button>' +
+        '<button class="tb-btn" style="font-size:.72rem;padding:.25rem .55rem" onclick="copyInviteLink(\'' + window.location.origin + '/app?ref=' + res.data.code + '\', this)">Copy link</button>' +
+      '</div>';
+  }
   loadAdminInvites();
 }
 
@@ -6897,8 +6979,10 @@ async function applyAccountRole() {
   }
   await redeemPendingInvite();
   checkAccessAndOnboarding();
-  var res = await _sb.from('profiles').select('role,tier,display_name,username').eq('id', _authUser.id).maybeSingle();
+  var res = await _sb.from('profiles').select('role,tier,display_name,username,allow_multi_page').eq('id', _authUser.id).maybeSingle();
   var p = res.data || {};
+  _allowMultiPage = !!p.allow_multi_page;
+  _accountTier = p.tier || 'explorer';
   var role;
   if (p.role === 'super') role = 'super';
   else if (p.role === 'admin') role = 'admin';
@@ -7158,6 +7242,8 @@ async function reelLike(postId) {
 // the admin shell shouldn't render for a member either.
 // ═══════════════════════════════════════════════════════════════════════
 var _accountRole = 'explorer';   // server-verified; never set from the client
+var _allowMultiPage = false;     // only Jaye + Bryce; set from profiles.allow_multi_page
+var _accountTier = 'explorer';   // profiles.tier, for tier-aware UI
 // Removing admin nodes is DESTRUCTIVE and can't be undone, so it must never
 // run before the session has actually resolved. Without this gate the page
 // tore out the admin shell during the split second before auth returned —
@@ -9161,7 +9247,7 @@ _whenDomReady(function(){ hydrateCatalogStats(); });
 // ── ACCESSIBILITY: Escape closes any open modal ─────────────────────────
 document.addEventListener('keydown', function(e) {
   if (e.key !== 'Escape') return;
-  ['auth-modal', 'username-modal', 'report-modal', 'install-help-modal'].forEach(function(id) {
+  ['auth-modal', 'username-modal', 'report-modal', 'install-help-modal', 'codegen-modal'].forEach(function(id) {
     var m = document.getElementById(id);
     if (m && m.style.display !== 'none' && m.style.display !== '') m.style.display = 'none';
   });
