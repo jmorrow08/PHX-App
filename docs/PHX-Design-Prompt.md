@@ -9,7 +9,7 @@ You are redesigning **PHX**, a fan-powered music streaming + city-culture web ap
 
 ## What PHX is (positioning that must drive the design)
 
-- Members pay a monthly pass; **50% of their money goes to the Phoenix artists they actually stream**. The killer feature is "The Receipt" — showing each member exactly which artists their money reached. The design should make money-flow-to-artists feel like the heartbeat of the product.
+- Members pay a monthly pass; **their pass pays the Phoenix artists they actually stream** (the internal split is company knowledge — never state a percentage in UI or marketing; see README "Royalty Model"). The killer feature is "The Receipt" — showing each member exactly which artists their money reached. The design should make money-flow-to-artists feel like the heartbeat of the product.
 - It is a **scene membership, not a streaming service**. Closer to a fan club + city identity card than Spotify. Members get numbered founding memberships ("PHX Native #047"). Local pride, hip-hop culture, desert city energy — think Phoenix at night: warm neon against darkness, not corporate SaaS.
 - Users: Explorers (free), Native/Insider members (paid), Artists (upload, analytics, earnings, merch), Admin/Super (ops). One app serves all of them via role-aware navigation.
 
