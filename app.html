@@ -2706,10 +2706,15 @@ function loadStreamCounts() {
     .then(function(res) {
       if (res.error || !res.data) return;
       var byId = {};
+      var totalAll = 0;
       res.data.forEach(function(t) {
         byId[t.id] = t.stream_count;
+        if (t.status === 'live') totalAll += (t.stream_count || 0);
         if (t.audio_url) TRACK_AUDIO_URLS[t.id] = t.audio_url;
       });
+      // The platform total covers EVERY live track — not just the legacy
+      // seeded five in TRACK_IDS (that scope bug read 10 when truth was 22)
+      streamData.totalAll = totalAll;
       Object.keys(TRACK_IDS).forEach(function(key) {
         var uuid = TRACK_IDS[key];
         if (byId[uuid] != null) streamData.streamCounts[key] = byId[uuid];
@@ -2744,6 +2749,7 @@ function clearStreamTimer() {
 
 function countStream(trackId) {
   streamData.sessionStreams++;
+  if (streamData.totalAll != null) streamData.totalAll++;
   if (streamData.streamCounts[trackId] !== undefined) {
     streamData.streamCounts[trackId]++;
   }
@@ -2792,8 +2798,10 @@ function updateStreamDisplays(trackId) {
     if (countEl) countEl.textContent = formatCount(count);
   }
 
-  // Total streams KPI
-  var total = Object.values(streamData.streamCounts).reduce(function(a,b){ return a+b; }, 0);
+  // Total streams KPI — all live tracks (DB) plus anything counted since load
+  var total = (streamData.totalAll != null)
+    ? streamData.totalAll
+    : Object.values(streamData.streamCounts).reduce(function(a,b){ return a+b; }, 0);
   var totalEl = document.getElementById('total-streams-display');
   if (totalEl) totalEl.textContent = formatCount(total);
   var kpiEl = document.getElementById('kpi-streams');
@@ -3562,12 +3570,11 @@ async function loadMyProfile() {
     return;
   }
 
+  // Anonymous visitors stay "Guest" — handles are only minted for real
+  // accounts (signup/onboarding). Auto-claiming per device filled the
+  // roster with one empty shell per browser session.
   var res = await _sb.from('member_profiles').select('*').eq('device_id', getGuestId()).maybeSingle();
   _myProfile = res.data || null;
-  if (!_myProfile) {
-    _myProfile = await _autoClaimUsername();
-    if (_myProfile && _cityFeedLoaded) loadCityFeed(true);
-  }
 }
 
 // Open the claim modal pre-filled for editing the current handle
@@ -6835,7 +6842,7 @@ async function renderOnboard() {
       '<p style="color:var(--muted);font-size:.85rem;margin-bottom:1rem">This is how you show up when you post. Your real name stays private unless you share it.</p>' +
       '<div style="display:flex;align-items:center;gap:.4rem;margin-bottom:.55rem">' +
         '<span style="font-size:1.1rem;color:var(--muted)">@</span>' +
-        '<input class="form-input" id="onb-username" placeholder="yourhandle" maxlength="20" value="' + escapeHtml(p.username || '') + '" style="flex:1">' +
+        '<input class="form-input" id="onb-username" placeholder="yourhandle" maxlength="20" value="' + escapeHtml(p.username || _randomHandle()) + '" style="flex:1">' +
       '</div>' +
       '<input class="form-input" id="onb-display" placeholder="Display name (optional)" maxlength="40" value="' + escapeHtml(p.display_name || '') + '" style="margin-bottom:.55rem">' +
       '<input class="form-input" id="onb-city" placeholder="Neighborhood or city (optional)" maxlength="40" style="margin-bottom:.9rem">' +
