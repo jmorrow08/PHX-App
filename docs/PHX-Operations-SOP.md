@@ -94,3 +94,9 @@ Current: edit `app.html` → push to `main` → Vercel auto-deploys. Three prod 
 ## 10. Keep-this-updated triggers
 
 Update this SOP whenever: a new vertical launches, the payout model changes, the admin surface changes, or a new monitored system is added (e.g., the event agent going live).
+
+## Weekly growth review (added 2026-08-08)
+1. **Admin → Growth** — funnel (landing → session → account → redeemed → played), sources, D1/W1 retention (gate: ≥40% wk-4).
+2. **Admin → Financials** — pot balance + ledger (every beta dollar in/out), payout queue, Formula Lab.
+3. **Admin → Activity** — listening log (capped chip = farmed plays), Clips performance, per-user drill-down.
+4. Points are the only referral reward (never free months). Reactions/favorites/replies are live social surface — watch reports queue after drops.

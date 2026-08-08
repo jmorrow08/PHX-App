@@ -6981,7 +6981,7 @@ async function startOnboarding() {
 
 function _onbDots(n) {
   var s = '';
-  for (var i = 1; i <= 3; i++) {
+  for (var i = 1; i <= 4; i++) {
     s += '<span style="width:26px;height:3px;border-radius:2px;background:' + (i <= n ? 'var(--orange)' : 'rgba(255,255,255,.14)') + '"></span>';
   }
   return '<div style="display:flex;gap:.3rem;justify-content:center;margin-bottom:1.2rem">' + s + '</div>';
@@ -7028,6 +7028,41 @@ async function renderOnboard() {
     return;
   }
 
+  if (_onbStep === 4) {
+    // Points primer + 30-second tour. Their activation bonus is already in
+    // the ledger, so the first number they see is real and already theirs.
+    var pts = 0;
+    try {
+      var pr = await _sb.from('points_ledger').select('delta').eq('user_id', _authUser.id);
+      pts = (pr.data || []).reduce(function(a, b){ return a + (b.delta || 0); }, 0);
+    } catch (e) { reportFailure('onbPoints', e); }
+    m.innerHTML = shell(
+      '<div style="text-align:center;margin-bottom:1rem">' +
+        '<div style="font-size:2rem;font-weight:800;color:var(--gold);line-height:1">' + pts + '</div>' +
+        '<div style="font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-top:.25rem">PHX Points — already yours</div>' +
+      '</div>' +
+      '<div style="font-size:1.2rem;font-weight:800;margin-bottom:.35rem">Everything you do here counts</div>' +
+      '<p style="color:var(--muted);font-size:.85rem;margin-bottom:.9rem">Points build toward merch and early access to drops. No gimmicks — real activity only:</p>' +
+      '<div style="display:flex;flex-direction:column;gap:.45rem;font-size:.82rem;margin-bottom:1rem">' +
+        '<div>🎵 <b>Listen</b> — every counted play earns</div>' +
+        '<div>💬 <b>Post &amp; comment</b> in the City Feed</div>' +
+        '<div>🎟️ <b>Bring people in</b> — your invite code lives on My Pass</div>' +
+      '</div>' +
+      '<div style="font:600 .68rem var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:.5rem">Your 30-second tour</div>' +
+      '<div style="display:flex;flex-direction:column;gap:.4rem;font-size:.8rem;color:var(--muted);margin-bottom:1.1rem">' +
+        '<div><b style="color:var(--white)">🏙️ City Feed</b> — the scene talking. Post, react (hold the 🔥 for more), reply.</div>' +
+        '<div><b style="color:var(--white)">🎵 PHX Music</b> — stream Phoenix artists; your listening is what pays them.</div>' +
+        '<div><b style="color:var(--white)">🎬 Clips</b> — vertical video from the city.</div>' +
+        '<div><b style="color:var(--white)">★ Favorites</b> — star artists on their page; favorites are first in line for drops.</div>' +
+        '<div><b style="color:var(--white)">💳 My Pass</b> — your number, your receipt, your points, your invite code.</div>' +
+      '</div>' +
+      '<button class="upgrade-btn" style="margin:0;width:100%" onclick="finishOnboarding()">Enter PHX 🐦‍🔥</button>' +
+      '<button onclick="finishOnboarding()" style="display:block;width:100%;background:none;border:none;color:var(--muted);cursor:pointer;font-size:.8rem;margin-top:.7rem;text-decoration:underline">Skip the tour</button>' +
+      '<div id="onb-msg" style="font-size:.78rem;color:var(--muted);margin-top:.55rem;min-height:1em"></div>'
+    );
+    return;
+  }
+
   // step 3 — follow artists AND people. Following artists seeds the music
   // recommendations; following people is what makes the City Feed non-empty
   // on day one. A feed with nothing in it is the fastest way to lose someone.
@@ -7065,7 +7100,7 @@ async function renderOnboard() {
           return tile(p.kind === 'page' ? 'page' : 'user', p.id, p.name, p.subtitle);
         }).join('') + '</div>'
       : '') +
-    '<button class="upgrade-btn" style="margin:0;width:100%" onclick="finishOnboarding()">Enter PHX</button>' +
+    '<button class="upgrade-btn" style="margin:0;width:100%" onclick="_onbStep=4;renderOnboard()">Continue</button>' +
     '<button onclick="finishOnboarding(true)" style="display:block;width:100%;background:none;border:none;color:var(--muted);cursor:pointer;font-size:.8rem;margin-top:.7rem;text-decoration:underline">Skip — show me what\'s hot</button>' +
     '<button onclick="deferOnboarding()" style="display:block;width:100%;background:none;border:none;color:var(--faint);cursor:pointer;font-size:.76rem;margin-top:.45rem">Remind me later</button>' +
     '<div id="onb-msg" style="font-size:.78rem;color:var(--muted);margin-top:.55rem;min-height:1em"></div>'

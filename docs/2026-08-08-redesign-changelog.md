@@ -33,3 +33,14 @@ Comment replies (one level), PHX reactions set (🔥 Heat, 🐦‍🔥 Risen, �
 - **Bugfix:** the engine now honors `counted` (previously uncounted/farmed streams could earn).
 - **Landing split sweep:** every public "50%" removed per the README internal-only policy; design prompt patched so it can't regenerate.
 - **Open:** platform-share % (50 today) — founder decision; `update payout_settings set platform_share_pct = …` when called.
+
+## Social + growth pass (same day, later)
+- **PHX Reactions live:** tap = 🔥 Heat; press-and-hold opens the five-reaction bar (🔥 Heat, 🐦‍🔥 Risen, 🌵 City Love, 🥶 Chills, 🔁 On Repeat). One reaction per member per post; switching keeps the like; the owner's notification carries the chosen emoji. Works in the feed and on Clips.
+- **Favorites shelf live:** ☆ Favorite on artist pages (separate from Follow), tier-capped (Free 3 / Native 6 / Insider 12), public "★ Favorite artists" shelf on member profiles. This is the pre-wired priority list for Drops.
+- **Comment replies live:** one level (IG model), Reply links, reply notifications.
+- **Referrals pay PHX Points, never free months** (+50 referrer / +25 referee on qualification; perk milestones unchanged). Free-months machinery removed from `process_referral_rewards`.
+- **Welcome wizard is now 4 steps:** handle → photo → follow artists & people → **Points primer + 30-second tour** (shows the member's real, already-earned balance; explains earn paths; tours City Feed / Music / Clips / Favorites / My Pass; every step skippable).
+- **First-party analytics:** landing beacon (views/CTA/UTM/referrer → `user_events`), `profiles.signup_attrib` first-touch attribution, screen_view events, Admin → Growth (funnel, sources, D1/W1 retention). Meta Pixel deliberately NOT installed until IG ad spend begins (landing page only, when it does).
+
+### SOP — reading Growth (add to weekly ops)
+Admin → Growth once a week: funnel conversion step-to-step (where people drop), sources (which artist codes/UTMs actually convert), retention vs the ≥40% week-4 gate. Admin → Financials → pot ledger for every beta dollar. Admin → Activity for per-user behavior and capped/farmed plays.

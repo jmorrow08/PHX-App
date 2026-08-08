@@ -92,7 +92,7 @@ Buckets: `track-audio` (audio, locked down — no public listing), `track-covers
 
 ## Social Layer (City Feed)
 
-Feed posts with track attachments (playable cards), photo/video posts (camera capture + baked-in filters), likes, flat comments, quote reposts, native share sheet + `/app?post=<id>` deep links, song hearts (`track_likes`), follows (artists/pages/users) + Following feed, notifications with deep links, @usernames, official PHX App posting (admin-only), Reels-style vertical video feed.
+Feed posts with track attachments (playable cards), photo/video posts (camera capture + baked-in filters), **PHX Reactions** (tap = 🔥 Heat; hold to pick 🔥 Heat / 🐦‍🔥 Risen / 🌵 City Love / 🥶 Chills / 🔁 On Repeat — one per member per post, stored on `post_likes.reaction`), **threaded comments** (one reply level, `parent_comment_id`, guarded in `add_post_comment`), quote reposts, native share sheet + `/app?post=<id>` deep links, song hearts (`track_likes`), **Favorite artists** (`favorite_artists`, tier-capped shelf 3/6/12, shown on member profiles, future Drops priority), follows (artists/pages/users) + Following feed, notifications with deep links, @usernames, official PHX App posting (admin-only), Clips vertical video feed.
 
 All social writes flow through SECURITY DEFINER RPCs — never direct table writes — so validation and rate limits (5 posts/10min, 10 comments/min) can't be bypassed via the REST API.
 
