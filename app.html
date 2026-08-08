@@ -714,7 +714,7 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
     <div class="sb-section">Explore</div>
     <button class="nav-item active" onclick="showView('home')"><span class="icon">🏙️</span>City Feed</button>
     <button class="nav-item" onclick="showView('discover')"><span class="icon">🔍</span>Discover</button>
-    <button class="nav-item" onclick="showView('reels')"><span class="icon">🎬</span>Reels</button>
+    <button class="nav-item" onclick="showView('reels')"><span class="icon">🎬</span>Clips</button>
     <div class="sb-section">Live Now</div>
     <button class="nav-item" onclick="showView('music')"><span class="icon">🎵</span>PHX Music<span class="badge-teal badge" style="margin-left:auto;font-size:.58rem;padding:.1rem .45rem">LIVE</span></button>
     <div class="sb-section">Coming Soon</div>
@@ -734,7 +734,7 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
     <div class="sb-section">Community</div>
     <button class="nav-item" onclick="showView('home')"><span class="icon">🏙️</span>City Feed</button>
     <button class="nav-item" onclick="showView('discover')"><span class="icon">🔍</span>Discover</button>
-    <button class="nav-item" onclick="showView('reels')"><span class="icon">🎬</span>Reels</button>
+    <button class="nav-item" onclick="showView('reels')"><span class="icon">🎬</span>Clips</button>
     <button class="nav-item" onclick="showView('music')"><span class="icon">🎵</span>PHX Music</button>
     <div class="sb-section">My Music</div>
     <button class="nav-item active" onclick="showView('artist-tracks')"><span class="icon">🎼</span>My Tracks</button>
@@ -753,7 +753,7 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
     <div class="sb-section">Community</div>
     <button class="nav-item" onclick="showView('home')"><span class="icon">🏙️</span>City Feed</button>
     <button class="nav-item" onclick="showView('discover')"><span class="icon">🔍</span>Discover</button>
-    <button class="nav-item" onclick="showView('reels')"><span class="icon">🎬</span>Reels</button>
+    <button class="nav-item" onclick="showView('reels')"><span class="icon">🎬</span>Clips</button>
     <button class="nav-item" onclick="showView('music')"><span class="icon">🎵</span>PHX Music</button>
     <div class="sb-section">Platform OS</div>
     <button class="nav-item active" onclick="showView('admin-dashboard')"><span class="icon">📊</span>Dashboard</button>
@@ -1936,7 +1936,7 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
     <span class="bt-icon">🎵</span><span class="bt-lbl">Music</span>
   </button>
   <button class="bt-item" data-view="reels" onclick="btNav('reels',this)">
-    <span class="bt-icon">🎬</span><span class="bt-lbl">Reels</span>
+    <span class="bt-icon">🎬</span><span class="bt-lbl">Clips</span>
   </button>
   <button class="bt-item" data-view="discover" onclick="btNav('discover',this)">
     <span class="bt-icon">🔍</span><span class="bt-lbl">Discover</span>
@@ -1959,7 +1959,7 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
     <span class="bt-icon">💰</span><span class="bt-lbl">Earnings</span>
   </button>
   <button class="bt-item" data-view="reels" onclick="btNav('reels',this)">
-    <span class="bt-icon">🎬</span><span class="bt-lbl">Reels</span>
+    <span class="bt-icon">🎬</span><span class="bt-lbl">Clips</span>
   </button>
 </nav>
 <nav class="bottom-tabs" id="bt-admin" style="display:none" aria-label="Admin navigation">
@@ -1973,7 +1973,7 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
     <span class="bt-icon">🎵</span><span class="bt-lbl">Content</span>
   </button>
   <button class="bt-item" data-view="reels" onclick="btNav('reels',this)">
-    <span class="bt-icon">🎬</span><span class="bt-lbl">Reels</span>
+    <span class="bt-icon">🎬</span><span class="bt-lbl">Clips</span>
   </button>
   <button class="bt-item" data-view="admin-system" onclick="btNav('admin-system',this)">
     <span class="bt-icon">⚙️</span><span class="bt-lbl">Settings</span>
@@ -2140,7 +2140,7 @@ function openFullPlayer() {
 }
 
 var titles = {
-  home:'City Feed', discover:'Discover PHX', music:'PHX Music', reels:'Reels',
+  home:'City Feed', discover:'Discover PHX', music:'PHX Music', reels:'Clips',
   events:'PHX Events', eats:'PHX Eats', audio:'PHX Audio',
   drops:'PHX Drops', cuts:'PHX Cuts', mypass:'My PHX Pass', profile:'My Profile',
   'member-page':'Profile', 'artist-page':'Artist', 'artist-directory':'Browse PHX', 'page-profile':'Page',
@@ -2168,7 +2168,7 @@ var PUBLIC_VIEWS = ['artist-page', 'page-profile', 'artist-directory', 'member-p
 var LOCKED_COPY = {
   home:      { icon: '🏙️', title: 'The City Feed is for members', line: 'Posts, comments and the daily pulse of the city — inside the app.' },
   discover:  { icon: '🔍', title: 'Discover is for members',       line: 'Personalised picks built from what you actually play.' },
-  reels:     { icon: '🎬', title: 'Reels are for members',         line: 'Video from Phoenix artists and the people around them.' },
+  reels:     { icon: '🎬', title: 'Clips are for members',         line: 'Video from Phoenix artists and the people around them.' },
   music:     { icon: '🎵', title: 'PHX Music is for members',      line: 'The full local catalogue, and every play pays the artist.' },
   mypass:    { icon: '💳', title: 'Your pass lives inside',        line: 'Your founding number, your receipt, your impact.' },
   _default:  { icon: '🔒', title: 'PHX is invite-only',            line: 'Members stream Phoenix artists — and their pass pays the artists they actually play.' }
@@ -3946,31 +3946,56 @@ function renderFeedPost(p) {
     '</div>';
   }
 
-  // Embedded original for reposts (Twitter quote-RT pattern)
+  // Embedded original for reposts — renders the FULL original inline
+  // (text, photo, video, attached track), not a bare snippet. Tapping the
+  // media goes to Clips; tapping the card scrolls to the original.
   var repostEmbed = '';
   if (p.shared_post_id) {
     var orig = _feedPosts[p.shared_post_id];
     if (orig) {
+      var origMediaUrl = safeUrl(orig.media_url);
+      var origMedia = '';
+      if (origMediaUrl) {
+        var origIsVideo = /\.(mp4|webm|mov)(\?|$)/i.test(orig.media_url || '');
+        origMedia = origIsVideo
+          ? '<div style="position:relative;cursor:pointer" onclick="event.stopPropagation();openClipAt(\'' + orig.id + '\')" role="button" aria-label="Open in Clips">' +
+              '<video muted playsinline preload="metadata" style="width:100%;max-height:320px;border-radius:8px;margin-top:.45rem;background:#000;pointer-events:none" src="' + origMediaUrl + '"></video>' +
+              '<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center"><span style="background:rgba(7,7,15,.55);border:1px solid rgba(255,255,255,.25);border-radius:100px;padding:.4rem .8rem;font-size:.74rem;font-weight:700">▶ Watch in Clips</span></div>' +
+            '</div>'
+          : '<img loading="lazy" alt="" style="width:100%;max-height:320px;object-fit:cover;border-radius:8px;margin-top:.45rem" src="' + origMediaUrl + '">';
+      }
       repostEmbed = '<div style="border:1px solid var(--border);border-radius:10px;padding:.7rem .8rem;margin-top:.6rem;background:var(--bg4);cursor:pointer" onclick="scrollToPost(\'' + orig.id + '\')">' +
         '<div style="display:flex;align-items:center;gap:.4rem;font-size:.76rem;font-weight:700;margin-bottom:.25rem">' +
           avatarHtml(authorAvatarUrl(orig), orig.author_avatar || '?', 'ava-sm', orig.author_name,
                      'style="width:22px;height:22px;font-size:.7rem"') +
           '<span>' + escapeHtml(orig.author_name) + '</span></div>' +
-        '<div style="font-size:.8rem;color:var(--muted)">' + escapeHtml((orig.content||'').slice(0,180)) + ((orig.content||'').length > 180 ? '…' : '') + '</div>' +
-        (orig.tracks ? '<div style="font-size:.74rem;color:var(--teal);margin-top:.3rem">🎵 ' + escapeHtml(orig.tracks.title) + '</div>' : '') +
+        '<div style="font-size:.8rem;color:var(--muted);white-space:pre-wrap">' + escapeHtml(orig.content || '') + '</div>' +
+        origMedia +
+        (orig.tracks ? '<div class="track-row" style="background:var(--bg3);border:1px solid var(--border);margin-top:.45rem" onclick="event.stopPropagation();playPostTrack(\'' + orig.id + '\')">' +
+            '<div class="track-art">🎵</div>' +
+            '<div class="track-info"><div class="track-title">' + escapeHtml(orig.tracks.title) + '</div>' +
+              '<div class="track-feat">' + escapeHtml(orig.tracks.artists ? orig.tracks.artists.name : '') + '</div></div>' +
+            '<div class="track-streams">▶</div>' +
+          '</div>' : '') +
       '</div>';
     } else {
       repostEmbed = '<div style="border:1px solid var(--border);border-radius:10px;padding:.7rem .8rem;margin-top:.6rem;background:var(--bg4);font-size:.78rem;color:var(--muted)">Original post unavailable</div>';
     }
   }
 
-  // Video / image attachment
+  // Video / image attachment. Video cards are a door into the Clips
+  // player — tap opens the immersive scroller at this exact clip.
   var mediaEmbed = '';
   var mediaUrl = safeUrl(p.media_url);
   if (mediaUrl) {
     var isVideo = /\.(mp4|webm|mov)(\?|$)/i.test(p.media_url);
     mediaEmbed = isVideo
-      ? '<video controls playsinline preload="metadata" style="width:100%;max-height:420px;border-radius:10px;margin-top:.6rem;background:#000" src="' + mediaUrl + '"></video>'
+      ? '<div style="position:relative;cursor:pointer" onclick="openClipAt(\'' + p.id + '\')" role="button" aria-label="Open in Clips">' +
+          '<video muted playsinline preload="metadata" style="width:100%;max-height:420px;border-radius:10px;margin-top:.6rem;background:#000;pointer-events:none" src="' + mediaUrl + '"></video>' +
+          '<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center">' +
+            '<span style="background:rgba(7,7,15,.55);border:1px solid rgba(255,255,255,.25);border-radius:100px;padding:.5rem .9rem;font-size:.8rem;font-weight:700;backdrop-filter:blur(4px)">▶ Watch in Clips</span>' +
+          '</div>' +
+        '</div>'
       : '<img loading="lazy" alt="" style="width:100%;max-height:420px;object-fit:cover;border-radius:10px;margin-top:.6rem" src="' + mediaUrl + '">';
   }
 
@@ -6349,7 +6374,7 @@ async function showMemberPage(userId) {
     var initial = escapeHtml((name || '?').charAt(0).toUpperCase());
 
     var postsRes = await _sb.from('feed_posts')
-      .select('id,content,created_at,likes_count,comments_count')
+      .select('id,content,created_at,likes_count,comments_count,media_url')
       .eq('user_id', userId).eq('is_hidden', false)
       .order('created_at', { ascending: false }).limit(20);
     var posts = postsRes.data || [];
@@ -6405,6 +6430,19 @@ async function showMemberPage(userId) {
                   '</div>';
                 }).join('') + '</div>'
             : '') +
+          (function() {
+            // Clips strip: this member's video posts, tap → Clips player
+            var vids = posts.filter(function(po){ return /\.(mp4|webm|mov)(\?|$)/i.test(po.media_url || ''); });
+            if (!vids.length) return '';
+            return '<div class="pf-sec"><h3>Clips</h3></div>' +
+              '<div style="display:flex;gap:.5rem;overflow-x:auto;padding-bottom:.4rem">' +
+              vids.map(function(po) {
+                return '<div onclick="openClipAt(\'' + po.id + '\')" role="button" aria-label="Watch clip" style="position:relative;flex:0 0 100px;height:150px;border-radius:10px;overflow:hidden;cursor:pointer;background:#000">' +
+                  '<video muted playsinline preload="metadata" src="' + safeUrl(po.media_url) + '" style="width:100%;height:100%;object-fit:cover;pointer-events:none"></video>' +
+                  '<span style="position:absolute;bottom:.3rem;left:.35rem;font-size:.66rem;font-weight:700">▶ ' + (po.likes_count || 0) + '</span>' +
+                '</div>';
+              }).join('') + '</div>';
+          })() +
           '<div class="pf-sec"><h3>Posts</h3></div>' +
           (posts.length ? posts.map(function(po) {
             var d = new Date(po.created_at);
@@ -7160,23 +7198,51 @@ async function enablePushNotifications(btn) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// REELS — vertical video feed
+// CLIPS — PHX's vertical video. One immersive player, reached from the
+// bottom tab or by tapping any video card in the feed. Anti-doomscroll by
+// design: no autoplay on app open, a visible end, transparent ordering.
 // ═══════════════════════════════════════════════════════════════════════
 var _reelsObserver = null;
+var _clipViewed = {};        // post_id -> true (dedupe view events per session)
+var _clipWatch = { id: null, seconds: 0, fired30: false, lastT: 0 };
 
-async function loadReels() {
+function _flushClipWatch() {
+  if (_clipWatch.id && _clipWatch.seconds >= 1) {
+    trackEvent('clip_watch', 'post', _clipWatch.id, { seconds: Math.round(_clipWatch.seconds) });
+  }
+  _clipWatch = { id: null, seconds: 0, fired30: false, lastT: 0 };
+}
+
+function _clipTick(postId, vid) {
+  if (_clipWatch.id !== postId) { _flushClipWatch(); _clipWatch.id = postId; }
+  var t = vid.currentTime;
+  // looped playback wraps to ~0 — that wrap is a completion
+  if (t < _clipWatch.lastT - 1) {
+    trackEvent('clip_complete', 'post', postId, {});
+  } else {
+    _clipWatch.seconds += Math.max(0, Math.min(t - _clipWatch.lastT, 1.5));
+  }
+  _clipWatch.lastT = t;
+  if (!_clipWatch.fired30 && _clipWatch.seconds >= 30) {
+    _clipWatch.fired30 = true;
+    trackEvent('clip_watch_30s', 'post', postId, {});
+  }
+}
+
+async function loadReels(scrollToPost) {
   var container = document.getElementById('reels-container');
   if (!container) return;
   var res = await _sb.from('feed_posts')
     .select('id,user_id,page_id,author_name,author_avatar,content,likes_count,comments_count,media_url,created_at')
     .not('media_url', 'is', null)
+    .eq('is_hidden', false)
     .order('created_at', { ascending: false })
     .limit(30);
   var videos = (res.data || []).filter(function(p){ return /\.(mp4|webm|mov)(\?|$)/i.test(p.media_url || ''); });
   try { await resolveAuthorAvatars(videos); } catch (e) { reportFailure('loadReels', e); }
 
   if (!videos.length) {
-    container.innerHTML = '<div class="reels-empty">🎬 No video posts yet.<br><br>Post a video from the City Feed composer — camera or upload — and it lands here.</div>';
+    container.innerHTML = '<div class="reels-empty">🎬 No clips yet.<br><br>Post a video from the City Feed composer — camera or upload — and it lands here.</div>';
     return;
   }
 
@@ -7201,27 +7267,60 @@ async function loadReels() {
         '</div>' +
       '</div>' +
     '</div>';
-  }).join('');
+  }).join('') +
+  // The honest end of the road — no fake-infinite scroll
+  '<div class="reels-empty" style="height:40vh;min-height:220px">✅ You\'re all caught up.<br><br><span style="font-size:.8rem;color:var(--faint)">That\'s every clip on PHX right now — newest first, no algorithm games.</span></div>';
 
-  // Autoplay whichever reel fills the viewport; pause the rest
+  // Autoplay whichever clip fills the viewport; pause the rest.
+  // Views dedupe per session; watch-seconds + 30s + completion all log.
   if (_reelsObserver) _reelsObserver.disconnect();
   _reelsObserver = new IntersectionObserver(function(entries) {
     entries.forEach(function(entry) {
       var vid = entry.target.querySelector('video');
       if (!vid) return;
+      var pid = entry.target.dataset.post;
       if (entry.isIntersecting && entry.intersectionRatio > 0.6) {
         vid.play().catch(function(){});
-        trackEvent('reel_view', 'post', entry.target.dataset.post, {});
+        if (!_clipViewed[pid]) {
+          _clipViewed[pid] = true;
+          trackEvent('clip_view', 'post', pid, {});
+        }
+        if (!vid._clipTimer) {
+          vid._clipTimer = setInterval(function(){ if (!vid.paused) _clipTick(pid, vid); }, 1000);
+        }
       } else {
         vid.pause();
+        if (vid._clipTimer) { clearInterval(vid._clipTimer); vid._clipTimer = null; }
+        if (_clipWatch.id === pid) _flushClipWatch();
       }
     });
   }, { root: container, threshold: [0, 0.6, 1] });
   container.querySelectorAll('.reel').forEach(function(r){ _reelsObserver.observe(r); });
+
+  // Card-tap door: land on the exact clip that was tapped in the feed
+  var jumpTo = scrollToPost || _pendingClipScroll;
+  _pendingClipScroll = null;
+  if (jumpTo) {
+    var target = container.querySelector('.reel[data-post="' + jumpTo + '"]');
+    if (target) target.scrollIntoView({ block: 'start' });
+  }
+}
+
+// Any video card in the feed opens the Clips player at that clip.
+// showView('reels') triggers loadReels() via the router; the pending var
+// carries the jump target through that call.
+var _pendingClipScroll = null;
+function openClipAt(postId) {
+  _pendingClipScroll = postId;
+  showView('reels');
 }
 
 function pauseAllReels() {
-  document.querySelectorAll('#reels-container video').forEach(function(v){ v.pause(); });
+  document.querySelectorAll('#reels-container video').forEach(function(v){
+    v.pause();
+    if (v._clipTimer) { clearInterval(v._clipTimer); v._clipTimer = null; }
+  });
+  _flushClipWatch();
 }
 
 async function reelLike(postId) {
@@ -8049,6 +8148,51 @@ function profileLinksHtml(links) {
 // ═══════════════════════════════════════════════════════════════════════
 var _artistPage = null;
 var _artistMerch = [];
+var _artistPosts = [];
+
+// Posts tab on the artist page: a Clips strip up top, then the posts.
+// Music stays the default landing tab — this is one tap away, never first.
+function renderArtistPostsPanel() {
+  if (!_artistPosts.length) return '<div class="pf-empty">No posts yet.</div>';
+  var isVid = function(u){ return /\.(mp4|webm|mov)(\?|$)/i.test(u || ''); };
+  var clips = _artistPosts.filter(function(p){ return isVid(p.media_url); });
+  var clipsRow = '';
+  if (clips.length) {
+    clipsRow = '<div class="pf-sec" style="margin-top:0"><h3>Clips</h3></div>' +
+      '<div style="display:flex;gap:.5rem;overflow-x:auto;padding-bottom:.4rem;margin-bottom:1rem">' +
+      clips.map(function(p) {
+        return '<div onclick="openClipAt(\'' + p.id + '\')" role="button" aria-label="Watch clip" ' +
+          'style="position:relative;flex:0 0 110px;height:170px;border-radius:10px;overflow:hidden;cursor:pointer;background:#000">' +
+          '<video muted playsinline preload="metadata" src="' + safeUrl(p.media_url) + '" style="width:100%;height:100%;object-fit:cover;pointer-events:none"></video>' +
+          '<span style="position:absolute;bottom:.35rem;left:.4rem;font-size:.68rem;font-weight:700">▶ ' + (p.likes_count || 0) + '</span>' +
+        '</div>';
+      }).join('') + '</div>';
+  }
+  var postCards = _artistPosts.map(function(p) {
+    var when = _agoLabel ? _agoLabel(p.created_at) : new Date(p.created_at).toLocaleDateString();
+    var mediaUrl = safeUrl(p.media_url);
+    var media = '';
+    if (mediaUrl && isVid(p.media_url)) {
+      media = '<div style="position:relative;cursor:pointer" onclick="openClipAt(\'' + p.id + '\')"><video muted playsinline preload="metadata" style="width:100%;max-height:320px;border-radius:8px;margin-top:.45rem;background:#000;pointer-events:none" src="' + mediaUrl + '"></video>' +
+        '<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center"><span style="background:rgba(7,7,15,.55);border:1px solid rgba(255,255,255,.25);border-radius:100px;padding:.4rem .8rem;font-size:.74rem;font-weight:700">▶ Watch in Clips</span></div></div>';
+    } else if (mediaUrl) {
+      media = '<img loading="lazy" alt="" style="width:100%;max-height:320px;object-fit:cover;border-radius:8px;margin-top:.45rem" src="' + mediaUrl + '">';
+    }
+    return '<div class="feed-post" style="margin-bottom:.7rem">' +
+      '<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.35rem">' +
+        '<span style="font-size:.82rem;font-weight:700">' + escapeHtml(p.author_name || '') + '</span>' +
+        '<span style="font-size:.72rem;color:var(--muted)">' + when + '</span></div>' +
+      '<div style="font-size:.86rem;white-space:pre-wrap">' + escapeHtml(p.content || '') + '</div>' +
+      media +
+      (p.tracks ? '<div class="track-row" style="background:var(--bg4);border:1px solid var(--border);margin-top:.45rem" onclick="openPostFromDiscover(\'' + p.id + '\')">' +
+        '<div class="track-art">🎵</div><div class="track-info"><div class="track-title">' + escapeHtml(p.tracks.title) + '</div></div><div class="track-streams">▶</div></div>' : '') +
+      '<div style="display:flex;gap:1rem;margin-top:.5rem;font-size:.76rem;color:var(--muted)">' +
+        '<span>❤️ ' + (p.likes_count || 0) + '</span><span>💬 ' + (p.comments_count || 0) + '</span>' +
+        '<a href="#" style="color:var(--orange)" onclick="openPostFromDiscover(\'' + p.id + '\');return false">Open →</a></div>' +
+    '</div>';
+  }).join('');
+  return clipsRow + '<div class="pf-sec"' + (clips.length ? '' : ' style="margin-top:0"') + '><h3>Posts</h3></div>' + postCards;
+}
 var _merchFilter = 'all';
 
 async function showArtistPage(slug) {
@@ -8075,13 +8219,22 @@ async function showArtistPage(slug) {
     _sb.from('shows').select('*').eq('artist_id', artist.id).eq('status','live')
       .gte('starts_at', new Date(Date.now() - 6*3600*1000).toISOString())
       .order('starts_at', { ascending: true }),
-    _sb.from('albums').select('*').eq('artist_id', artist.id).order('created_at', { ascending: true })
+    _sb.from('albums').select('*').eq('artist_id', artist.id).order('created_at', { ascending: true }),
+    // Posts tab: what this artist's account has posted (personal voice +
+    // artist voice). A living profile, not just a catalog.
+    artist.user_id
+      ? _sb.from('feed_posts')
+          .select('id,user_id,page_id,author_name,author_avatar,author_role,content,likes_count,comments_count,media_url,shared_post_id,created_at,tracks(id,title,featuring,exclusive_tier,stream_count,duration_seconds,audio_url,artist_id,artists(name,slug))')
+          .eq('user_id', artist.user_id).eq('is_hidden', false)
+          .order('created_at', { ascending: false }).limit(20)
+      : Promise.resolve({ data: [] })
   ]);
   _artistPageTracks = results[0].data || [];
   var support = results[1].data || {};
   _artistMerch = results[2].data || [];
   _artistShows = results[3].data || [];
   _artistAlbums = results[4].data || [];
+  _artistPosts = results[5].data || [];
   _merchFilter = 'all';
 
   var following = !!_myFollows['artist:' + artist.id];
@@ -8126,6 +8279,7 @@ async function showArtistPage(slug) {
 
     '<div class="ap-tabs" id="ap-tabs">' +
       '<button class="ap-tab on" data-tab="music" onclick="apTab(\'music\')">Music</button>' +
+      (_artistPosts.length ? '<button class="ap-tab" data-tab="posts" onclick="apTab(\'posts\')">Posts <span class="n">' + _artistPosts.length + '</span></button>' : '') +
       (_artistMerch.length ? '<button class="ap-tab" data-tab="merch" onclick="apTab(\'merch\')">Merch <span class="n">' + _artistMerch.length + '</span></button>' : '') +
       '<button class="ap-tab" data-tab="shows" onclick="apTab(\'shows\')">Shows' +
         (_artistShows.length ? ' <span class="n">' + _artistShows.length + '</span>' : '') + '</button>' +
@@ -8133,6 +8287,7 @@ async function showArtistPage(slug) {
     '</div>' +
 
     '<div class="ap-panel" id="ap-panel-music">' + renderArtistTracks() + '</div>' +
+    '<div class="ap-panel" id="ap-panel-posts" hidden>' + renderArtistPostsPanel() + '</div>' +
     '<div class="ap-panel" id="ap-panel-merch" hidden>' + renderArtistMerchPanel(shopUrl) + '</div>' +
     '<div class="ap-panel" id="ap-panel-shows" hidden>' +
       '<div class="pf-sec" style="margin-top:0"><h3>Next in the city</h3></div>' + renderArtistShows(artist) + '</div>' +
@@ -9076,7 +9231,7 @@ function renderArtistAbout(artist, shopUrl) {
 }
 
 function apTab(name) {
-  ['music','merch','shows','about'].forEach(function(t) {
+  ['music','posts','merch','shows','about'].forEach(function(t) {
     var p = document.getElementById('ap-panel-' + t);
     if (p) p.hidden = (t !== name);
   });
