@@ -1819,13 +1819,21 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
         </div>
       </div>
       <div class="card" style="margin-top:1.5rem">
-        <div class="card-title">Community Pot Ledger <span style="font-size:.62rem;color:var(--red);font-weight:700;margin-left:.4rem">INTERNAL ONLY</span></div>
+        <div class="card-title">Community Pot — Live Ledger <span style="font-size:.62rem;color:var(--red);font-weight:700;margin-left:.4rem">INTERNAL ONLY</span></div>
+        <div style="display:flex;align-items:center;gap:1rem;margin:.4rem 0 .8rem;flex-wrap:wrap">
+          <div><div style="font-size:1.6rem;font-weight:800;color:var(--purple-l)" id="pot-balance">—</div><div style="font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em">Pot balance now</div></div>
+          <div style="flex:1;font-size:.76rem;color:var(--muted)">Every dollar in or out, timestamped. During beta the pot funds member wallets — their listening pays artists from here, unused never leaves. Auto-runs the 1st of each month (09:00 UTC).</div>
+          <button class="tb-btn" style="font-size:.74rem;padding:.3rem .7rem" onclick="runPayoutNow(this)">▶ Run this month now</button>
+        </div>
+        <table class="data-table" style="margin-bottom:1.2rem">
+          <thead><tr><th>When</th><th>In/Out</th><th>Amount</th><th>Source</th><th>Note</th></tr></thead>
+          <tbody id="pot-entries-tbody"><tr><td colspan="5" style="color:var(--muted)">Loading…</td></tr></tbody>
+        </table>
         <div style="font-size:.78rem;color:var(--muted);margin-bottom:.8rem">
-          The pot is minted by each monthly payout run: whatever a paying member's wallet <em>didn't</em> send to
-          artists (light listening months) flows here instead of vanishing. It then splits per the Royalty Engine —
-          one share funds artist payouts for free-tier listening, the rest goes to the platform.
-          Until Stripe billing is live there are no wallets, so there is no pot yet — the first payout run
-          creates the first row below.
+          Per-period history below. During beta (simulation mode) the pot is seeded by founder funding and pays
+          member listening through virtual wallets at each member's locked founding price — same time-weighted,
+          tier-capped, anti-fraud engine as real money. When billing goes live: paying members' unused wallet
+          money flows in, free-tier listening gets paid out, and the beta loop switches itself off.
         </div>
         <table class="data-table">
           <thead><tr><th>Period</th><th>Pot Total</th><th>→ Free-Tier Fund</th><th>→ Platform</th><th>Status</th></tr></thead>
@@ -5119,6 +5127,26 @@ async function submitTrack() {
   _coverFile = null; _coverExtracted = null;
 }
 
+// Manual payout run for the current month-to-date — same engine the cron
+// fires on the 1st. Safe to re-run: a non-paid period just recalculates.
+async function runPayoutNow(btn) {
+  if (!confirm('Run the payout engine for this month so far? Existing non-paid calculations for the period are recalculated.')) return;
+  if (btn) { btn.disabled = true; btn.textContent = 'Running…'; }
+  var now = new Date();
+  var start = new Date(now.getFullYear(), now.getMonth(), 1);
+  var pad = function(n){ return (n < 10 ? '0' : '') + n; };
+  var iso = function(d){ return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); };
+  var res = await _sb.rpc('run_monthly_payout_guarded', { p_period_start: iso(start), p_period_end: iso(now) });
+  if (btn) { btn.disabled = false; btn.textContent = '▶ Run this month now'; }
+  if (res.error || !res.data || res.data.ok === false) {
+    showToast('Run failed: ' + ((res.data && res.data.reason) || (res.error && res.error.message) || 'unknown'));
+    return;
+  }
+  var d = res.data;
+  showToast('✓ Ran: ' + (d.beta_members_paid || 0) + ' beta wallets, ' + fmtUsd(d.beta_drawn_cents || 0) + ' to artists from the pot');
+  loadAdminOps();
+}
+
 // Verification switch: PHX confirmed = real person, Phoenix connection,
 // owns the catalog. Notifies the artist when the check turns on.
 async function adminToggleVerify(artistId, verified, btn) {
@@ -8029,6 +8057,27 @@ async function loadAdminOps() {
         return '<div class="fin-row"' + (i === periods.length-1 ? ' style="border:none"' : '') + '><span class="fin-label">' + label + '</span><span class="fin-val">' + fmtUsd(p.total_subscription_revenue_cents) + '</span></div>';
       }).join('');
     }
+
+    // Community Pot: live balance + every ledger entry (admin-only RLS)
+    try {
+      var plRes = await _sb.from('pot_ledger')
+        .select('entry_type,amount_cents,source,note,is_simulated,created_at')
+        .order('created_at', { ascending: false }).limit(40);
+      var entries = plRes.data || [];
+      var bal = 0;
+      entries.forEach(function(e){ bal += (e.entry_type === 'credit' ? 1 : -1) * (e.amount_cents || 0); });
+      _setText('pot-balance', fmtUsd(bal));
+      var ptb = document.getElementById('pot-entries-tbody');
+      if (ptb) {
+        ptb.innerHTML = entries.length ? entries.map(function(e) {
+          return '<tr><td style="color:var(--muted);white-space:nowrap">' + _agoLabel(e.created_at) + '</td>' +
+            '<td>' + (e.entry_type === 'credit' ? '<span class="status-chip sc-active">+ in</span>' : '<span class="status-chip sc-pending">− out</span>') + '</td>' +
+            '<td style="font-weight:700;color:' + (e.entry_type === 'credit' ? 'var(--green)' : 'var(--orange)') + '">' + fmtUsd(e.amount_cents) + '</td>' +
+            '<td style="color:var(--muted)">' + escapeHtml(e.source || '') + (e.is_simulated ? ' <span style="font-size:.62rem;color:var(--faint)">SIM</span>' : '') + '</td>' +
+            '<td style="color:var(--muted);font-size:.72rem">' + escapeHtml((e.note || '').slice(0, 60)) + '</td></tr>';
+        }).join('') : '<tr><td colspan="5" style="color:var(--muted)">No ledger entries yet.</td></tr>';
+      }
+    } catch (e) { reportFailure('potLedger', e); }
 
     // Payout Formula Lab — per-stream vs capped time-weight on this
     // month's real counted streams (see docs/phx-open-decisions.md #1)
