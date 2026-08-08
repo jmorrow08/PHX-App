@@ -750,11 +750,13 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
 
   <!-- ── ADMIN / SUPER NAV — browses the community as PHX App ── -->
   <nav class="sb-nav" id="nav-admin" style="display:none">
-    <div class="sb-section">Community</div>
-    <button class="nav-item" onclick="showView('home')"><span class="icon">🏙️</span>City Feed</button>
-    <button class="nav-item" onclick="showView('discover')"><span class="icon">🔍</span>Discover</button>
-    <button class="nav-item" onclick="showView('reels')"><span class="icon">🎬</span>Clips</button>
-    <button class="nav-item" onclick="showView('music')"><span class="icon">🎵</span>PHX Music</button>
+    <div id="admin-community-nav">
+      <div class="sb-section">Community</div>
+      <button class="nav-item" onclick="showView('home')"><span class="icon">🏙️</span>City Feed</button>
+      <button class="nav-item" onclick="showView('discover')"><span class="icon">🔍</span>Discover</button>
+      <button class="nav-item" onclick="showView('reels')"><span class="icon">🎬</span>Clips</button>
+      <button class="nav-item" onclick="showView('music')"><span class="icon">🎵</span>PHX Music</button>
+    </div>
     <div class="sb-section">Platform OS</div>
     <button class="nav-item active" onclick="showView('admin-dashboard')"><span class="icon">📊</span>Dashboard</button>
     <button class="nav-item" onclick="showView('admin-members')"><span class="icon">👥</span>Members</button>
@@ -1687,6 +1689,17 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
         <table class="data-table">
           <thead><tr><th>When</th><th>Listener</th><th>Track</th><th>Artist</th><th>Listened</th><th>Tier</th><th>Counted</th></tr></thead>
           <tbody id="activity-streams-tbody"><tr><td colspan="7" style="color:var(--muted)">Loading…</td></tr></tbody>
+        </table>
+      </div>
+      <div class="card" style="margin-bottom:1.5rem">
+        <div class="sh" style="margin-bottom:.75rem">
+          <h3>Clips Performance</h3>
+          <span class="badge badge-orange" id="activity-clips-count">—</span>
+        </div>
+        <div style="font-size:.74rem;color:var(--muted);margin-bottom:.6rem">Video gets the same rigor as audio: views (deduped per session), 30-second qualifies, completions, and total watch time per clip.</div>
+        <table class="data-table">
+          <thead><tr><th>Clip</th><th>Views</th><th>30s+</th><th>Completes</th><th>Watch time</th></tr></thead>
+          <tbody id="activity-clips-tbody"><tr><td colspan="5" style="color:var(--muted)">No clip activity yet.</td></tr></tbody>
         </table>
       </div>
       <div class="card">
@@ -3415,6 +3428,8 @@ function personaOptions() {
     opts.push({ id: 'personal', label: '👤 ' + personal + ' — you' });
   }
   _myPages.forEach(function(p) {
+    // The PHX App page is the same voice as "platform" — one entry, not two
+    if (p.slug === 'phxapp' || p.name === 'PHX App') return;
     var kind = p.page_type === 'artist' ? 'artist page' : (p.page_type || 'page') + ' page';
     opts.push({ id: 'page:' + p.id, label: (p.avatar || '⭐') + ' ' + p.name + ' — your ' + kind });
   });
@@ -7070,11 +7085,37 @@ async function applyAccountRole() {
   if (needsAdminDom || needsArtistDom) { window.location.reload(); return; }
   _accountRole = role;   // the one place this is ever assigned
   _roleResolved = true;
+  // Surface split: /studio is the ops surface, /app is the member app.
+  // A staff account at /app gets the regular member experience (their
+  // pages/artist tools live in Profile → My Pages); at /studio they get
+  // the Platform OS shell without the community nav. Permissions never
+  // change — _accountRole stays the truth, this is presentation only.
+  var isStudio = (window.location.pathname || '').replace(/\/$/, '') === '/studio';
+  var surfaceRole = role;
+  if ((role === 'super' || role === 'admin') && !isStudio) {
+    surfaceRole = (_accountTier === 'insider') ? 'insider' : (_accountTier === 'native') ? 'native' : 'explorer';
+  }
   _whenDomReady(function() {
-    setRole(role);
+    setRole(surfaceRole);
+    var communityNav = document.getElementById('admin-community-nav');
+    if (communityNav) communityNav.style.display = isStudio ? 'none' : '';
+    // Staff at /app get a one-tap door to the ops surface
+    if ((role === 'super' || role === 'admin') && !isStudio && !document.getElementById('studio-link')) {
+      var authBtn = document.getElementById('auth-btn');
+      if (authBtn) {
+        var sl = document.createElement('a');
+        sl.id = 'studio-link';
+        sl.className = 'tb-btn';
+        sl.href = '/studio';
+        sl.textContent = '⚙️ Studio';
+        sl.style.textDecoration = 'none';
+        authBtn.parentElement.insertBefore(sl, authBtn);
+      }
+    }
     // Show the real account identity instead of the generic role label
-    var r = ROLES[role] || {};
-    if (role !== 'super' && role !== 'admin') {
+    var r = ROLES[surfaceRole] || {};
+    var roleForLabel = surfaceRole;
+    if (roleForLabel !== 'super' && roleForLabel !== 'admin') {
       var chipName = document.getElementById('chip-name');
       if (chipName) chipName.textContent = label;
       if (r.bottomId === 'sb-bottom-member') {
@@ -8276,6 +8317,8 @@ async function showArtistPage(slug) {
     var orParts = [];
     if (artistPageRow && artistPageRow.id) orParts.push('page_id.eq.' + artistPageRow.id);
     if (artist.user_id) orParts.push('and(user_id.eq.' + artist.user_id + ',page_id.is.null)');
+    // Seeded-era artist posts carry only the byline (no user/page link)
+    orParts.push('and(author_name.eq."' + String(artist.name || '').replace(/"/g, '') + '",author_role.eq.artist)');
     if (orParts.length) {
       var pr = await _sb.from('feed_posts').select(postSel)
         .or(orParts.join(','))
@@ -8327,11 +8370,11 @@ async function showArtistPage(slug) {
 
     '<div class="ap-tabs" id="ap-tabs">' +
       '<button class="ap-tab on" data-tab="music" onclick="apTab(\'music\')">Music</button>' +
-      '<button class="ap-tab" data-tab="posts" onclick="apTab(\'posts\')">Posts' + (_artistPosts.length ? ' <span class="n">' + _artistPosts.length + '</span>' : '') + '</button>' +
       (_artistMerch.length ? '<button class="ap-tab" data-tab="merch" onclick="apTab(\'merch\')">Merch <span class="n">' + _artistMerch.length + '</span></button>' : '') +
       '<button class="ap-tab" data-tab="shows" onclick="apTab(\'shows\')">Shows' +
         (_artistShows.length ? ' <span class="n">' + _artistShows.length + '</span>' : '') + '</button>' +
       '<button class="ap-tab" data-tab="about" onclick="apTab(\'about\')">About</button>' +
+      '<button class="ap-tab" data-tab="posts" onclick="apTab(\'posts\')">Posts' + (_artistPosts.length ? ' <span class="n">' + _artistPosts.length + '</span>' : '') + '</button>' +
     '</div>' +
 
     '<div class="ap-panel" id="ap-panel-music">' + renderArtistTracks() + '</div>' +
@@ -9566,6 +9609,42 @@ async function loadAdminActivity(filterUserId) {
           '<td>' + (s.counted ? '<span class="status-chip sc-active">✓</span>' : '<span class="status-chip sc-explorer">capped</span>') + '</td></tr>';
       }).join('') : '<tr><td colspan="7" style="color:var(--muted)">No streams yet' + (_activityFilterUser ? ' for this user' : '') + '.</td></tr>';
     }
+
+    // Clips performance: aggregate the clip_* events per post
+    try {
+      var cRes = await _sb.from('user_events')
+        .select('event_type,entity_id,metadata')
+        .in('event_type', ['clip_view','clip_watch','clip_watch_30s','clip_complete'])
+        .order('created_at', { ascending: false }).limit(500);
+      var clipAgg = {};
+      (cRes.data || []).forEach(function(e) {
+        if (!e.entity_id) return;
+        var c = clipAgg[e.entity_id] || (clipAgg[e.entity_id] = { views: 0, q30: 0, done: 0, secs: 0 });
+        if (e.event_type === 'clip_view') c.views++;
+        else if (e.event_type === 'clip_watch_30s') c.q30++;
+        else if (e.event_type === 'clip_complete') c.done++;
+        else if (e.event_type === 'clip_watch') c.secs += Number((e.metadata || {}).seconds) || 0;
+      });
+      var clipIds = Object.keys(clipAgg);
+      var ctb = document.getElementById('activity-clips-tbody');
+      if (ctb) {
+        _setText('activity-clips-count', clipIds.length + (clipIds.length === 1 ? ' clip' : ' clips'));
+        if (clipIds.length) {
+          var snip = {};
+          var pRes = await _sb.from('feed_posts').select('id,content,author_name').in('id', clipIds);
+          (pRes.data || []).forEach(function(p){ snip[p.id] = (p.author_name || '') + ': ' + (p.content || '').slice(0, 40); });
+          ctb.innerHTML = clipIds.map(function(id) {
+            var c = clipAgg[id];
+            var mins = Math.round(c.secs / 60);
+            return '<tr><td style="cursor:pointer" onclick="openClipAt(\'' + id + '\')"><strong>' + escapeHtml(snip[id] || id.slice(0, 8)) + '</strong></td>' +
+              '<td style="color:var(--teal)">' + c.views + '</td>' +
+              '<td>' + c.q30 + '</td>' +
+              '<td style="color:var(--green)">' + c.done + '</td>' +
+              '<td style="color:var(--muted)">' + (mins >= 1 ? mins + ' min' : Math.round(c.secs) + 's') + '</td></tr>';
+          }).join('');
+        }
+      }
+    } catch (e) { reportFailure('clipsPerf', e); }
 
     var etb = document.getElementById('activity-events-tbody');
     if (etb) {
