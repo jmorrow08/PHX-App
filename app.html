@@ -3751,13 +3751,13 @@ async function loadCityFeed(force) {
       .select('*, tracks(id,title,featuring,exclusive_tier,stream_count,duration_seconds,audio_url,artist_id,artists(name,slug))')
       .order('created_at', { ascending: false })
       .limit(30),
-    _sb.from('post_likes').select('post_id').eq('user_id', getGuestId())
+    _sb.from('post_likes').select('post_id,reaction').eq('user_id', getGuestId())
   ]);
   var data = results[0].data, error = results[0].error;
   if (error || !data) return;
 
   _myPostLikes = {};
-  (results[1].data || []).forEach(function(l){ _myPostLikes[l.post_id] = true; });
+  (results[1].data || []).forEach(function(l){ _myPostLikes[l.post_id] = l.reaction || 'heat'; });
   _feedPosts = {};
   data.forEach(function(p){ _feedPosts[p.id] = p; });
 
@@ -4096,8 +4096,13 @@ function renderFeedPost(p) {
     '<div class="fp-body">' + escapeHtml(p.content) + '</div>' +
     mediaEmbed + trackCard + repostEmbed +
     '<div class="fp-actions" style="margin-top:.6rem">' +
-      '<button class="fp-act" id="like-btn-' + p.id + '" style="' + (liked ? 'color:var(--orange)' : '') + '" onclick="togglePostLike(\'' + p.id + '\')">' +
-        (liked ? '❤️' : '🤍') + ' <span id="like-count-' + p.id + '">' + (p.likes_count||0) + '</span></button>' +
+      '<span style="position:relative;display:inline-block">' +
+      '<button class="fp-act" id="like-btn-' + p.id + '" style="' + (liked ? 'color:var(--orange)' : '') + '" ' +
+        'onclick="togglePostLike(\'' + p.id + '\')" ' +
+        'onpointerdown="reactHoldStart(\'' + p.id + '\', event)" onpointerup="reactHoldEnd()" onpointerleave="reactHoldEnd()" ' +
+        'oncontextmenu="return false" title="Tap to react · hold to choose">' +
+        (liked ? REACTION_EMOJI[_myPostLikes[p.id]] || '🔥' : '🤍') + ' <span id="like-count-' + p.id + '">' + (p.likes_count||0) + '</span></button>' +
+      '<span id="react-bar-' + p.id + '"></span></span>' +
       '<button class="fp-act" onclick="toggleComments(\'' + p.id + '\')">💬 <span id="comment-count-' + p.id + '">' + (p.comments_count||0) + '</span></button>' +
       '<button class="fp-act" onclick="toggleShareMenu(\'' + p.id + '\')">↗ Share</button>' +
     '</div>' +
@@ -4117,21 +4122,66 @@ function renderFeedPost(p) {
   '</div>';
 }
 
-// ── Likes: one per device, toggle on/off ──
+// ── PHX Reactions: tap = 🔥 Heat, hold = pick one of five ──
+var REACTION_EMOJI = { heat:'🔥', risen:'🐦‍🔥', citylove:'🌵', chills:'🥶', repeat:'🔁' };
+var REACTION_LABEL = { heat:'Heat', risen:'Risen', citylove:'City Love', chills:'Chills', repeat:'On Repeat' };
+var _reactHoldTimer = null;
+var _reactHoldFired = false;
+
+function reactHoldStart(postId, e) {
+  _reactHoldFired = false;
+  clearTimeout(_reactHoldTimer);
+  _reactHoldTimer = setTimeout(function() {
+    _reactHoldFired = true;
+    showReactionBar(postId);
+  }, 420);
+}
+function reactHoldEnd() { clearTimeout(_reactHoldTimer); }
+
+function showReactionBar(postId) {
+  closeReactionBars();
+  var slot = document.getElementById('react-bar-' + postId);
+  if (!slot) return;
+  slot.innerHTML = '<span class="react-bar" style="position:absolute;bottom:130%;left:0;z-index:80;display:flex;gap:.35rem;background:var(--bg2);border:1px solid var(--border);border-radius:100px;padding:.35rem .55rem;box-shadow:0 8px 30px rgba(0,0,0,.5)">' +
+    Object.keys(REACTION_EMOJI).map(function(k) {
+      return '<button style="background:none;border:none;font-size:1.25rem;cursor:pointer;line-height:1" title="' + REACTION_LABEL[k] + '" ' +
+        'aria-label="' + REACTION_LABEL[k] + '" onclick="event.stopPropagation();pickReaction(\'' + postId + '\',\'' + k + '\')">' + REACTION_EMOJI[k] + '</button>';
+    }).join('') + '</span>';
+  setTimeout(function() {
+    document.addEventListener('click', closeReactionBars, { once: true });
+  }, 50);
+}
+function closeReactionBars() {
+  document.querySelectorAll('.react-bar').forEach(function(b){ var s = b.parentElement; if (s) s.innerHTML = ''; });
+}
+function pickReaction(postId, reaction) {
+  closeReactionBars();
+  _sendReaction(postId, reaction);
+}
+
 async function togglePostLike(postId) {
-  if (!requireAuthAction('Liking posts')) return;
+  // A long-press that opened the picker shouldn't also fire the tap
+  if (_reactHoldFired) { _reactHoldFired = false; return; }
+  _sendReaction(postId, _myPostLikes[postId] || 'heat');
+}
+
+async function _sendReaction(postId, reaction) {
+  if (!requireAuthAction('Reacting to posts')) return;
   var btn = document.getElementById('like-btn-' + postId);
   var countEl = document.getElementById('like-count-' + postId);
   if (!btn) return;
   btn.disabled = true;
-  var { data, error } = await _sb.rpc('toggle_post_like', { p_post_id: postId, p_user_id: getGuestId(), p_actor_name: currentPersona().name });
+  var { data, error } = await _sb.rpc('toggle_post_like', {
+    p_post_id: postId, p_user_id: getGuestId(),
+    p_actor_name: currentPersona().name, p_reaction: reaction
+  });
   btn.disabled = false;
   if (error || !data) return;
-  _myPostLikes[postId] = data.liked;
+  _myPostLikes[postId] = data.liked ? (data.reaction || 'heat') : false;
   btn.style.color = data.liked ? 'var(--orange)' : '';
-  btn.childNodes[0].textContent = (data.liked ? '❤️' : '🤍') + ' ';
+  btn.childNodes[0].textContent = (data.liked ? (REACTION_EMOJI[data.reaction] || '🔥') : '🤍') + ' ';
   if (countEl) countEl.textContent = data.count;
-  trackEvent('post_like', 'post', postId, { liked: data.liked });
+  trackEvent('post_like', 'post', postId, { liked: data.liked, reaction: data.reaction || null });
 }
 
 // ── Comments: lazy-load on expand, IG-style flat list ──
@@ -6537,6 +6587,12 @@ async function showMemberPage(userId) {
       .eq('user_id', userId).limit(6);
     var likes = (likesRes.data || []).filter(function(l){ return l.tracks; });
 
+    // Favorites shelf — their chosen top artists (first in line for drops)
+    var favsRes = await _sb.from('favorite_artists')
+      .select('artist_id,artists(name,slug,avatar_url,genre)')
+      .eq('user_id', userId).order('created_at').limit(12);
+    var favs = (favsRes.data || []).filter(function(f){ return f.artists; });
+
     var joined = p.created_at ? new Date(p.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : '';
     var statBits = [
       '<b>' + followers + '</b> follower' + (followers === 1 ? '' : 's'),
@@ -6563,6 +6619,20 @@ async function showMemberPage(userId) {
               '</div>') +
           '<div class="pf-stats">' + statBits.join('<span class="dot">·</span>') + '</div>' +
           (p.bio ? '<div class="pf-bio">' + escapeHtml(p.bio) + '</div>' : '') +
+          (favs.length
+            ? '<div class="pf-sec"><h3>★ Favorite artists</h3></div>' +
+              '<div style="display:flex;gap:.6rem;overflow-x:auto;padding-bottom:.4rem">' +
+              favs.map(function(f) {
+                var a = f.artists;
+                var ava = safeUrl(a.avatar_url);
+                return '<div onclick="showArtistPage(\'' + escapeHtml(a.slug || '') + '\')" role="button" ' +
+                  'style="flex:0 0 84px;text-align:center;cursor:pointer">' +
+                  '<div style="width:64px;height:64px;border-radius:50%;margin:0 auto .3rem;overflow:hidden;background:linear-gradient(135deg,var(--orange-d),var(--purple));display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1.3rem">' +
+                    (ava ? '<img src="' + ava + '" alt="" style="width:100%;height:100%;object-fit:cover">' : escapeHtml((a.name || '?').charAt(0).toUpperCase())) + '</div>' +
+                  '<div style="font-size:.7rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + escapeHtml(a.name) + '</div>' +
+                '</div>';
+              }).join('') + '</div>'
+            : '') +
           (likes.length
             ? '<div class="pf-sec"><h3>On repeat</h3></div>' +
               '<div class="track-list">' + likes.map(function(l) {
@@ -7464,6 +7534,37 @@ async function loadMyFollows() {
   var res = await _sb.from('follows').select('followee_type,followee_id').eq('follower_id', getGuestId());
   _myFollows = {};
   (res.data || []).forEach(function(f){ _myFollows[f.followee_type + ':' + f.followee_id] = true; });
+  loadMyFavorites();
+}
+
+// ── FAVORITES — the top-artists shelf (distinct from follow). Favorites
+// are first in line when that artist's Drops go live.
+var _myFavorites = {};   // artist_id -> true
+
+async function loadMyFavorites() {
+  if (!_authUser) { _myFavorites = {}; return; }
+  var res = await _sb.from('favorite_artists').select('artist_id').eq('user_id', _authUser.id);
+  _myFavorites = {};
+  (res.data || []).forEach(function(f){ _myFavorites[f.artist_id] = true; });
+}
+
+async function toggleFavoriteUI(artistId, btn) {
+  if (!requireAuthAction('Favoriting artists')) return;
+  if (btn) btn.disabled = true;
+  var { data, error } = await _sb.rpc('toggle_favorite_artist', { p_artist_id: artistId });
+  if (btn) btn.disabled = false;
+  if (error || !data) return;
+  if (!data.ok) {
+    if (data.reason === 'shelf_full') showToast('Shelf full (' + data.cap + ' favorites on your tier)');
+    return;
+  }
+  _myFavorites[artistId] = data.favorited;
+  if (btn) {
+    btn.textContent = data.favorited ? '★ Favorite' : '☆ Favorite';
+    btn.classList.toggle('on', !!data.favorited);
+  }
+  showToast(data.favorited ? '★ Added to your favorites — first in line for their drops' : 'Removed from favorites');
+  trackEvent('favorite_toggle', 'artist', artistId, { favorited: data.favorited });
 }
 
 async function toggleFollowUI(type, id, btn) {
@@ -7615,7 +7716,7 @@ async function loadReels(scrollToPost) {
           '<div class="reel-caption">' + escapeHtml(p.content||'') + '</div>' +
         '</div>' +
         '<div class="reel-actions">' +
-          '<button class="reel-act" id="reel-like-' + p.id + '" onclick="reelLike(\'' + p.id + '\')">' + (liked ? '❤️' : '🤍') + '<span id="reel-like-count-' + p.id + '">' + (p.likes_count||0) + '</span></button>' +
+          '<button class="reel-act" id="reel-like-' + p.id + '" onclick="reelLike(\'' + p.id + '\')">' + (liked ? (REACTION_EMOJI[_myPostLikes[p.id]] || '🔥') : '🤍') + '<span id="reel-like-count-' + p.id + '">' + (p.likes_count||0) + '</span></button>' +
           '<button class="reel-act" onclick="openPostFromDiscover(\'' + p.id + '\')">💬<span>' + (p.comments_count||0) + '</span></button>' +
           '<button class="reel-act" onclick="shareFeedPost(\'' + p.id + '\')">↗<span>Share</span></button>' +
         '</div>' +
@@ -7678,12 +7779,17 @@ function pauseAllReels() {
 }
 
 async function reelLike(postId) {
-  var { data, error } = await _sb.rpc('toggle_post_like', { p_post_id: postId, p_user_id: getGuestId(), p_actor_name: currentPersona().name });
+  if (!requireAuthAction('Reacting to clips')) return;
+  var { data, error } = await _sb.rpc('toggle_post_like', {
+    p_post_id: postId, p_user_id: getGuestId(),
+    p_actor_name: currentPersona().name,
+    p_reaction: _myPostLikes[postId] || 'heat'
+  });
   if (error || !data) return;
-  _myPostLikes[postId] = data.liked;
+  _myPostLikes[postId] = data.liked ? (data.reaction || 'heat') : false;
   var btn = document.getElementById('reel-like-' + postId);
   var cnt = document.getElementById('reel-like-count-' + postId);
-  if (btn) btn.childNodes[0].textContent = data.liked ? '❤️' : '🤍';
+  if (btn) btn.childNodes[0].textContent = data.liked ? (REACTION_EMOJI[data.reaction] || '🔥') : '🤍';
   if (cnt) cnt.textContent = data.count;
 }
 
@@ -8672,6 +8778,9 @@ async function showArtistPage(slug) {
       (_artistPageTracks.length ? '<button class="ap-play" onclick="playArtistTop()">▶ Play</button>' : '') +
       '<button class="ap-follow' + (following ? ' on' : '') + '" onclick="toggleFollowUI(\'artist\',\'' + artist.id + '\',this)">' +
         (following ? 'Following' : 'Follow') + '</button>' +
+      '<button class="ap-follow' + (_myFavorites[artist.id] ? ' on' : '') + '" id="fav-btn-' + artist.id + '" ' +
+        'title="Favorites get first access to this artist\'s drops" ' +
+        'onclick="toggleFavoriteUI(\'' + artist.id + '\', this)">' + (_myFavorites[artist.id] ? '★ Favorite' : '☆ Favorite') + '</button>' +
       (artistPageCanEdit() ? '<button class="ap-follow" onclick="openArtistEditor()">✎ Edit page</button>' : '') +
     '</div>' +
 
