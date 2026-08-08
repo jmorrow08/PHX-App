@@ -1222,11 +1222,11 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
       <div class="grid-2">
         <div>
           <div class="my-pass-card" data-pass-num="preview">
-            <div class="pass-logo">PHX Native · Founding <span style="font-size:.6rem;opacity:.7">PREVIEW</span></div>
-            <div class="pass-number-big">#—</div>
-            <div class="pass-holder">Your Name Here</div>
-            <div class="pass-tier-label">PHX Native — Member</div>
-            <div class="pass-since">Your founding number is assigned when passes launch · $9.99/mo founding rate, locked for life ($15 after)</div>
+            <div class="pass-logo" id="pass-logo-line">PHX · Founding <span id="pass-preview-tag" style="font-size:.6rem;opacity:.7">PREVIEW</span></div>
+            <div class="pass-number-big" id="pass-number-big">#—</div>
+            <div class="pass-holder" id="pass-holder">Your Name Here</div>
+            <div class="pass-tier-label" id="pass-tier-label">PHX Member</div>
+            <div class="pass-since" id="pass-since">Your founding number is assigned when you redeem your code · founding rate locked for life</div>
             <div class="pass-wallet-btns">
               <button class="wallet-btn" disabled style="opacity:.5;cursor:default" title="Wallet passes ship with billing">🍎 Apple Wallet — soon</button>
               <button class="wallet-btn" disabled style="opacity:.5;cursor:default" title="Wallet passes ship with billing">🤖 Google Wallet — soon</button>
@@ -1678,6 +1678,18 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
 
     <!-- ADMIN — ACTIVITY: full listening + behavior log -->
     <div class="view" id="v-admin-activity">
+      <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:1rem;flex-wrap:wrap">
+        <span style="font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)">Window</span>
+        <button class="tb-btn" id="act-range-24h" style="font-size:.74rem;padding:.28rem .65rem" onclick="setActivityRange('24h')">24h</button>
+        <button class="tb-btn" id="act-range-7d" style="font-size:.74rem;padding:.28rem .65rem" onclick="setActivityRange('7d')">7 days</button>
+        <button class="tb-btn" id="act-range-all" style="font-size:.74rem;padding:.28rem .65rem" onclick="setActivityRange('all')">All time</button>
+      </div>
+      <div class="admin-kpi-grid" style="margin-bottom:1.2rem">
+        <div class="admin-kpi"><div class="admin-kpi-val" style="color:var(--teal)" id="act-kpi-streams">—</div><div class="admin-kpi-label">Qualified Streams</div></div>
+        <div class="admin-kpi"><div class="admin-kpi-val" style="color:var(--orange)" id="act-kpi-listeners">—</div><div class="admin-kpi-label">Unique Listeners</div></div>
+        <div class="admin-kpi"><div class="admin-kpi-val" style="color:var(--green)" id="act-kpi-minutes">—</div><div class="admin-kpi-label">Minutes Listened</div></div>
+        <div class="admin-kpi"><div class="admin-kpi-val" style="color:var(--purple-l)" id="act-kpi-active">—</div><div class="admin-kpi-label">Active Users</div></div>
+      </div>
       <div class="card" style="margin-bottom:1.5rem">
         <div class="sh" style="margin-bottom:.75rem">
           <h3>Listening Log</h3>
@@ -1707,7 +1719,14 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
           <h3>App Events</h3>
           <span class="badge badge-orange" id="activity-events-count">—</span>
         </div>
-        <div style="font-size:.74rem;color:var(--muted);margin-bottom:.6rem">Every tracked action in the app — sessions, plays, follows, posts, signups, installs. Newest first.</div>
+        <div style="font-size:.74rem;color:var(--muted);margin-bottom:.6rem">Every tracked action in the app. Newest first.</div>
+        <div style="display:flex;gap:.4rem;margin-bottom:.6rem;flex-wrap:wrap" id="act-event-filters">
+          <button class="tb-btn" data-f="all" style="font-size:.72rem;padding:.25rem .6rem" onclick="setActivityEventFilter('all')">All</button>
+          <button class="tb-btn" data-f="plays" style="font-size:.72rem;padding:.25rem .6rem" onclick="setActivityEventFilter('plays')">🎵 Plays &amp; Clips</button>
+          <button class="tb-btn" data-f="social" style="font-size:.72rem;padding:.25rem .6rem" onclick="setActivityEventFilter('social')">💬 Social</button>
+          <button class="tb-btn" data-f="sessions" style="font-size:.72rem;padding:.25rem .6rem" onclick="setActivityEventFilter('sessions')">🚪 Sessions &amp; Auth</button>
+          <button class="tb-btn" data-f="other" style="font-size:.72rem;padding:.25rem .6rem" onclick="setActivityEventFilter('other')">⚙️ Everything else</button>
+        </div>
         <table class="data-table">
           <thead><tr><th>When</th><th>User</th><th>Event</th><th>Target</th><th>Details</th></tr></thead>
           <tbody id="activity-events-tbody"><tr><td colspan="5" style="color:var(--muted)">Loading…</td></tr></tbody>
@@ -2330,7 +2349,7 @@ function showView(id) {
   var titleEl = document.getElementById('page-title');
   if (titleEl) titleEl.textContent = titles[id] || id;
   if (id === 'home') renderStarterRail();
-  if (id === 'mypass') { loadReferralPanel(); loadMyReceipt(); }
+  if (id === 'mypass') { loadReferralPanel(); loadMyReceipt(); loadMyPassCard(); }
   if (id === 'admin-dashboard') { loadAdminStreamData(); loadAdminOps(); }
   if (id === 'admin-system') loadPlatformHealth();
   if (id === 'admin-members' || id === 'admin-artists' || id === 'admin-financials') loadAdminOps();
@@ -6991,6 +7010,40 @@ async function redeemPendingInvite() {
 }
 
 // Everyone gets a code the first time they open the referral panel.
+// The pass card is the member's real membership, not a mockup: number,
+// name, tier, and locked founding rate all come from their profile row.
+async function loadMyPassCard() {
+  if (!_authUser) return;
+  try {
+    var res = await _sb.from('profiles')
+      .select('display_name,username,tier,membership,founding_number,locked_price_cents,created_at,role')
+      .eq('id', _authUser.id).maybeSingle();
+    var p = res.data;
+    if (!p) return;
+    var tierLabel = p.tier === 'insider' ? 'PHX Insider' : p.tier === 'native' ? 'PHX Native' : 'Explorer';
+    var founding = p.membership === 'founding' || p.founding_number != null;
+    var since = p.created_at ? new Date(p.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : '';
+    var afterCents = p.tier === 'insider'
+      ? (_platformSettings && _platformSettings.public_price_insider_cents) || 2900
+      : (_platformSettings && _platformSettings.public_price_native_cents) || 1500;
+    var rateLine;
+    if (p.locked_price_cents) {
+      rateLine = '$' + (p.locked_price_cents / 100).toFixed(2) + '/mo founding rate, locked for life ($' + (afterCents / 100).toFixed(0) + ' after founding)';
+    } else if (p.tier === 'explorer') {
+      rateLine = 'Free — upgrade when billing goes live';
+    } else {
+      rateLine = '$' + (afterCents / 100).toFixed(2) + '/mo';
+    }
+    _setText('pass-logo-line', 'PHX ' + tierLabel.replace('PHX ', '') + (founding ? ' · Founding' : ''));
+    var tag = document.getElementById('pass-preview-tag');
+    if (tag) tag.style.display = 'none';
+    _setText('pass-number-big', founding && p.founding_number != null ? '#' + p.founding_number : '—');
+    _setText('pass-holder', p.display_name || (p.username ? '@' + p.username : 'PHX Member'));
+    _setText('pass-tier-label', tierLabel + ' — ' + (p.role === 'artist' ? 'Artist' : 'Member'));
+    _setText('pass-since', (since ? 'Member since ' + since + ' · ' : '') + rateLine);
+  } catch (e) { reportFailure('loadMyPassCard', e); }
+}
+
 async function loadReferralPanel() {
   var el = document.getElementById('referral-panel');
   if (!el) return;
@@ -8394,17 +8447,12 @@ async function showArtistPage(slug) {
 // Public: the story + how many people fund them. Never a dollar figure.
 // Artist/admin: the same strip plus their real earnings.
 function renderMoneyStrip(artist, support) {
-  var supporters = support.supporters || 0;
-  // Earnings deliberately NOT shown here — the artist portal and admin
-  // financials already carry that number. Repeating it on the public page
-  // is redundant and puts money on a surface strangers land on.
+  // No stats on the public strip — the message carries it. Supporter and
+  // payout counts live in the artist portal and admin, not on a page
+  // strangers land on.
   return '<div class="ap-money">' +
     '<div class="ap-money-tag"><i></i>Fan-powered</div>' +
     '<div class="ap-money-line">Streaming ' + escapeHtml(artist.name) + ' here pays ' + escapeHtml(artist.name) + '.</div>' +
-    '<div class="ap-money-stats">' +
-      '<div><b>' + supporters + '</b><span>' + (supporters === 1 ? 'member funding them' : 'members funding them') + '</span></div>' +
-      '<div><b>' + fmtK(artist.total_streams || 0) + '</b><span>plays that paid out</span></div>' +
-    '</div>' +
   '</div>';
 }
 
@@ -9515,6 +9563,61 @@ document.addEventListener('keydown', function(e) {
 // ═══════════════════════════════════════════════════════════════════════
 var _activityFilterUser = null;
 var _activityLoading = false;
+var _activityRange = '24h';
+var _activityEvents = [];
+var _activityEventFilter = 'all';
+var _activityProfileMap = {};
+
+function setActivityRange(r) {
+  _activityRange = r;
+  ['24h','7d','all'].forEach(function(k) {
+    var b = document.getElementById('act-range-' + k);
+    if (b) b.className = 'tb-btn' + (k === r ? ' primary' : '');
+  });
+  loadAdminActivity(_activityFilterUser);
+}
+
+function _activitySince() {
+  if (_activityRange === '24h') return new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+  if (_activityRange === '7d') return new Date(Date.now() - 7 * 86400 * 1000).toISOString();
+  return null;
+}
+
+// Event buckets for the filter chips
+function _eventBucket(t) {
+  t = t || '';
+  if (/^(play|clip|reel|stream)/.test(t)) return 'plays';
+  if (/like|comment|repost|follow|post|share|report/.test(t)) return 'social';
+  if (/session|auth|signin|signout|signup|onboard|username|push/.test(t)) return 'sessions';
+  return 'other';
+}
+
+function setActivityEventFilter(f) {
+  _activityEventFilter = f;
+  document.querySelectorAll('#act-event-filters .tb-btn').forEach(function(b) {
+    b.className = 'tb-btn' + (b.dataset.f === f ? ' primary' : '');
+  });
+  renderActivityEvents();
+}
+
+function renderActivityEvents() {
+  var etb = document.getElementById('activity-events-tbody');
+  if (!etb) return;
+  var events = _activityEvents.filter(function(e) {
+    return _activityEventFilter === 'all' || _eventBucket(e.event_type) === _activityEventFilter;
+  });
+  _setText('activity-events-count', events.length + (events.length >= 200 ? '+' : '') + ' events');
+  etb.innerHTML = events.length ? events.map(function(e) {
+    var meta = e.metadata || {};
+    var details = Object.keys(meta).filter(function(k){ return k !== 'fp' && k !== 'ua_short'; })
+      .slice(0, 3).map(function(k){ return k + ': ' + String(meta[k]).slice(0, 30); }).join(' · ');
+    return '<tr><td style="color:var(--muted);white-space:nowrap">' + _agoLabel(e.created_at) + '</td>' +
+      '<td>' + escapeHtml(_actorLabel(e.user_id, _activityProfileMap)) + '</td>' +
+      '<td><strong>' + escapeHtml(e.event_type || '—') + '</strong></td>' +
+      '<td style="color:var(--muted)">' + escapeHtml([e.entity_type, e.entity_id ? String(e.entity_id).slice(0, 8) : ''].filter(Boolean).join(' ')) + '</td>' +
+      '<td style="color:var(--muted);font-size:.72rem">' + escapeHtml(details) + '</td></tr>';
+  }).join('') : '<tr><td colspan="5" style="color:var(--muted)">Nothing in this window.</td></tr>';
+}
 
 // Identity lives across three tables: profiles (auth accounts),
 // member_profiles (device-era members) and artists. Looking in only one
@@ -9548,12 +9651,14 @@ async function loadAdminActivity(filterUserId) {
   _activityLoading = true;
   _activityFilterUser = filterUserId || null;
   try {
+    var since = _activitySince();
     var sq = _sb.from('stream_events')
       .select('listened_at,user_id,user_tier,counted,seconds_listened,tracks(title),artists(name,slug)')
-      .order('listened_at', { ascending: false }).limit(75);
+      .order('listened_at', { ascending: false }).limit(150);
     var eq = _sb.from('user_events')
       .select('created_at,user_id,event_type,entity_type,entity_id,metadata')
-      .order('created_at', { ascending: false }).limit(75);
+      .order('created_at', { ascending: false }).limit(200);
+    if (since) { sq = sq.gte('listened_at', since); eq = eq.gte('created_at', since); }
     if (_activityFilterUser) { sq = sq.eq('user_id', _activityFilterUser); eq = eq.eq('user_id', _activityFilterUser); }
 
     var results = await Promise.all([
@@ -9586,6 +9691,28 @@ async function loadAdminActivity(filterUserId) {
       };
     });
 
+    _activityProfileMap = profileMap;
+
+    // KPI strip — the health of the window at a glance
+    var counted = streams.filter(function(s){ return s.counted; }).length;
+    var uniqListeners = {};
+    var totalSecs = 0;
+    streams.forEach(function(s) {
+      if (s.user_id) uniqListeners[s.user_id] = 1;
+      totalSecs += (s.seconds_listened == null ? 30 : s.seconds_listened);
+    });
+    var activeUsers = {};
+    events.forEach(function(e){ if (e.user_id) activeUsers[e.user_id] = 1; });
+    Object.keys(uniqListeners).forEach(function(u){ activeUsers[u] = 1; });
+    _setText('act-kpi-streams', String(counted));
+    _setText('act-kpi-listeners', String(Object.keys(uniqListeners).length));
+    _setText('act-kpi-minutes', String(Math.round(totalSecs / 60)));
+    _setText('act-kpi-active', String(Object.keys(activeUsers).length));
+    ['24h','7d','all'].forEach(function(k) {
+      var b = document.getElementById('act-range-' + k);
+      if (b) b.className = 'tb-btn' + (k === _activityRange ? ' primary' : '');
+    });
+
     var filterLbl = document.getElementById('activity-user-filter');
     var clearBtn  = document.getElementById('activity-clear-filter');
     if (filterLbl) {
@@ -9596,7 +9723,7 @@ async function loadAdminActivity(filterUserId) {
 
     var stb = document.getElementById('activity-streams-tbody');
     if (stb) {
-      _setText('activity-stream-count', streams.length + (streams.length === 75 ? '+' : '') + ' plays');
+      _setText('activity-stream-count', streams.length + (streams.length >= 150 ? '+' : '') + ' plays');
       stb.innerHTML = streams.length ? streams.map(function(s) {
         var secs = s.seconds_listened;
         var listened = secs == null ? '30s+' : (secs >= 60 ? Math.floor(secs/60) + 'm ' + (secs%60) + 's' : secs + 's');
@@ -9646,20 +9773,11 @@ async function loadAdminActivity(filterUserId) {
       }
     } catch (e) { reportFailure('clipsPerf', e); }
 
-    var etb = document.getElementById('activity-events-tbody');
-    if (etb) {
-      _setText('activity-events-count', events.length + (events.length === 75 ? '+' : '') + ' events');
-      etb.innerHTML = events.length ? events.map(function(e) {
-        var meta = e.metadata || {};
-        var details = Object.keys(meta).filter(function(k){ return k !== 'fp' && k !== 'ua_short'; })
-          .slice(0, 3).map(function(k){ return k + ': ' + String(meta[k]).slice(0, 30); }).join(' · ');
-        return '<tr><td style="color:var(--muted);white-space:nowrap">' + _agoLabel(e.created_at) + '</td>' +
-          '<td>' + escapeHtml(_actorLabel(e.user_id, profileMap)) + '</td>' +
-          '<td><strong>' + escapeHtml(e.event_type || '—') + '</strong></td>' +
-          '<td style="color:var(--muted)">' + escapeHtml([e.entity_type, e.entity_id ? String(e.entity_id).slice(0, 8) : ''].filter(Boolean).join(' ')) + '</td>' +
-          '<td style="color:var(--muted);font-size:.72rem">' + escapeHtml(details) + '</td></tr>';
-      }).join('') : '<tr><td colspan="5" style="color:var(--muted)">No events yet' + (_activityFilterUser ? ' for this user' : '') + '.</td></tr>';
-    }
+    _activityEvents = events;
+    renderActivityEvents();
+    document.querySelectorAll('#act-event-filters .tb-btn').forEach(function(b) {
+      b.className = 'tb-btn' + (b.dataset.f === _activityEventFilter ? ' primary' : '');
+    });
   } finally {
     _activityLoading = false;
   }
