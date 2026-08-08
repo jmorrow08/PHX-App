@@ -6,7 +6,7 @@ PHX is an invite-only, fan-powered music membership for Phoenix city culture. Me
 **Live:** https://thephx.app — vanity URLs work (`thephx.app/<artist-slug>` rewrites to the app; static OG pages live under `/a/<slug>`)
 **DB:** Supabase project `dnzvtathfpjelffjnqrc` (us-west-1, AktivOrbit org)
 
-> Last reconciled against the live database: 2026-08-07. Companion docs live in `docs/` — every doc there carries a `> STATUS:` header; superseded material is in `docs/archive/`.
+> Last reconciled against the live database: 2026-08-08 (redesign pass — see docs/2026-08-08-redesign-changelog.md). Companion docs live in `docs/` — every doc there carries a `> STATUS:` header; superseded material is in `docs/archive/`.
 
 ---
 
@@ -27,14 +27,15 @@ PHX is an invite-only, fan-powered music membership for Phoenix city culture. Me
 - **Real Supabase Auth** (email/password). Signup is **invite-only** (`signup_requires_invite`), with an explicit terms checkbox persisted as `terms_accepted_at` + `terms_version`. Google sign-in is disabled.
 - **Roles come only from the server** (`profiles.role`). `setRole()` from the console is inert; Super can step *down* via View-As, never anyone up. Admin surfaces are **removed from the DOM** (not hidden) for non-admin accounts, gated behind `_roleResolved` so removal never races auth.
 - **Identity migration COMPLETE:** all SECURITY DEFINER functions derive identity from `auth.uid()` via `_effective_user()` instead of trusting a client-passed device ID; anon `EXECUTE` is revoked on member-only writes (migration 059, 2026-08-06). The device UUID (`phx_guest_id`) survives only as a guest-playback fallback and analytics key for logged-out visitors.
-- **One account, three voices:** a personal profile, an artist identity, and up to 5 pages (artist/restaurant/venue/brand/creator/promoter — Facebook Pages model). `member_profiles` is guests only.
-- **Claim codes vs invite codes:** a claim code hands over a pre-built identity (pages, artist record, artwork) and skips the setup wizard; a plain invite runs the full 3-step wizard.
+- **Single identity (2026-08-08):** a new account is EITHER a member or an artist — decided by the typed code they redeem, never self-selected. Multi-page is gated behind `profiles.allow_multi_page` (Jaye + Bryce only; reversible flag, the pages machinery is intact). If an account owns an artist page, the artist IS its public voice — no separate personal handle. Business page categories: Food & Drink / Style & Care / Fitness & Wellness / Retail & Brands / Nightlife & Events / Other. `member_profiles` is guests only.
+- **Typed codes (2026-08-08):** every code carries `grants_role` (member|artist) + optional `grants_tier`, enforced by `redeem_invite_code` — an artist code sets `role='artist'` and auto-creates a pending artist row (`ensure_artist_row_for`). Admin mints via `admin_mint_code` (modal in Admin → Roster). Claim codes additionally hand over pre-built pages/artist records, skip the wizard, and grant multi-page automatically when the bundle holds >1 page. Tiers live in `public.tiers` (member free/native/insider · artist basic/full/headline · business basic/full).
 - **Bootstrap is closed.** The first `super` profile exists (Jaye); every admin/money RPC requires an authenticated admin JWT.
 
 ---
 
 ## How Streaming Works
 
+- **Pre-billing open listening (2026-08-08)** — until `platform_settings.billing_live = true`, every signed-in ACTIVE member streams the full catalog (client `canPlayTrack` + the `sign-audio` edge function both check the flag). This is the monitoring window for validating stream tracking before payments go live; flipping the flag re-arms every tier gate with no deploy.
 - **30-second threshold** — a stream counts after 30 continuous seconds (JS timer, resets on track change/pause).
 - **Deduplication** — `record_stream()` enforces one count per session per track via a unique index on `(track_id, session_id)`.
 - **Rate limits** — DB-level: max 60 unique tracks per device per hour; max **1,000 payout-counted streams per user per calendar month** (overflow still logs with `counted=false` for analytics/recs).

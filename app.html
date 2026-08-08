@@ -1224,7 +1224,7 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
             <div class="pass-number-big">#—</div>
             <div class="pass-holder">Your Name Here</div>
             <div class="pass-tier-label">PHX Native — Member</div>
-            <div class="pass-since">Your founding number is assigned when passes launch · $15/mo</div>
+            <div class="pass-since">Your founding number is assigned when passes launch · $9.99/mo founding rate, locked for life ($15 after)</div>
             <div class="pass-wallet-btns">
               <button class="wallet-btn" disabled style="opacity:.5;cursor:default" title="Wallet passes ship with billing">🍎 Apple Wallet — soon</button>
               <button class="wallet-btn" disabled style="opacity:.5;cursor:default" title="Wallet passes ship with billing">🤖 Google Wallet — soon</button>
@@ -1302,7 +1302,7 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
           <div style="display:flex;flex-direction:column;gap:.8rem;font-size:.88rem">
             <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Member Since</span><span>April 2026</span></div>
             <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Pass Level</span><span style="color:var(--orange)">PHX Native</span></div>
-            <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Monthly Billing</span><span>$15/mo</span></div>
+            <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Monthly Billing</span><span>$9.99/mo founding · $0 until billing goes live</span></div>
             <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Artists Supported</span><span style="color:var(--teal)">3 this month</span></div>
             <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Top Artist</span><span style="color:var(--white)">Murkemz</span></div>
             <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">PHX Streams (session)</span><span style="color:var(--green)" id="profile-stream-count">0</span></div>
@@ -1483,8 +1483,8 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
               <label class="form-label">Tier Gate</label>
               <select class="form-select" id="track-tier-gate">
                 <option value="free">Free — all members</option>
-                <option value="native">Native+ only ($15/mo)</option>
-                <option value="insider">Insider only ($29/mo)</option>
+                <option value="native">Native+ members only</option>
+                <option value="insider">Insider members only</option>
                 <option value="timed">Time-locked exclusive (48hr)</option>
               </select>
             </div>
@@ -1636,9 +1636,9 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
         <div class="card">
           <div class="sh" style="margin-bottom:1rem"><h3>Active Artists</h3><span class="badge badge-teal" id="admin-artists-badge">—</span></div>
           <table class="data-table">
-            <thead><tr><th>Artist</th><th>Streams</th><th>Earnings</th><th>Status</th></tr></thead>
+            <thead><tr><th>Artist</th><th>Streams</th><th>Earnings</th><th>Status</th><th>Verified</th></tr></thead>
             <tbody id="admin-artists-tbody">
-              <tr><td colspan="4" style="color:var(--muted)">Loading…</td></tr>
+              <tr><td colspan="5" style="color:var(--muted)">Loading…</td></tr>
             </tbody>
           </table>
         </div>
@@ -1864,12 +1864,12 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
           </div>
           <div class="sys-setting-row">
             <div class="sys-setting-info"><div class="sys-setting-label">Native</div><div class="sys-setting-sub">Full music access · fan-powered payouts</div></div>
-            <span class="sys-setting-val">$15/mo</span>
+            <span class="sys-setting-val">$9.99 founding → $15</span>
             <button class="sys-edit-btn" id="edit-native-btn">Edit</button>
           </div>
           <div class="sys-setting-row">
             <div class="sys-setting-info"><div class="sys-setting-label">Insider</div><div class="sys-setting-sub">All-access · exclusive drops · early releases</div></div>
-            <span class="sys-setting-val">$29/mo</span>
+            <span class="sys-setting-val">$19.99 founding → $29</span>
             <button class="sys-edit-btn" id="edit-insider-btn">Edit</button>
           </div>
         </div>
@@ -3405,9 +3405,15 @@ function personaOptions() {
   if (currentRole === 'admin' || currentRole === 'super') {
     opts.push({ id: 'official', label: '🏙️ PHX App — platform voice' });
   }
-  var personal = (_myProfile && _myProfile.username) ? '@' + _myProfile.username
-    : ((ROLES[currentRole] || {}).chipName || 'PHX Member');
-  opts.push({ id: 'personal', label: '👤 ' + personal + ' — you' });
+  // Single-identity rule: if this account has an artist page, the artist IS
+  // their public voice — no separate "personal" option. The @handle belongs
+  // to the artist page. Members without pages keep their personal voice.
+  var ownsArtist = _myPages.some(function(p){ return p.page_type === 'artist'; });
+  if (!ownsArtist) {
+    var personal = (_myProfile && _myProfile.username) ? '@' + _myProfile.username
+      : ((ROLES[currentRole] || {}).chipName || 'PHX Member');
+    opts.push({ id: 'personal', label: '👤 ' + personal + ' — you' });
+  }
   _myPages.forEach(function(p) {
     var kind = p.page_type === 'artist' ? 'artist page' : (p.page_type || 'page') + ' page';
     opts.push({ id: 'page:' + p.id, label: (p.avatar || '⭐') + ' ' + p.name + ' — your ' + kind });
@@ -3467,6 +3473,14 @@ function currentPersona() {
   // Admins default to the official voice unless they picked otherwise
   if (isStaff && choice !== 'personal') {
     return { name: 'PHX App', role: 'admin', avatar: '🏙️', page_id: null };
+  }
+  // Artist-page owners: the artist IS their voice — never fall back to a
+  // personal handle (the @handle belongs to the artist page)
+  for (var j = 0; j < _myPages.length; j++) {
+    if (_myPages[j].page_type === 'artist') {
+      var ap = _myPages[j];
+      return { name: ap.name, role: 'artist', avatar: ap.avatar || '🎤', page_id: ap.id };
+    }
   }
   return _personalPersona();
 }
@@ -5084,6 +5098,17 @@ async function submitTrack() {
   _coverFile = null; _coverExtracted = null;
 }
 
+// Verification switch: PHX confirmed = real person, Phoenix connection,
+// owns the catalog. Notifies the artist when the check turns on.
+async function adminToggleVerify(artistId, verified, btn) {
+  if (btn) btn.disabled = true;
+  var res = await _sb.rpc('admin_set_artist_verified', { p_artist_id: artistId, p_verified: verified });
+  if (btn) btn.disabled = false;
+  if (res.error || !res.data || !res.data.ok) { showToast('Could not update verification'); return; }
+  showToast(verified ? '✓ Artist verified' : 'Verification removed');
+  loadAdminOps();
+}
+
 // Admin review: mint a signed URL for a pending track and open it
 async function previewPendingAudio(id, btn) {
   var orig = btn.textContent;
@@ -5991,6 +6016,10 @@ function requiredTierRank(exclusiveTier) {
   return { native:1, insider:2 }[exclusiveTier] || 0;
 }
 function canPlayTrack(exclusiveTier) {
+  // Pre-billing phase: every signed-up member hears the full catalog.
+  // The sign-audio edge function enforces the same rule server-side; tier
+  // locks re-arm automatically the day billing_live flips on.
+  if (_authUser && !_billingLive) return true;
   return tierRank(currentRole) >= requiredTierRank(exclusiveTier);
 }
 
@@ -6880,6 +6909,7 @@ var _requiresInvite = true;
 // creation. Google can't reliably tell sign-in from sign-up, so leaving it
 // on would mint code-less accounts.
 var _googleEnabled = false;
+var _billingLive = false;   // until true, signed-in members hear everything
 var _platformSettings = null;
 
 async function loadPlatformSettings() {
@@ -6889,6 +6919,7 @@ async function loadPlatformSettings() {
       _platformSettings = res.data;
       _requiresInvite = !!res.data.signup_requires_invite;
       _googleEnabled = !!res.data.google_signin_enabled;
+      _billingLive = !!res.data.billing_live;
       applyAuthProviderVisibility();
       // The invite field is computed once when a tab opens; re-run it now
       // that the real settings have arrived (QA finding 38).
@@ -7733,8 +7764,11 @@ async function loadAdminOps() {
         return '<tr><td><strong>' + escapeHtml(a.name) + '</strong>' + (a.slug === 'murkemz' ? ' <span class="badge badge-orange" style="font-size:.6rem">Founder</span>' : '') + '</td>' +
           '<td style="color:var(--teal)">' + fmtK(a.total_streams) + '</td>' +
           '<td style="color:var(--green)">' + fmtUsd(earningsByArtist[a.id] || 0) + '</td>' +
-          '<td><span class="status-chip ' + (a.status === 'active' ? 'sc-active' : 'sc-pending') + '">' + escapeHtml(a.status || '') + '</span></td></tr>';
-      }).join('') : '<tr><td colspan="4" style="color:var(--muted)">No artists yet.</td></tr>';
+          '<td><span class="status-chip ' + (a.status === 'active' ? 'sc-active' : 'sc-pending') + '">' + escapeHtml(a.status || '') + '</span></td>' +
+          '<td>' + (a.verified
+            ? '<button class="tb-btn" style="font-size:.68rem;padding:.2rem .5rem;color:var(--green);border-color:rgba(34,197,94,.3)" onclick="adminToggleVerify(\'' + a.id + '\', false, this)">✓ Verified</button>'
+            : '<button class="tb-btn" style="font-size:.68rem;padding:.2rem .5rem;color:var(--muted)" onclick="adminToggleVerify(\'' + a.id + '\', true, this)">Verify</button>') + '</td></tr>';
+      }).join('') : '<tr><td colspan="5" style="color:var(--muted)">No artists yet.</td></tr>';
     }
 
     // Track catalog table
@@ -8221,22 +8255,35 @@ async function showArtistPage(slug) {
       .gte('starts_at', new Date(Date.now() - 6*3600*1000).toISOString())
       .order('starts_at', { ascending: true }),
     _sb.from('albums').select('*').eq('artist_id', artist.id).order('created_at', { ascending: true }),
-    // Posts tab: what this artist's account has posted (personal voice +
-    // artist voice). A living profile, not just a catalog.
-    artist.user_id
-      ? _sb.from('feed_posts')
-          .select('id,user_id,page_id,author_name,author_avatar,author_role,content,likes_count,comments_count,media_url,shared_post_id,created_at,tracks(id,title,featuring,exclusive_tier,stream_count,duration_seconds,audio_url,artist_id,artists(name,slug))')
-          .eq('user_id', artist.user_id).eq('is_hidden', false)
-          .order('created_at', { ascending: false }).limit(20)
-      : Promise.resolve({ data: [] })
+    // Posts tab: everything posted AS this artist — via their artist Page
+    // (matched by slug) or as the owner's artist voice. Not their posts as
+    // other pages (those live on those pages).
+    _sb.from('pages').select('id').eq('slug', slug).eq('page_type','artist').maybeSingle()
   ]);
   _artistPageTracks = results[0].data || [];
   var support = results[1].data || {};
   _artistMerch = results[2].data || [];
   _artistShows = results[3].data || [];
   _artistAlbums = results[4].data || [];
-  _artistPosts = results[5].data || [];
   _merchFilter = 'all';
+
+  // Posts made as this artist: page_id = their artist Page, or the owner's
+  // personal-artist voice (no page). Both belong on this profile.
+  _artistPosts = [];
+  try {
+    var artistPageRow = results[5].data;
+    var postSel = 'id,user_id,page_id,author_name,author_avatar,author_role,content,likes_count,comments_count,media_url,shared_post_id,created_at,tracks(id,title,featuring,exclusive_tier,stream_count,duration_seconds,audio_url,artist_id,artists(name,slug))';
+    var orParts = [];
+    if (artistPageRow && artistPageRow.id) orParts.push('page_id.eq.' + artistPageRow.id);
+    if (artist.user_id) orParts.push('and(user_id.eq.' + artist.user_id + ',page_id.is.null)');
+    if (orParts.length) {
+      var pr = await _sb.from('feed_posts').select(postSel)
+        .or(orParts.join(','))
+        .eq('is_hidden', false)
+        .order('created_at', { ascending: false }).limit(20);
+      _artistPosts = pr.data || [];
+    }
+  } catch (e) { reportFailure('artistPosts', e); }
 
   var following = !!_myFollows['artist:' + artist.id];
   var shopUrl = safeUrl(artist.merch_external_url || artist.fourthwall_shop_url || '');
@@ -8280,7 +8327,7 @@ async function showArtistPage(slug) {
 
     '<div class="ap-tabs" id="ap-tabs">' +
       '<button class="ap-tab on" data-tab="music" onclick="apTab(\'music\')">Music</button>' +
-      (_artistPosts.length ? '<button class="ap-tab" data-tab="posts" onclick="apTab(\'posts\')">Posts <span class="n">' + _artistPosts.length + '</span></button>' : '') +
+      '<button class="ap-tab" data-tab="posts" onclick="apTab(\'posts\')">Posts' + (_artistPosts.length ? ' <span class="n">' + _artistPosts.length + '</span>' : '') + '</button>' +
       (_artistMerch.length ? '<button class="ap-tab" data-tab="merch" onclick="apTab(\'merch\')">Merch <span class="n">' + _artistMerch.length + '</span></button>' : '') +
       '<button class="ap-tab" data-tab="shows" onclick="apTab(\'shows\')">Shows' +
         (_artistShows.length ? ' <span class="n">' + _artistShows.length + '</span>' : '') + '</button>' +
@@ -9383,6 +9430,17 @@ async function _routeVanityPath() {
   var m = (window.location.pathname || '').match(/^\/([a-z0-9][a-z0-9._-]{1,40})\/?$/i);
   if (!m) return;
   var slug = m[1].toLowerCase();
+  // /studio = the admin door. Same login, same app — it just opens straight
+  // into the ops dashboard for admin accounts (everyone else lands on home).
+  if (slug === 'studio') {
+    var openStudio = function(tries) {
+      if (_accountRole === 'admin' || _accountRole === 'super') { showView('admin-dashboard'); return; }
+      if (!_roleResolved && tries < 40) { setTimeout(function(){ openStudio(tries + 1); }, 250); return; }
+      showView('home');
+    };
+    openStudio(0);
+    return;
+  }
   if (['app', 'index', 'legal', 'admin', 'artist', 'tour'].indexOf(slug) !== -1) return;
   if (_routeProfileHash(0)) return;   // an explicit #artist/... beats the path
   try {
