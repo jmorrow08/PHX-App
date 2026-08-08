@@ -168,3 +168,50 @@
     }
   })();
 })();
+
+/* ── First-party analytics beacon (our own pixel) ─────────────────────────
+   Landing views, UTM/referrer attribution, and CTA clicks — logged to OUR
+   database, shared with nobody. First-touch attribution is stashed locally
+   and attached to the profile at signup. FAIL OPEN like everything here. */
+(function () {
+  'use strict';
+  if (!window._sb) return;
+  try {
+    var KEY = 'phx_guest_id';
+    var gid = localStorage.getItem(KEY);
+    if (!gid) {
+      gid = (crypto.randomUUID ? crypto.randomUUID() :
+        'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+          var r = Math.random() * 16 | 0; return (c === 'x' ? r : (r & 3 | 8)).toString(16);
+        }));
+      localStorage.setItem(KEY, gid);
+    }
+    var q = new URLSearchParams(location.search);
+    var attrib = {
+      utm_source: q.get('utm_source') || null,
+      utm_medium: q.get('utm_medium') || null,
+      utm_campaign: q.get('utm_campaign') || null,
+      ref_code: q.get('ref') || null,
+      referrer: (document.referrer || '').slice(0, 200) || null,
+      landing: location.pathname
+    };
+    // First touch wins — don't overwrite an earlier source
+    if (!localStorage.getItem('phx_attrib') &&
+        (attrib.utm_source || attrib.ref_code || attrib.referrer)) {
+      localStorage.setItem('phx_attrib', JSON.stringify(attrib));
+    }
+    window._sb.from('user_events').insert({
+      user_id: gid, event_type: 'landing_view', entity_type: 'page',
+      metadata: attrib
+    }).then(function () {}, function () {});
+    // CTA clicks: any link into the app
+    document.addEventListener('click', function (e) {
+      var a = e.target && e.target.closest ? e.target.closest('a[href^="/app"], a[href^="app"]') : null;
+      if (!a) return;
+      window._sb.from('user_events').insert({
+        user_id: gid, event_type: 'landing_cta', entity_type: 'page',
+        metadata: { label: (a.textContent || '').trim().slice(0, 40), href: a.getAttribute('href') }
+      }).then(function () {}, function () {});
+    }, true);
+  } catch (ignore) {}
+}());

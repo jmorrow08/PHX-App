@@ -767,6 +767,7 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
     <button class="nav-item" onclick="showView('admin-pot')"><span class="icon">🫙</span>Community Pot<span id="pot-nav-tag" class="section-tag tag-super" style="display:none">SUPER</span></button>
     <button class="nav-item" onclick="showView('admin-merch')"><span class="icon">🛍️</span>Merch</button>
     <button class="nav-item" onclick="showView('admin-activity')"><span class="icon">📡</span>Activity</button>
+    <button class="nav-item" onclick="showView('admin-growth')"><span class="icon">📈</span>Growth</button>
     <div class="sb-section">My Pages</div>
     <button class="nav-item" onclick="openMyPage()"><span class="icon">⭐</span>My Page</button>
     <div class="sb-section">My Artist</div>
@@ -1201,6 +1202,11 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
             </div>
           </div>
           <div style="font-size:.8rem;color:var(--faint);text-align:center;margin-top:.4rem">Founding numbers are permanent — 1,000 total, first come first served.</div>
+          <div id="points-panel" style="display:none;margin-top:.8rem;padding:.8rem 1rem;background:var(--bg3);border:1px solid rgba(249,115,22,.25);border-radius:12px;text-align:center">
+            <div style="font-size:1.4rem;font-weight:800;color:var(--gold)" id="points-balance">0</div>
+            <div style="font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)">PHX Points</div>
+            <div style="font-size:.72rem;color:var(--muted);margin-top:.4rem">Earn by listening, posting, and bringing people in. Redeem for free months, merch and early drops when the store opens.</div>
+          </div>
         </div>
         <div>
           <!-- THE RECEIPT — where my money went this month -->
@@ -1702,6 +1708,28 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
       </div>
     </div>
 
+    <!-- ADMIN — GROWTH: funnel, sources, retention (our own pixel's home) -->
+    <div class="view" id="v-admin-growth">
+      <div class="card" style="margin-bottom:1.5rem">
+        <div class="sh" style="margin-bottom:.75rem"><h3>Signup Funnel</h3><span style="font-size:.72rem;color:var(--muted)">all time</span></div>
+        <div style="font-size:.74rem;color:var(--muted);margin-bottom:.8rem">Landing view → app session → account → code redeemed → first play. Every step is first-party data — nothing shared with anyone.</div>
+        <div id="growth-funnel"><div class="pf-empty">Loading…</div></div>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="sh" style="margin-bottom:.75rem"><h3>Where Signups Come From</h3></div>
+          <table class="data-table">
+            <thead><tr><th>Source</th><th>Signups</th></tr></thead>
+            <tbody id="growth-sources-tbody"><tr><td colspan="2" style="color:var(--muted)">Loading…</td></tr></tbody>
+          </table>
+        </div>
+        <div class="card">
+          <div class="sh" style="margin-bottom:.75rem"><h3>Retention</h3></div>
+          <div id="growth-retention"><div class="pf-empty">Loading…</div></div>
+        </div>
+      </div>
+    </div>
+
     <!-- ADMIN — REPORTS QUEUE -->
     <!-- ADMIN — COMMUNITY POT (admin-only; never shown to members or artists) -->
     <div class="view" id="v-admin-pot">
@@ -2158,7 +2186,7 @@ var titles = {
   'admin-dashboard':'Platform Dashboard', 'admin-members':'Members',
   'admin-artists':'Artists', 'admin-content':'Content', 'admin-reports':'Reports',
   'admin-financials':'Financials', 'admin-system':'System Settings',
-  'admin-activity':'Activity', 'artist-page':'Artist', 'artist-directory':'PHX Artists',
+  'admin-activity':'Activity', 'admin-growth':'Growth', 'artist-page':'Artist', 'artist-directory':'PHX Artists',
 };
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -2330,6 +2358,7 @@ function showView(id) {
   if (id === 'admin-system') loadPlatformHealth();
   if (id === 'admin-members' || id === 'admin-artists' || id === 'admin-financials') loadAdminOps();
   if (id === 'admin-activity') loadAdminActivity(_activityFilterUser);
+  if (id === 'admin-growth') loadAdminGrowth();
   if (id === 'admin-content') { loadPendingTracks(); loadAdminOps(); }
   if (id === 'admin-reports') loadReports();
   if (id === 'admin-roster') loadAdminRoster();
@@ -2354,7 +2383,14 @@ function showView(id) {
   // Scroll content back to top on view change
   var contentEl = document.querySelector('.content');
   if (contentEl) contentEl.scrollTop = 0;
+
+  // Screen-view analytics — which surfaces people actually use
+  if (typeof trackEvent === 'function' && id !== _lastScreenView) {
+    _lastScreenView = id;
+    trackEvent('screen_view', 'view', null, { view: id });
+  }
 }
+var _lastScreenView = null;
 
 function btNav(viewId, btn) {
   showView(viewId);
@@ -7172,6 +7208,15 @@ async function loadMyPassCard() {
     _setText('pass-holder', p.display_name || (p.username ? '@' + p.username : 'PHX Member'));
     _setText('pass-tier-label', tierLabel + ' — ' + (p.role === 'artist' ? 'Artist' : 'Member'));
     _setText('pass-since', (since ? 'Member since ' + since + ' · ' : '') + rateLine);
+
+    // PHX Points balance (earn ledger; redemptions come with the store)
+    var ptsRes = await _sb.from('points_ledger').select('delta').eq('user_id', _authUser.id);
+    if (!ptsRes.error) {
+      var pts = (ptsRes.data || []).reduce(function(s, r){ return s + (r.delta || 0); }, 0);
+      _setText('points-balance', String(pts));
+      var pp = document.getElementById('points-panel');
+      if (pp) pp.style.display = '';
+    }
   } catch (e) { reportFailure('loadMyPassCard', e); }
 }
 
@@ -7222,12 +7267,28 @@ function copyReferralLink(code) {
   } catch (e) { reportFailure('copyReferralLink', e); }
 }
 
-// /app?ref=CODE prefills the signup form from a shared link
+// /app?ref=CODE prefills the signup form from a shared link — and every
+// arrival stashes first-touch attribution (UTM, referrer, code) that gets
+// attached to the profile at signup. Our own pixel, our own database.
 (function() {
   var params = new URLSearchParams(window.location.search);
   var ref = params.get('ref');
-  if (!ref) return;
-  try { localStorage.setItem('phx_pending_invite', ref.toUpperCase()); } catch (e) { reportFailure('copyReferralLink', e); }
+  try {
+    if (ref) localStorage.setItem('phx_pending_invite', ref.toUpperCase());
+    if (!localStorage.getItem('phx_attrib')) {
+      var attrib = {
+        utm_source: params.get('utm_source') || null,
+        utm_medium: params.get('utm_medium') || null,
+        utm_campaign: params.get('utm_campaign') || null,
+        ref_code: ref || null,
+        referrer: (document.referrer || '').slice(0, 200) || null,
+        landing: window.location.pathname
+      };
+      if (attrib.utm_source || attrib.ref_code || attrib.referrer) {
+        localStorage.setItem('phx_attrib', JSON.stringify(attrib));
+      }
+    }
+  } catch (e) { reportFailure('attribCapture', e); }
 }());
 
 // Role + identity derived from the signed-in account. This replaces the
@@ -7248,10 +7309,17 @@ async function applyAccountRole() {
   }
   await redeemPendingInvite();
   checkAccessAndOnboarding();
-  var res = await _sb.from('profiles').select('role,tier,display_name,username,allow_multi_page').eq('id', _authUser.id).maybeSingle();
+  var res = await _sb.from('profiles').select('role,tier,display_name,username,allow_multi_page,signup_attrib').eq('id', _authUser.id).maybeSingle();
   var p = res.data || {};
   _allowMultiPage = !!p.allow_multi_page;
   _accountTier = p.tier || 'explorer';
+  // Attach first-touch attribution to the profile, once
+  try {
+    var storedAttrib = localStorage.getItem('phx_attrib');
+    if (storedAttrib && !p.signup_attrib) {
+      _sb.from('profiles').update({ signup_attrib: JSON.parse(storedAttrib) }).eq('id', _authUser.id).then(function(){}, function(){});
+    }
+  } catch (e) { reportFailure('attribAttach', e); }
   var role;
   if (p.role === 'super') role = 'super';
   else if (p.role === 'admin') role = 'admin';
@@ -9946,6 +10014,93 @@ async function loadAdminActivity(filterUserId) {
 function showUserActivity(userId) {
   showView('admin-activity');
   loadAdminActivity(userId);
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// ADMIN GROWTH — funnel, acquisition sources, retention (first-party)
+// ═══════════════════════════════════════════════════════════════════════
+var _growthLoading = false;
+async function loadAdminGrowth() {
+  if (_growthLoading) return;
+  _growthLoading = true;
+  try {
+    var results = await Promise.all([
+      _sb.from('user_events').select('user_id,event_type,created_at').in('event_type', ['landing_view','landing_cta','session_start']).limit(2000),
+      _sb.from('profiles').select('id,created_at,access_status,joined_via_code,signup_attrib,last_active_at'),
+      _sb.from('stream_events').select('user_id').limit(2000)
+    ]);
+    var events = results[0].data || [];
+    var profiles = results[1].data || [];
+    var streams = results[2].data || [];
+
+    // Funnel
+    var landingDevices = {}, sessionUsers = {};
+    events.forEach(function(e) {
+      if (e.event_type === 'landing_view' && e.user_id) landingDevices[e.user_id] = 1;
+      if (e.event_type === 'session_start' && e.user_id) sessionUsers[e.user_id] = 1;
+    });
+    var activated = profiles.filter(function(p){ return p.access_status === 'active'; });
+    var playedUsers = {};
+    streams.forEach(function(s){ if (s.user_id) playedUsers[s.user_id] = 1; });
+    var played = activated.filter(function(p){ return playedUsers[p.id]; });
+    var steps = [
+      ['Landing views (unique devices)', Object.keys(landingDevices).length],
+      ['App sessions (unique)', Object.keys(sessionUsers).length],
+      ['Accounts created', profiles.length],
+      ['Code redeemed (active)', activated.length],
+      ['Played music', played.length]
+    ];
+    var maxN = Math.max.apply(null, steps.map(function(s){ return s[1]; }).concat([1]));
+    var fEl = document.getElementById('growth-funnel');
+    if (fEl) {
+      fEl.innerHTML = steps.map(function(s, i) {
+        var pct = Math.round(s[1] / maxN * 100);
+        var conv = i > 0 && steps[i-1][1] > 0 ? Math.round(s[1] / steps[i-1][1] * 100) + '%' : '';
+        return '<div style="margin-bottom:.55rem">' +
+          '<div style="display:flex;justify-content:space-between;font-size:.8rem;margin-bottom:.25rem">' +
+            '<span>' + s[0] + '</span><span><b>' + s[1] + '</b>' + (conv ? ' <span style="color:var(--muted);font-size:.7rem">(' + conv + ')</span>' : '') + '</span></div>' +
+          '<div style="background:var(--bg4);border-radius:5px;height:9px"><div style="width:' + Math.max(pct, 2) + '%;background:linear-gradient(90deg,var(--orange-d),var(--orange));height:9px;border-radius:5px"></div></div>' +
+        '</div>';
+      }).join('');
+    }
+
+    // Sources: joined_via_code + utm_source
+    var srcCounts = {};
+    profiles.forEach(function(p) {
+      var src = (p.signup_attrib && (p.signup_attrib.utm_source || p.signup_attrib.ref_code)) || p.joined_via_code || 'direct / unknown';
+      srcCounts[src] = (srcCounts[src] || 0) + 1;
+    });
+    var stb = document.getElementById('growth-sources-tbody');
+    if (stb) {
+      var srcKeys = Object.keys(srcCounts).sort(function(a,b){ return srcCounts[b] - srcCounts[a]; });
+      stb.innerHTML = srcKeys.map(function(k) {
+        return '<tr><td>' + escapeHtml(String(k)) + '</td><td style="color:var(--teal);font-weight:700">' + srcCounts[k] + '</td></tr>';
+      }).join('') || '<tr><td colspan="2" style="color:var(--muted)">No signups yet.</td></tr>';
+    }
+
+    // Retention: of activated accounts, who was active 1+ / 7+ days after joining
+    var rEl = document.getElementById('growth-retention');
+    if (rEl) {
+      var d1 = 0, d7 = 0, eligible7 = 0;
+      activated.forEach(function(p) {
+        var joined = new Date(p.created_at).getTime();
+        var lastActive = p.last_active_at ? new Date(p.last_active_at).getTime() : joined;
+        if (lastActive - joined > 86400000) d1++;
+        if (Date.now() - joined > 7 * 86400000) {
+          eligible7++;
+          if (lastActive - joined > 7 * 86400000) d7++;
+        }
+      });
+      rEl.innerHTML =
+        '<div style="display:flex;gap:2rem;padding:.4rem 0">' +
+          '<div><div style="font-size:1.5rem;font-weight:800;color:var(--teal)">' + (activated.length ? Math.round(d1 / activated.length * 100) : 0) + '%</div><div style="font-size:.7rem;color:var(--muted)">came back after day 1</div></div>' +
+          '<div><div style="font-size:1.5rem;font-weight:800;color:var(--green)">' + (eligible7 ? Math.round(d7 / eligible7 * 100) : 0) + '%</div><div style="font-size:.7rem;color:var(--muted)">still active after week 1</div></div>' +
+        '</div>' +
+        '<div style="font-size:.72rem;color:var(--muted)">Based on last-active vs join date. Gets meaningful as the cohort grows — the launch-strategy gate is ≥40% week-4 retention.</div>';
+    }
+  } finally {
+    _growthLoading = false;
+  }
 }
 
 // ── NOTIFY ME BUTTONS — write interest to the DB so launches have a list
