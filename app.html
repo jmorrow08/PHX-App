@@ -231,6 +231,8 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
 .lib-name{font-size:.8rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .lib-sub{font-size:.66rem;color:var(--muted);margin-top:.15rem}
 .rel-kind{font:600 .6rem var(--mono);letter-spacing:.06em;color:var(--orange-l)}
+/* City question: the pinned prompt above the composer */
+.prompt-card{display:flex;align-items:center;gap:.8rem;background:linear-gradient(135deg,rgba(249,115,22,.12),rgba(249,115,22,.03));border:1px solid rgba(249,115,22,.25);border-radius:14px;padding:.8rem 1rem;margin-bottom:.9rem}
 /* Player sheet */
 .ps-card{background:linear-gradient(180deg,#141021,var(--bg2) 40%);border:1px solid var(--border);border-radius:20px 20px 0 0;max-width:520px;width:100%;max-height:88vh;overflow-y:auto;padding:1rem 1.3rem calc(1.2rem + env(safe-area-inset-bottom))}
 .ps-art-wrap{display:flex;justify-content:center}
@@ -1101,6 +1103,9 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
         <div class="pyk-rail" id="discover-pyk"><div class="pf-empty">Loading…</div></div>
       </div>
 
+      <!-- Scene leaders: the month's most active members -->
+      <div id="scene-leaders" style="margin-bottom:1.4rem"></div>
+
       <!-- FOR YOU — v1 recommendation rail (heuristic; ML engine on roadmap) -->
       <div class="card" style="margin-bottom:1.4rem">
         <div class="sh" style="margin-bottom:.6rem"><h3>✨ For You</h3><span style="font-size:.7rem;color:var(--muted)">Based on your listening</span></div>
@@ -1145,7 +1150,7 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
       <div class="music-stats-strip">
         <span>📡 <b id="total-streams-display">—</b> streams <span class="stream-live" style="color:var(--teal);font-size:.6rem">●</span></span>
         <span>🎤 <b id="mstat-artist-count">—</b> PHX artists</span>
-        <span>💚 paid monthly</span>
+        <span>💚 fan-powered</span>
       </div>
 
       <!-- The player lives in the bottom-bar sheet now — tap the song bar.
@@ -1166,7 +1171,7 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
               <div class="artist-stats">
                 <div class="astat"><div class="astat-val" id="murkemz-monthly">—</div><div class="astat-label">Monthly Listeners</div></div>
                 <div class="astat"><div class="astat-val" id="murkemz-total">—</div><div class="astat-label">Total Streams</div></div>
-                <div class="astat"><div class="astat-val" style="color:var(--green)">💸</div><div class="astat-label">Paid From Your Pass</div></div>
+                <div class="astat"><div class="astat-val" style="color:var(--green)">🔥</div><div class="astat-label">Backed By Your Plays</div></div>
               </div>
               <div style="display:flex;gap:.6rem;flex-wrap:wrap">
                 <button class="upgrade-btn" style="margin:0;width:auto;padding:.55rem 1.3rem;font-size:.82rem" onclick="playSpotlightTop(this)">▶ Play Murkemz</button>
@@ -1294,6 +1299,22 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
         <div class="sh" style="margin-bottom:.6rem"><h3>Weekly retention cohorts</h3><span style="font-size:.7rem;color:var(--muted)">% of each signup week still active N weeks later</span></div>
         <div id="ana-cohorts" style="overflow-x:auto"></div>
       </div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="sh" style="margin-bottom:.6rem"><h3>🔥 Engagement engine</h3><span style="font-size:.7rem;color:var(--muted)">points economy · 7d</span></div>
+          <div id="ana-points"></div>
+        </div>
+        <div class="card">
+          <div class="sh" style="margin-bottom:.6rem"><h3>Scene leaders · this month</h3></div>
+          <div id="ana-leaders"></div>
+          <div class="sh" style="margin:1rem 0 .5rem"><h3>City question</h3></div>
+          <div id="ana-prompt-current" style="font-size:.82rem;color:var(--muted);margin-bottom:.6rem">—</div>
+          <div style="display:flex;gap:.5rem">
+            <input class="form-input" id="ana-prompt-input" maxlength="200" placeholder="Set tomorrow's question…" style="flex:1">
+            <button class="tb-btn" onclick="setStudioPrompt(this)">Set</button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- ASH — founder-only ops agent. Reads everything; changes wait for approval. -->
@@ -1403,6 +1424,8 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
 
     <!-- MY PASS -->
     <div class="view" id="v-mypass">
+      <!-- Your Week: the app keeps score of YOU — streak, level, listening -->
+      <div id="my-week-card" style="margin-bottom:1rem"></div>
       <div class="card" style="margin-bottom:1rem">
         <div class="card-title" style="margin-bottom:.8rem">Invite the city</div>
         <div id="referral-panel"><div style="color:var(--muted);font-size:.85rem">Loading…</div></div>
@@ -2729,7 +2752,7 @@ function showView(id) {
   var titleEl = document.getElementById('page-title');
   if (titleEl) titleEl.textContent = titles[id] || id;
   if (id === 'home') renderStarterRail();
-  if (id === 'mypass') { loadReferralPanel(); loadMyReceipt(); loadMyPassCard(); }
+  if (id === 'mypass') { loadReferralPanel(); loadMyReceipt(); loadMyPassCard(); loadMyWeek(); }
   if (id === 'admin-dashboard') { loadAdminStreamData(); loadAdminOps(); }
   if (id === 'admin-system') loadPlatformHealth();
   if (id === 'admin-members' || id === 'admin-artists' || id === 'admin-financials') loadAdminOps();
@@ -2746,10 +2769,10 @@ function showView(id) {
   if (id === 'artist-profile') loadArtistProfileEditor();
   if (id === 'home') { loadCityFeed(); loadTrendingRail(); }
   if (id === 'profile') loadMyPages();
-  if (id === 'discover') { loadForYou(); loadTrendingRail(); loadPeopleYouMayKnow(); }
+  if (id === 'discover') { loadForYou(); loadTrendingRail(); loadPeopleYouMayKnow(); loadSceneLeaders(); }
   if (id === 'settings') loadSettings();
   if (id === 'admin-ash') loadAshPanel();
-  if (id === 'admin-analytics') loadAdminAnalytics();
+  if (id === 'admin-analytics') { loadAdminAnalytics(); loadAdminEngagement(); }
   if (id === 'music') { loadMusicCatalog(); loadListeningWent(); }
   if (id === 'artist-submit') populateGenreSelect();
   if (id === 'reels') loadReels();
@@ -4432,12 +4455,80 @@ async function loadCityFeed(force) {
     });
   }
 
-  container.innerHTML = renderComposer() +
+  container.innerHTML = '<div id="feed-prompt"></div>' + renderComposer() +
     (sorted.map(renderFeedPost).join('') ||
      '<div style="color:var(--muted);font-size:.84rem;padding:1rem 0">No posts yet — be the first.</div>');
   _cityFeedLoaded = true;
   populateComposerTracks();
   initFeedVideos();
+  loadFeedPrompt();
+}
+
+// ── The city question: a pinned prompt so nobody stares at a blank box ──
+async function loadFeedPrompt() {
+  var el = document.getElementById('feed-prompt');
+  if (!el) return;
+  var r = await _sb.from('feed_prompts').select('text')
+    .lte('starts_on', new Date().toISOString().slice(0, 10))
+    .order('starts_on', { ascending: false }).limit(1);
+  var t = r.data && r.data[0] && r.data[0].text;
+  if (!t) { el.innerHTML = ''; return; }
+  var streak = (window._myStreak || 0) >= 2 ? ' · 🔥 ' + window._myStreak + '-day streak' : '';
+  el.innerHTML = '<div class="prompt-card">' +
+    '<div style="flex:1;min-width:0">' +
+      '<div style="font-size:.6rem;letter-spacing:.12em;text-transform:uppercase;color:var(--orange-l);margin-bottom:.25rem">🐦‍🔥 City question' + streak + '</div>' +
+      '<div style="font-size:.92rem;font-weight:700;line-height:1.4">' + escapeHtml(t) + '</div></div>' +
+    '<button class="tb-btn" style="font-size:.76rem;flex-shrink:0" onclick="answerPrompt()">Answer</button></div>';
+}
+function answerPrompt() {
+  var ta = document.getElementById('composer-text');
+  if (ta) { ta.focus(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+}
+
+// ── Your Week: the pass keeps score of you ──
+async function loadMyWeek() {
+  var el = document.getElementById('my-week-card');
+  if (!el) return;
+  if (!_authUser) { el.innerHTML = ''; return; }
+  var res = await _sb.rpc('my_week');
+  var d = res.data;
+  if (res.error || !d || !d.ok) { el.innerHTML = ''; return; }
+  window._myStreak = d.streak || 0;
+  var levelColor = { Ember: 'var(--muted)', Flame: 'var(--orange-l)', Inferno: 'var(--orange)', Phoenix: 'var(--gold)' }[d.level] || 'var(--muted)';
+  var nextAt = d.level === 'Ember' ? 100 : d.level === 'Flame' ? 500 : d.level === 'Inferno' ? 1500 : null;
+  var tile = function(v, l) { return '<div style="flex:1;min-width:76px;text-align:center"><div style="font-family:var(--disp);font-size:1.25rem;font-weight:800">' + v + '</div><div style="font-size:.62rem;color:var(--muted)">' + l + '</div></div>'; };
+  el.innerHTML = '<div class="card" style="background:linear-gradient(135deg,#1A0E06,var(--bg3) 65%)">' +
+    '<div style="display:flex;align-items:center;gap:.6rem;margin-bottom:.8rem">' +
+      '<div class="card-title" style="margin:0">Your week on PHX</div>' +
+      '<span class="badge" style="margin-left:auto;color:' + levelColor + ';border-color:rgba(249,115,22,.3);font-size:.62rem">🔥 ' + escapeHtml(d.level) + '</span></div>' +
+    '<div style="display:flex;gap:.5rem;flex-wrap:wrap">' +
+      tile('🔥 ' + (d.streak || 0), 'day streak') +
+      tile(fmtK(d.minutes_7d || 0), 'listen min') +
+      tile(String(d.artists_7d || 0), 'artists backed') +
+      tile('+' + (d.points_7d || 0), 'points this week') +
+      tile(String(d.early_ears || 0), 'early ears 👂') + '</div>' +
+    '<div style="font-size:.7rem;color:var(--faint);margin-top:.7rem">' + fmtK(d.points_total || 0) + ' PHX Points all-time' +
+      (nextAt ? ' · ' + (nextAt - d.points_total) + ' to ' + (d.level === 'Ember' ? 'Flame' : d.level === 'Flame' ? 'Inferno' : 'Phoenix') : ' · top of the mountain') + '</div></div>';
+}
+
+// ── Scene leaders: this month's most active members (resets monthly) ──
+async function loadSceneLeaders() {
+  var el = document.getElementById('scene-leaders');
+  if (!el) return;
+  var res = await _sb.rpc('scene_leaders', { p_limit: 5 });
+  var rows = res.data || [];
+  if (res.error || !rows.length) { el.innerHTML = ''; return; }
+  var medals = ['🥇', '🥈', '🥉', '4', '5'];
+  el.innerHTML = '<div class="sh" style="margin-bottom:.6rem"><h3>🔥 Scene leaders</h3><span style="font-size:.7rem;color:var(--muted)">this month · resets monthly</span></div>' +
+    '<div class="card" style="padding:.6rem 1rem">' + rows.map(function(m, i) {
+      var ava = safeUrl(m.avatar_url);
+      return '<div onclick="showMemberPage(\'' + m.id + '\')" role="button" style="display:flex;align-items:center;gap:.6rem;padding:.45rem 0;' + (i < rows.length - 1 ? 'border-bottom:1px solid var(--border);' : '') + 'cursor:pointer">' +
+        '<span style="width:22px;text-align:center;font-size:.9rem">' + medals[i] + '</span>' +
+        '<div style="width:30px;height:30px;border-radius:50%;overflow:hidden;background:linear-gradient(135deg,var(--orange-d),var(--purple));display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:700;flex-shrink:0">' +
+          (ava ? '<img src="' + ava + '" style="width:100%;height:100%;object-fit:cover">' : escapeHtml((m.name || '?').charAt(0).toUpperCase())) + '</div>' +
+        '<span style="flex:1;font-size:.84rem;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + escapeHtml(m.name) + '</span>' +
+        '<span style="font-size:.76rem;color:var(--orange-l);font-weight:700">' + m.points + ' pts</span></div>';
+    }).join('') + '</div>';
 }
 
 function renderComposer() {
@@ -6356,6 +6447,48 @@ async function loadAdminAnalytics() {
       : '<div class="pf-empty">Cohorts fill as signup weeks accumulate.</div>';
   }
 }
+// Engagement engine panel: the points economy, live
+async function loadAdminEngagement() {
+  var res = await _sb.rpc('admin_engagement');
+  var d = res.data;
+  if (res.error || !d) return;
+  var pEl = document.getElementById('ana-points');
+  if (pEl) {
+    var rows = d.points_7d || [];
+    var max = Math.max.apply(null, rows.map(function(x){ return x.pts || 0; }).concat([1]));
+    var label = { counted_play: '🎵 listening', post: '📝 posts', comment: '💬 comments', checkin: '📅 check-ins',
+                  full_listen: '⏱ full listens', discovery: '🧭 discovery', streak_bonus: '🔥 streak bonuses',
+                  signup: '🐦‍🔥 activations', referral: '🤝 referrals' };
+    pEl.innerHTML = (rows.length ? rows.map(function(x) {
+      return '<div style="margin-bottom:.45rem"><div style="display:flex;justify-content:space-between;font-size:.76rem;margin-bottom:.15rem">' +
+        '<span>' + (label[x.reason] || x.reason) + '</span><span><b>' + x.pts + '</b> pts · ' + x.events + 'x</span></div>' +
+        '<div style="height:6px;background:var(--bg4);border-radius:3px"><div style="width:' + Math.round((x.pts / max) * 100) + '%;height:6px;border-radius:3px;background:var(--orange)"></div></div></div>';
+    }).join('') : '<div class="pf-empty">No points issued yet this week.</div>') +
+    '<div style="font-size:.74rem;color:var(--muted);margin-top:.6rem">📅 <b>' + (d.checkins_today || 0) + '</b> check-ins today · 🔥 <b>' + (d.streaks_3plus || 0) + '</b> members on 3+ day streaks</div>';
+  }
+  var lEl = document.getElementById('ana-leaders');
+  if (lEl) {
+    var ls = d.leaders || [];
+    lEl.innerHTML = ls.length ? ls.map(function(m, i) {
+      return '<div style="display:flex;justify-content:space-between;padding:.3rem 0;border-bottom:1px solid var(--border);font-size:.8rem">' +
+        '<span>' + (i + 1) + '. ' + escapeHtml(m.name) + '</span><span style="color:var(--orange-l);font-weight:700">' + m.points + '</span></div>';
+    }).join('') : '<div class="pf-empty">Leaderboard fills as points flow.</div>';
+  }
+  _setText('ana-prompt-current', d.current_prompt ? '“' + d.current_prompt + '”' : 'No prompt set.');
+}
+async function setStudioPrompt(btn) {
+  var inp = document.getElementById('ana-prompt-input');
+  var t = (inp && inp.value || '').trim();
+  if (t.length < 5) { showToast('Give the question a little more meat'); return; }
+  if (btn) btn.disabled = true;
+  var res = await _sb.rpc('set_feed_prompt', { p_text: t, p_date: new Date(Date.now() + 86400000).toISOString().slice(0, 10) });
+  if (btn) btn.disabled = false;
+  if (res.error || !(res.data || {}).ok) { showToast('Could not set the prompt'); return; }
+  if (inp) inp.value = '';
+  showToast('🐦‍🔥 Set — it pins to the feed tomorrow');
+  loadAdminEngagement();
+}
+
 function exportAnalyticsCsv() {
   if (!_anaData) { showToast('Load analytics first'); return; }
   var days = _anaData.daily || [];
@@ -9123,6 +9256,17 @@ async function applyAccountRole() {
     var oaRes = await _sb.from('artists').select('id').eq('user_id', _authUser.id).limit(1).maybeSingle();
     _myArtistId = oaRes.data ? oaRes.data.id : null;
   } catch (e) { reportFailure('ownArtistLookup', e); }
+  // Opening the app IS the daily check-in — no button to remember.
+  // First session of the day earns +5 and advances the streak; day 3
+  // and day 7 land milestone bonuses. Quiet no-op the rest of the day.
+  _sb.rpc('daily_checkin').then(function(res) {
+    var d = res.data || {};
+    if (!d.ok) return;
+    window._myStreak = d.streak || 0;
+    if (d.checked_in) {
+      showToast('🔥 Day ' + d.streak + ' on PHX · +5 points' + (d.bonus ? ' · streak bonus +' + d.bonus + '!' : ''));
+    }
+  }, function(){});
   // Security model: staff/artist DOM is REMOVED for lower roles, not hidden.
   // So when someone signs IN and their role needs surfaces this page load
   // already stripped, the only honest fix is a one-time reload — otherwise
