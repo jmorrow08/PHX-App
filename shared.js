@@ -46,11 +46,8 @@
   search.setAttribute('aria-label', 'Search PHX');
   search.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.8-3.8"/></svg>';
   search.addEventListener('click', function () {
-    if (typeof window.showView === 'function') window.showView('discover');
-    setTimeout(function () {
-      var inp = document.getElementById('music-search-input');
-      if (inp) inp.focus();
-    }, 350);
+    if (typeof window.openGlobalSearch === 'function') window.openGlobalSearch();
+    else if (typeof window.showView === 'function') window.showView('discover');
   });
   bar.appendChild(search);
 

@@ -176,11 +176,26 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
 .trim-range::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;pointer-events:auto;width:24px;height:24px;border-radius:50%;background:var(--orange);border:3px solid #fff;cursor:grab;margin-top:5px;box-shadow:0 2px 8px rgba(0,0,0,.5)}
 .trim-range::-moz-range-track{background:none;border:none}
 .trim-range::-moz-range-thumb{pointer-events:auto;width:20px;height:20px;border-radius:50%;background:var(--orange);border:3px solid #fff;cursor:grab;box-shadow:0 2px 8px rgba(0,0,0,.5)}
-.react-bar{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
-.react-opt{background:none;border:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:.2rem;padding:.3rem .45rem;border-radius:12px;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:manipulation}
-.react-opt:hover,.react-opt:active{background:rgba(249,115,22,.12)}
-.react-opt .re{font-size:1.7rem;line-height:1}
-.react-opt .rl{font-size:.58rem;font-weight:700;letter-spacing:.02em;color:var(--muted);white-space:nowrap}
+/* Reaction bar: elevated glass, pops in, options cascade; drag or hover
+   lifts the emoji (FB feel). Positioning lives here, not inline. */
+.react-bar{position:absolute;bottom:120%;left:0;z-index:95;display:flex;gap:.05rem;max-width:86vw;
+  background:linear-gradient(180deg,rgba(26,20,34,.97),rgba(12,12,20,.97));
+  border:1px solid rgba(249,115,22,.28);border-radius:22px;padding:.4rem .45rem;
+  box-shadow:0 18px 48px rgba(0,0,0,.65),0 0 0 1px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.07);
+  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  animation:react-pop .22s var(--ease) both;
+  -webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+@keyframes react-pop{from{opacity:0;transform:translateY(10px) scale(.82)}to{opacity:1;transform:none}}
+.react-opt{background:none;border:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:.18rem;padding:.3rem .42rem;border-radius:14px;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:manipulation;animation:react-in .3s var(--ease) both}
+@keyframes react-in{from{opacity:0;transform:translateY(9px) scale(.4)}to{opacity:1;transform:none}}
+.react-opt .re{font-size:1.65rem;line-height:1;display:block;transition:transform .16s var(--ease)}
+.react-opt .rl{font-size:.56rem;font-weight:700;letter-spacing:.02em;color:var(--muted);white-space:nowrap;transition:color .16s}
+.react-opt:hover,.react-opt:active,.react-opt.drag{background:rgba(249,115,22,.16)}
+.react-opt:hover .re,.react-opt.drag .re{transform:scale(1.45) translateY(-6px)}
+.react-opt:hover .rl,.react-opt.drag .rl{color:var(--orange-l)}
+/* Clips: the action rail hugs the right edge — the bar opens leftward */
+.reel-actions .react-bar{left:auto;right:105%;bottom:auto;top:50%;transform:translateY(-50%);animation:react-pop-side .22s var(--ease) both}
+@keyframes react-pop-side{from{opacity:0;transform:translateY(-50%) translateX(12px) scale(.82)}to{opacity:1;transform:translateY(-50%)}}
 .fp-menu-btn{font-size:1.15rem;font-weight:700;color:var(--faint);letter-spacing:.05em;padding:.35rem .6rem;min-height:36px}
 .post-menu{position:absolute;top:110%;right:0;z-index:90;min-width:190px;background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:.3rem;box-shadow:0 10px 34px rgba(0,0,0,.55)}
 .post-menu-item{display:block;width:100%;text-align:left;background:none;border:none;color:var(--white);font-size:.82rem;padding:.55rem .7rem;border-radius:8px;cursor:pointer;white-space:nowrap}
@@ -2281,6 +2296,17 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
     <div class="track-list queue-list" id="queue-list"><div class="pf-empty">Play something and the queue builds itself.</div></div>
     <div class="sh" style="margin:1rem 0 .4rem"><h3 style="font-size:.82rem">Recently Played</h3></div>
     <div class="track-list" id="ps-recent"></div>
+  </div>
+</div>
+
+<!-- Global search: top sheet, blank/history at rest, live results per keystroke -->
+<div id="gsearch-modal" role="dialog" aria-modal="true" aria-label="Search PHX" style="display:none;position:fixed;inset:0;z-index:1200;background:rgba(7,7,15,.72);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)" onclick="if(event.target===this)closeGlobalSearch()">
+  <div style="background:rgba(10,10,18,.98);border-bottom:1px solid var(--border);padding:calc(.6rem + env(safe-area-inset-top,0px)) .8rem .9rem;box-shadow:0 14px 44px rgba(0,0,0,.55)">
+    <div style="display:flex;align-items:center;gap:.5rem;max-width:640px;margin:0 auto">
+      <button onclick="closeGlobalSearch()" aria-label="Back" style="background:none;border:none;color:var(--white);font-size:1.3rem;cursor:pointer;padding:.35rem .5rem;flex-shrink:0">←</button>
+      <input class="form-input" id="gsearch-input" placeholder="Search artists, songs, people, genres…" autocomplete="off" oninput="gsInput(this.value)" style="flex:1">
+    </div>
+    <div id="gsearch-results" style="max-width:640px;margin:.6rem auto 0;max-height:68vh;overflow-y:auto"></div>
   </div>
 </div>
 
@@ -4927,13 +4953,13 @@ function renderFeedPost(p) {
     '<div class="fp-body">' + escapeHtml(p.content) + '</div>' +
     mediaEmbed + trackCard + repostEmbed +
     '<div class="fp-actions" style="margin-top:.6rem">' +
-      '<span style="position:relative;display:inline-block">' +
-      '<button class="fp-act" id="like-btn-' + p.id + '" style="' + (liked ? 'color:var(--orange)' : '') + '" ' +
+      '<span class="react-slot" style="position:relative;display:inline-block">' +
+      '<button class="fp-act" id="like-btn-' + p.id + '" style="touch-action:none;' + (liked ? 'color:var(--orange)' : '') + '" ' +
         'onclick="togglePostLike(\'' + p.id + '\')" ' +
-        'onpointerdown="reactHoldStart(\'' + p.id + '\', event)" onpointerup="reactHoldEnd()" onpointerleave="reactHoldEnd()" ' +
-        'oncontextmenu="return false" title="Tap to react · hold to choose">' +
+        'onpointerdown="reactHoldStart(\'' + p.id + '\', event)" onpointerup="reactHoldEnd(event)" onpointerleave="reactHoldCancel()" ' +
+        'oncontextmenu="return false" title="Tap to react · hold + drag to choose">' +
         (liked ? REACTION_EMOJI[_myPostLikes[p.id]] || '🔥' : '🤍') + ' <span id="like-count-' + p.id + '">' + (p.likes_count||0) + '</span></button>' +
-      '<span id="react-bar-' + p.id + '"></span></span>' +
+      '<span class="react-bar-slot" id="react-bar-' + p.id + '"></span></span>' +
       '<button class="fp-act" onclick="toggleComments(\'' + p.id + '\')">💬 <span id="comment-count-' + p.id + '">' + (p.comments_count||0) + '</span></button>' +
       '<button class="fp-act" onclick="toggleShareMenu(\'' + p.id + '\')">↗ Share</button>' +
     '</div>' +
@@ -4953,35 +4979,61 @@ function renderFeedPost(p) {
   '</div>';
 }
 
-// ── PHX Reactions: tap = 🔥 Heat, hold = pick one of five ──
-var REACTION_EMOJI = { heat:'🔥', risen:'🐦‍🔥', citylove:'🌵', chills:'🥶', repeat:'🔁' };
-var REACTION_LABEL = { heat:'Heat', risen:'Risen', citylove:'City Love', chills:'Chills', repeat:'On Repeat' };
+// ── PHX Reactions: tap = 🔥 Heat; hold shows the bar, then DRAG (finger
+// still down) across the options and release on your pick — FB mechanics.
+var REACTION_EMOJI = { heat:'🔥', risen:'🐦‍🔥', citylove:'🌵', chills:'🥶', repeat:'🔁', trash:'🗑️' };
+var REACTION_LABEL = { heat:'Heat', risen:'Risen', citylove:'City Love', chills:'Chills', repeat:'On Repeat', trash:'Trash' };
 var _reactHoldTimer = null;
 var _reactHoldFired = false;
+var _reactBarPost = null;
 
 function reactHoldStart(postId, e) {
   _reactHoldFired = false;
   clearTimeout(_reactHoldTimer);
+  var origin = e && e.currentTarget;
   _reactHoldTimer = setTimeout(function() {
     _reactHoldFired = true;
-    showReactionBar(postId);
-  }, 420);
+    showReactionBar(postId, origin);
+    document.addEventListener('pointermove', _reactDragMove, { passive: true });
+  }, 380);
 }
-function reactHoldEnd() { clearTimeout(_reactHoldTimer); }
+function _reactDragMove(e) {
+  var el = document.elementFromPoint(e.clientX, e.clientY);
+  var opt = el && el.closest ? el.closest('.react-opt') : null;
+  document.querySelectorAll('.react-opt.drag').forEach(function(o) { if (o !== opt) o.classList.remove('drag'); });
+  if (opt) opt.classList.add('drag');
+}
+// pointerup: if the finger is over an option, that's the pick (drag-select).
+// Otherwise the bar stays open for a plain tap.
+function reactHoldEnd(e) {
+  clearTimeout(_reactHoldTimer);
+  document.removeEventListener('pointermove', _reactDragMove);
+  if (_reactHoldFired && e) {
+    var el = document.elementFromPoint(e.clientX, e.clientY);
+    var opt = el && el.closest ? el.closest('.react-opt') : null;
+    if (opt && _reactBarPost) pickReaction(_reactBarPost, opt.dataset.rk);
+  }
+}
+// Finger slid off before the bar appeared = a scroll, not a hold
+function reactHoldCancel() { if (!_reactHoldFired) clearTimeout(_reactHoldTimer); }
 
-function showReactionBar(postId) {
+function showReactionBar(postId, originEl) {
   closeReactionBars();
-  var slot = document.getElementById('react-bar-' + postId);
+  _reactBarPost = postId;
+  // The bar mounts inside the pressed button's own slot, so the same post
+  // can react from the feed AND the Clips player without id collisions.
+  var slot = originEl && originEl.parentElement ? originEl.parentElement.querySelector('.react-bar-slot') : null;
+  if (!slot) slot = document.getElementById('react-bar-' + postId);
   if (!slot) return;
-  slot.innerHTML = '<span class="react-bar" style="position:absolute;bottom:120%;left:0;z-index:80;display:flex;gap:.15rem;background:var(--bg2);border:1px solid var(--border);border-radius:18px;padding:.4rem .5rem;box-shadow:0 8px 30px rgba(0,0,0,.5)">' +
-    Object.keys(REACTION_EMOJI).map(function(k) {
-      return '<button class="react-opt" title="' + REACTION_LABEL[k] + '" aria-label="' + REACTION_LABEL[k] + '" ' +
+  slot.innerHTML = '<span class="react-bar">' +
+    Object.keys(REACTION_EMOJI).map(function(k, i) {
+      return '<button class="react-opt" style="animation-delay:' + (i * 28) + 'ms" data-rk="' + k + '" title="' + REACTION_LABEL[k] + '" aria-label="' + REACTION_LABEL[k] + '" ' +
         'onclick="event.stopPropagation();pickReaction(\'' + postId + '\',\'' + k + '\')">' +
         '<span class="re">' + REACTION_EMOJI[k] + '</span><span class="rl">' + REACTION_LABEL[k] + '</span></button>';
     }).join('') + '</span>';
   setTimeout(function() {
     document.addEventListener('click', closeReactionBars, { once: true });
-  }, 50);
+  }, 60);
 }
 function closeReactionBars() {
   document.querySelectorAll('.react-bar').forEach(function(b){ var s = b.parentElement; if (s) s.innerHTML = ''; });
@@ -8839,6 +8891,105 @@ async function pykFollow(type, id, btn) {
   btn.classList.toggle('on', !!_myFollows[type + ':' + id]);
 }
 
+// ── GLOBAL SEARCH POPUP ──
+// Opens over whatever screen you're on (closing returns you exactly there —
+// no navigation happens). Blank start / recent searches; results build live
+// with every keystroke.
+var _gsTimer = null;
+function openGlobalSearch() {
+  var m = document.getElementById('gsearch-modal');
+  if (!m) return;
+  m.style.display = 'block';
+  var inp = document.getElementById('gsearch-input');
+  if (inp) { inp.value = ''; setTimeout(function(){ inp.focus(); }, 80); }
+  renderGsHistory();
+  document.addEventListener('keydown', _gsEsc);
+}
+function closeGlobalSearch() {
+  var m = document.getElementById('gsearch-modal');
+  if (m) m.style.display = 'none';
+  document.removeEventListener('keydown', _gsEsc);
+}
+function _gsEsc(e) { if (e.key === 'Escape') closeGlobalSearch(); }
+function _gsHistory() {
+  try { return JSON.parse(localStorage.getItem('phx_search_history') || '[]'); } catch (e) { return []; }
+}
+function _gsSaveHistory(q) {
+  if (!q) return;
+  var h = [q].concat(_gsHistory().filter(function(x){ return x !== q; })).slice(0, 8);
+  try { localStorage.setItem('phx_search_history', JSON.stringify(h)); } catch (e) {}
+}
+function gsClearHistory() { try { localStorage.removeItem('phx_search_history'); } catch (e) {} renderGsHistory(); }
+function renderGsHistory() {
+  var el = document.getElementById('gsearch-results');
+  if (!el) return;
+  var h = _gsHistory();
+  el.innerHTML = h.length
+    ? '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.3rem"><span style="font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--faint)">Recent</span><button class="tb-btn" style="font-size:.68rem;padding:.2rem .55rem" onclick="gsClearHistory()">Clear</button></div>' +
+      h.map(function(q) {
+        return '<div onclick="document.getElementById(\'gsearch-input\').value=\'' + escapeHtml(q).replace(/'/g, '&#39;') + '\';gsRun(\'' + escapeHtml(q).replace(/'/g, '&#39;') + '\')" role="button" style="display:flex;gap:.6rem;align-items:center;padding:.55rem .3rem;border-bottom:1px solid var(--border);font-size:.88rem;cursor:pointer;color:var(--muted)">🕘 <span style="color:var(--white)">' + escapeHtml(q) + '</span></div>';
+      }).join('')
+    : '<div style="font-size:.8rem;color:var(--faint);padding:.6rem .2rem">Search anything on PHX — artists, songs, albums, genres, people, pages.</div>';
+}
+function gsInput(v) {
+  clearTimeout(_gsTimer);
+  var q = (v || '').trim();
+  if (!q) { renderGsHistory(); return; }
+  _gsTimer = setTimeout(function(){ gsRun(q); }, 220);
+}
+async function gsRun(q) {
+  var el = document.getElementById('gsearch-results');
+  if (!el) return;
+  el.innerHTML = '<div style="font-size:.8rem;color:var(--muted);padding:.5rem .2rem">Searching…</div>';
+  var like = '%' + q + '%';
+  var r = await Promise.all([
+    _sb.from('tracks').select('id,title,cover_url,artists(name,slug)').eq('status', 'live').ilike('title', like).limit(6),
+    _sb.rpc('search_all', { p_q: q, p_limit: 12 })
+  ]);
+  // Stale-guard: only render if the box still holds this query
+  var now = ((document.getElementById('gsearch-input') || {}).value || '').trim();
+  if (now !== q) return;
+  var tracks = r[0].data || [], people = r[1].data || [];
+  var kindMeta = { artist: ['🎤', 'Artist'], album: ['💿', 'Album'], page: ['⭐', 'Page'], member: ['👤', 'Member'], genre: ['🎼', 'Genre'] };
+  var esc = function(s) { return escapeHtml(String(s || '')).replace(/'/g, '&#39;'); };
+  var row = function(ava, title, sub, chip, click) {
+    return '<div onclick="' + click + '" role="button" style="display:flex;gap:.65rem;align-items:center;padding:.5rem .3rem;border-bottom:1px solid var(--border);cursor:pointer">' +
+      '<div style="width:38px;height:38px;border-radius:9px;flex-shrink:0;overflow:hidden;background:var(--bg4);display:flex;align-items:center;justify-content:center">' + ava + '</div>' +
+      '<div style="flex:1;min-width:0"><div style="font-size:.88rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + title + '</div>' +
+        (sub ? '<div style="font-size:.7rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + sub + '</div>' : '') + '</div>' +
+      '<span style="font-size:.62rem;color:var(--faint)">' + chip + '</span></div>';
+  };
+  var html = '';
+  if (tracks.length) {
+    html += tracks.map(function(t) {
+      var art = safeUrl(t.cover_url);
+      return row(art ? '<img src="' + art + '" style="width:100%;height:100%;object-fit:cover">' : '🎵',
+        escapeHtml(t.title), escapeHtml(t.artists ? t.artists.name : ''), 'Song',
+        "gsGo('track','" + t.id + "','" + esc(q) + "')");
+    }).join('');
+  }
+  html += people.map(function(p) {
+    var km = kindMeta[p.kind] || ['🔎', p.kind];
+    var ava = safeUrl(p.avatar_url);
+    var arg = p.kind === 'member' ? p.id : (p.slug || p.id);
+    return row(ava ? '<img src="' + ava + '" style="width:100%;height:100%;object-fit:cover">' : km[0],
+      escapeHtml(p.name) + (p.verified ? ' <span style="color:var(--orange)">✓</span>' : ''),
+      escapeHtml(p.subtitle || ''), km[1],
+      "gsGo('" + p.kind + "','" + esc(arg) + "','" + esc(q) + "')");
+  }).join('');
+  el.innerHTML = html || '<div style="font-size:.82rem;color:var(--muted);padding:.6rem .2rem">Nothing for "' + escapeHtml(q) + '" yet.</div>';
+}
+function gsGo(kind, arg, q) {
+  _gsSaveHistory(q);
+  closeGlobalSearch();
+  if (kind === 'track') playTrackById(arg);
+  else if (kind === 'artist') showArtistPage(arg);
+  else if (kind === 'member') showMemberPage(arg);
+  else if (kind === 'page') showPageProfile(arg);
+  else if (kind === 'genre') { showView('music'); setTimeout(function(){ if (typeof setCatalogGenre === 'function') setCatalogGenre(arg); }, 300); }
+  else showView('music');
+}
+
 // Share PHX itself — with the link actually attached, and a clipboard
 // fallback where no share sheet exists (the old inline handler passed no
 // url and silently did nothing on desktop).
@@ -9350,7 +9501,11 @@ async function loadReels(scrollToPost) {
           '<div class="reel-caption">' + escapeHtml(p.content||'') + '</div>' +
         '</div>' +
         '<div class="reel-actions">' +
-          '<button class="reel-act" id="reel-like-' + p.id + '" onclick="reelLike(\'' + p.id + '\')">' + (liked ? (REACTION_EMOJI[_myPostLikes[p.id]] || '🔥') : '🤍') + '<span id="reel-like-count-' + p.id + '">' + (p.likes_count||0) + '</span></button>' +
+          '<span class="react-slot" style="position:relative;display:inline-block">' +
+          '<button class="reel-act" id="reel-like-' + p.id + '" style="touch-action:none" onclick="reelLike(\'' + p.id + '\')" ' +
+            'onpointerdown="reactHoldStart(\'' + p.id + '\', event)" onpointerup="reactHoldEnd(event)" onpointerleave="reactHoldCancel()" ' +
+            'oncontextmenu="return false">' + (liked ? (REACTION_EMOJI[_myPostLikes[p.id]] || '🔥') : '🤍') + '<span id="reel-like-count-' + p.id + '">' + (p.likes_count||0) + '</span></button>' +
+          '<span class="react-bar-slot"></span></span>' +
           '<button class="reel-act" onclick="openPostFromDiscover(\'' + p.id + '\')">💬<span>' + (p.comments_count||0) + '</span></button>' +
           '<button class="reel-act" onclick="shareFeedPost(\'' + p.id + '\')">↗<span>Share</span></button>' +
           '<button class="reel-act" onclick="exportClipWatermarked(\'' + p.id + '\', \'' + escapeHtml(p.media_url) + '\', \'' + escapeHtml(p.author_name || 'PHX').replace(/'/g, '') + '\')">⬇<span>Save</span></button>' +
@@ -12189,6 +12344,6 @@ document.querySelectorAll('.cs-notify-btn').forEach(function(btn) {
   });
 });
 </script>
-<script src="shared.js?v=7"></script>
+<script src="shared.js?v=8"></script>
 </body>
 </html>
