@@ -44,3 +44,13 @@ Comment replies (one level), PHX reactions set (🔥 Heat, 🐦‍🔥 Risen, �
 
 ### SOP — reading Growth (add to weekly ops)
 Admin → Growth once a week: funnel conversion step-to-step (where people drop), sources (which artist codes/UTMs actually convert), retention vs the ≥40% week-4 gate. Admin → Financials → pot ledger for every beta dollar. Admin → Activity for per-user behavior and capped/farmed plays.
+
+## Evening launch-prep pass (same day, night before codes go out)
+- **Claim codes proven end-to-end.** Rollback-tested both partner codes through the real redemption path. Found + fixed: XMWR7X granted no tier (now `headline`), and `redeem_claim_code` wrote artist tiers into `profiles.tier` where the CHECK rejects them — tier grants now route artist tiers to `artists.tier`, member tiers to `profiles.tier` (`claim_code_tier_routing`).
+- **Artist approval is a button now.** Admin → Artists: pending artists show **Approve — go live** (`admin_set_artist_status`): flips status, mints their permanent unlimited fan code, notifies them. Previously pending→active had no UI path.
+- **Artist handle sync.** Artist rows are created at code redemption (before the wizard), so they carried placeholder name/slug. `mark_onboarded` now renames pending placeholder rows from the finished profile (live pages never renamed).
+- **Email pipeline live.** `email_queue` → Resend via pg_net + Vault (`RESEND_API_KEY`), pg_cron `phx-email-drainer` every 5 min, ≤3 retries, branded HTML (`_email_html`). New-access-request alert to all admins; approve/deny/waitlist emails deliver; **codegen has an "email it to them" field** (`admin_email_code`). `queue_email` EXECUTE revoked from clients (was a spam vector).
+- **Feed UX pass (Facebook mechanics).** Inline muted autoplay videos (IntersectionObserver + scroll fallback; sound never follows you down the feed; tap video → Clips), labeled reaction picker (bigger, names under emoji, iOS copy-callout suppressed), 44px action-row tap targets, `html`-level overflow clip (stops sideways panning on iPhone).
+- **Clips cap: 90 seconds** (IG Reels standard) — enforced at file-pick and re-checked at post time. File cap stays 50 MB.
+- **Studio installs as its own app.** `/studio` swaps manifest + apple-touch-icon + canonical + og:url in-head → saves to home screen as "Studio" with the platinum phoenix, launching `/studio`. Member app at `/app` unaffected.
+- **Plug City album restored** (featured, art = the PHX single's cover). Reversible `albums.hidden` flag + `tracks.status='hidden'` state exist for future takedowns; the audio signer refuses non-live tracks.

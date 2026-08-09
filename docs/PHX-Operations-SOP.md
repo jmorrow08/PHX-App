@@ -66,9 +66,11 @@ Everything below needs a home in the admin surface (see the Admin & Analytics sp
 
 1. Vet: real person, Phoenix connection, listenable catalog (5-min check — this is the scene moat).
 2. Pre-built artists → **claim code** (hands them their finished page). Ordinary artists → invite code + wizard.
-3. Set up merch (Fourthwall shop, admin-managed) if applicable.
-4. Give them their **referral code** + QR cards (their code = their payroll).
-5. Add their real photo/banner (fixes link previews).
+3. They sign up + finish the wizard → their artist page sits **pending** (invisible to the public). When vetted: Admin → Artists → **Approve — go live**. That one click puts them on the roster, makes them streamable, mints their permanent unlimited fan code, and notifies them.
+4. Verify (✓) is separate and comes after the four-point check in the redesign changelog.
+5. Set up merch (Fourthwall shop, admin-managed) if applicable.
+6. Give them their **fan code** + QR cards (their code = their payroll) — it was auto-minted at approval; codegen's "email it to them" field sends it in one step.
+7. Add their real photo/banner (fixes link previews).
 
 ## 7. Release / deploy SOP (tighten this — it's a known weak spot)
 

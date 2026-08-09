@@ -86,13 +86,19 @@ The public split is never stated. Copy says "your pass supports the artists you 
 
 ## Storage
 
-Buckets: `track-audio` (audio, locked down — no public listing), `track-covers` (cover art), `post-media` (feed video/photo, 50MB cap). Audio plays via a hidden `<audio>` element when `audio_url` is set.
+Buckets: `track-audio` (audio, locked down — no public listing), `track-covers` (cover art), `post-media` (feed video/photo, 50MB cap, video ≤90s). Audio plays via a hidden `<audio>` element when `audio_url` is set.
+
+## Transactional Email
+
+Two independent pipelines, both through Resend on the `thephx.app` domain:
+1. **Auth emails** (confirm, reset, magic link) — Supabase Auth SMTP, configured in the dashboard.
+2. **App emails** — anything the app queues into `email_queue` (`queue_email()`, server-side only): access-request alerts to admins, approve/deny/waitlist decisions, "email this code" from admin codegen. Drained every 5 min by pg_cron `phx-email-drainer` → `drain_email_queue()` → Resend API via pg_net; the key lives in Vault as `RESEND_API_KEY`; ≤3 retries then `failed` with the error stored on the row. Branded HTML lives in `_email_html()`. If Vault has no key the drainer no-ops and mail just waits.
 
 ---
 
 ## Social Layer (City Feed)
 
-Feed posts with track attachments (playable cards), photo/video posts (camera capture + baked-in filters), **PHX Reactions** (tap = 🔥 Heat; hold to pick 🔥 Heat / 🐦‍🔥 Risen / 🌵 City Love / 🥶 Chills / 🔁 On Repeat — one per member per post, stored on `post_likes.reaction`), **threaded comments** (one reply level, `parent_comment_id`, guarded in `add_post_comment`), quote reposts, native share sheet + `/app?post=<id>` deep links, song hearts (`track_likes`), **Favorite artists** (`favorite_artists`, tier-capped shelf 3/6/12, shown on member profiles, future Drops priority), follows (artists/pages/users) + Following feed, notifications with deep links, @usernames, official PHX App posting (admin-only), Clips vertical video feed.
+Feed posts with track attachments (playable cards), photo/video posts (camera capture + baked-in filters; **videos cap at 90 seconds / 50 MB** and autoplay muted inline as the feed scrolls — FB-style, sound on tap, tap video → Clips player), **PHX Reactions** (tap = 🔥 Heat; hold to pick 🔥 Heat / 🐦‍🔥 Risen / 🌵 City Love / 🥶 Chills / 🔁 On Repeat — one per member per post, stored on `post_likes.reaction`), **threaded comments** (one reply level, `parent_comment_id`, guarded in `add_post_comment`), quote reposts, native share sheet + `/app?post=<id>` deep links, song hearts (`track_likes`), **Favorite artists** (`favorite_artists`, tier-capped shelf 3/6/12, shown on member profiles, future Drops priority), follows (artists/pages/users) + Following feed, notifications with deep links, @usernames, official PHX App posting (admin-only), Clips vertical video feed.
 
 All social writes flow through SECURITY DEFINER RPCs — never direct table writes — so validation and rate limits (5 posts/10min, 10 comments/min) can't be bypassed via the REST API.
 
