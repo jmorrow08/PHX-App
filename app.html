@@ -2140,6 +2140,17 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
   </div>
 </div>
 
+<!-- Watermark export progress -->
+<div id="wm-modal" role="dialog" aria-modal="true" aria-label="Saving clip" style="display:none;position:fixed;inset:0;z-index:560;background:rgba(7,7,15,.92);backdrop-filter:blur(5px);align-items:center;justify-content:center;padding:1rem">
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;max-width:320px;width:100%;padding:1.4rem;text-align:center">
+    <div style="font-size:1.6rem;margin-bottom:.5rem">🐦‍🔥</div>
+    <div style="font-weight:800;margin-bottom:.3rem">Stamping your clip…</div>
+    <div style="font-family:var(--disp);font-size:1.6rem;font-weight:800;color:var(--orange)" id="wm-pct">0%</div>
+    <div style="font-size:.72rem;color:var(--muted);margin:.5rem 0 .9rem">Runs in real time — a 30s clip takes 30s. Keep this open.</div>
+    <button class="tb-btn" style="font-size:.78rem" onclick="_wmClose()">Cancel</button>
+  </div>
+</div>
+
 <!-- Add to playlist -->
 <div id="addpl-modal" role="dialog" aria-modal="true" aria-label="Add to playlist" style="display:none;position:fixed;inset:0;z-index:545;background:rgba(7,7,15,.9);backdrop-filter:blur(5px);align-items:center;justify-content:center;padding:1rem" onclick="if(event.target===this)closeAddToPlaylist()">
   <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;max-width:360px;width:100%;padding:1.1rem">
@@ -8748,6 +8759,120 @@ function _clipTick(postId, vid) {
   }
 }
 
+// ── Watermarked clip export ──
+// Re-encodes the clip in-browser (same canvas+recorder engine as the trim
+// sheet) with a PHX + author watermark burned in, then hands it to the
+// native share sheet — every saved clip markets the platform when reposted.
+var _wmActive = false;
+function _wmClose() {
+  _wmActive = false;
+  var m = document.getElementById('wm-modal');
+  if (m) m.style.display = 'none';
+}
+async function exportClipWatermarked(postId, mediaUrl, authorName) {
+  if (!window.MediaRecorder) { showToast('Saving clips isn\'t supported in this browser — sharing the link instead'); shareFeedPost(postId); return; }
+  if (_wmActive) return;
+  _wmActive = true;
+  var m = document.getElementById('wm-modal');
+  if (m) m.style.display = 'flex';
+  _setText('wm-pct', '0%');
+
+  // Pause the reel behind the modal so two audio tracks don't fight
+  document.querySelectorAll('.reel video').forEach(function(v){ v.pause(); });
+
+  var v = document.createElement('video');
+  v.crossOrigin = 'anonymous';
+  v.playsInline = true;
+  v.src = mediaUrl;
+
+  var cleanup = function() { try { v.pause(); v.src = ''; } catch (e) {} };
+  v.onerror = function() { _wmClose(); cleanup(); showToast('Could not load this clip for export'); };
+
+  v.onloadedmetadata = function() {
+    if (!_wmActive) { cleanup(); return; }
+    var vw = v.videoWidth || 720, vh = v.videoHeight || 1280;
+    var scale = Math.min(1, 1080 / Math.max(vw, vh));
+    var canvas = document.createElement('canvas');
+    canvas.width = Math.round(vw * scale / 2) * 2;
+    canvas.height = Math.round(vh * scale / 2) * 2;
+    var ctx = canvas.getContext('2d');
+    var stream = canvas.captureStream(30);
+    try {
+      var actx = new (window.AudioContext || window.webkitAudioContext)();
+      var srcNode = actx.createMediaElementSource(v);
+      var dest = actx.createMediaStreamDestination();
+      srcNode.connect(dest);
+      var at = dest.stream.getAudioTracks()[0];
+      if (at) stream.addTrack(at);
+    } catch (e) { reportFailure('wmAudio', e); }
+
+    var mime = ['video/mp4', 'video/webm;codecs=vp9', 'video/webm'].filter(function(t) {
+      return MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t);
+    })[0];
+    var rec = new MediaRecorder(stream, mime ? { mimeType: mime, videoBitsPerSecond: 6000000 } : undefined);
+    var chunks = [];
+    rec.ondataavailable = function(ev) { if (ev.data && ev.data.size) chunks.push(ev.data); };
+
+    var wmTick = null;
+    var finish = function() {
+      clearInterval(wmTick);
+      v.pause();
+      try { rec.stop(); } catch (e) { reportFailure('wmStop', e); }
+    };
+    rec.onstop = function() {
+      cleanup();
+      if (!_wmActive) { _wmClose(); return; }
+      _wmClose();
+      var type = (rec.mimeType || mime || 'video/webm').split(';')[0];
+      var ext = type.indexOf('mp4') !== -1 ? 'mp4' : 'webm';
+      var blob = new Blob(chunks, { type: type });
+      if (!blob.size) { showToast('Export failed on this device — link shared instead'); shareFeedPost(postId); return; }
+      var file = new File([blob], 'phx-clip.' + ext, { type: type });
+      trackEvent('clip_export', 'post', postId, { bytes: blob.size });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        navigator.share({ files: [file], title: 'PHX Clip', text: 'From the PHX app — thephx.app' }).catch(function(){});
+      } else {
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = file.name;
+        document.body.appendChild(a); a.click(); a.remove();
+        showToast('⬇ Clip saved — watermark on, ready to post anywhere');
+      }
+    };
+
+    var wmDraw = function() {
+      ctx.drawImage(v, 0, 0, canvas.width, canvas.height);
+      // Watermark: quiet plate, bottom-left — PHX orange + author + site
+      var w = canvas.width, h = canvas.height;
+      var fs = Math.round(w * 0.038);
+      ctx.save();
+      ctx.globalAlpha = 0.82;
+      ctx.fillStyle = 'rgba(7,7,15,.55)';
+      var plateW = fs * 11, plateH = fs * 2.6, px = fs * .8, py = h - plateH - fs;
+      ctx.beginPath();
+      if (ctx.roundRect) ctx.roundRect(px, py, plateW, plateH, fs * .5); else ctx.rect(px, py, plateW, plateH);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.textBaseline = 'middle';
+      ctx.font = '800 ' + fs + 'px "Space Grotesk", Arial, sans-serif';
+      ctx.fillStyle = '#F97316';
+      ctx.fillText('PHX', px + fs * .7, py + plateH / 2 - fs * .55);
+      ctx.font = '600 ' + Math.round(fs * .72) + 'px Arial, sans-serif';
+      ctx.fillStyle = 'rgba(255,255,255,.92)';
+      ctx.fillText('@' + authorName + ' · thephx.app', px + fs * .7, py + plateH / 2 + fs * .62);
+      ctx.restore();
+      var dur = v.duration || 90;
+      _setText('wm-pct', Math.min(100, Math.round(v.currentTime / dur * 100)) + '%');
+      if (v.ended || v.currentTime >= Math.min(dur, 90)) finish();
+      if (!_wmActive) finish();
+    };
+    v.play().then(function() {
+      rec.start(500);
+      wmTick = setInterval(wmDraw, 33);
+    }).catch(function(e) { reportFailure('wmPlay', e); _wmClose(); cleanup(); showToast('Could not start the export'); });
+  };
+}
+
 async function loadReels(scrollToPost) {
   var container = document.getElementById('reels-container');
   if (!container) return;
@@ -8783,6 +8908,7 @@ async function loadReels(scrollToPost) {
           '<button class="reel-act" id="reel-like-' + p.id + '" onclick="reelLike(\'' + p.id + '\')">' + (liked ? (REACTION_EMOJI[_myPostLikes[p.id]] || '🔥') : '🤍') + '<span id="reel-like-count-' + p.id + '">' + (p.likes_count||0) + '</span></button>' +
           '<button class="reel-act" onclick="openPostFromDiscover(\'' + p.id + '\')">💬<span>' + (p.comments_count||0) + '</span></button>' +
           '<button class="reel-act" onclick="shareFeedPost(\'' + p.id + '\')">↗<span>Share</span></button>' +
+          '<button class="reel-act" onclick="exportClipWatermarked(\'' + p.id + '\', \'' + escapeHtml(p.media_url) + '\', \'' + escapeHtml(p.author_name || 'PHX').replace(/'/g, '') + '\')">⬇<span>Save</span></button>' +
         '</div>' +
       '</div>' +
     '</div>';
