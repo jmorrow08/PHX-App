@@ -165,6 +165,12 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
 .fp-act{font-size:.95rem;color:var(--faint);cursor:pointer;transition:color var(--t) var(--ease);background:none;border:none;display:flex;align-items:center;gap:.4rem;padding:.55rem .6rem;border-radius:10px;min-height:44px;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:manipulation}
 .fp-act:hover{color:var(--orange);background:rgba(249,115,22,.07)}
 .fv-mute{position:absolute;bottom:.9rem;right:.6rem;z-index:2;width:38px;height:38px;border-radius:50%;background:rgba(7,7,15,.65);border:1px solid rgba(255,255,255,.25);color:#fff;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+/* Dual-handle trim slider: two stacked ranges, only the thumbs take touches */
+.trim-range{position:absolute;left:0;right:0;top:0;width:100%;height:34px;-webkit-appearance:none;appearance:none;background:none;pointer-events:none;margin:0}
+.trim-range::-webkit-slider-runnable-track{background:none;border:none}
+.trim-range::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;pointer-events:auto;width:24px;height:24px;border-radius:50%;background:var(--orange);border:3px solid #fff;cursor:grab;margin-top:5px;box-shadow:0 2px 8px rgba(0,0,0,.5)}
+.trim-range::-moz-range-track{background:none;border:none}
+.trim-range::-moz-range-thumb{pointer-events:auto;width:20px;height:20px;border-radius:50%;background:var(--orange);border:3px solid #fff;cursor:grab;box-shadow:0 2px 8px rgba(0,0,0,.5)}
 .react-bar{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 .react-opt{background:none;border:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:.2rem;padding:.3rem .45rem;border-radius:12px;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:manipulation}
 .react-opt:hover,.react-opt:active{background:rgba(249,115,22,.12)}
@@ -787,27 +793,16 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
       <button class="nav-item" onclick="showView('reels')"><span class="icon">🎬</span>Clips</button>
       <button class="nav-item" onclick="showView('music')"><span class="icon">🎵</span>PHX Music</button>
     </div>
-    <div class="sb-section">Platform OS</div>
-    <button class="nav-item active" onclick="showView('admin-dashboard')"><span class="icon">📊</span>Dashboard</button>
-    <button class="nav-item" onclick="showView('admin-members')"><span class="icon">👥</span>Members</button>
-    <button class="nav-item" onclick="showView('admin-artists')"><span class="icon">🎤</span>Artists</button>
-    <button class="nav-item" onclick="showView('admin-content')"><span class="icon">🎵</span>Content</button>
-    <button class="nav-item" onclick="showView('admin-reports')"><span class="icon">🚨</span>Reports<span class="nav-badge" id="reports-nav-badge" style="display:none">0</span></button>
-    <button class="nav-item" onclick="showView('admin-roster')"><span class="icon">🗂️</span>Roster</button>
-    <button class="nav-item" onclick="showView('admin-pot')"><span class="icon">🫙</span>Community Pot<span id="pot-nav-tag" class="section-tag tag-super" style="display:none">SUPER</span></button>
-    <button class="nav-item" onclick="showView('admin-merch')"><span class="icon">🛍️</span>Merch</button>
-    <button class="nav-item" onclick="showView('admin-activity')"><span class="icon">📡</span>Activity</button>
-    <button class="nav-item" onclick="showView('admin-growth')"><span class="icon">📈</span>Growth</button>
+    <!-- Studio nav renders from STUDIO_SECTIONS × the signed-in role's
+         capabilities — future scoped logins (Bryce, staff) are a config row
+         in STUDIO_ROLE_CAPS, not a markup rebuild. -->
+    <div id="studio-nav"></div>
     <div class="sb-section">My Pages</div>
     <button class="nav-item" onclick="openMyPage()"><span class="icon">⭐</span>My Page</button>
     <div class="sb-section">My Artist</div>
     <button class="nav-item" onclick="showView('artist-tracks')"><span class="icon">🎼</span>My Tracks</button>
     <button class="nav-item" onclick="showView('artist-submit')"><span class="icon">⬆️</span>Submit Track</button>
     <button class="nav-item" onclick="showView('artist-earnings')"><span class="icon">💵</span>My Earnings</button>
-    <div class="sb-section">Finance</div>
-    <button class="nav-item" onclick="showView('admin-financials')"><span class="icon">💰</span>Financials<span id="admin-fin-tag" class="section-tag tag-super" style="display:none">SUPER</span></button>
-    <div class="sb-section">System</div>
-    <button class="nav-item" onclick="showView('admin-system')"><span class="icon">⚙️</span>Settings<span id="admin-sys-tag" class="section-tag tag-super" style="display:none">SUPER</span></button>
   </nav>
 
   <!-- Member bottom row -->
@@ -2072,6 +2067,27 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
 
 <!-- AUTH MODAL — Supabase email/password -->
 <!-- TYPED CODE GENERATOR (admin) -->
+<!-- Trim sheet: videos over 90s get a start/end selector instead of a rejection -->
+<div id="trim-modal" role="dialog" aria-modal="true" aria-label="Trim your clip" style="display:none;position:fixed;inset:0;z-index:540;background:rgba(7,7,15,.92);backdrop-filter:blur(5px);align-items:center;justify-content:center;padding:1rem">
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;max-width:480px;width:100%;padding:1.3rem">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.8rem">
+      <div style="font-size:1rem;font-weight:800">Pick your 90 seconds</div>
+      <button onclick="closeTrimSheet(true)" aria-label="Cancel" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem">✕</button>
+    </div>
+    <video id="trim-video" playsinline style="width:100%;max-height:320px;border-radius:10px;background:#000;display:block"></video>
+    <div id="trim-times" style="font-family:var(--mono);font-size:.78rem;color:var(--orange-l);text-align:center;margin:.7rem 0 .2rem">—</div>
+    <div style="position:relative;height:34px;margin:0 10px">
+      <div style="position:absolute;top:14px;left:0;right:0;height:6px;border-radius:3px;background:var(--bg4)"></div>
+      <div id="trim-region" style="position:absolute;top:14px;height:6px;border-radius:3px;background:var(--orange)"></div>
+      <input type="range" class="trim-range" id="trim-start" min="0" value="0" step="0.1" oninput="trimClamp('start')">
+      <input type="range" class="trim-range" id="trim-end" min="0" value="90" step="0.1" oninput="trimClamp('end')">
+    </div>
+    <div style="font-size:.72rem;color:var(--muted);text-align:center;margin-bottom:.8rem">Drag the handles — the preview loops your selection. Tap the video to play/pause.</div>
+    <div id="trim-progress" style="display:none;text-align:center;font-size:.85rem;color:var(--orange-l);margin-bottom:.6rem">Trimming… <span id="trim-progress-pct">0%</span><div style="font-size:.7rem;color:var(--muted);margin-top:.25rem">Runs in real time — a 90s clip takes 90s. Keep this open.</div></div>
+    <button class="upgrade-btn" id="trim-use-btn" style="margin:0;width:100%" onclick="startTrimExport()">Use this part</button>
+  </div>
+</div>
+
 <div id="codegen-modal" role="dialog" aria-modal="true" aria-label="Generate onboarding code" style="display:none;position:fixed;inset:0;z-index:530;background:rgba(7,7,15,.88);backdrop-filter:blur(5px);align-items:center;justify-content:center;padding:1rem">
   <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;max-width:420px;width:100%;padding:1.5rem">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
@@ -2224,7 +2240,7 @@ var titles = {
   events:'PHX Events', eats:'PHX Eats', audio:'PHX Audio',
   drops:'PHX Drops', cuts:'PHX Cuts', mypass:'My PHX Pass', profile:'My Profile',
   'member-page':'Profile', 'artist-page':'Artist', 'artist-directory':'Browse PHX', 'page-profile':'Page',
-  'admin-roster':'Roster', 'admin-merch':'Merch Connections', 'admin-pot':'Community Pot',
+  'admin-roster':'Launch Desk', 'admin-merch':'Merch Connections', 'admin-pot':'Community Pot',
   'artist-tracks':'My Tracks', 'artist-analytics':'Analytics',
   'artist-earnings':'Earnings', 'artist-submit':'Submit Track', 'artist-profile':'Artist Profile',
   'admin-dashboard':'Platform Dashboard', 'admin-members':'Members',
@@ -2580,6 +2596,54 @@ function setRole(role) {
   // Plays left badge (Explorer only)
   var playsEl = document.getElementById('plays-left-badge');
   if (playsEl) playsEl.style.display = r.playsLeftVisible ? '' : 'none';
+
+  // ── Studio shell: sections × capabilities ──
+  // The server (require_admin / is_admin RPC guards) is the real gate;
+  // this only decides what the shell shows. A future scoped login —
+  // Bryce managing his pages, an employee running day-to-day ops —
+  // is one row in STUDIO_ROLE_CAPS, nothing else changes.
+  function renderStudioNav(role) {
+    var host = document.getElementById('studio-nav');
+    if (!host) return;
+    var SECTIONS = [
+      { cap: 'ops', label: 'Operate', items: [
+        ['admin-dashboard', '📊', 'Dashboard'],
+        ['admin-roster', '🚪', 'Launch Desk'],
+        ['admin-artists', '🎤', 'Artists'],
+        ['admin-content', '🎵', 'Content'],
+        ['admin-reports', '🚨', 'Reports', 'reports-nav-badge'],
+        ['admin-merch', '🛍️', 'Merch'],
+      ]},
+      { cap: 'insight', label: 'Understand', items: [
+        ['admin-activity', '📡', 'Activity'],
+        ['admin-growth', '📈', 'Growth'],
+        ['admin-members', '👥', 'Members'],
+      ]},
+      { cap: 'money', label: 'Money', items: [
+        ['admin-financials', '💰', 'Financials'],
+        ['admin-pot', '🫙', 'Community Pot'],
+      ]},
+      { cap: 'config', label: 'Configure', items: [
+        ['admin-system', '⚙️', 'Settings'],
+      ]},
+    ];
+    var ROLE_CAPS = {
+      super: ['ops', 'insight', 'money', 'config'],
+      admin: ['ops', 'insight'],
+      // partner: [...]  // future: Bryce's scoped slice (own pages, own codes)
+      // staff:   [...]  // future: employees — ops without money/config
+    };
+    var caps = ROLE_CAPS[role] || [];
+    host.innerHTML = SECTIONS.filter(function(s) { return caps.indexOf(s.cap) !== -1; }).map(function(s) {
+      return '<div class="sb-section">' + s.label + '</div>' + s.items.map(function(it) {
+        return '<button class="nav-item" onclick="showView(\'' + it[0] + '\')"><span class="icon">' + it[1] + '</span>' + it[2] +
+          (it[3] ? '<span class="nav-badge" id="' + it[3] + '" style="display:none">0</span>' : '') + '</button>';
+      }).join('');
+    }).join('');
+  }
+
+  // Studio nav is role-scoped — render it for whoever just signed in
+  renderStudioNav(role);
 
   // Super Admin extras
   var finTag = document.getElementById('admin-fin-tag');
@@ -4044,18 +4108,24 @@ function handleComposerMedia(input) {
     input.value = '';
     return;
   }
-  // Clips cap: 90 seconds (IG Reels standard) — keeps the vertical player
-  // snappy and the feed scrollable. Checked from the file's own metadata.
+  // Clips cap: 90 seconds (IG Reels standard). Longer videos open the trim
+  // sheet so the poster picks which 90 seconds to keep — the selection is
+  // re-encoded client-side and becomes the attached file.
   if (/^video\//.test(file.type)) {
     var probe = document.createElement('video');
     probe.preload = 'metadata';
     probe.onloadedmetadata = function() {
       URL.revokeObjectURL(probe.src);
       if (probe.duration > 90.5) {
-        if (nameEl) { nameEl.textContent = '⚠️ Clips max out at 90 seconds — this one is ' + Math.round(probe.duration) + 's. Trim it and try again.'; nameEl.style.color = 'var(--red)'; nameEl.style.display = 'block'; }
         _composerMediaFile = null;
         input.value = '';
         renderMediaPreview();
+        if (!window.MediaRecorder) {
+          if (nameEl) { nameEl.textContent = '⚠️ Clips max out at 90 seconds — this one is ' + Math.round(probe.duration) + 's. Trim it and try again.'; nameEl.style.color = 'var(--red)'; nameEl.style.display = 'block'; }
+          return;
+        }
+        if (nameEl) { nameEl.textContent = '✂️ ' + Math.round(probe.duration) + 's video — pick the 90 seconds to keep.'; nameEl.style.color = 'var(--orange-l)'; nameEl.style.display = 'block'; }
+        openTrimSheet(file, probe.duration);
       }
     };
     probe.src = URL.createObjectURL(file);
@@ -4068,6 +4138,142 @@ function handleComposerMedia(input) {
     nameEl.style.display = 'block';
   }
   renderMediaPreview();
+}
+
+// ── Trim sheet: pick which 90 seconds of a longer video to post ──
+// Selection previews on loop; "Use this part" re-encodes the span in the
+// browser (canvas.captureStream + WebAudio + MediaRecorder — same machinery
+// the future watermark export will use) and attaches the result.
+var _trimObjUrl = null, _trimDur = 0, _trimS = 0, _trimE = 90, _trimBusy = false, _trimTick = null;
+
+function openTrimSheet(file, duration) {
+  var m = document.getElementById('trim-modal');
+  var v = document.getElementById('trim-video');
+  if (!m || !v) return;
+  _trimDur = duration; _trimS = 0; _trimE = Math.min(90, duration); _trimBusy = false;
+  if (_trimObjUrl) URL.revokeObjectURL(_trimObjUrl);
+  _trimObjUrl = URL.createObjectURL(file);
+  v.src = _trimObjUrl;
+  v.onclick = function() { if (_trimBusy) return; v.paused ? v.play() : v.pause(); };
+  // Preview loops the selected span
+  v.ontimeupdate = function() { if (!_trimBusy && v.currentTime >= _trimE) v.currentTime = _trimS; };
+  var s = document.getElementById('trim-start'), e = document.getElementById('trim-end');
+  s.max = e.max = duration; s.value = 0; e.value = _trimE;
+  document.getElementById('trim-progress').style.display = 'none';
+  var btn = document.getElementById('trim-use-btn');
+  btn.disabled = false;
+  trimClamp();
+  m.style.display = 'flex';
+}
+function closeTrimSheet(cancelled) {
+  var m = document.getElementById('trim-modal');
+  var v = document.getElementById('trim-video');
+  clearInterval(_trimTick);
+  if (v) { v.pause(); v.ontimeupdate = null; }
+  _trimBusy = false;
+  if (m) m.style.display = 'none';
+  if (cancelled) {
+    var nameEl = document.getElementById('composer-media-name');
+    if (nameEl) nameEl.style.display = 'none';
+  }
+}
+function trimClamp(which) {
+  var s = document.getElementById('trim-start'), e = document.getElementById('trim-end');
+  var v = document.getElementById('trim-video');
+  var sv = parseFloat(s.value), ev = parseFloat(e.value);
+  // Handles can't cross, span can't exceed 90s — the handle being dragged wins
+  if (which === 'start') {
+    if (sv > ev - 1) { ev = Math.min(sv + 1, _trimDur); e.value = ev; }
+    if (ev - sv > 90) { ev = sv + 90; e.value = ev; }
+  } else {
+    if (ev < sv + 1) { sv = Math.max(ev - 1, 0); s.value = sv; }
+    if (ev - sv > 90) { sv = ev - 90; s.value = sv; }
+  }
+  _trimS = sv; _trimE = ev;
+  if (v && !_trimBusy) v.currentTime = (which === 'end') ? Math.max(ev - 0.4, sv) : sv;
+  var fmt = function(t) { return Math.floor(t / 60) + ':' + ('0' + Math.floor(t % 60)).slice(-2); };
+  _setText('trim-times', fmt(sv) + ' – ' + fmt(ev) + ' · ' + Math.round(ev - sv) + 's selected');
+  var region = document.getElementById('trim-region');
+  if (region && _trimDur) {
+    region.style.left = (sv / _trimDur * 100) + '%';
+    region.style.width = ((ev - sv) / _trimDur * 100) + '%';
+  }
+}
+var _trimAudioSrc = null; // createMediaElementSource is once-per-element
+async function startTrimExport() {
+  if (_trimBusy) return;
+  var v = document.getElementById('trim-video');
+  var btn = document.getElementById('trim-use-btn');
+  var prog = document.getElementById('trim-progress');
+  var nameEl = document.getElementById('composer-media-name');
+  _trimBusy = true;
+  btn.disabled = true;
+  prog.style.display = 'block';
+
+  var vw = v.videoWidth || 720, vh = v.videoHeight || 1280;
+  var scale = Math.min(1, 1280 / Math.max(vw, vh));
+  var canvas = document.createElement('canvas');
+  canvas.width = Math.round(vw * scale / 2) * 2;
+  canvas.height = Math.round(vh * scale / 2) * 2;
+  var ctx = canvas.getContext('2d');
+  var stream = canvas.captureStream(30);
+  try {
+    var actx = new (window.AudioContext || window.webkitAudioContext)();
+    if (actx.state === 'suspended') await actx.resume();
+    if (!_trimAudioSrc) _trimAudioSrc = actx.createMediaElementSource(v);
+    var dest = actx.createMediaStreamDestination();
+    _trimAudioSrc.connect(dest);
+    var at = dest.stream.getAudioTracks()[0];
+    if (at) stream.addTrack(at);
+  } catch (err) { reportFailure('trimAudio', err); /* export continues silent */ }
+
+  var mime = ['video/mp4', 'video/webm;codecs=vp9', 'video/webm'].filter(function(t) {
+    return MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t);
+  })[0];
+  var rec = new MediaRecorder(stream, mime ? { mimeType: mime, videoBitsPerSecond: 5000000 } : undefined);
+  var chunks = [];
+  rec.ondataavailable = function(ev) { if (ev.data && ev.data.size) chunks.push(ev.data); };
+  var s0 = _trimS, e0 = _trimE;
+  var finish = function() {
+    if (!_trimBusy) return;
+    _trimBusy = false;
+    clearInterval(_trimTick);
+    v.pause();
+    try { rec.stop(); } catch (err) { reportFailure('trimStop', err); }
+  };
+  rec.onstop = function() {
+    var type = (rec.mimeType || mime || 'video/webm').split(';')[0];
+    var ext = type.indexOf('mp4') !== -1 ? 'mp4' : 'webm';
+    var blob = new Blob(chunks, { type: type });
+    if (!blob.size) {
+      if (nameEl) { nameEl.textContent = '⚠️ Trim failed on this device — try a shorter source video.'; nameEl.style.color = 'var(--red)'; nameEl.style.display = 'block'; }
+      closeTrimSheet(false);
+      return;
+    }
+    _composerMediaFile = new File([blob], 'clip-' + Math.round(e0 - s0) + 's.' + ext, { type: type });
+    _composerFilter = 'none';
+    if (nameEl) {
+      nameEl.textContent = '✓ Trimmed clip · ' + Math.round(e0 - s0) + 's (' + (blob.size / 1048576).toFixed(1) + ' MB)';
+      nameEl.style.color = 'var(--green)';
+      nameEl.style.display = 'block';
+    }
+    renderMediaPreview();
+    closeTrimSheet(false);
+  };
+  v.pause();
+  v.currentTime = s0;
+  v.onseeked = function() {
+    v.onseeked = null;
+    v.play().then(function() {
+      rec.start(500);
+      _trimTick = setInterval(function() {
+        ctx.drawImage(v, 0, 0, canvas.width, canvas.height);
+        var done = Math.min(v.currentTime - s0, e0 - s0);
+        _setText('trim-progress-pct', Math.max(0, Math.round(done / (e0 - s0) * 100)) + '%');
+        if (v.currentTime >= e0 || v.ended) finish();
+      }, 33);
+    }).catch(function(err) { reportFailure('trimPlay', err); finish(); });
+  };
 }
 
 async function populateComposerTracks() {
