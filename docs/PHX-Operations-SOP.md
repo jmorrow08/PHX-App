@@ -5,6 +5,8 @@ _How PHX is run day-to-day, and what gets monitored where, so nothing falls thro
 
 ---
 
+> **Start here if you're new (human or agent):** `PHX-Operating-Manual.md` is the full map of the business and app — this file is the day-to-day checklists that hang off it.
+
 ## 1. What PHX is (one line for anyone new)
 
 An invite-only, fan-powered music membership for Phoenix: members stream local artists, and their pass pays the artists they actually play — with a receipt. Music first; events/perks (Eats/Cuts/Drops) later. Built and operated by Lightbulb Studios.

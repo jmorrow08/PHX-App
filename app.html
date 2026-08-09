@@ -1482,6 +1482,8 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
 
     <!-- ARTIST — ANALYTICS -->
     <div class="view" id="v-artist-analytics">
+      <!-- Deep analytics — Full/Headline artists (tier-gated by artist_analytics RPC) -->
+      <div id="artist-deep-analytics" style="margin-bottom:1.2rem"><div class="pf-empty">Loading…</div></div>
       <div class="a-stat-grid">
         <div class="a-stat"><div class="a-stat-val" style="color:var(--teal)" id="artist-streams-mom">—</div><div class="a-stat-label">Streams vs Last Month</div></div>
         <div class="a-stat"><div class="a-stat-val" style="color:var(--orange)" id="artist-nativeplus-pct">—</div><div class="a-stat-label">Native+ Listeners</div></div>
@@ -2645,6 +2647,7 @@ function showView(id) {
   if (id === 'artist-earnings') loadArtistReferral();
   if (id === 'admin-merch') loadMerchConnections();
   if (id === 'artist-tracks' || id === 'artist-analytics' || id === 'artist-earnings') loadArtistDashboard();
+  if (id === 'artist-analytics') loadArtistDeepAnalytics();
   if (id === 'artist-profile') loadArtistProfileEditor();
   if (id === 'home') { loadCityFeed(); loadTrendingRail(); }
   if (id === 'profile') loadMyPages();
@@ -5106,6 +5109,7 @@ async function submitFeedPost() {
   if (error || !data || !data.ok) {
     var msg = (data && data.reason === 'rate_limited') ? 'Rate limited — max 5 posts per 10 minutes.' :
               (data && data.reason === 'content_blocked') ? '🚫 This post violates PHX community guidelines and can\'t be published.' :
+              (error && String(error.message).indexOf('post_cap_reached') !== -1) ? '📊 Basic Artist plan is capped at 10 posts a month — the Full plan lifts it.' :
               'Could not post. Try again.';
     if (errEl) { errEl.textContent = msg; errEl.style.display = 'block'; }
     return;
@@ -6183,15 +6187,16 @@ async function loadAdminAnalytics() {
 
   // Funnel bars
   var f = d.funnel || {};
-  var steps = [['Landing views', f.landing_views], ['Signups', f.signups], ['Onboarded', f.onboarded], ['Listened 30s+', f.listeners], ['3+ follows', f.engaged]];
+  var steps = [['Landing views', f.landing_views, null], ['Signups', f.signups, 'signups'], ['Onboarded', f.onboarded, 'onboarded'], ['Listened 30s+', f.listeners, 'listeners'], ['3+ follows', f.engaged, 'engaged']];
   var max = Math.max.apply(null, steps.map(function(s){ return s[1] || 0; }).concat([1]));
-  _setText('ana-funnel-range', 'last ' + _anaDays + ' days');
+  _setText('ana-funnel-range', 'last ' + _anaDays + ' days · tap a step for the people');
   var fEl = document.getElementById('ana-funnel');
   if (fEl) fEl.innerHTML = steps.map(function(s, i) {
     var prev = i > 0 ? (steps[i-1][1] || 0) : null;
     var conv = prev ? Math.round(((s[1] || 0) / Math.max(prev, 1)) * 100) + '%' : '';
-    return '<div style="margin-bottom:.55rem"><div style="display:flex;justify-content:space-between;font-size:.76rem;margin-bottom:.2rem"><span>' + s[0] + '</span><span><b>' + (s[1] || 0) + '</b>' + (conv ? ' <span style="color:var(--muted)">(' + conv + ')</span>' : '') + '</span></div>' +
-      '<div style="height:8px;background:var(--bg4);border-radius:4px"><div style="width:' + Math.round(((s[1] || 0) / max) * 100) + '%;height:8px;border-radius:4px;background:linear-gradient(90deg,var(--orange),#EA580C)"></div></div></div>';
+    var click = s[2] ? ' onclick="openFunnelPeople(\'' + s[2] + '\',\'' + s[0] + '\')" role="button" style="cursor:pointer"' : '';
+    return '<div' + (click || ' style=""') + '><div style="margin-bottom:.55rem"><div style="display:flex;justify-content:space-between;font-size:.76rem;margin-bottom:.2rem"><span>' + s[0] + (s[2] ? ' <span style="color:var(--faint);font-size:.68rem">›</span>' : '') + '</span><span><b>' + (s[1] || 0) + '</b>' + (conv ? ' <span style="color:var(--muted)">(' + conv + ')</span>' : '') + '</span></div>' +
+      '<div style="height:8px;background:var(--bg4);border-radius:4px"><div style="width:' + Math.round(((s[1] || 0) / max) * 100) + '%;height:8px;border-radius:4px;background:linear-gradient(90deg,var(--orange),#EA580C)"></div></div></div></div>';
   }).join('');
 
   // Engagement chips + audience
@@ -6215,7 +6220,8 @@ async function loadAdminAnalytics() {
   }).join('') : '<div class="pf-empty">No counted listening in range.</div>';
   var ta = document.getElementById('ana-top-artists');
   if (ta) ta.innerHTML = (d.top_artists || []).length ? d.top_artists.map(function(a) {
-    return row('<b>' + escapeHtml(a.name) + '</b>', (a.listeners || 0) + ' listeners', Math.round((a.sec || 0) / 60) + 'm');
+    return '<div onclick="openAnaArtistDrill(\'' + escapeHtml(a.slug || '') + '\',\'' + escapeHtml(a.name).replace(/'/g, '') + '\')" role="button" style="cursor:pointer">' +
+      row('<b>' + escapeHtml(a.name) + '</b> <span style="color:var(--faint);font-size:.7rem">›</span>', (a.listeners || 0) + ' listeners', Math.round((a.sec || 0) / 60) + 'm') + '</div>';
   }).join('') : '<div class="pf-empty">No counted listening in range.</div>';
 
   // Cohorts
@@ -6239,6 +6245,105 @@ function exportAnalyticsCsv() {
   a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
   a.download = 'phx-analytics-' + _anaDays + 'd.csv';
   document.body.appendChild(a); a.click(); a.remove();
+}
+
+// ── ARTIST DEEP ANALYTICS: Full/Headline artists get the real dashboard ──
+var _artChart = null, _artDays = 30;
+async function loadArtistDeepAnalytics() {
+  var el = document.getElementById('artist-deep-analytics');
+  if (!el) return;
+  if (!_myArtistId) { el.innerHTML = ''; return; }
+  var res = await _sb.rpc('artist_analytics', { p_artist_id: _myArtistId, p_days: _artDays });
+  var d = res.data;
+  if (res.error || !d || !d.ok) { el.innerHTML = ''; return; }
+
+  if (d.level !== 'full') {
+    // Tier gate, wired: Basic sees what Full unlocks — capability comes
+    // straight from tiers.capabilities, not hardcoded.
+    var t = d.totals || {};
+    el.innerHTML = '<div class="card" style="border-color:rgba(249,115,22,.3)">' +
+      '<div class="sh" style="margin-bottom:.5rem"><h3>📊 Deep Analytics</h3><span class="badge badge-orange" style="font-size:.6rem">FULL ARTIST</span></div>' +
+      '<div style="font-size:.84rem;color:var(--muted);line-height:1.7;margin-bottom:.8rem">Your plan shows the basics — <b style="color:var(--white)">' + (t.plays_30d || 0) + ' plays</b> and <b style="color:var(--white)">' + (t.followers || 0) + ' followers</b> this month. Full Artists see the daily pulse chart, listener counts and listen-time, top tracks ranked by real listening, and which pass tiers their fans hold.</div>' +
+      '<div style="font-size:.76rem;color:var(--orange-l)">Full Artist unlocks with the full plan — talk to PHX about upgrading.</div></div>';
+    return;
+  }
+
+  var t = d.totals || {};
+  var tile = function(v2, l, c) { return '<div class="admin-kpi"><div class="admin-kpi-val" style="color:' + (c || 'var(--white)') + '">' + v2 + '</div><div class="admin-kpi-label">' + l + '</div></div>'; };
+  el.innerHTML =
+    '<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.8rem"><div class="sh" style="margin:0"><h3>Your last ' + _artDays + ' days</h3></div>' +
+      '<button class="tb-btn" style="margin-left:auto;font-size:.72rem" onclick="_artDays=30;loadArtistDeepAnalytics()">30d</button>' +
+      '<button class="tb-btn" style="font-size:.72rem" onclick="_artDays=90;loadArtistDeepAnalytics()">90d</button></div>' +
+    '<div class="admin-kpi-grid" style="grid-template-columns:repeat(auto-fit,minmax(120px,1fr))">' +
+      tile(fmtK(t.plays || 0), 'Counted plays', 'var(--teal)') +
+      tile(String(t.listeners || 0), 'Listeners', 'var(--orange)') +
+      tile(fmtK(t.listen_min || 0), 'Listen minutes', 'var(--green)') +
+      tile(String(t.followers || 0), 'Followers') +
+      tile(String(t.favorites || 0), '★ Favorited by', 'var(--purple-l)') + '</div>' +
+    '<div class="card" style="margin-bottom:1rem"><div class="card-title">Daily listening</div><div style="height:200px"><canvas id="artist-deep-chart"></canvas></div></div>' +
+    '<div class="grid-2">' +
+      '<div class="card"><div class="card-title">Top tracks by listen time</div><div id="art-top-tracks">' +
+        ((d.top_tracks || []).length ? d.top_tracks.map(function(x) {
+          return '<div style="display:flex;justify-content:space-between;padding:.4rem 0;border-bottom:1px solid var(--border);font-size:.8rem"><b>' + escapeHtml(x.title) + '</b><span style="color:var(--muted)">' + (x.plays || 0) + ' plays · ' + Math.round((x.sec || 0) / 60) + 'm</span></div>';
+        }).join('') : '<div class="pf-empty">Plays fill this in.</div>') + '</div></div>' +
+      '<div class="card"><div class="card-title">Your listeners\' passes</div><div style="font-size:.8rem;line-height:2">' +
+        ((d.listener_tiers || []).length ? d.listener_tiers.map(function(x) {
+          return escapeHtml(x.tier) + ' <b>' + x.n + '</b>';
+        }).join(' · ') : '<span class="pf-empty">Fills in as members stream you.</span>') +
+        '</div><div style="margin-top:.8rem;font-size:.72rem;color:var(--muted)">Native and Insider listening is what pays out — this is your paying-audience mix.</div></div>' +
+    '</div>';
+  var ctx = document.getElementById('artist-deep-chart');
+  if (ctx && window.Chart) {
+    if (_artChart) _artChart.destroy();
+    var days = d.daily || [];
+    _artChart = new Chart(ctx, {
+      type: 'line',
+      data: { labels: days.map(function(x){ return x.d; }), datasets: [
+        { label: 'Plays', data: days.map(function(x){ return x.plays || 0; }), borderColor: '#F97316', backgroundColor: 'rgba(249,115,22,.12)', fill: true, tension: .35, pointRadius: 0, borderWidth: 2 },
+        { label: 'Listeners', data: days.map(function(x){ return x.listeners || 0; }), borderColor: '#14B8A6', tension: .35, pointRadius: 0, borderWidth: 2 },
+        { label: 'Minutes', data: days.map(function(x){ return x.min || 0; }), borderColor: '#A78BFA', tension: .35, pointRadius: 0, borderWidth: 1.5 }
+      ]},
+      options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
+        plugins: { legend: { labels: { color: '#9CA3AF', font: { size: 10 }, boxWidth: 12 } } },
+        scales: { x: { grid: { color: 'rgba(255,255,255,.04)' }, ticks: { color: '#6B7280', maxTicksLimit: 8 } },
+                  y: { grid: { color: 'rgba(255,255,255,.04)' }, ticks: { color: '#6B7280' }, beginAtZero: true } } }
+    });
+  }
+}
+
+// ── STUDIO ANALYTICS DRILL-DOWNS: every number opens its detail ──
+async function openAnaArtistDrill(slug, name) {
+  var a = await _sb.from('artists').select('id').eq('slug', slug).maybeSingle();
+  if (!a.data) { showToast('Artist not found'); return; }
+  var res = await _sb.rpc('artist_analytics', { p_artist_id: a.data.id, p_days: _anaDays });
+  var d = res.data;
+  if (res.error || !d || !d.ok) { showToast('Could not load artist detail'); return; }
+  var t = d.totals || {};
+  var spark = (d.daily || []).map(function(x){ return x.plays || 0; });
+  var mx = Math.max.apply(null, spark.concat([1]));
+  _openLibSheet('📊 ' + name + ' · last ' + _anaDays + 'd',
+    '<div style="display:flex;gap:1.2rem;flex-wrap:wrap;font-size:.82rem;margin-bottom:.8rem">' +
+      '<span><b style="font-size:1.1rem;color:var(--teal)">' + fmtK(t.plays || 0) + '</b> plays</span>' +
+      '<span><b style="font-size:1.1rem;color:var(--orange)">' + (t.listeners || 0) + '</b> listeners</span>' +
+      '<span><b style="font-size:1.1rem;color:var(--green)">' + fmtK(t.listen_min || 0) + '</b> min</span>' +
+      '<span><b style="font-size:1.1rem">' + (t.followers || 0) + '</b> followers</span></div>' +
+    '<div style="display:flex;align-items:flex-end;gap:2px;height:56px;margin-bottom:1rem">' +
+      spark.map(function(v2){ return '<div style="flex:1;background:var(--orange);opacity:.75;border-radius:2px 2px 0 0;height:' + Math.max(4, Math.round(v2 / mx * 100)) + '%"></div>'; }).join('') + '</div>' +
+    '<div class="card-title">Top tracks</div>' +
+    ((d.top_tracks || []).map(function(x) {
+      return '<div style="display:flex;justify-content:space-between;padding:.35rem 0;border-bottom:1px solid var(--border);font-size:.8rem"><span>' + escapeHtml(x.title) + '</span><span style="color:var(--muted)">' + Math.round((x.sec || 0) / 60) + 'm</span></div>';
+    }).join('') || '<div class="pf-empty">No listening in range.</div>') +
+    '<button class="pf-btn" style="margin-top:.8rem" onclick="closeLibSheet();showArtistPage(\'' + escapeHtml(slug) + '\')">View public page →</button>');
+}
+async function openFunnelPeople(step, label) {
+  var res = await _sb.rpc('admin_funnel_members', { p_days: _anaDays, p_step: step });
+  var rows = res.data || [];
+  _openLibSheet('👥 ' + label + ' · last ' + _anaDays + 'd',
+    rows.length ? rows.map(function(m) {
+      return '<div onclick="closeLibSheet();showMemberPage(\'' + m.id + '\')" role="button" style="display:flex;justify-content:space-between;padding:.5rem .2rem;border-bottom:1px solid var(--border);font-size:.84rem;cursor:pointer">' +
+        '<span><b>' + escapeHtml(m.name) + '</b>' + (m.username ? ' <span style="color:var(--muted)">@' + escapeHtml(m.username) + '</span>' : '') + '</span>' +
+        '<span style="color:var(--faint)">' + m.joined + '</span></div>';
+    }).join('') : '<div class="pf-empty">Nobody in this step yet.</div>');
 }
 
 // ── ASH: founder-only ops agent panel ──
@@ -6663,15 +6768,10 @@ async function loadArtistReferral() {
   var d = res.data || {};
   if (!d.ok) { el.innerHTML = '<div class="pf-empty">🔒 Sign in as this artist to see your invite stats.</div>'; return; }
 
-  // ?ref= is the only param the signup flow parses — ?invite= went nowhere
-  var link = SITE_URL + '/app?ref=' + encodeURIComponent(d.code || '');
+  // The code itself lives on My Pass only — two surfaces showing (possibly
+  // different) codes was how the same artist got two "official" invites.
   el.innerHTML =
-    '<div style="display:flex;align-items:center;gap:.7rem;flex-wrap:wrap;margin-bottom:.9rem">' +
-      '<code style="font-family:var(--mono);font-size:1.35rem;font-weight:700;color:var(--orange);letter-spacing:.14em">' +
-        escapeHtml(d.code || '—') + '</code>' +
-      (d.code ? '<button class="tb-btn" style="font-size:.72rem;padding:.25rem .6rem" onclick="copyClaimCode(\'' + escapeHtml(d.code) + '\',this)">Copy code</button>' +
-        '<button class="tb-btn" style="font-size:.72rem;padding:.25rem .6rem" onclick="copyInviteLink(\'' + escapeHtml(link) + '\',this)">Copy link</button>' : '') +
-    '</div>' +
+    '<div style="font-size:.78rem;color:var(--muted);margin-bottom:.9rem">Your invite code lives on <a href="#" style="color:var(--orange)" onclick="showView(\'mypass\');return false">My Pass</a> — one code, everywhere.</div>' +
     '<div style="display:flex;gap:1.6rem;flex-wrap:wrap;margin-bottom:.8rem">' +
       '<div><div style="font-family:var(--disp);font-size:1.8rem;font-weight:700;color:var(--orange)">' + (d.fans_brought || 0) + '</div>' +
         '<div style="font-size:.7rem;color:var(--faint)">fans you brought to PHX</div></div>' +
