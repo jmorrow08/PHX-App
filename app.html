@@ -3324,7 +3324,14 @@ function playTrack(el, title, artist, feat, album, duration, trackId, streamCoun
   var albumEl = document.getElementById('np-album');
   if (albumEl) albumEl.textContent = feat + ' · ' + album;
   var artEl = document.getElementById('np-art-icon');
-  if (artEl) artEl.textContent = artIcon || '🎵';
+  if (artEl) {
+    // Real cover art when we have it — the emoji is the fallback, not the look
+    var npUuid = TRACK_IDS[trackId] || trackId;
+    var npArt = safeUrl((typeof TRACK_ART !== 'undefined' && TRACK_ART[npUuid]) || '');
+    artEl.innerHTML = npArt
+      ? '<img src="' + npArt + '" alt="" style="width:100%;height:100%;object-fit:cover">'
+      : escapeHtml(artIcon || '🎵');
+  }
   var totalEl = document.getElementById('total-time');
   if (totalEl) totalEl.textContent = duration;
   var streamEl = document.getElementById('current-stream-count');
