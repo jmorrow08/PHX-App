@@ -4030,6 +4030,22 @@ function handleComposerMedia(input) {
     input.value = '';
     return;
   }
+  // Clips cap: 90 seconds (IG Reels standard) — keeps the vertical player
+  // snappy and the feed scrollable. Checked from the file's own metadata.
+  if (/^video\//.test(file.type)) {
+    var probe = document.createElement('video');
+    probe.preload = 'metadata';
+    probe.onloadedmetadata = function() {
+      URL.revokeObjectURL(probe.src);
+      if (probe.duration > 90.5) {
+        if (nameEl) { nameEl.textContent = '⚠️ Clips max out at 90 seconds — this one is ' + Math.round(probe.duration) + 's. Trim it and try again.'; nameEl.style.color = 'var(--red)'; nameEl.style.display = 'block'; }
+        _composerMediaFile = null;
+        input.value = '';
+        renderMediaPreview();
+      }
+    };
+    probe.src = URL.createObjectURL(file);
+  }
   _composerMediaFile = file;
   _composerFilter = 'none';
   if (nameEl) {
@@ -4435,6 +4451,22 @@ async function submitFeedPost() {
   var mediaUrl = null;
   if (_composerMediaFile) {
     if (postBtn) { postBtn.textContent = 'Uploading…'; postBtn.disabled = true; }
+    // The 90s clip cap re-checked here — the picker's metadata probe is
+    // async, so a fast Post click could otherwise slip past it.
+    if (/^video\//.test(_composerMediaFile.type)) {
+      var dur = await new Promise(function(resolve) {
+        var pv = document.createElement('video');
+        pv.preload = 'metadata';
+        pv.onloadedmetadata = function() { URL.revokeObjectURL(pv.src); resolve(pv.duration); };
+        pv.onerror = function() { URL.revokeObjectURL(pv.src); resolve(0); };
+        pv.src = URL.createObjectURL(_composerMediaFile);
+      });
+      if (dur > 90.5) {
+        if (postBtn) { postBtn.textContent = 'Post'; postBtn.disabled = false; }
+        if (errEl) { errEl.textContent = 'Clips max out at 90 seconds — this video is ' + Math.round(dur) + 's.'; errEl.style.display = 'block'; }
+        return;
+      }
+    }
     var uploadFile = _composerMediaFile;
     if (_composerMediaFile.type.indexOf('image/') === 0 && _composerFilter !== 'none') {
       uploadFile = await applyFilterToImage(_composerMediaFile, PHOTO_FILTERS[_composerFilter].css);
@@ -5408,6 +5440,20 @@ async function adminToggleVerify(artistId, verified, btn) {
   if (btn) btn.disabled = false;
   if (res.error || !res.data || !res.data.ok) { showToast('Could not update verification'); return; }
   showToast(verified ? '✓ Artist verified' : 'Verification removed');
+  loadAdminOps();
+}
+
+// Approval switch: pending → live. Puts them on the public roster, makes
+// their page streamable, and mints their permanent fan code if needed.
+async function adminApproveArtist(artistId, btn) {
+  if (btn) { btn.disabled = true; btn.textContent = 'Approving…'; }
+  var res = await _sb.rpc('admin_set_artist_status', { p_artist_id: artistId, p_status: 'active' });
+  if (res.error || !res.data || !res.data.ok) {
+    if (btn) { btn.disabled = false; btn.textContent = 'Approve — go live'; }
+    showToast('Could not approve: ' + ((res.data && res.data.reason) || (res.error && res.error.message) || 'unknown'));
+    return;
+  }
+  showToast('🐦‍🔥 Artist is live' + (res.data.fan_code ? ' — fan code ' + res.data.fan_code : ''));
   loadAdminOps();
 }
 
@@ -8421,7 +8467,9 @@ async function loadAdminOps() {
         return '<tr><td><strong>' + escapeHtml(a.name) + '</strong>' + (a.slug === 'murkemz' ? ' <span class="badge badge-orange" style="font-size:.6rem">Founder</span>' : '') + '</td>' +
           '<td style="color:var(--teal)">' + fmtK(a.total_streams) + '</td>' +
           '<td style="color:var(--green)">' + fmtUsd(earningsByArtist[a.id] || 0) + '</td>' +
-          '<td><span class="status-chip ' + (a.status === 'active' ? 'sc-active' : 'sc-pending') + '">' + escapeHtml(a.status || '') + '</span></td>' +
+          '<td>' + (a.status === 'active'
+            ? '<span class="status-chip sc-active">active</span>'
+            : '<button class="tb-btn" style="font-size:.68rem;padding:.2rem .5rem;color:var(--orange);border-color:rgba(249,115,22,.4)" onclick="adminApproveArtist(\'' + a.id + '\', this)">Approve — go live</button>') + '</td>' +
           '<td>' + (a.verified
             ? '<button class="tb-btn" style="font-size:.68rem;padding:.2rem .5rem;color:var(--green);border-color:rgba(34,197,94,.3)" onclick="adminToggleVerify(\'' + a.id + '\', false, this)">✓ Verified</button>'
             : '<button class="tb-btn" style="font-size:.68rem;padding:.2rem .5rem;color:var(--muted)" onclick="adminToggleVerify(\'' + a.id + '\', true, this)">Verify</button>') + '</td></tr>';
