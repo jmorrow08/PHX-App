@@ -132,46 +132,83 @@
 body { padding-bottom: 52px; }
 
 /* ── HAMBURGER BUTTON ──────────────────────────────────────────── */
-.hamburger {
+/* ── MOBILE APP BAR ──────────────────────────────────────────────
+   One opaque line item: hamburger · logo · search · bell. Hides on
+   scroll-down, returns on any scroll-up. Content sits BELOW it. */
+.mob-appbar {
   display: none;
   position: fixed;
-  top: 0.7rem;
-  left: 0.7rem;
+  top: 0; left: 0; right: 0;
   z-index: 1100;
-  background: rgba(7, 7, 15, 0.96);
-  border: 1px solid rgba(249, 115, 22, 0.35);
+  height: 58px;
+  padding: 0 0.7rem;
+  padding-top: env(safe-area-inset-top, 0px);
+  box-sizing: content-box;
+  align-items: center;
+  gap: 0.55rem;
+  background: rgba(8, 8, 16, 0.96);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border-bottom: 1px solid rgba(241, 241, 248, 0.07);
+  transition: transform 0.28s cubic-bezier(.25,.46,.45,.94);
+  will-change: transform;
+}
+.mob-appbar.hidden { transform: translateY(-110%); }
+
+.hamburger {
+  display: none;
+  background: transparent;
+  border: none;
   border-radius: 11px;
-  padding: 0.72rem 0.78rem;
+  padding: 0.6rem 0.55rem;
   cursor: pointer;
   flex-direction: column;
   gap: 5px;
   align-items: center;
-  backdrop-filter: blur(10px);
-  transition: border-color 0.16s;
+  flex-shrink: 0;
 }
-
-.hamburger:hover { border-color: rgba(249, 115, 22, 0.6); }
-
 .hamburger span {
   display: block;
-  width: 24px;
+  width: 23px;
   height: 2.5px;
   background: #F0F0F5;
   border-radius: 2px;
   transition: all 0.22s;
 }
 
-/* App logo riding next to the hamburger (mobile only) */
-.mob-logo {
-  display: none;
-  position: fixed;
-  top: 0.85rem;
-  left: 4.4rem;
-  z-index: 1099;
-  height: 38px;
-  cursor: pointer;
-}
+.mob-logo { display: none; height: 32px; cursor: pointer; flex-shrink: 0; }
 .mob-logo img { height: 100%; width: auto; display: block; }
+
+.appbar-btn {
+  display: none;
+  position: relative;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(241, 241, 248, 0.05);
+  border: 1px solid rgba(241, 241, 248, 0.1);
+  color: #F0F0F5;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.appbar-btn svg { width: 19px; height: 19px; }
+.appbar-btn:active { transform: scale(0.92); }
+.appbar-badge {
+  position: absolute;
+  top: -3px; right: -3px;
+  background: #EF4444;
+  color: #fff;
+  font-size: 0.6rem;
+  font-weight: 800;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 100px;
+  padding: 0 4px;
+  line-height: 16px;
+  text-align: center;
+}
 
 /* Sidebar overlay */
 .sidebar-overlay {
@@ -188,9 +225,15 @@ body { padding-bottom: 52px; }
 /* ── MOBILE BREAKPOINT ─────────────────────────────────────────── */
 @media (max-width: 768px) {
 
-  /* Show hamburger + logo */
+  /* Show the app bar and everything in it */
+  .mob-appbar { display: flex !important; }
   .hamburger { display: flex !important; }
   .mob-logo { display: block !important; }
+  .appbar-btn { display: flex !important; }
+  /* Content lives below the bar, never under it */
+  body { padding-top: calc(58px + env(safe-area-inset-top, 0px)); }
+  /* The in-page bell is redundant up there now */
+  #notif-bell { display: none !important; }
 
   /* ── Sidebar → slide-out drawer ── */
   .app-shell {
@@ -214,9 +257,9 @@ body { padding-bottom: 52px; }
     box-shadow: 6px 0 32px rgba(0, 0, 0, 0.6);
   }
 
-  /* Push topbar content past hamburger */
+  /* Content sits below the app bar now — no hamburger offset needed */
   .topbar {
-    padding-left: 3.6rem !important;
+    padding-left: 1rem !important;
   }
 
   /* ── KPI grids: 2-col on mobile ── */
