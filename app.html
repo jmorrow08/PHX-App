@@ -9378,13 +9378,20 @@ async function showArtistPage(slug) {
   _artistAlbums = results[4].data || [];
   _merchFilter = 'all';
 
-  // Follower stat fills in after the header renders (0-timeout lands
-  // after this function's synchronous innerHTML assignment).
-  setTimeout(async function() {
+  // Follower stat fills in once the header exists — this function has more
+  // awaits before it renders, so the setter polls for the element instead
+  // of assuming a 0-timeout lands after the render.
+  (async function() {
     var fc = await _sb.from('follows').select('id', { count: 'exact', head: true })
       .eq('followee_type', 'artist').eq('followee_id', artist.id);
-    _setText('ap-follow-stat', fmtK(fc.count || 0) + ' followers');
-  }, 0);
+    var txt = fmtK(fc.count || 0) + ' follower' + (fc.count === 1 ? '' : 's');
+    var tries = 0;
+    (function put() {
+      var s = document.getElementById('ap-follow-stat');
+      if (s) { s.textContent = txt; return; }
+      if (++tries < 40) setTimeout(put, 250);
+    })();
+  })();
 
   // Posts made as this artist: page_id = their artist Page, or the owner's
   // personal-artist voice (no page). Both belong on this profile.
