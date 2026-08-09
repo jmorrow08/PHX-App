@@ -824,6 +824,73 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
 .reel-act{background:none;border:none;color:#fff;cursor:pointer;font-size:1.5rem;display:flex;flex-direction:column;align-items:center;gap:.15rem;text-shadow:0 2px 8px rgba(0,0,0,.6);-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:manipulation}
 .reel-act span{font-size:.66rem;font-weight:700}
 .reels-empty{color:var(--muted);text-align:center;padding:3rem 1rem;font-size:.9rem}
+
+/* ═══════════════════════════════════════════════════════════════════
+   PREMIUM PASS (2026-08-09) — the player treatment, app-wide.
+   Depth on surfaces, gradient CTAs, real press feedback, focus rings,
+   and the mobile details (no tap-flash, no iOS input zoom).
+   Appended last so it wins the cascade without touching layouts.
+   ═══════════════════════════════════════════════════════════════════ */
+*{-webkit-tap-highlight-color:transparent}
+body{overscroll-behavior-y:contain}
+
+/* Surfaces: sheen + hairline + lift */
+.card,.kpi,.admin-kpi,.event-row,.artist-spotlight,.upgrade-gate-card,.set-card,.lib-card,.pyk-card{
+  background:linear-gradient(180deg,rgba(255,255,255,.025),rgba(255,255,255,0) 46%),var(--bg3);
+  border:1px solid var(--border);
+  box-shadow:0 2px 14px rgba(0,0,0,.32)}
+.set-hero{box-shadow:0 2px 14px rgba(0,0,0,.32)}
+.fan-payout-card{background:linear-gradient(180deg,rgba(249,115,22,.1),rgba(249,115,22,.04));border:1px solid rgba(249,115,22,.16)}
+
+/* Primary CTA — the play-button gradient everywhere */
+.upgrade-btn{background:linear-gradient(145deg,#FB923C,var(--orange) 55%,#EA580C);
+  box-shadow:0 10px 30px rgba(249,115,22,.32),inset 0 1px 0 rgba(255,255,255,.28);
+  transition:transform .12s var(--ease),filter .2s var(--ease),box-shadow .2s var(--ease)}
+.upgrade-btn:hover{filter:brightness(1.07)}
+.upgrade-btn:active{transform:scale(.97)}
+.upgrade-btn:disabled{filter:saturate(.4) brightness(.75);box-shadow:none}
+
+/* Ghost buttons: quiet fill + real press */
+.tb-btn{background:rgba(241,241,248,.045);border-color:rgba(241,241,248,.14);
+  transition:border-color var(--t) var(--ease),color var(--t) var(--ease),background var(--t) var(--ease),transform .1s var(--ease)}
+.tb-btn:hover{border-color:rgba(249,115,22,.5);color:var(--orange-l);background:rgba(249,115,22,.07)}
+.tb-btn:active,.pf-btn:active,.ap-follow:active,.ap-play:active,.receipt-share-btn:active,.pyk-follow:active{transform:scale(.96)}
+.pf-btn{background:rgba(241,241,248,.04);transition:border-color var(--t) var(--ease),color var(--t) var(--ease),background var(--t) var(--ease),transform .1s var(--ease)}
+
+/* Keyboard focus, everywhere */
+button:focus-visible,a:focus-visible,[role=button]:focus-visible{outline:2px solid rgba(249,115,22,.6);outline-offset:2px;border-radius:8px}
+input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
+
+/* Inputs: glow ring instead of a bare border swap */
+.form-input,.form-select{background:var(--bg4);border:1px solid rgba(241,241,248,.07);transition:border-color var(--t) var(--ease),box-shadow var(--t) var(--ease)}
+.form-input:focus,.form-select:focus{border-color:rgba(249,115,22,.55);box-shadow:0 0 0 3px rgba(249,115,22,.13)}
+
+/* Sidebar: active item gets the accent bar */
+.nav-item{position:relative;transition:background var(--t) var(--ease),color var(--t) var(--ease),transform .1s var(--ease)}
+.nav-item.active{background:linear-gradient(90deg,rgba(249,115,22,.16),rgba(249,115,22,.04))}
+.nav-item.active::before{content:'';position:absolute;left:-2px;top:22%;bottom:22%;width:3px;border-radius:3px;background:var(--orange)}
+.nav-item:active{transform:scale(.985)}
+
+/* Badges get a hairline ring so they read as chips, not text */
+.badge{border:1px solid rgba(241,241,248,.1)}
+
+/* Mini player: float above the page */
+.mini-player{box-shadow:0 -10px 34px rgba(0,0,0,.45)}
+
+/* ── Mobile: where premium is felt most ── */
+@media(max-width:768px){
+  /* iOS zooms any input under 16px on focus — the jarring jump. Never again. */
+  .form-input,.form-select,textarea.form-input{font-size:16px}
+  .card{padding:1.1rem;border-radius:16px}
+  .grid-2{gap:1rem}
+  .upgrade-btn{padding:.85rem 1.6rem;font-size:.95rem}
+  .tb-btn{padding:.55rem 1rem;font-size:.82rem;min-height:38px}
+  /* Bottom tabs: frosted, springy */
+  .bottom-tabs{background:rgba(8,8,16,.92)!important;backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
+  .bt-item{transition:transform .12s var(--ease)}
+  .bt-item:active{transform:scale(.9)}
+  .bt-item.active .bt-icon{filter:drop-shadow(0 2px 10px rgba(249,115,22,.55))}
+}
 </style>
   <link rel="stylesheet" href="shared.css?v=6">
 </head>
@@ -7321,9 +7388,10 @@ function showToast(msg) {
     t = document.createElement('div');
     t.id = 'phx-toast';
     t.style.cssText = 'position:fixed;bottom:130px;left:50%;transform:translateX(-50%);z-index:600;' +
-      'background:var(--bg2);border:1px solid rgba(249,115,22,.4);color:var(--white);' +
-      'border-radius:100px;padding:.6rem 1.2rem;font-size:.82rem;font-weight:600;' +
-      'box-shadow:0 8px 30px rgba(0,0,0,.5);max-width:88vw;text-align:center;' +
+      'background:rgba(13,13,22,.92);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);' +
+      'border:1px solid rgba(249,115,22,.4);color:var(--white);' +
+      'border-radius:100px;padding:.65rem 1.25rem;font-size:.82rem;font-weight:600;' +
+      'box-shadow:0 10px 34px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.06);max-width:88vw;text-align:center;' +
       'opacity:0;transition:opacity .25s;pointer-events:none';
     document.body.appendChild(t);
   }
