@@ -4101,6 +4101,33 @@ function initFeedVideos() {
     if (r.height && r.top < window.innerHeight && r.bottom > 0) v.play().catch(function(){});
   });
 }
+// Scroll fallback: IntersectionObserver callbacks ride on rAF, which some
+// browsers throttle (background tabs, low-power modes). A plain throttled
+// scroll check keeps play/pause honest everywhere; same rules as the IO
+// path, so whichever fires first wins and they never disagree.
+var _fvScrollTick = false;
+document.addEventListener('scroll', function() {
+  if (_fvScrollTick) return;
+  _fvScrollTick = true;
+  setTimeout(function() {
+    _fvScrollTick = false;
+    document.querySelectorAll('video.feed-video[data-io]').forEach(function(v) {
+      var r = v.getBoundingClientRect();
+      if (!r.height) { if (!v.paused) v.pause(); return; }
+      var visible = r.top < window.innerHeight * 0.75 && r.bottom > window.innerHeight * 0.25;
+      if (visible && v.paused) v.play().catch(function(){});
+      else if (!visible && !v.paused) {
+        v.pause();
+        if (!v.muted) {
+          v.muted = true;
+          var b = v.parentElement.querySelector('.fv-mute');
+          if (b) { b.textContent = '🔇'; b.setAttribute('aria-label', 'Unmute'); }
+        }
+      }
+    });
+  }, 150);
+}, { capture: true, passive: true });
+
 // Feed videos render from several places (city feed, artist Posts tab,
 // repost embeds) — watch the DOM so every new one gets wired, wherever
 // it appears, instead of hooking each render site by hand.
