@@ -186,8 +186,10 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
   animation:react-pop .22s var(--ease) both;
   -webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 @keyframes react-pop{from{opacity:0;transform:translateY(10px) scale(.82)}to{opacity:1;transform:none}}
-.react-opt{background:none;border:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:.18rem;padding:.3rem .42rem;border-radius:14px;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:manipulation;animation:react-in .3s var(--ease) both}
-@keyframes react-in{from{opacity:0;transform:translateY(9px) scale(.4)}to{opacity:1;transform:none}}
+.react-opt{background:none;border:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:.18rem;padding:.3rem .42rem;border-radius:14px;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:manipulation;animation:react-in .3s var(--ease) backwards}
+/* No transform in the end state — a filled 'transform:none' would pin the
+   emoji and defeat the hover/drag lift */
+@keyframes react-in{from{opacity:0;transform:translateY(9px) scale(.4)}}
 .react-opt .re{font-size:1.65rem;line-height:1;display:block;transition:transform .16s var(--ease)}
 .react-opt .rl{font-size:.56rem;font-weight:700;letter-spacing:.02em;color:var(--muted);white-space:nowrap;transition:color .16s}
 .react-opt:hover,.react-opt:active,.react-opt.drag{background:rgba(249,115,22,.16)}
