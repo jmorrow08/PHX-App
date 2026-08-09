@@ -17,6 +17,18 @@
   ham.innerHTML = '<span></span><span></span><span></span>';
   document.body.appendChild(ham);
 
+  // App logo next to the hamburger — taps home
+  var logo = document.createElement('a');
+  logo.className = 'mob-logo';
+  logo.setAttribute('aria-label', 'PHX home');
+  logo.href = '#';
+  logo.innerHTML = '<img src="/assets/logo-wordmark.png" alt="the PHX app">';
+  logo.addEventListener('click', function (e) {
+    e.preventDefault();
+    if (typeof window.showView === 'function') window.showView('home');
+  });
+  document.body.appendChild(logo);
+
   var overlay = document.createElement('div');
   overlay.className = 'sidebar-overlay';
   overlay.id = 'sidebar-overlay';

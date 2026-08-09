@@ -139,12 +139,12 @@ body { padding-bottom: 52px; }
   left: 0.7rem;
   z-index: 1100;
   background: rgba(7, 7, 15, 0.96);
-  border: 1px solid rgba(249, 115, 22, 0.3);
-  border-radius: 9px;
-  padding: 0.5rem 0.55rem;
+  border: 1px solid rgba(249, 115, 22, 0.35);
+  border-radius: 11px;
+  padding: 0.72rem 0.78rem;
   cursor: pointer;
   flex-direction: column;
-  gap: 4px;
+  gap: 5px;
   align-items: center;
   backdrop-filter: blur(10px);
   transition: border-color 0.16s;
@@ -154,12 +154,24 @@ body { padding-bottom: 52px; }
 
 .hamburger span {
   display: block;
-  width: 18px;
-  height: 2px;
+  width: 24px;
+  height: 2.5px;
   background: #F0F0F5;
   border-radius: 2px;
   transition: all 0.22s;
 }
+
+/* App logo riding next to the hamburger (mobile only) */
+.mob-logo {
+  display: none;
+  position: fixed;
+  top: 0.85rem;
+  left: 4.4rem;
+  z-index: 1099;
+  height: 38px;
+  cursor: pointer;
+}
+.mob-logo img { height: 100%; width: auto; display: block; }
 
 /* Sidebar overlay */
 .sidebar-overlay {
@@ -176,8 +188,9 @@ body { padding-bottom: 52px; }
 /* ── MOBILE BREAKPOINT ─────────────────────────────────────────── */
 @media (max-width: 768px) {
 
-  /* Show hamburger */
+  /* Show hamburger + logo */
   .hamburger { display: flex !important; }
+  .mob-logo { display: block !important; }
 
   /* ── Sidebar → slide-out drawer ── */
   .app-shell {
