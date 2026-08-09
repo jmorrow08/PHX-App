@@ -225,6 +225,21 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
 .ps-ctrl:active{background:var(--bg4)}
 .ps-ctrl[aria-pressed="true"]{color:var(--orange);border-color:rgba(249,115,22,.4)}
 .ps-ctrl.play.big{width:64px;height:64px;background:var(--orange);border:none;color:#fff;font-size:1.4rem;box-shadow:0 10px 30px rgba(249,115,22,.35)}
+/* Settings */
+.set-wrap{max-width:600px}
+.set-hero{display:flex;align-items:center;gap:1rem;background:linear-gradient(135deg,#1A0E06,var(--bg2) 70%);border:1px solid var(--border);border-radius:16px;padding:1.1rem 1.2rem;margin-bottom:1rem}
+.set-hero-ava{width:60px;height:60px;border-radius:50%;overflow:hidden;background:linear-gradient(135deg,var(--orange-d),var(--purple));display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0}
+.set-hero-ava img{width:100%;height:100%;object-fit:cover}
+.set-hero-name{font-family:var(--disp);font-size:1.15rem;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.set-hero-tag{font-size:.78rem;color:var(--orange-l)}
+.set-card{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:1.1rem 1.2rem;margin-bottom:1rem}
+.set-head{display:flex;align-items:center;gap:.7rem;margin-bottom:.9rem}
+.set-ico{width:38px;height:38px;border-radius:10px;background:var(--bg4);display:flex;align-items:center;justify-content:center;font-size:1.05rem;flex-shrink:0}
+.set-title{font-weight:800;font-size:.95rem}
+.set-sub{font-size:.72rem;color:var(--muted);margin-top:.1rem}
+.set-row{display:flex;justify-content:space-between;align-items:center;padding:.7rem .2rem;border-top:1px solid var(--border);font-size:.86rem;cursor:pointer}
+.set-row:hover{color:var(--orange-l)}
+.set-arrow{color:var(--faint);font-size:1.05rem}
 /* Artist videos */
 .apv-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1rem}
 .apv-card{min-width:0}
@@ -841,7 +856,6 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
     <div class="sb-section">Tools</div>
     <button class="nav-item" onclick="showView('artist-submit')"><span class="icon">➕</span>Submit Track</button>
     <div class="sb-section">Account</div>
-    <button class="nav-item" onclick="showView('artist-profile')"><span class="icon">👤</span>Artist Profile</button>
     <button class="nav-item" onclick="showView('mypass')"><span class="icon">💳</span>My Pass</button>
     <button class="nav-item" onclick="openMyPage()"><span class="icon">⭐</span>My Page</button>
     <button class="nav-item" onclick="showView('settings')"><span class="icon">⚙️</span>Settings</button>
@@ -1079,34 +1093,51 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
 
     <!-- SETTINGS — every member gets one; identity changes live here -->
     <div class="view" id="v-settings">
-      <div class="card" style="max-width:560px;margin-bottom:1rem">
-        <div class="sh"><h3>Profile</h3></div>
-        <div class="form-field"><label class="form-label">Display name</label>
-          <input class="form-input" id="set-display" maxlength="40" placeholder="How your name shows on posts"></div>
-        <div class="form-field"><label class="form-label">Bio</label>
-          <textarea class="form-input" id="set-bio" rows="2" maxlength="220" style="resize:none;width:100%;font-family:inherit"></textarea></div>
-        <div class="form-field"><label class="form-label">City / neighborhood</label>
-          <input class="form-input" id="set-city" maxlength="40"></div>
-        <div style="display:flex;gap:.6rem;flex-wrap:wrap;margin-top:.3rem">
-          <button class="upgrade-btn" style="margin:0;width:auto;padding:.6rem 1.4rem" onclick="saveSettingsProfile(this)">Save profile</button>
-          <button class="tb-btn" style="font-size:.8rem" onclick="showView('profile')">🖼 Photos &amp; profile page</button>
+      <div class="set-wrap">
+        <!-- Who you are, at a glance -->
+        <div class="set-hero">
+          <div class="set-hero-ava" id="set-hero-ava">🐦‍🔥</div>
+          <div style="flex:1;min-width:0">
+            <div class="set-hero-name" id="set-hero-name">—</div>
+            <div class="set-hero-tag" id="set-hero-tag">@—</div>
+          </div>
+          <span class="badge badge-orange" id="set-hero-tier" style="font-size:.62rem"></span>
         </div>
-        <div id="set-profile-msg" style="font-size:.76rem;margin-top:.5rem;min-height:1em"></div>
-      </div>
-      <div class="card" style="max-width:560px;margin-bottom:1rem">
-        <div class="sh"><h3>Your @tag</h3></div>
-        <div style="font-size:.78rem;color:var(--muted);margin-bottom:.7rem;line-height:1.6">Your tag is your address on PHX — currently <b id="set-current-tag" style="color:var(--orange-l)">@—</b>. Changing it changes your page link and how people find you, and you can only change it <b>once every 30 days</b>.</div>
-        <div style="display:flex;gap:.5rem;align-items:center">
-          <span style="color:var(--muted);font-size:1.05rem">@</span>
-          <input class="form-input" id="set-username" maxlength="20" placeholder="newtag" style="flex:1">
-          <button class="tb-btn" onclick="changeTagFromSettings(this)">Change tag</button>
+
+        <div class="set-card">
+          <div class="set-head"><span class="set-ico">👤</span><div><div class="set-title">Profile</div><div class="set-sub">How you show up across the city</div></div></div>
+          <div class="form-field"><label class="form-label">Display name</label>
+            <input class="form-input" id="set-display" maxlength="40" placeholder="How your name shows on posts"></div>
+          <div class="form-field"><label class="form-label">Bio</label>
+            <textarea class="form-input" id="set-bio" rows="2" maxlength="220" style="resize:none;width:100%;font-family:inherit"></textarea></div>
+          <div class="form-field"><label class="form-label">City / neighborhood</label>
+            <input class="form-input" id="set-city" maxlength="40"></div>
+          <div style="display:flex;gap:.6rem;flex-wrap:wrap;margin-top:.3rem">
+            <button class="upgrade-btn" style="margin:0;width:auto;padding:.6rem 1.4rem" onclick="saveSettingsProfile(this)">Save profile</button>
+            <button class="tb-btn" style="font-size:.8rem" id="set-editor-btn" onclick="showView('profile')">🖼 Photos &amp; profile page</button>
+          </div>
+          <div id="set-profile-msg" style="font-size:.76rem;margin-top:.5rem;min-height:1em"></div>
         </div>
-        <div id="set-tag-msg" style="font-size:.76rem;margin-top:.5rem;min-height:1em"></div>
-      </div>
-      <div class="card" style="max-width:560px">
-        <div class="sh"><h3>Account</h3></div>
-        <div style="font-size:.8rem;color:var(--muted);margin-bottom:.8rem">Signed in as <b id="set-email" style="color:var(--white)">—</b></div>
-        <button class="tb-btn" onclick="signOut()">Log out</button>
+
+        <div class="set-card">
+          <div class="set-head"><span class="set-ico">＠</span><div><div class="set-title">Your tag</div><div class="set-sub">Your address on PHX — currently <b id="set-current-tag" style="color:var(--orange-l)">@—</b></div></div></div>
+          <div style="font-size:.76rem;color:var(--muted);margin-bottom:.7rem;line-height:1.6">Changing it changes your page link and how people find you. One change every <b>30 days</b>.</div>
+          <div style="display:flex;gap:.5rem;align-items:center">
+            <span style="color:var(--muted);font-size:1.05rem">@</span>
+            <input class="form-input" id="set-username" maxlength="20" placeholder="newtag" style="flex:1">
+            <button class="tb-btn" onclick="changeTagFromSettings(this)">Change tag</button>
+          </div>
+          <div id="set-tag-msg" style="font-size:.76rem;margin-top:.5rem;min-height:1em"></div>
+        </div>
+
+        <div class="set-card">
+          <div class="set-head"><span class="set-ico">🔐</span><div><div class="set-title">Account</div><div class="set-sub">Signed in as <b id="set-email" style="color:var(--white)">—</b></div></div></div>
+          <div class="set-row" onclick="showView('mypass')"><span>💳 My Pass — membership &amp; invite code</span><span class="set-arrow">›</span></div>
+          <div class="set-row" onclick="openMyPage()"><span>⭐ View my public page</span><span class="set-arrow">›</span></div>
+          <div class="set-row" onclick="signOut()" style="color:var(--red)"><span>Log out</span><span class="set-arrow">›</span></div>
+        </div>
+
+        <div style="text-align:center;font-size:.68rem;color:var(--faint);padding:.4rem 0 1rem">the PHX app · 602 Culture. One App. · <a href="/legal" style="color:var(--faint)">Legal</a></div>
       </div>
     </div>
 
@@ -2459,10 +2490,34 @@ async function submitAccessRequest() {
       '<button class="pf-btn" style="margin-top:1.1rem" onclick="closeAccessRequest()">Close</button></div>';
 }
 
+// ── In-app back stack ──
+// The app is hash-light SPA navigation, so browser Back can't be trusted for
+// in-app hops. Every navigation pushes here; goBack() returns the user to
+// where they actually were (Discover → profile → back lands on Discover).
+var _navStack = [];
+function _navPush(kind, arg) {
+  var top = _navStack[_navStack.length - 1];
+  if (top && top.k === kind && top.a === arg) return;   // no self-duplicates
+  _navStack.push({ k: kind, a: arg });
+  if (_navStack.length > 50) _navStack.shift();
+}
+function goBack(fallbackView) {
+  _navStack.pop();                       // the screen we're on
+  var prev = _navStack.pop();            // where we came from (re-pushed by the nav call)
+  if (!prev) { showView(fallbackView || 'home'); return; }
+  if (prev.k === 'view') showView(prev.a);
+  else if (prev.k === 'artist') showArtistPage(prev.a);
+  else if (prev.k === 'member') showMemberPage(prev.a);
+  else if (prev.k === 'page') showPageProfile(prev.a);
+  else showView(fallbackView || 'home');
+}
+
 function showView(id) {
   // Returning early used to leave whatever was already active on screen —
   // which is how a signed-out visitor ended up reading the City Feed.
   if (requiresAuth(id)) { showLockedGate(id); return; }
+  // Profile screens push their own richer entry (which artist/member/page)
+  if (['artist-page', 'member-page', 'page-profile'].indexOf(id) === -1) _navPush('view', id);
   document.querySelectorAll('.view').forEach(function(v){ v.classList.remove('active'); });
   document.querySelectorAll('.nav-item').forEach(function(n){ n.classList.remove('active'); });
   var view = document.getElementById('v-'+id);
@@ -2724,7 +2779,9 @@ function setRole(role) {
   updatePayoutCard(role);
 
   // Swap bottom tab bar to match role group
-  var btGroupMap = { explorer:'bt-member', native:'bt-member', insider:'bt-member', artist:'bt-artist', admin:'bt-admin', super:'bt-admin' };
+  // Artists thumb the same city as everyone (Home/Music/Clips/Discover/Pass)
+  // — artist tools live in the menu, not the bottom bar.
+  var btGroupMap = { explorer:'bt-member', native:'bt-member', insider:'bt-member', artist:'bt-member', admin:'bt-admin', super:'bt-admin' };
   ['bt-member','bt-artist','bt-admin'].forEach(function(id) {
     var el = document.getElementById(id);
     if (el) el.style.display = 'none';
@@ -3189,12 +3246,16 @@ if ('mediaSession' in navigator) {
 
 function updateMediaSessionMetadata(title, artist, feat, album) {
   if (!('mediaSession' in navigator)) return;
+  // Lock screen shows the SONG's cover, not the app logo — logo is the fallback
+  var art = (typeof TRACK_ART !== 'undefined' && TRACK_ART[currentTrackUuid()]) || '';
+  var artAbs = '';
+  try { if (art) artAbs = new URL(art, window.location.origin).href; } catch (e) {}
   navigator.mediaSession.metadata = new MediaMetadata({
     title: title,
     artist: artist + (feat ? ' ' + feat : ''),
     album: album || 'PHX Music',
     artwork: [
-      { src: 'https://murkmerch.com/cdn/shop/files/AAB814A5-32E3-4FF1-A00C-0DF47B57E8DA.png', sizes: '512x512', type: 'image/png' }
+      { src: artAbs || (window.location.origin + '/icon-512.png'), sizes: '512x512', type: artAbs && artAbs.indexOf('.png') === -1 ? 'image/jpeg' : 'image/png' }
     ]
   });
 }
@@ -3861,6 +3922,20 @@ function loadSettings() {
   _setText('set-current-tag', p.username ? '@' + p.username : 'not set');
   _setText('set-email', _authUser.email || '—');
   _setText('set-profile-msg', ''); _setText('set-tag-msg', '');
+  // Hero
+  var ava = document.getElementById('set-hero-ava');
+  var avaUrl = safeUrl(p.avatar_url);
+  if (ava) ava.innerHTML = avaUrl ? '<img src="' + avaUrl + '" alt="">' : '🐦‍🔥';
+  _setText('set-hero-name', (p.display_name && p.display_name !== 'PHX Member') ? p.display_name : (p.username ? '@' + p.username : 'PHX Member'));
+  _setText('set-hero-tag', p.username ? '@' + p.username : '');
+  var tierLabel = { explorer: 'Free', native: 'PHX Native', insider: 'Insider' }[_accountTier] || '';
+  _setText('set-hero-tier', _myArtistId ? '🎤 Artist' : tierLabel);
+  // Artists edit their artist page, members their profile page
+  var eb = document.getElementById('set-editor-btn');
+  if (eb) {
+    if (_myArtistId) { eb.innerHTML = '🎤 Artist page &amp; photos'; eb.setAttribute('onclick', "showView('artist-profile')"); }
+    else { eb.innerHTML = '🖼 Photos &amp; profile page'; eb.setAttribute('onclick', "showView('profile')"); }
+  }
 }
 async function saveSettingsProfile(btn) {
   if (!_authUser) return;
@@ -7270,6 +7345,7 @@ async function showMemberPage(userId) {
     var artRes = await _sb.from('artists').select('slug').eq('user_id', userId).eq('status', 'active').maybeSingle();
     if (artRes.data && artRes.data.slug) { showArtistPage(artRes.data.slug); return; }
   } catch (e) { reportFailure('memberToArtistRedirect', e); }
+  _navPush('member', userId);
   showView('member-page');
   var el = document.getElementById('member-page-content');
   if (!el) return;
@@ -7340,7 +7416,7 @@ async function showMemberPage(userId) {
     if (joined) statBits.push('Joined ' + joined);
 
     el.innerHTML =
-      '<div style="margin-bottom:.8rem"><a href="#" style="color:var(--muted);font-size:.78rem" onclick="showView(\'home\');return false">← City Feed</a></div>' +
+      '<div style="margin-bottom:.8rem"><a href="#" style="color:var(--muted);font-size:.78rem" onclick="goBack(\'home\');return false">← Back</a></div>' +
       '<div class="pf">' +
         profileHeroHtml({
           name: name, avatar_url: p.avatar_url, banner_url: p.banner_url, roundAva: true,
@@ -9336,6 +9412,7 @@ async function showArtistDirectory() {
 // Creators, brands, venues and promoters get the same profile treatment as
 // artists. Accepts a slug or a raw id so feed authors resolve either way.
 async function showPageProfile(slugOrId) {
+  _navPush('page', slugOrId);
   showView('page-profile');
   var el = document.getElementById('page-profile-content');
   if (!el) return;
@@ -9381,7 +9458,7 @@ async function showPageProfile(slugOrId) {
                   '<b>' + posts.length + '</b> post' + (posts.length === 1 ? '' : 's')];
 
   el.innerHTML =
-    '<div style="margin-bottom:.8rem"><a href="#" style="color:var(--muted);font-size:.78rem" onclick="showArtistDirectory();return false">← Browse PHX</a></div>' +
+    '<div style="margin-bottom:.8rem"><a href="#" style="color:var(--muted);font-size:.78rem" onclick="goBack(\'artist-directory\');return false">← Back</a></div>' +
     '<div class="pf">' +
       profileHeroHtml({
         name: pg.name, avatar_url: pg.avatar_url, banner_url: pg.banner_url,
@@ -9612,6 +9689,7 @@ function renderArtistPostsPanel() {
 var _merchFilter = 'all';
 
 async function showArtistPage(slug) {
+  _navPush('artist', slug);
   showView('artist-page');
   try { window.location.hash = 'artist/' + slug; } catch (e) { reportFailure('showArtistPage', e); }
   var el = document.getElementById('artist-page-content');
@@ -9694,7 +9772,7 @@ async function showArtistPage(slug) {
         (hero ? ' style="background-image:url(\'' + hero + '\')"' : '') + '>' +
       '<div class="ap-scrim"></div>' +
       '<div class="ap-navbtns">' +
-        '<button class="ap-navbtn" title="Back" onclick="showArtistDirectory()">←</button>' +
+        '<button class="ap-navbtn" title="Back" onclick="goBack(\'artist-directory\')">←</button>' +
         '<button class="ap-navbtn" title="Share" onclick="shareArtistPage(\'' + escapeHtml(artist.slug) + '\',\'' + escapeHtml(artist.name).replace(/'/g,'') + '\')">↗</button>' +
       '</div>' +
       '<div class="ap-herotext">' +
