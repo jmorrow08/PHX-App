@@ -2071,6 +2071,17 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
 
 <!-- AUTH MODAL — Supabase email/password -->
 <!-- TYPED CODE GENERATOR (admin) -->
+<!-- Follow list sheet: who follows this profile / who they follow -->
+<div id="follow-list-modal" role="dialog" aria-modal="true" aria-label="Follows" style="display:none;position:fixed;inset:0;z-index:545;background:rgba(7,7,15,.9);backdrop-filter:blur(5px);align-items:center;justify-content:center;padding:1rem">
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;max-width:420px;width:100%;padding:1.2rem">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.8rem">
+      <div style="font-size:1rem;font-weight:800" id="fl-title">Followers</div>
+      <button onclick="closeFollowList()" aria-label="Close" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem">✕</button>
+    </div>
+    <div id="fl-list" style="max-height:60vh;overflow-y:auto"></div>
+  </div>
+</div>
+
 <!-- Trim sheet: videos over 90s get a start/end selector instead of a rejection -->
 <div id="trim-modal" role="dialog" aria-modal="true" aria-label="Trim your clip" style="display:none;position:fixed;inset:0;z-index:540;background:rgba(7,7,15,.92);backdrop-filter:blur(5px);align-items:center;justify-content:center;padding:1rem">
   <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;max-width:480px;width:100%;padding:1.3rem">
@@ -7025,6 +7036,77 @@ async function openAuthorProfile(userId, pageId, authorName) {
   showMemberPage(userId);
 }
 
+// ── Follow lists: tap a follower/following stat to see the actual people ──
+function closeFollowList() {
+  var m = document.getElementById('follow-list-modal');
+  if (m) m.style.display = 'none';
+}
+function _flRow(avatar, name, sub, click) {
+  var ava = safeUrl(avatar);
+  return '<div onclick="closeFollowList();' + click + '" role="button" style="display:flex;align-items:center;gap:.7rem;padding:.5rem .2rem;border-bottom:1px solid var(--border);cursor:pointer">' +
+    '<div style="width:38px;height:38px;border-radius:50%;flex-shrink:0;overflow:hidden;background:linear-gradient(135deg,var(--orange-d),var(--purple));display:flex;align-items:center;justify-content:center;font-weight:700">' +
+      (ava ? '<img src="' + ava + '" alt="" style="width:100%;height:100%;object-fit:cover">' : escapeHtml((name || '?').charAt(0).toUpperCase())) + '</div>' +
+    '<div style="flex:1;min-width:0"><div style="font-size:.86rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + escapeHtml(name) + '</div>' +
+      (sub ? '<div style="font-size:.7rem;color:var(--muted)">' + escapeHtml(sub) + '</div>' : '') + '</div>' +
+  '</div>';
+}
+async function openFollowList(kind, id, mode) {
+  var m = document.getElementById('follow-list-modal');
+  var list = document.getElementById('fl-list');
+  if (!m || !list) return;
+  _setText('fl-title', mode === 'following' ? 'Following' : 'Followers');
+  list.innerHTML = '<div class="pf-empty">Loading…</div>';
+  m.style.display = 'flex';
+  try {
+    var rows = [];
+    if (mode === 'following') {
+      var fRes = await _sb.from('follows').select('followee_type,followee_id').eq('follower_id', id).limit(200);
+      var fs = fRes.data || [];
+      var uIds = fs.filter(function(f){ return f.followee_type === 'user'; }).map(function(f){ return f.followee_id; });
+      var aIds = fs.filter(function(f){ return f.followee_type === 'artist'; }).map(function(f){ return f.followee_id; });
+      var pIds = fs.filter(function(f){ return f.followee_type === 'page'; }).map(function(f){ return f.followee_id; });
+      var got = await Promise.all([
+        uIds.length ? _sb.from('public_profiles').select('id,username,display_name,avatar_url').in('id', uIds) : { data: [] },
+        aIds.length ? _sb.from('artists').select('id,name,slug,avatar_url,genre').in('id', aIds) : { data: [] },
+        pIds.length ? _sb.from('pages').select('id,name,slug,avatar_url,page_type').in('id', pIds) : { data: [] }
+      ]);
+      (got[1].data || []).forEach(function(a) {
+        rows.push(_flRow(a.avatar_url, a.name, '🎤 ' + (a.genre || 'Artist'), "showArtistPage('" + escapeHtml(a.slug || '') + "')"));
+      });
+      (got[2].data || []).forEach(function(pg) {
+        rows.push(_flRow(pg.avatar_url, pg.name, PAGE_TYPE_LABEL[pg.page_type] || 'Page', "showPageProfile('" + escapeHtml(pg.slug || '') + "')"));
+      });
+      (got[0].data || []).forEach(function(u) {
+        rows.push(_flRow(u.avatar_url, u.display_name || ('@' + u.username), u.username ? '@' + u.username : '', "showMemberPage('" + u.id + "')"));
+      });
+    } else {
+      var wRes = await _sb.from('follows').select('follower_id').eq('followee_type', kind).eq('followee_id', id).limit(200);
+      var ids = (wRes.data || []).map(function(f){ return f.follower_id; });
+      if (ids.length) {
+        var uRes = await _sb.from('public_profiles').select('id,username,display_name,avatar_url').in('id', ids);
+        var found = {};
+        (uRes.data || []).forEach(function(u) {
+          found[u.id] = true;
+          rows.push(_flRow(u.avatar_url, u.display_name || ('@' + u.username), u.username ? '@' + u.username : '', "showMemberPage('" + u.id + "')"));
+        });
+        // Device-era guests without accounts still resolve by their old profile
+        var missing = ids.filter(function(x){ return !found[x]; });
+        if (missing.length) {
+          var gRes = await _sb.from('member_profiles').select('device_id,username,display_name,avatar_url').in('device_id', missing);
+          (gRes.data || []).forEach(function(g) {
+            rows.push(_flRow(g.avatar_url, g.display_name || ('@' + g.username), g.username ? '@' + g.username : '', "showMemberPage('" + g.device_id + "')"));
+          });
+        }
+      }
+    }
+    list.innerHTML = rows.length ? rows.join('') :
+      '<div class="pf-empty">' + (mode === 'following' ? 'Not following anyone yet.' : 'No followers yet — first one incoming.') + '</div>';
+  } catch (e) {
+    reportFailure('openFollowList', e);
+    list.innerHTML = '<div class="pf-empty">Could not load the list.</div>';
+  }
+}
+
 async function showMemberPage(userId) {
   showView('member-page');
   var el = document.getElementById('member-page-content');
@@ -7067,6 +7149,9 @@ async function showMemberPage(userId) {
     var fRes = await _sb.from('follows').select('id', { count: 'exact', head: true })
       .eq('followee_type', 'user').eq('followee_id', userId);
     var followers = fRes.count || 0;
+    var fgRes = await _sb.from('follows').select('id', { count: 'exact', head: true })
+      .eq('follower_id', userId);
+    var followingCount = fgRes.count || 0;
 
     var isSelf = _authUser && _authUser.id === userId;
     var following = !!_myFollows['user:' + userId];
@@ -7085,7 +7170,8 @@ async function showMemberPage(userId) {
 
     var joined = p.created_at ? new Date(p.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : '';
     var statBits = [
-      '<b>' + followers + '</b> follower' + (followers === 1 ? '' : 's'),
+      '<span style="cursor:pointer" role="button" onclick="openFollowList(\'user\',\'' + userId + '\',\'followers\')"><b>' + followers + '</b> follower' + (followers === 1 ? '' : 's') + '</span>',
+      '<span style="cursor:pointer" role="button" onclick="openFollowList(\'user\',\'' + userId + '\',\'following\')"><b>' + followingCount + '</b> following</span>',
       '<b>' + posts.length + '</b> post' + (posts.length === 1 ? '' : 's')
     ];
     if (p.city) statBits.push('📍 ' + escapeHtml(p.city));
@@ -9021,7 +9107,7 @@ async function showPageProfile(slugOrId) {
   var following = !!_myFollows['page:' + pg.id];
   var isOwner = _authUser && pg.owner_id === _authUser.id;
 
-  var statBits = ['<b>' + followers + '</b> follower' + (followers === 1 ? '' : 's'),
+  var statBits = ['<span style="cursor:pointer" role="button" onclick="openFollowList(\'page\',\'' + pg.id + '\',\'followers\')"><b>' + followers + '</b> follower' + (followers === 1 ? '' : 's') + '</span>',
                   '<b>' + posts.length + '</b> post' + (posts.length === 1 ? '' : 's')];
 
   el.innerHTML =
@@ -9292,6 +9378,14 @@ async function showArtistPage(slug) {
   _artistAlbums = results[4].data || [];
   _merchFilter = 'all';
 
+  // Follower stat fills in after the header renders (0-timeout lands
+  // after this function's synchronous innerHTML assignment).
+  setTimeout(async function() {
+    var fc = await _sb.from('follows').select('id', { count: 'exact', head: true })
+      .eq('followee_type', 'artist').eq('followee_id', artist.id);
+    _setText('ap-follow-stat', fmtK(fc.count || 0) + ' followers');
+  }, 0);
+
   // Posts made as this artist: page_id = their artist Page, or the owner's
   // personal-artist voice (no page). Both belong on this profile.
   _artistPosts = [];
@@ -9337,6 +9431,7 @@ async function showArtistPage(slug) {
             '<div class="ap-listeners">' +
               '<b>' + fmtK(artist.monthly_listeners || 0) + '</b><span>monthly listeners</span>' +
               '<span class="ap-trend">' + fmtK(artist.total_streams || 0) + ' plays</span>' +
+              '<span class="ap-trend" id="ap-follow-stat" style="cursor:pointer" role="button" onclick="openFollowList(\'artist\',\'' + artist.id + '\',\'followers\')"></span>' +
             '</div>' +
           '</div>' +
         '</div>' +
