@@ -1036,7 +1036,7 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
           <div class="sh"><h3>Featured Artist</h3><a href="#" onclick="showArtistDirectory();return false">All Artists</a></div>
           <div class="artist-spotlight">
             <div class="artist-banner" onclick="showArtistPage('murkemz')" style="cursor:pointer" role="button" aria-label="Open Murkemz">
-              <div class="artist-avatar">M</div>
+              <div class="artist-avatar" id="spotlight-ava" style="overflow:hidden">M</div>
               <div>
                 <div class="artist-banner-name">Murkemz <span class="badge badge-orange" style="font-size:.6rem">PHX Founder</span></div>
                 <div class="artist-banner-meta">PHX Hip-Hop · 602 · <b style="color:var(--orange)">Plug City — New Project</b></div>
@@ -3662,6 +3662,7 @@ function activePage() {
 }
 
 var _myProfile = null; // {username, display_name} from member_profiles
+var _myArtistId = null; // the artist row this account owns, if any
 
 // Identity choices for the composer. Everyone has their personal
 // @username; page owners add their Pages; admins add the official
@@ -3827,14 +3828,11 @@ async function loadMyProfile() {
   _myProfile = res.data || null;
 }
 
-// Top bar shows a name, never an email address
+// Signed-in accounts show nothing in the top bar — the menu and Settings
+// carry identity and logout.
 function updateAuthBtnLabel() {
   var btn = document.getElementById('auth-btn');
-  if (!btn || !_authUser) return;
-  var p = _myProfile || {};
-  var name = (p.display_name && p.display_name !== 'PHX Member') ? p.display_name
-           : (p.username ? '@' + p.username : 'Account');
-  btn.textContent = '👤 ' + name + ' · Log Out';
+  if (btn && _authUser) btn.style.display = 'none';
 }
 
 // The pencil: accounts with a tag manage identity in Settings (tag changes
@@ -5951,7 +5949,9 @@ async function loadAdminRoster() {
   var r = await Promise.all([
     _sb.from('claim_bundles').select('*'),
     _sb.from('artists').select('id,name,slug,avatar_url,verified,status,total_streams'),
-    _sb.from('pages').select('id,name,slug,page_type,avatar_url,is_verified,is_claimed'),
+    // Artist-type pages are the posting voice behind an artists-table row —
+    // listing both showed every artist twice (the "two Jaye Malis" bug)
+    _sb.from('pages').select('id,name,slug,page_type,avatar_url,is_verified,is_claimed').neq('page_type', 'artist'),
     _sb.from('member_profiles').select('device_id,username,display_name,avatar_url,city'),
     _sb.from('profiles').select('id,username,display_name,avatar_url,role,access_status')
   ]);
@@ -8315,12 +8315,19 @@ async function applyAccountRole() {
   else if (p.tier === 'native') role = 'native';
   else role = 'explorer';
   var label = p.display_name || (p.username ? '@' + p.username : (_authUser.email || '').split('@')[0]);
+  // Owning an artist row shapes the surface: an admin who is ALSO an artist
+  // gets the artist shell at /app (uploads, analytics, earnings — the tabs
+  // artists see), not a plain member view.
+  try {
+    var oaRes = await _sb.from('artists').select('id').eq('user_id', _authUser.id).limit(1).maybeSingle();
+    _myArtistId = oaRes.data ? oaRes.data.id : null;
+  } catch (e) { reportFailure('ownArtistLookup', e); }
   // Security model: staff/artist DOM is REMOVED for lower roles, not hidden.
   // So when someone signs IN and their role needs surfaces this page load
   // already stripped, the only honest fix is a one-time reload — otherwise
   // they land on a blank shell until they refresh by hand.
   var needsAdminDom = (role === 'super' || role === 'admin') && !document.getElementById('nav-admin');
-  var needsArtistDom = role === 'artist' && !document.getElementById('nav-artist');
+  var needsArtistDom = (role === 'artist' || (_myArtistId && (role === 'super' || role === 'admin'))) && !document.getElementById('nav-artist');
   if (needsAdminDom || needsArtistDom) { window.location.reload(); return; }
   _accountRole = role;   // the one place this is ever assigned
   _roleResolved = true;
@@ -8332,7 +8339,8 @@ async function applyAccountRole() {
   var isStudio = (window.location.pathname || '').replace(/\/$/, '') === '/studio';
   var surfaceRole = role;
   if ((role === 'super' || role === 'admin') && !isStudio) {
-    surfaceRole = (_accountTier === 'insider') ? 'insider' : (_accountTier === 'native') ? 'native' : 'explorer';
+    surfaceRole = _myArtistId ? 'artist'
+      : (_accountTier === 'insider') ? 'insider' : (_accountTier === 'native') ? 'native' : 'explorer';
   }
   _whenDomReady(function() {
     setRole(surfaceRole);
@@ -8377,8 +8385,12 @@ _sb.auth.onAuthStateChange(function(event, session) {
   _authUser = session ? session.user : null;
   _markAuthResolved();   // identity is now known — release anything waiting on it
   var btn = document.getElementById('auth-btn');
-  // Never the email — the profile name lands via updateAuthBtnLabel() once loaded
-  if (btn) btn.textContent = _authUser ? '👤 Account · Log Out' : 'Log In';
+  // Signed in = no account chip in the top bar at all — identity lives in
+  // the menu, logout lives in Settings. Guests still get Log In.
+  if (btn) {
+    btn.style.display = _authUser ? 'none' : '';
+    if (!_authUser) btn.textContent = 'Log In';
+  }
   if (event === 'PASSWORD_RECOVERY') {
     // User arrived from a reset-password email link
     var np = window.prompt('Enter a new password (8+ characters):');
@@ -8878,12 +8890,15 @@ async function hydrateCatalogStats() {
     var base = ((tEl.childNodes[0] && tEl.childNodes[0].textContent) || tEl.textContent || '').trim().toLowerCase();
     if (_liveTrackCounts[base] != null) sEl.textContent = fmtK(_liveTrackCounts[base]);
   });
-  var aRes = await _sb.from('artists').select('slug,total_streams,monthly_listeners,status');
+  var aRes = await _sb.from('artists').select('slug,total_streams,monthly_listeners,status,avatar_url');
   var allArtists = aRes.data || [];
   var murk = allArtists.filter(function(a){ return a.slug === 'murkemz'; })[0];
   if (murk) {
     _setText('murkemz-monthly', fmtK(murk.monthly_listeners));
     _setText('murkemz-total', fmtK(murk.total_streams));
+    var spotAva = document.getElementById('spotlight-ava');
+    var spotUrl = safeUrl(murk.avatar_url);
+    if (spotAva && spotUrl) spotAva.innerHTML = '<img src="' + spotUrl + '" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%">';
   }
   _setText('mstat-artist-count', String(allArtists.filter(function(a){ return a.status === 'active'; }).length));
 }
@@ -10621,10 +10636,31 @@ async function openAddToPlaylist(trackId) {
   var res = await _sb.from('playlists').select('id,name').eq('user_id', _authUser.id).order('created_at');
   var pls = res.data || [];
   list.innerHTML =
+    '<button class="post-menu-item" style="font-size:.88rem;color:var(--orange-l)" onclick="playNextQueue(\'' + trackId + '\')">⏭ Play next</button>' +
+    '<div style="border-top:1px solid var(--border);margin:.3rem 0"></div>' +
     pls.map(function(p) {
       return '<button class="post-menu-item" style="font-size:.88rem" onclick="addTrackToPlaylist(\'' + p.id + '\',\'' + trackId + '\')">🎧 ' + escapeHtml(p.name) + '</button>';
     }).join('') +
     '<button class="post-menu-item" style="color:var(--orange-l)" onclick="closeAddToPlaylist();createPlaylistThenAdd(\'' + trackId + '\')">＋ New playlist…</button>';
+}
+// Slot a song directly after whatever is playing now
+async function playNextQueue(trackId) {
+  closeAddToPlaylist();
+  var res = await _sb.from('tracks').select('id,title,cover_url,audio_url,stream_count,artists(name,slug)').eq('id', trackId).maybeSingle();
+  var t = res.data;
+  if (!t) return;
+  if (!t.audio_url) { showToast('That song has no audio yet'); return; }
+  if (!_playQueue.length || _queuePos === -1) { playTrackById(trackId); return; }
+  var existing = -1;
+  for (var i = 0; i < _playQueue.length; i++) if (_playQueue[i].id === trackId) { existing = i; break; }
+  if (existing !== -1) {
+    _playQueue.splice(existing, 1);
+    if (existing < _queuePos) _queuePos--;
+    else if (existing === _queuePos) { playTrackById(trackId); return; }
+  }
+  _playQueue.splice(_queuePos + 1, 0, _normalizeQueueTrack(t));
+  renderUpNext();
+  showToast('⏭ Playing next: ' + t.title);
 }
 function closeAddToPlaylist() {
   var m = document.getElementById('addpl-modal');
