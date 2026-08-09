@@ -9,7 +9,7 @@
 <meta property="og:description" content="Stream Phoenix artists. Your pass pays the artists you actually play — with a receipt to prove it.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://thephx.app/app">
-<link rel="canonical" href="https://thephx.app/app">
+<link rel="canonical" href="https://thephx.app/app" id="pwa-canonical">
 <meta name="twitter:card" content="summary">
 <link rel="manifest" href="manifest.json" id="pwa-manifest">
 <link rel="icon" href="/favicon.ico" sizes="any">
@@ -23,7 +23,14 @@
 if (location.pathname.replace(/\/+$/, '') === '/studio') {
   document.getElementById('pwa-manifest').setAttribute('href', '/manifest-studio.json');
   document.getElementById('pwa-touch-icon').setAttribute('href', '/apple-touch-icon-studio.png');
+  // Safari saves the CANONICAL url on Add to Home Screen — leave it pointing
+  // at /app and the Studio icon opens the member app. Point it at /studio.
+  document.getElementById('pwa-canonical').setAttribute('href', 'https://thephx.app/studio');
   document.title = 'PHX Studio';
+  var mTitle = document.createElement('meta');
+  mTitle.name = 'apple-mobile-web-app-title';
+  mTitle.content = 'Studio';
+  document.head.appendChild(mTitle);
 }
 </script>
 <meta name="theme-color" content="#F97316">
