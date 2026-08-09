@@ -5881,9 +5881,26 @@ async function generateTypedCode() {
         '<code style="font-size:1.3rem;font-weight:800;letter-spacing:.15em;color:var(--orange)">' + escapeHtml(res.data.code) + '</code>' +
         '<button class="tb-btn" style="font-size:.72rem;padding:.25rem .55rem" onclick="copyClaimCode(\'' + res.data.code + '\', this)">Copy</button>' +
         '<button class="tb-btn" style="font-size:.72rem;padding:.25rem .55rem" onclick="copyInviteLink(\'' + window.location.origin + '/app?ref=' + res.data.code + '\', this)">Copy link</button>' +
+      '</div>' +
+      '<div style="display:flex;gap:.5rem;margin-top:.6rem">' +
+        '<input class="form-input" id="cg-email" type="email" placeholder="or email it to them…" style="flex:1;font-size:.8rem;padding:.4rem .6rem">' +
+        '<button class="tb-btn" style="font-size:.72rem;padding:.25rem .7rem" onclick="emailGeneratedCode(\'' + res.data.code + '\', this)">Send</button>' +
       '</div>';
   }
   loadAdminInvites();
+}
+async function emailGeneratedCode(code, btn) {
+  var email = ((document.getElementById('cg-email') || {}).value || '').trim();
+  if (!email) { showToast('Enter an email first'); return; }
+  var label = (document.getElementById('cg-label') || {}).value || null;
+  if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
+  var res = await _sb.rpc('admin_email_code', { p_code: code, p_email: email, p_name: label });
+  if (btn) { btn.disabled = false; btn.textContent = 'Send'; }
+  if (res.error || !res.data || !res.data.ok) {
+    showToast('Could not queue email: ' + ((res.data && res.data.reason) || (res.error && res.error.message) || 'unknown'));
+    return;
+  }
+  showToast('Invite email queued — sends within 5 minutes');
 }
 
 // ═══════════════════════════════════════════════════════════════════════
