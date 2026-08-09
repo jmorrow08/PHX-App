@@ -518,7 +518,8 @@ body { padding-bottom: 52px; }
   }
   body {
     padding-bottom: 0 !important;
-    padding-top: 48px !important;  /* demo nav height */
+    /* the mobile app bar's height — content flows below it, never under */
+    padding-top: calc(58px + env(safe-area-inset-top, 0px)) !important;
   }
   #demo-nav .demo-nav-inner {
     padding: .35rem .6rem !important;
