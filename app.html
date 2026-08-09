@@ -185,6 +185,23 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
 .post-menu{position:absolute;top:110%;right:0;z-index:90;min-width:190px;background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:.3rem;box-shadow:0 10px 34px rgba(0,0,0,.55)}
 .post-menu-item{display:block;width:100%;text-align:left;background:none;border:none;color:var(--white);font-size:.82rem;padding:.55rem .7rem;border-radius:8px;cursor:pointer;white-space:nowrap}
 .post-menu-item:hover{background:rgba(249,115,22,.1);color:var(--orange-l)}
+/* Discover: people-you-may-know carousel */
+.pyk-rail{display:flex;gap:.7rem;overflow-x:auto;padding:.2rem .2rem .6rem;scrollbar-width:thin;max-width:100%}
+.pyk-card{flex:0 0 128px;background:var(--bg3);border:1px solid var(--border);border-radius:14px;padding:.9rem .6rem .7rem;text-align:center;display:flex;flex-direction:column;align-items:center;gap:.45rem}
+.pyk-ava{width:62px;height:62px;border-radius:50%;overflow:hidden;background:linear-gradient(135deg,var(--orange-d),var(--purple));display:flex;align-items:center;justify-content:center;font-family:var(--disp);font-size:1.4rem;font-weight:700;cursor:pointer}
+.pyk-ava img{width:100%;height:100%;object-fit:cover}
+.pyk-name{font-size:.78rem;font-weight:700;max-width:112px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+.pyk-sub{font-size:.64rem;color:var(--muted);max-width:112px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:-.25rem}
+.pyk-follow{width:100%;background:rgba(249,115,22,.14);border:1px solid rgba(249,115,22,.35);color:var(--orange-l);border-radius:9px;padding:.35rem 0;font-size:.72rem;font-weight:700;cursor:pointer}
+.pyk-follow.on{background:transparent;border-color:var(--border);color:var(--muted)}
+/* Discover: verticals shelf */
+.vert-shelf{display:flex;gap:.55rem;overflow-x:auto;padding:.2rem .2rem .6rem;scrollbar-width:thin;max-width:100%}
+.vert-chip{flex:0 0 auto;display:flex;align-items:center;gap:.45rem;background:var(--bg3);border:1px solid var(--border);border-radius:100px;padding:.5rem .85rem;opacity:.55}
+.vert-chip.live{opacity:1;border-color:rgba(249,115,22,.45);background:rgba(249,115,22,.08);cursor:pointer}
+.vc-icon{font-size:1.05rem}
+.vc-name{font-size:.8rem;font-weight:700;white-space:nowrap}
+.vc-tag{font:600 .58rem var(--mono);letter-spacing:.08em;color:var(--muted)}
+.vert-chip.live .vc-tag{color:var(--orange)}
 
 /* EVENTS */
 .event-row{display:grid;grid-template-columns:70px 1fr auto;gap:1rem;align-items:center;background:var(--bg3);border:none;border-radius:var(--r-m);padding:1rem 1.2rem;margin-bottom:.75rem}
@@ -522,7 +539,11 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
 
 /* Artist spotlight */
 .artist-spotlight{background:var(--bg3);border:none;border-radius:var(--r-m);overflow:hidden;margin-bottom:1.2rem}
-.artist-banner{height:96px;background:repeating-linear-gradient(45deg,rgba(241,241,248,.03) 0 12px,transparent 12px 24px),linear-gradient(180deg,#1A0E06,var(--bg3));position:relative;display:flex;align-items:flex-end;padding:.9rem 1.2rem;gap:.9rem}
+/* min-height + auto: a long meta line ("PHX Hip-Hop · 602 · …") used to
+   overflow the fixed 96px box and sit on top of the stats underneath */
+.artist-banner{min-height:96px;background:repeating-linear-gradient(45deg,rgba(241,241,248,.03) 0 12px,transparent 12px 24px),linear-gradient(180deg,#1A0E06,var(--bg3));position:relative;display:flex;align-items:flex-end;padding:.9rem 1.2rem;gap:.9rem}
+.artist-banner>div{min-width:0}
+.artist-banner-meta{overflow-wrap:break-word}
 .artist-avatar{width:56px;height:56px;border-radius:50%;background:linear-gradient(160deg,#231108,#3A1D0A);color:var(--orange-l);display:flex;align-items:center;justify-content:center;font-family:var(--disp);font-size:1.4rem;font-weight:600;border:2px solid var(--bg3);flex-shrink:0}
 .artist-banner-name{font-family:var(--disp);font-size:1.15rem;font-weight:700;letter-spacing:-.02em}
 .artist-banner-meta{font-size:.74rem;color:var(--muted)}
@@ -919,61 +940,40 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
       </div>
       <div id="search-results-container" style="display:none;margin-bottom:1.5rem"></div>
       <div id="discover-default-content">
+
+      <!-- PEOPLE YOU MAY KNOW — the city, one swipe: artists first, then
+           the newest members. Excludes you and everyone you already follow. -->
+      <div style="margin-bottom:1.4rem">
+        <div class="sh" style="margin-bottom:.6rem"><h3>🐦‍🔥 People around the city</h3><span style="font-size:.7rem;color:var(--muted)">Follow your corner</span></div>
+        <div class="pyk-rail" id="discover-pyk"><div class="pf-empty">Loading…</div></div>
+      </div>
+
       <!-- FOR YOU — v1 recommendation rail (heuristic; ML engine on roadmap) -->
-      <div class="card" style="margin-bottom:1.5rem">
+      <div class="card" style="margin-bottom:1.4rem">
         <div class="sh" style="margin-bottom:.6rem"><h3>✨ For You</h3><span style="font-size:.7rem;color:var(--muted)">Based on your listening</span></div>
         <div id="for-you-rail"><span style="color:var(--muted);font-size:.82rem">Play some tracks and we’ll learn your taste…</span></div>
       </div>
-      <!-- For You: posts from across the city — artists, brands, members (IG Explore pattern) -->
-      <div class="card" style="margin-bottom:1.5rem">
+
+      <!-- Posts from across the city — artists, brands, members (IG Explore pattern) -->
+      <div class="card" style="margin-bottom:1.4rem">
         <div class="sh" style="margin-bottom:.6rem"><h3>🌆 Around the City</h3><span style="font-size:.7rem;color:var(--muted)">Posts you might like</span></div>
         <div id="for-you-posts"><span style="color:var(--muted);font-size:.82rem">Loading…</span></div>
       </div>
-      <p style="color:var(--muted);margin-bottom:1.5rem;font-size:.9rem">PHX Music is live now. More verticals launching Q3–Q4 2026.</p>
-      <div class="grid-3" style="grid-template-columns:repeat(4,1fr)">
-        <div class="card" style="text-align:center;cursor:pointer;transition:all .2s;border-color:rgba(249,115,22,.3);background:rgba(249,115,22,.05)" onclick="showView('music')">
-          <div style="font-size:2.5rem;margin-bottom:.6rem">🎵</div>
-          <div style="font-size:.95rem;font-weight:700">PHX Music</div>
-          <div style="font-size:.78rem;color:var(--orange)">LIVE NOW · 14 artists</div>
-        </div>
-        <div class="card" style="text-align:center;opacity:.45;cursor:default">
-          <div style="font-size:2.5rem;margin-bottom:.6rem">🎟️</div>
-          <div style="font-size:.95rem;font-weight:700">PHX Events</div>
-          <div style="font-size:.78rem;color:var(--muted)">Coming Q3 2026</div>
-        </div>
-        <div class="card" style="text-align:center;opacity:.45;cursor:default">
-          <div style="font-size:2.5rem;margin-bottom:.6rem">🍽️</div>
-          <div style="font-size:.95rem;font-weight:700">PHX Eats</div>
-          <div style="font-size:.78rem;color:var(--muted)">Coming Q3 2026</div>
-        </div>
-        <div class="card" style="text-align:center;opacity:.45;cursor:default">
-          <div style="font-size:2.5rem;margin-bottom:.6rem">👕</div>
-          <div style="font-size:.95rem;font-weight:700">PHX Drops</div>
-          <div style="font-size:.78rem;color:var(--muted)">Coming Q3 2026</div>
-        </div>
-        <div class="card" style="text-align:center;opacity:.45;cursor:default">
-          <div style="font-size:2.5rem;margin-bottom:.6rem">🎙️</div>
-          <div style="font-size:.95rem;font-weight:700">PHX Audio</div>
-          <div style="font-size:.78rem;color:var(--muted)">Coming Q4 2026</div>
-        </div>
-        <div class="card" style="text-align:center;opacity:.45;cursor:default">
-          <div style="font-size:2.5rem;margin-bottom:.6rem">✂️</div>
-          <div style="font-size:.95rem;font-weight:700">PHX Cuts</div>
-          <div style="font-size:.78rem;color:var(--muted)">Coming Q4 2026</div>
-        </div>
-        <div class="card" style="text-align:center;opacity:.35;cursor:default">
-          <div style="font-size:2.5rem;margin-bottom:.6rem">🎨</div>
-          <div style="font-size:.95rem;font-weight:700">PHX Canvas</div>
-          <div style="font-size:.78rem;color:var(--muted)">2027</div>
-        </div>
-        <div class="card" style="text-align:center;opacity:.35;cursor:default">
-          <div style="font-size:2.5rem;margin-bottom:.6rem">🏀</div>
-          <div style="font-size:.95rem;font-weight:700">PHX Grid</div>
-          <div style="font-size:.78rem;color:var(--muted)">2027</div>
-        </div>
+
+      <!-- One pass, whole city — verticals as a swipeable shelf, not a wall -->
+      <div class="sh" style="margin-bottom:.6rem"><h3>One pass, whole city</h3><span style="font-size:.7rem;color:var(--muted)">What's coming</span></div>
+      <div class="vert-shelf">
+        <div class="vert-chip live" onclick="showView('music')"><span class="vc-icon">🎵</span><span class="vc-name">Music</span><span class="vc-tag">LIVE</span></div>
+        <div class="vert-chip"><span class="vc-icon">🎟️</span><span class="vc-name">Events</span><span class="vc-tag">Q3</span></div>
+        <div class="vert-chip"><span class="vc-icon">🍽️</span><span class="vc-name">Eats</span><span class="vc-tag">Q3</span></div>
+        <div class="vert-chip"><span class="vc-icon">👕</span><span class="vc-name">Drops</span><span class="vc-tag">Q3</span></div>
+        <div class="vert-chip"><span class="vc-icon">🎙️</span><span class="vc-name">Audio</span><span class="vc-tag">Q4</span></div>
+        <div class="vert-chip"><span class="vc-icon">✂️</span><span class="vc-name">Cuts</span><span class="vc-tag">Q4</span></div>
+        <div class="vert-chip"><span class="vc-icon">🎨</span><span class="vc-name">Canvas</span><span class="vc-tag">'27</span></div>
+        <div class="vert-chip"><span class="vc-icon">🏀</span><span class="vc-name">Grid</span><span class="vc-tag">'27</span></div>
       </div>
-      <br>
-      <div class="sh"><h3>🔥 Trending on PHX Music</h3><a href="#" onclick="showView('music');return false">Open Music →</a></div>
+
+      <div class="sh" style="margin-top:1.4rem"><h3>🔥 Trending on PHX Music</h3><a href="#" onclick="showView('music');return false">Open Music →</a></div>
       <div id="trending-rail" class="track-list"><div class="pf-empty">Loading…</div></div>
       </div><!-- /discover-default-content -->
     </div>
@@ -1205,7 +1205,7 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
             <div class="receipt-foot"><span>SAMPLE RECEIPT · YOURS ARRIVES MONTHLY</span><span class="receipt-barcode"></span></div>
           </div>
           <div class="receipt-actions">
-            <button class="receipt-share-btn" onclick="if(navigator.share)navigator.share({title:'PHX — With Receipts',text:'On PHX your pass pays the Phoenix artists you actually stream — with a receipt to prove it.'})">Share PHX ↗</button>
+            <button class="receipt-share-btn" onclick="sharePhx(this)">Share PHX ↗</button>
             <button class="receipt-ghost-btn" onclick="showReceiptHistory()">History</button>
           </div>
           <div style="font-size:.78rem;color:var(--faint);text-align:center;margin-top:.9rem">Sample receipt — yours is generated from your real listening each month.</div>
@@ -2393,7 +2393,7 @@ function showView(id) {
   if (id === 'artist-profile') loadArtistProfileEditor();
   if (id === 'home') { loadCityFeed(); loadTrendingRail(); }
   if (id === 'profile') loadMyPages();
-  if (id === 'discover') { loadForYou(); loadTrendingRail(); }
+  if (id === 'discover') { loadForYou(); loadTrendingRail(); loadPeopleYouMayKnow(); }
   if (id === 'music') { loadMusicCatalog(); loadListeningWent(); }
   if (id === 'artist-submit') populateGenreSelect();
   if (id === 'reels') loadReels();
@@ -3993,7 +3993,10 @@ function feedScore(p, reportCounts) {
   var engagement = (p.likes_count||0) * 2 + (p.comments_count||0) * 3 + 1;
   var freshBonus = ageHours < 24 ? 3 : 0;
   var reportPenalty = (reportCounts[p.id] || 0) * 5;
-  return (engagement + freshBonus - reportPenalty) / Math.pow(ageHours + 2, 1.2);
+  // Following means something: people and pages you follow rank ahead of
+  // strangers in Popular (the dedicated Following tab stays follows-only).
+  var followBoost = (_myFollows['user:' + p.user_id] || _myFollows['page:' + p.page_id]) ? 4 : 0;
+  return (engagement + freshBonus + followBoost - reportPenalty) / Math.pow(ageHours + 2, 1.2);
 }
 
 // Photo filters — CSS filter strings applied via canvas re-encode on post
@@ -7952,6 +7955,72 @@ async function mintPartnerCode(role, btn) {
   trackEvent('partner_code_minted', 'code', null, { role: role });
 }
 
+// ── Discover: people you may know ──
+// Artists first (they're why the city is here), then the newest members.
+// Excludes you and anyone you already follow — follow someone and the next
+// visit surfaces someone new. Following also boosts their posts in Popular.
+async function loadPeopleYouMayKnow() {
+  var el = document.getElementById('discover-pyk');
+  if (!el) return;
+  try {
+    var results = await Promise.all([
+      _sb.from('artists').select('id,name,slug,avatar_url,genre').eq('status', 'active')
+        .order('monthly_listeners', { ascending: false }).limit(12),
+      _sb.from('public_profiles').select('id,username,display_name,avatar_url,city,created_at')
+        .order('created_at', { ascending: false }).limit(24)
+    ]);
+    var cards = [];
+    (results[0].data || []).forEach(function(a) {
+      if (_myFollows['artist:' + a.id]) return;
+      if (_authUser && typeof _myArtistId !== 'undefined' && _myArtistId === a.id) return;
+      cards.push(_pykCard(a.avatar_url, a.name, '🎤 ' + (a.genre || 'PHX Artist'),
+        "showArtistPage('" + escapeHtml(a.slug || '') + "')", 'artist', a.id));
+    });
+    (results[1].data || []).forEach(function(u) {
+      if (_authUser && u.id === _authUser.id) return;
+      if (_myFollows['user:' + u.id]) return;
+      cards.push(_pykCard(u.avatar_url, u.display_name || ('@' + u.username), u.city || 'Phoenix',
+        "showMemberPage('" + u.id + "')", 'user', u.id));
+    });
+    el.innerHTML = cards.length ? cards.slice(0, 16).join('') :
+      '<div class="pf-empty">You already follow everyone here — the city is yours. 🐦‍🔥</div>';
+  } catch (e) {
+    reportFailure('loadPeopleYouMayKnow', e);
+    el.innerHTML = '<div class="pf-empty">Couldn\'t load people right now.</div>';
+  }
+}
+function _pykCard(avatar, name, sub, openClick, followType, followId) {
+  var ava = safeUrl(avatar);
+  return '<div class="pyk-card">' +
+    '<div class="pyk-ava" onclick="' + openClick + '">' +
+      (ava ? '<img src="' + ava + '" alt="">' : escapeHtml((name || '?').charAt(0).toUpperCase())) + '</div>' +
+    '<div class="pyk-name" onclick="' + openClick + '">' + escapeHtml(name) + '</div>' +
+    '<div class="pyk-sub">' + escapeHtml(sub) + '</div>' +
+    '<button class="pyk-follow" onclick="pykFollow(\'' + followType + '\',\'' + followId + '\',this)">+ Follow</button>' +
+  '</div>';
+}
+async function pykFollow(type, id, btn) {
+  await toggleFollowUI(type, id, btn);
+  btn.classList.toggle('on', !!_myFollows[type + ':' + id]);
+}
+
+// Share PHX itself — with the link actually attached, and a clipboard
+// fallback where no share sheet exists (the old inline handler passed no
+// url and silently did nothing on desktop).
+function sharePhx(btn) {
+  var url = 'https://thephx.app';
+  var text = 'On PHX your pass pays the Phoenix artists you actually stream — with a receipt to prove it.';
+  if (navigator.share) {
+    navigator.share({ title: 'PHX — With Receipts', text: text, url: url }).catch(function(){});
+    return;
+  }
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(url + ' — ' + text);
+    showToast('PHX link copied — paste it anywhere');
+    if (btn) { var o = btn.textContent; btn.textContent = '✓ Copied'; setTimeout(function(){ btn.textContent = o; }, 1500); }
+  }
+}
+
 function copyReferralLink(code) {
   var link = window.location.origin + '/app?ref=' + encodeURIComponent(code);
   try {
@@ -8965,10 +9034,12 @@ function pageTypeIcon(pageType) {
 async function showArtistDirectory() {
   showView('artist-directory');
   var el = document.getElementById('artist-directory-list');
-  // Public roster shows ARTISTS only. The full city roster (creators,
-  // businesses) is for signed-in members — the door, not the whole house.
+  // ARTISTS only for now — founder call 2026-08-09: creators/businesses
+  // join this directory when those verticals roll out. Until then people
+  // and pages are still searchable from Discover. Flip to `!!_authUser`
+  // to bring the full city roster back for members.
   await whenAuthResolved();
-  var showPages = !!_authUser;
+  var showPages = false;
   var results = await Promise.all([
     _sb.from('artists').select('*').eq('status', 'active').order('total_streams', { ascending: false }),
     showPages ? _sb.from('pages').select('*').not('slug', 'is', null).order('name') : Promise.resolve({ data: [] })
