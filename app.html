@@ -124,6 +124,11 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
 .kpi-change{font-size:.73rem;margin-top:.3rem}
 .up{color:var(--green)}.dn{color:var(--red)}
 .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:1.6rem;margin-bottom:1.2rem}
+/* Grid children default to min-width:auto, which lets a wide shelf stretch
+   its column past the viewport — the source of sideways scroll on mobile. */
+.grid-2>*{min-width:0}
+.ap-shelf{max-width:100%}
+@media(max-width:768px){.grid-2{grid-template-columns:1fr}}
 .grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem}
 .card{background:var(--bg3);border:none;border-radius:18px;padding:1.4rem}
 .card-title{font-family:var(--mono);font-size:.66rem;font-weight:600;text-transform:uppercase;letter-spacing:.16em;color:var(--faint);margin-bottom:1rem}
@@ -193,11 +198,10 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
 .event-tag.featured{border-color:rgba(249,115,22,.3);color:var(--orange);background:rgba(249,115,22,.08)}
 
 /* MUSIC */
-.music-stats-bar{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1.4rem}
-.mstat{background:transparent;border:none;border-radius:0;padding:.4rem .2rem;display:flex;align-items:center;gap:.8rem}
-.mstat-icon{font-size:1.3rem;flex-shrink:0;filter:grayscale(1) brightness(1.2);opacity:.7}
-.mstat-val{font-family:var(--disp);font-size:1.25rem;font-weight:700;line-height:1.1;letter-spacing:-.02em}
-.mstat-label{font-size:.7rem;color:var(--faint)}
+/* One quiet line of platform stats — Now Playing owns this page */
+.music-stats-strip{display:flex;align-items:center;justify-content:space-between;gap:.5rem;background:var(--bg3);border-radius:10px;padding:.5rem .8rem;margin-bottom:1rem;font-size:.72rem;color:var(--muted);white-space:nowrap;overflow:hidden}
+.music-stats-strip b{color:var(--white);font-family:var(--disp);font-weight:700}
+@media(max-width:380px){.music-stats-strip{font-size:.64rem;padding:.45rem .6rem}}
 
 .music-player-expanded{background:radial-gradient(120% 130% at 50% -20%,rgba(249,115,22,.14),rgba(7,7,15,0) 60%),var(--bg3);border:none;border-radius:var(--r-l);padding:1.8rem;margin-bottom:1.4rem}
 .np-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.1rem}
@@ -524,7 +528,8 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
 .artist-banner-meta{font-size:.74rem;color:var(--muted)}
 .artist-body{padding:1rem 1.2rem}
 .artist-stats{display:flex;gap:1.5rem;margin-bottom:1rem}
-.astat{text-align:center}
+.astat{text-align:center;min-width:0}
+@media(max-width:640px){.artist-stats{gap:.8rem;justify-content:space-between}}
 .astat-val{font-family:var(--disp);font-size:1.15rem;font-weight:700;letter-spacing:-.02em}
 .astat-label{font-size:.66rem;color:var(--faint)}
 
@@ -983,29 +988,11 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
     <!-- PHX MUSIC — FULLY LIVE -->
     <div class="view" id="v-music">
 
-      <!-- Stats bar -->
-      <div class="music-stats-bar">
-        <div class="mstat">
-          <div class="mstat-icon">📡</div>
-          <div>
-            <div class="mstat-val" id="total-streams-display">15,247</div>
-            <div class="mstat-label">Total PHX Streams <span class="stream-live" style="color:var(--teal);font-size:.65rem">● live</span></div>
-          </div>
-        </div>
-        <div class="mstat">
-          <div class="mstat-icon">🎤</div>
-          <div>
-            <div class="mstat-val" id="mstat-artist-count">—</div>
-            <div class="mstat-label">PHX Artists on Platform</div>
-          </div>
-        </div>
-        <div class="mstat">
-          <div class="mstat-icon">💚</div>
-          <div>
-            <div class="mstat-val" style="color:var(--green)">Monthly</div>
-            <div class="mstat-label">Artists Paid From Your Listening</div>
-          </div>
-        </div>
+      <!-- Stats strip — one quiet line so Now Playing sits above the fold -->
+      <div class="music-stats-strip">
+        <span>📡 <b id="total-streams-display">—</b> streams <span class="stream-live" style="color:var(--teal);font-size:.6rem">●</span></span>
+        <span>🎤 <b id="mstat-artist-count">—</b> PHX artists</span>
+        <span>💚 paid monthly</span>
       </div>
 
       <!-- Expanded Now Playing -->
@@ -1052,8 +1039,7 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
         </div>
       </div>
 
-      <div class="grid-2">
-        <div>
+      <div>
           <!-- Artist Spotlight -->
           <div class="sh"><h3>Featured Artist</h3><a href="#" onclick="showArtistDirectory();return false">All Artists</a></div>
           <div class="artist-spotlight">
@@ -1081,46 +1067,9 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
 
           <div class="sh" style="margin-top:1rem"><h3>New Releases</h3></div>
           <div class="ap-shelf" id="new-releases-rail"><div class="pf-empty">Loading…</div></div>
-        </div>
-
-        <div>
-          <!-- Your Listening Impact — no dollar amounts or splits shown to members -->
-          <div class="sh"><h3>Your Listening Impact</h3><span class="badge badge-teal">PHX Difference</span></div>
-          <div class="fan-payout-card">
-            <div class="fan-payout-title">Where Your Listening Went</div>
-            <!-- Real per-artist shares of THIS account's listening this month -->
-            <div id="listening-went-bars">
-              <div style="font-size:.8rem;color:var(--muted);margin:.6rem 0 .9rem">Play something — this fills in with the real split of your listening this month.</div>
-            </div>
-            <div class="fan-payout-vs">
-              On the big platforms, local artists compete with global megastars for fractions of a cent. On PHX, <strong>your listening directly supports the Phoenix artists you play</strong> — and your pass unlocks the whole city: music now, eats, events, drops and more as they launch.
-            </div>
-          </div>
-
-          <!-- Explorer upgrade gate — shown instead of impact card for free tier -->
-          <div id="payout-upgrade-gate" style="display:none" class="upgrade-gate-card">
-            <div style="font-size:2rem;margin-bottom:.5rem">💚</div>
-            <div class="upgrade-gate-title">Support Phoenix Artists</div>
-            <div class="upgrade-gate-sub">Your listening directly supports the local artists you play — not a global pool where megastars take everything. Plus city perks as PHX Eats, Drops &amp; Events launch.</div>
-            <button class="upgrade-btn" disabled style="opacity:.6;cursor:default" title="Membership billing is launching soon">Native Pass — coming soon</button>
-            <div style="margin-top:.75rem;font-size:.75rem;color:var(--muted)">Paid passes open at launch — everything is free to explore until then.</div>
-          </div>
-
-        </div>
       </div>
-
-      <!-- Session stream tracker info -->
-      <div style="background:var(--bg3);border:1px solid rgba(20,184,166,.2);border-radius:12px;padding:1rem 1.2rem;display:flex;align-items:center;gap:1rem;margin-top:.5rem">
-        <span style="font-size:1.2rem">📊</span>
-        <div style="flex:1;font-size:.82rem">
-          <span style="font-weight:600">Stream Tracking Active</span>
-          <span style="color:var(--muted);margin-left:.5rem">A stream counts after 30 seconds of continuous play — same threshold as the industry standard.</span>
-        </div>
-        <div style="font-size:.82rem;text-align:right">
-          <div style="font-weight:700;color:var(--teal)" id="session-stream-count">0 streams</div>
-          <div style="font-size:.7rem;color:var(--muted)">counted this session</div>
-        </div>
-      </div>
+      <!-- "Your Listening Impact" + stream-tracking info moved to My Pass —
+           this page is for playing music, the receipt lives with the pass. -->
     </div>
 
     <!-- EVENTS — Coming Soon -->
@@ -6038,7 +5987,8 @@ async function loadMyReceipt() {
     }).join('') +
     '<div style="font-size:.74rem;color:var(--faint);margin-top:.8rem;line-height:1.6">' +
       'Your pass supports the Phoenix artists you actually play. ' +
-      'The more of your listening an artist gets, the more of your support reaches them.</div>';
+      'The more of your listening an artist gets, the more of your support reaches them. ' +
+      'A play counts after 30 seconds — industry standard.</div>';
 }
 
 // ── ARTIST REFERRAL LEVERAGE ───────────────────────────────────────────
