@@ -1163,6 +1163,55 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
       </div>
     </div>
 
+    <!-- ANALYTICS — the deep read: platform, content, artists, funnel, audience -->
+    <div class="view" id="v-admin-analytics">
+      <div style="display:flex;align-items:center;gap:.6rem;margin-bottom:1rem">
+        <div style="font-size:.78rem;color:var(--muted)">Range:</div>
+        <button class="tb-btn ana-range on" data-days="30" onclick="setAnaRange(30,this)">30d</button>
+        <button class="tb-btn ana-range" data-days="60" onclick="setAnaRange(60,this)">60d</button>
+        <button class="tb-btn ana-range" data-days="90" onclick="setAnaRange(90,this)">90d</button>
+        <button class="tb-btn" style="margin-left:auto;font-size:.74rem" onclick="exportAnalyticsCsv()">⬇ CSV</button>
+      </div>
+      <div class="admin-kpi-grid" style="grid-template-columns:repeat(auto-fit,minmax(130px,1fr))">
+        <div class="admin-kpi"><div class="admin-kpi-val" style="color:var(--orange)" id="ana-dau">—</div><div class="admin-kpi-label">Active today</div></div>
+        <div class="admin-kpi"><div class="admin-kpi-val" style="color:var(--teal)" id="ana-wau">—</div><div class="admin-kpi-label">Active 7d</div></div>
+        <div class="admin-kpi"><div class="admin-kpi-val" style="color:var(--purple-l)" id="ana-mau">—</div><div class="admin-kpi-label">Active 30d</div><div class="admin-kpi-change" style="color:var(--muted)" id="ana-stick"></div></div>
+        <div class="admin-kpi"><div class="admin-kpi-val" style="color:var(--green)" id="ana-listen">—</div><div class="admin-kpi-label">Listen min · 7d</div></div>
+        <div class="admin-kpi"><div class="admin-kpi-val" id="ana-signups">—</div><div class="admin-kpi-label">Signups · 7d</div></div>
+        <div class="admin-kpi"><div class="admin-kpi-val" id="ana-posts">—</div><div class="admin-kpi-label">Posts · 7d</div></div>
+      </div>
+      <div class="card" style="margin-bottom:1rem">
+        <div class="sh" style="margin-bottom:.5rem"><h3>Daily pulse</h3><span style="font-size:.7rem;color:var(--muted)">active members · counted plays · posts · signups</span></div>
+        <div style="height:240px"><canvas id="ana-chart"></canvas></div>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="sh" style="margin-bottom:.6rem"><h3>Funnel</h3><span style="font-size:.7rem;color:var(--muted)" id="ana-funnel-range"></span></div>
+          <div id="ana-funnel"></div>
+        </div>
+        <div class="card">
+          <div class="sh" style="margin-bottom:.6rem"><h3>Engagement · 7d</h3></div>
+          <div id="ana-engagement" style="display:flex;gap:.6rem;flex-wrap:wrap"></div>
+          <div class="sh" style="margin:1rem 0 .6rem"><h3>Audience</h3></div>
+          <div id="ana-audience"></div>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="sh" style="margin-bottom:.6rem"><h3>Top tracks by listen time</h3></div>
+          <div id="ana-top-tracks"></div>
+        </div>
+        <div class="card">
+          <div class="sh" style="margin-bottom:.6rem"><h3>Top artists by listen time</h3></div>
+          <div id="ana-top-artists"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="sh" style="margin-bottom:.6rem"><h3>Weekly retention cohorts</h3><span style="font-size:.7rem;color:var(--muted)">% of each signup week still active N weeks later</span></div>
+        <div id="ana-cohorts" style="overflow-x:auto"></div>
+      </div>
+    </div>
+
     <!-- ASH — founder-only ops agent. Reads everything; changes wait for approval. -->
     <div class="view" id="v-admin-ash">
       <div class="admin-alert" style="display:flex">🐦‍🔥 <b style="margin:0 .3rem">Ash</b> — behind-the-scenes ops agent. Founder-only. Reads everything; every change needs your approval below.</div>
@@ -2386,7 +2435,7 @@ var titles = {
   events:'PHX Events', eats:'PHX Eats', audio:'PHX Audio',
   drops:'PHX Drops', cuts:'PHX Cuts', mypass:'My PHX Pass', profile:'My Profile', settings:'Settings',
   'member-page':'Profile', 'artist-page':'Artist', 'artist-directory':'Browse PHX', 'page-profile':'Page',
-  'admin-roster':'Launch Desk', 'admin-merch':'Merch Connections', 'admin-pot':'Community Pot', 'admin-ash':'Ash',
+  'admin-roster':'Launch Desk', 'admin-merch':'Merch Connections', 'admin-pot':'Community Pot', 'admin-ash':'Ash', 'admin-analytics':'Analytics',
   'artist-tracks':'My Tracks', 'artist-analytics':'Analytics',
   'artist-earnings':'Earnings', 'artist-submit':'Submit Track', 'artist-profile':'Artist Profile',
   'admin-dashboard':'Platform Dashboard', 'admin-members':'Members',
@@ -2602,6 +2651,7 @@ function showView(id) {
   if (id === 'discover') { loadForYou(); loadTrendingRail(); loadPeopleYouMayKnow(); }
   if (id === 'settings') loadSettings();
   if (id === 'admin-ash') loadAshPanel();
+  if (id === 'admin-analytics') loadAdminAnalytics();
   if (id === 'music') { loadMusicCatalog(); loadListeningWent(); }
   if (id === 'artist-submit') populateGenreSelect();
   if (id === 'reels') loadReels();
@@ -2787,6 +2837,7 @@ function setRole(role) {
         ['admin-merch', '🛍️', 'Merch'],
       ]},
       { cap: 'insight', label: 'Understand', items: [
+        ['admin-analytics', '📊', 'Analytics'],
         ['admin-activity', '📡', 'Activity'],
         ['admin-growth', '📈', 'Growth'],
         ['admin-members', '👥', 'Members'],
@@ -6088,6 +6139,108 @@ function resetSubmitForm() {
 // One place to see every identity on PHX and which claim codes are still
 // outstanding. Previously you couldn't tell who existed or what was unclaimed.
 // ═══════════════════════════════════════════════════════════════════════
+// ── DEEP ANALYTICS: the whole platform in one admin-gated call ──
+var _anaChart = null, _anaDays = 30, _anaData = null;
+function setAnaRange(days, btn) {
+  _anaDays = days;
+  document.querySelectorAll('.ana-range').forEach(function(b){ b.classList.toggle('on', b === btn); });
+  loadAdminAnalytics();
+}
+async function loadAdminAnalytics() {
+  var res = await _sb.rpc('admin_analytics', { p_days: _anaDays });
+  var d = res.data;
+  if (res.error || !d) { showToast('Could not load analytics'); return; }
+  _anaData = d;
+  var k = d.kpis || {};
+  _setText('ana-dau', String(k.dau || 0));
+  _setText('ana-wau', String(k.wau || 0));
+  _setText('ana-mau', String(k.mau || 0));
+  _setText('ana-stick', k.mau ? Math.round((k.dau / k.mau) * 100) + '% sticky' : '');
+  _setText('ana-listen', fmtK(k.listen_min_7d || 0));
+  _setText('ana-signups', String(k.signups_7d || 0));
+  _setText('ana-posts', String(k.posts_7d || 0));
+
+  // Daily pulse chart
+  var ctx = document.getElementById('ana-chart');
+  if (ctx && window.Chart) {
+    if (_anaChart) _anaChart.destroy();
+    var days = d.daily || [];
+    var mk = function(key) { return days.map(function(x){ return x[key] || 0; }); };
+    _anaChart = new Chart(ctx, {
+      type: 'line',
+      data: { labels: days.map(function(x){ return x.d; }), datasets: [
+        { label: 'Active', data: mk('active'), borderColor: '#F97316', backgroundColor: 'rgba(249,115,22,.12)', fill: true, tension: .35, pointRadius: 0, borderWidth: 2 },
+        { label: 'Plays', data: mk('plays'), borderColor: '#14B8A6', tension: .35, pointRadius: 0, borderWidth: 2 },
+        { label: 'Posts', data: mk('posts'), borderColor: '#A78BFA', tension: .35, pointRadius: 0, borderWidth: 1.5 },
+        { label: 'Signups', data: mk('signups'), borderColor: '#22C55E', tension: .35, pointRadius: 0, borderWidth: 1.5 }
+      ]},
+      options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
+        plugins: { legend: { labels: { color: '#9CA3AF', font: { size: 10 }, boxWidth: 12 } } },
+        scales: { x: { grid: { color: 'rgba(255,255,255,.04)' }, ticks: { color: '#6B7280', maxTicksLimit: 10 } },
+                  y: { grid: { color: 'rgba(255,255,255,.04)' }, ticks: { color: '#6B7280' }, beginAtZero: true } } }
+    });
+  }
+
+  // Funnel bars
+  var f = d.funnel || {};
+  var steps = [['Landing views', f.landing_views], ['Signups', f.signups], ['Onboarded', f.onboarded], ['Listened 30s+', f.listeners], ['3+ follows', f.engaged]];
+  var max = Math.max.apply(null, steps.map(function(s){ return s[1] || 0; }).concat([1]));
+  _setText('ana-funnel-range', 'last ' + _anaDays + ' days');
+  var fEl = document.getElementById('ana-funnel');
+  if (fEl) fEl.innerHTML = steps.map(function(s, i) {
+    var prev = i > 0 ? (steps[i-1][1] || 0) : null;
+    var conv = prev ? Math.round(((s[1] || 0) / Math.max(prev, 1)) * 100) + '%' : '';
+    return '<div style="margin-bottom:.55rem"><div style="display:flex;justify-content:space-between;font-size:.76rem;margin-bottom:.2rem"><span>' + s[0] + '</span><span><b>' + (s[1] || 0) + '</b>' + (conv ? ' <span style="color:var(--muted)">(' + conv + ')</span>' : '') + '</span></div>' +
+      '<div style="height:8px;background:var(--bg4);border-radius:4px"><div style="width:' + Math.round(((s[1] || 0) / max) * 100) + '%;height:8px;border-radius:4px;background:linear-gradient(90deg,var(--orange),#EA580C)"></div></div></div>';
+  }).join('');
+
+  // Engagement chips + audience
+  var e = d.engagement_7d || {};
+  var chip = function(icon, label, n) { return '<div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:.5rem .8rem;text-align:center;flex:1;min-width:70px"><div style="font-family:var(--disp);font-weight:800">' + (n || 0) + '</div><div style="font-size:.62rem;color:var(--muted)">' + icon + ' ' + label + '</div></div>'; };
+  var eEl = document.getElementById('ana-engagement');
+  if (eEl) eEl.innerHTML = chip('🔥', 'reactions', e.reactions) + chip('💬', 'comments', e.comments) + chip('➕', 'follows', e.follows) + chip('★', 'favorites', e.favorites) + chip('🎬', 'clip views', e.clip_views);
+  var au = d.audience || {};
+  var line = function(items, kf, nf) { return (items || []).map(function(x){ return escapeHtml(String(x[kf] || '—')) + ' <b>' + x[nf] + '</b>'; }).join(' · '); };
+  var aEl = document.getElementById('ana-audience');
+  if (aEl) aEl.innerHTML =
+    '<div style="font-size:.78rem;line-height:2"><span style="color:var(--muted)">Tiers:</span> ' + line(au.tiers, 'tier', 'n') + '<br>' +
+    '<span style="color:var(--muted)">Roles:</span> ' + line(au.roles, 'role', 'n') + '<br>' +
+    '<span style="color:var(--muted)">Cities:</span> ' + line(au.cities, 'city', 'n') + '</div>';
+
+  // Top lists
+  var row = function(a, b, c) { return '<div style="display:flex;justify-content:space-between;gap:.6rem;padding:.4rem 0;border-bottom:1px solid var(--border);font-size:.8rem"><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + a + '</span><span style="color:var(--muted)">' + b + '</span><span style="color:var(--teal);min-width:54px;text-align:right">' + c + '</span></div>'; };
+  var tt = document.getElementById('ana-top-tracks');
+  if (tt) tt.innerHTML = (d.top_tracks || []).length ? d.top_tracks.map(function(t) {
+    return row('<b>' + escapeHtml(t.title) + '</b> <span style="color:var(--muted)">' + escapeHtml(t.artist || '') + '</span>', (t.plays || 0) + ' plays', Math.round((t.sec || 0) / 60) + 'm');
+  }).join('') : '<div class="pf-empty">No counted listening in range.</div>';
+  var ta = document.getElementById('ana-top-artists');
+  if (ta) ta.innerHTML = (d.top_artists || []).length ? d.top_artists.map(function(a) {
+    return row('<b>' + escapeHtml(a.name) + '</b>', (a.listeners || 0) + ' listeners', Math.round((a.sec || 0) / 60) + 'm');
+  }).join('') : '<div class="pf-empty">No counted listening in range.</div>';
+
+  // Cohorts
+  var cEl = document.getElementById('ana-cohorts');
+  if (cEl) {
+    var cs = d.cohorts || [];
+    var pct = function(n, size) { if (!size) return '—'; var p = Math.round((n / size) * 100); return '<span style="display:inline-block;min-width:44px;text-align:center;padding:.2rem 0;border-radius:6px;background:rgba(249,115,22,' + Math.min(.85, p / 100 * .9 + .06) + ')">' + p + '%</span>'; };
+    cEl.innerHTML = cs.length
+      ? '<table style="width:100%;border-collapse:collapse;font-size:.76rem"><tr style="color:var(--muted)"><th style="text-align:left;padding:.3rem">Week of</th><th>Size</th><th>W0</th><th>W1</th><th>W2</th><th>W3</th></tr>' +
+        cs.map(function(c) { return '<tr style="border-top:1px solid var(--border)"><td style="padding:.35rem .3rem">' + c.week + '</td><td style="text-align:center">' + c.size + '</td><td style="text-align:center">' + pct(c.w0, c.size) + '</td><td style="text-align:center">' + pct(c.w1, c.size) + '</td><td style="text-align:center">' + pct(c.w2, c.size) + '</td><td style="text-align:center">' + pct(c.w3, c.size) + '</td></tr>'; }).join('') + '</table>'
+      : '<div class="pf-empty">Cohorts fill as signup weeks accumulate.</div>';
+  }
+}
+function exportAnalyticsCsv() {
+  if (!_anaData) { showToast('Load analytics first'); return; }
+  var days = _anaData.daily || [];
+  var csv = 'date,active,plays,posts,signups\n' + days.map(function(x) {
+    return [x.d, x.active || 0, x.plays || 0, x.posts || 0, x.signups || 0].join(',');
+  }).join('\n');
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+  a.download = 'phx-analytics-' + _anaDays + 'd.csv';
+  document.body.appendChild(a); a.click(); a.remove();
+}
+
 // ── ASH: founder-only ops agent panel ──
 var _ashHistory = [];   // this session's live exchange, API-message shaped
 function _ashBubble(role, text) {
