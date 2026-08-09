@@ -62,6 +62,16 @@ Changing an entitlement = editing the JSON row. No deploy. Pre-billing, `billing
 2. **Artist → Analytics** (`artist_analytics`): Full/Headline artists get the deep dashboard (daily chart, listeners, listen minutes, top tracks, listeners' pass mix); Basic sees totals + what Full unlocks (tier-capability gate in action).
 3. **First-party attribution**: landing beacon (UTM/referrer → `user_events`), `signup_attrib` first-touch, screen views. No third-party trackers; Meta Pixel deliberately absent until IG ad spend.
 
+## 8a. Engagement engine (streaks, points economy, rhythm)
+
+Opening the app = the daily check-in (+5 pts, one toast, nothing else). Streaks: 3 days +15, 7 days +50 — computed server-side from check-in history. Listening bonuses (DB triggers, cap-guarded, simulated streams excluded): discover a new artist +3 (5/day), finish a track ≥90% +2 (10/day). Levels by lifetime points: Ember → Flame(100) → Inferno(500) → Phoenix(1500). Points are never money and never free months.
+
+Surfaces (deliberately sparse): one boot toast · one pinned **City Question** above the composer (set tomorrow's in Studio → Analytics; seeded rotation otherwise) · **Your Week** card on My Pass (streak, listen min, artists backed, points, Early Ears = times among a track's first 10 listeners, level + progress) · **Scene Leaders** top-5 on Discover (resets monthly).
+
+Weekly rhythm (pg_cron): **Monday 16:00 UTC** `phx-weekly-pulse` posts to City Feed as "the PHX app" — STREAMS language, never dollars pre-billing; skips quiet weeks. **Friday 16:00 UTC** `phx-weekly-digest` emails every active member (streams/new tracks/new members) through the Resend queue.
+
+Studio → Analytics → **Engagement Engine**: points issued by reason (7d), check-ins today, members on 3+ day streaks, month leaderboard, current prompt + setter. Money-language rule pre-billing: member surfaces say streams/fan-powered ("Backed By Your Plays"), never $.
+
 ## 9. Ash — the ops agent
 
 Founder-only (role=super), Studio → Configure → Ash. Reads everything (read-only SQL executor + snapshot tools); **every change is a proposal card** — exact SQL + rationale — pending until Approve-&-run (Lytbub covenant; approvals never leave the app). Chat persists (`agent_chat`). Runs on the `ash` edge function (Anthropic, needs `ANTHROPIC_API_KEY` secret). Future: `ask_elby`/`ask_phx` peer tools bridge Ash to Elby on Lytbub — designed, not built. **Ash should treat this manual + the SOPs as his ground truth for how PHX is supposed to operate.**
