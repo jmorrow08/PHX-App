@@ -70,6 +70,9 @@ Surfaces (deliberately sparse): one boot toast · one pinned **City Question** a
 
 Weekly rhythm (pg_cron): **Monday 16:00 UTC** `phx-weekly-pulse` posts to City Feed as "the PHX app" — STREAMS language, never dollars pre-billing; skips quiet weeks. **Friday 16:00 UTC** `phx-weekly-digest` emails every active member (streams/new tracks/new members) through the Resend queue.
 
+
+**Spending (negative ledger rows; balance floor 0; all server-enforced):** 🚀 Boost 250 (latest post +8 feedScore for 24h via `boosted_until`) · 🔥 Flame flair 150 one-time (`profiles.flair`, shown by names feed-wide) · ⭐ Spotlight vote 100 each (`spotlight_votes`, monthly; tally in Studio Engagement = founder picks next month's Featured Artist) · 🏆 Supporters wall 200 (`supporter_walls`, monthly, per artist — names show on the artist page; EXPLICIT opt-in so listening privacy holds). Shop lives on My Pass; wall + vote buttons live on artist pages. Also: scene-love earn (+2 commenting on an artist's post, cap 10/day), show RSVPs (`show_rsvps`, "🙋 I'm going" + counts), founding # + flair chips next to names in the feed, lineage line on My Pass ("Brought into the city by …").
+
 Studio → Analytics → **Engagement Engine**: points issued by reason (7d), check-ins today, members on 3+ day streaks, month leaderboard, current prompt + setter. Money-language rule pre-billing: member surfaces say streams/fan-powered ("Backed By Your Plays"), never $.
 
 ## 9. Ash — the ops agent
