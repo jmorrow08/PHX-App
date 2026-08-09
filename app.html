@@ -220,11 +220,29 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
 .ps-art{width:min(240px,58vw);aspect-ratio:1;border-radius:18px;background:linear-gradient(135deg,#1A0E06,#241108);display:flex;align-items:center;justify-content:center;font-size:3rem;overflow:hidden;box-shadow:0 18px 50px rgba(0,0,0,.55)}
 .ps-art img{width:100%;height:100%;object-fit:cover}
 .ps-side-btn{width:42px;height:42px;border-radius:50%;background:var(--bg3);border:1px solid var(--border);color:var(--white);font-size:1.05rem;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.ps-controls{display:flex;align-items:center;justify-content:center;gap:1rem;margin-top:.3rem}
-.ps-ctrl{width:46px;height:46px;border-radius:50%;background:var(--bg3);border:1px solid var(--border);color:var(--white);font-size:1.05rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s}
-.ps-ctrl:active{background:var(--bg4)}
-.ps-ctrl[aria-pressed="true"]{color:var(--orange);border-color:rgba(249,115,22,.4)}
-.ps-ctrl.play.big{width:64px;height:64px;background:var(--orange);border:none;color:#fff;font-size:1.4rem;box-shadow:0 10px 30px rgba(249,115,22,.35)}
+.ps-controls{display:flex;align-items:center;justify-content:center;gap:1.1rem;margin-top:.3rem}
+.ps-ctrl{width:48px;height:48px;border-radius:50%;background:var(--bg3);border:1px solid var(--border);color:var(--white);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s,transform .1s;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:manipulation}
+.ps-ctrl:active{background:var(--bg4);transform:scale(.94)}
+.ps-ctrl svg{width:22px;height:22px}
+.ps-ctrl.ghost{width:40px;height:40px;background:none;border:none;color:var(--faint)}
+.ps-ctrl.ghost svg{width:19px;height:19px}
+.ps-ctrl[aria-pressed="true"]{color:var(--orange)}
+.ps-ctrl.play.big{width:68px;height:68px;background:linear-gradient(145deg,#FB923C,var(--orange) 55%,#EA580C);border:none;color:#fff;box-shadow:0 12px 34px rgba(249,115,22,.4),inset 0 1px 0 rgba(255,255,255,.25)}
+.ps-ctrl.play.big svg{width:28px;height:28px;margin-left:2px}
+.ps-ctrl.play.big:active{transform:scale(.95)}
+/* Draggable seek — one styled range input everywhere, --p paints the fill */
+.seek{-webkit-appearance:none;appearance:none;width:100%;height:26px;background:transparent;cursor:pointer;margin:0;--p:0%;touch-action:none}
+.seek::-webkit-slider-runnable-track{height:5px;border-radius:3px;background:linear-gradient(90deg,var(--orange) var(--p),rgba(241,241,248,.13) var(--p))}
+.seek::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:#fff;margin-top:-5.5px;box-shadow:0 2px 8px rgba(0,0,0,.55);transition:transform .1s}
+.seek:active::-webkit-slider-thumb{transform:scale(1.25)}
+.seek::-moz-range-track{height:5px;border-radius:3px;background:rgba(241,241,248,.13)}
+.seek::-moz-range-progress{height:5px;border-radius:3px;background:var(--orange)}
+.seek::-moz-range-thumb{width:16px;height:16px;border:none;border-radius:50%;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.55)}
+.seek.mini{flex:1;max-width:200px;height:18px}
+.seek.mini::-webkit-slider-runnable-track{height:3px}
+.seek.mini::-webkit-slider-thumb{width:11px;height:11px;margin-top:-4px}
+.mp-btn svg{width:16px;height:16px}
+.mp-btn.play svg{width:19px;height:19px}
 /* Settings */
 .set-wrap{max-width:600px}
 .set-hero{display:flex;align-items:center;gap:1rem;background:linear-gradient(135deg,#1A0E06,var(--bg2) 70%);border:1px solid var(--border);border-radius:16px;padding:1.1rem 1.2rem;margin-bottom:1rem}
@@ -2106,14 +2124,14 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
       <button class="ps-side-btn" title="Share to City Feed" onclick="shareCurrentTrackToFeed()">↗</button>
     </div>
     <div style="font-size:.68rem;color:var(--faint);margin-bottom:.6rem">This track: <span id="current-stream-count">0</span> streams</div>
-    <div class="progress-wrap" style="cursor:pointer;height:6px" onclick="var r=this.getBoundingClientRect();seekToFraction((event.clientX-r.left)/r.width)"><div class="progress-fill" id="prog-fill"></div></div>
-    <div class="progress-times" style="margin-bottom:.7rem"><span id="elapsed-time">0:00</span><span id="total-time">0:00</span></div>
+    <input type="range" class="seek" id="ps-seek" min="0" max="1000" value="0" aria-label="Seek">
+    <div class="progress-times" style="margin-bottom:.5rem"><span id="elapsed-time">0:00</span><span id="total-time">0:00</span></div>
     <div class="ps-controls">
-      <button class="ps-ctrl" id="ctrl-shuffle" aria-pressed="false" title="Shuffle" onclick="toggleShuffle()">⇄</button>
-      <button class="ps-ctrl" title="Previous" onclick="prevTrack()">⏮</button>
-      <button class="ps-ctrl ctrl-btn play big" id="play-btn" onclick="togglePlay()">▶</button>
-      <button class="ps-ctrl" title="Next" onclick="nextTrack()">⏭</button>
-      <button class="ps-ctrl" id="ctrl-repeat" aria-pressed="false" title="Repeat" onclick="toggleRepeat()">↺</button>
+      <button class="ps-ctrl ghost" id="ctrl-shuffle" aria-pressed="false" title="Shuffle" onclick="toggleShuffle()"></button>
+      <button class="ps-ctrl" title="Previous" data-picon="prev" onclick="prevTrack()"></button>
+      <button class="ps-ctrl ctrl-btn play big" id="play-btn" onclick="togglePlay()"></button>
+      <button class="ps-ctrl" title="Next" data-picon="next" onclick="nextTrack()"></button>
+      <button class="ps-ctrl ghost" id="ctrl-repeat" aria-pressed="false" title="Repeat" onclick="toggleRepeat()"></button>
     </div>
     <div class="sh" style="margin:1rem 0 .4rem"><h3 style="font-size:.82rem">Up Next</h3><span style="font-size:.7rem;color:var(--muted);margin-left:auto" id="queue-count">—</span></div>
     <div class="track-list queue-list" id="queue-list"><div class="pf-empty">Play something and the queue builds itself.</div></div>
@@ -2305,11 +2323,11 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
   <div class="mp-art" onclick="openFullPlayer()" style="cursor:pointer" title="Open player">🎵</div>
   <div class="mp-info" onclick="openFullPlayer()" title="Open player"><div class="mp-title" id="mp-title">PHX</div><div class="mp-artist" id="mp-artist">Murkemz · Recess EP</div></div>
   <div class="mp-controls">
-    <button class="mp-btn" aria-label="Previous track" onclick="prevTrack()">⏮</button>
-    <button class="mp-btn play" id="mp-play-btn" aria-label="Play or pause" onclick="togglePlay()">▶</button>
-    <button class="mp-btn" aria-label="Next track" onclick="nextTrack()">⏭</button>
+    <button class="mp-btn" aria-label="Previous track" data-picon="prev" onclick="prevTrack()"></button>
+    <button class="mp-btn play" id="mp-play-btn" aria-label="Play or pause" onclick="togglePlay()"></button>
+    <button class="mp-btn" aria-label="Next track" data-picon="next" onclick="nextTrack()"></button>
   </div>
-  <div class="mp-bar"><div class="mp-fill" id="mp-fill"></div></div>
+  <input type="range" class="seek mini" id="mp-seek" min="0" max="1000" value="0" aria-label="Seek">
   <div class="mp-time" id="mp-time">0:00 / 0:00</div>
   <div class="mp-stream-live" id="mp-stream-indicator" style="display:none">● 30s counting</div>
 </div>
@@ -3099,7 +3117,7 @@ var TRACK_META = {
 
 function playAudio() {
   streamData.playing = true;
-  document.querySelectorAll('.ctrl-btn.play, .mp-btn.play').forEach(function(b){ b.textContent = '⏸'; });
+  document.querySelectorAll('.ctrl-btn.play, .mp-btn.play').forEach(function(b){ b.innerHTML = PICON.pause; });
   startStreamTimer(streamData.currentTrack);
   // Autoplay rejection is an expected browser policy outcome, not a fault
   if (PHX_AUDIO && PHX_AUDIO.src) PHX_AUDIO.play().catch(function(){});
@@ -3108,7 +3126,7 @@ function playAudio() {
 
 function pauseAudio() {
   streamData.playing = false;
-  document.querySelectorAll('.ctrl-btn.play, .mp-btn.play').forEach(function(b){ b.textContent = '▶'; });
+  document.querySelectorAll('.ctrl-btn.play, .mp-btn.play').forEach(function(b){ b.innerHTML = PICON.play; });
   _finalizeListen();
   clearStreamTimer();
   if (PHX_AUDIO) PHX_AUDIO.pause();
@@ -3137,6 +3155,31 @@ function playTrackByKey(key) {
 
 // Shuffle and repeat were decorative buttons with no handler. Both are real
 // now and both feed nextTrack(), including the auto-advance at track end.
+// ── Player iconography: crisp SVG, not text glyphs ──
+var PICON = {
+  play:    '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.14v13.72c0 .8.87 1.3 1.56.88l10.54-6.86a1.04 1.04 0 0 0 0-1.76L9.56 4.26A1.04 1.04 0 0 0 8 5.14z"/></svg>',
+  pause:   '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="4.5" width="4" height="15" rx="1.2"/><rect x="14" y="4.5" width="4" height="15" rx="1.2"/></svg>',
+  prev:    '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 5.5a1 1 0 0 1 2 0v5.05l9.42-5.9A1 1 0 0 1 19 5.5v13a1 1 0 0 1-1.58.85L8 13.45v5.05a1 1 0 0 1-2 0v-13z"/></svg>',
+  next:    '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18 5.5a1 1 0 0 0-2 0v5.05L6.58 4.65A1 1 0 0 0 5 5.5v13a1 1 0 0 0 1.58.85L16 13.45v5.05a1 1 0 0 0 2 0v-13z"/></svg>',
+  shuffle: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M10.59 9.17 5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41-1.41 1.42 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/></svg>',
+  repeat:  '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/></svg>'
+};
+// Stamp icons onto whatever buttons exist (safe to call repeatedly)
+function initPlayerIcons() {
+  var map = { 'ctrl-shuffle': 'shuffle', 'ctrl-repeat': 'repeat' };
+  Object.keys(map).forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.innerHTML = PICON[map[id]];
+  });
+  document.querySelectorAll('[data-picon]').forEach(function(el) {
+    if (PICON[el.dataset.picon]) el.innerHTML = PICON[el.dataset.picon];
+  });
+  document.querySelectorAll('.ctrl-btn.play, .mp-btn.play').forEach(function(b) {
+    b.innerHTML = streamData.playing ? PICON.pause : PICON.play;
+  });
+}
+_whenDomReady(initPlayerIcons);
+
 var _shuffleOn = false, _repeatOn = false;
 
 function toggleShuffle() {
@@ -3318,12 +3361,11 @@ setInterval(function() {
       var totEl = document.getElementById('total-time');
       if (totEl && totEl.textContent !== fmtTime(realDur)) totEl.textContent = fmtTime(realDur);
     } else {
-      prog = (prog + 0.03) % 100;
+      // Simulated playback advances in real time (0.3s per tick) — the old
+      // fixed 0.03%/tick took ~16 minutes to cross the bar and read as frozen
+      prog = (prog + (totalSeconds ? (0.3 / totalSeconds) * 100 : 0.15)) % 100;
     }
-    var pf = document.getElementById('prog-fill');
-    if (pf) pf.style.width = prog + '%';
-    var mf = document.getElementById('mp-fill');
-    if (mf) mf.style.width = prog + '%';
+    _paintSeek(prog);
 
     var elapsed = realDur ? PHX_AUDIO.currentTime : (prog / 100) * totalSeconds;
     var elEl = document.getElementById('elapsed-time');
@@ -3332,6 +3374,34 @@ setInterval(function() {
     if (mpT) mpT.textContent = fmtTime(elapsed) + ' / ' + fmtTime(totalSeconds);
   }
 }, 300);
+
+// One painter for every seek surface — skipped while a finger is on a thumb
+var _seekDragging = false;
+function _paintSeek(p) {
+  if (_seekDragging) return;
+  ['ps-seek', 'mp-seek'].forEach(function(id) {
+    var s = document.getElementById(id);
+    if (s) { s.value = Math.round(p * 10); s.style.setProperty('--p', p + '%'); }
+  });
+  var pf = document.getElementById('prog-fill');
+  if (pf) pf.style.width = p + '%';
+  var mf = document.getElementById('mp-fill');
+  if (mf) mf.style.width = p + '%';
+}
+function _wireSeek(id) {
+  var s = document.getElementById(id);
+  if (!s || s._wired) return;
+  s._wired = true;
+  s.addEventListener('input', function() {
+    _seekDragging = true;
+    s.style.setProperty('--p', (s.value / 10) + '%');
+  });
+  s.addEventListener('change', function() {
+    seekToFraction(s.value / 1000);
+    _seekDragging = false;
+  });
+}
+_whenDomReady(function() { _wireSeek('ps-seek'); _wireSeek('mp-seek'); });
 
 function playTrack(el, title, artist, feat, album, duration, trackId, streamCount, artIcon) {
   // Static onclick args carry legacy counts — live DB counts win
