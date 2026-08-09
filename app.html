@@ -214,6 +214,26 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
 .lib-name{font-size:.8rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .lib-sub{font-size:.66rem;color:var(--muted);margin-top:.15rem}
 .rel-kind{font:600 .6rem var(--mono);letter-spacing:.06em;color:var(--orange-l)}
+/* Player sheet */
+.ps-card{background:linear-gradient(180deg,#141021,var(--bg2) 40%);border:1px solid var(--border);border-radius:20px 20px 0 0;max-width:520px;width:100%;max-height:88vh;overflow-y:auto;padding:1rem 1.3rem calc(1.2rem + env(safe-area-inset-bottom))}
+.ps-art-wrap{display:flex;justify-content:center}
+.ps-art{width:min(240px,58vw);aspect-ratio:1;border-radius:18px;background:linear-gradient(135deg,#1A0E06,#241108);display:flex;align-items:center;justify-content:center;font-size:3rem;overflow:hidden;box-shadow:0 18px 50px rgba(0,0,0,.55)}
+.ps-art img{width:100%;height:100%;object-fit:cover}
+.ps-side-btn{width:42px;height:42px;border-radius:50%;background:var(--bg3);border:1px solid var(--border);color:var(--white);font-size:1.05rem;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ps-controls{display:flex;align-items:center;justify-content:center;gap:1rem;margin-top:.3rem}
+.ps-ctrl{width:46px;height:46px;border-radius:50%;background:var(--bg3);border:1px solid var(--border);color:var(--white);font-size:1.05rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s}
+.ps-ctrl:active{background:var(--bg4)}
+.ps-ctrl[aria-pressed="true"]{color:var(--orange);border-color:rgba(249,115,22,.4)}
+.ps-ctrl.play.big{width:64px;height:64px;background:var(--orange);border:none;color:#fff;font-size:1.4rem;box-shadow:0 10px 30px rgba(249,115,22,.35)}
+/* Artist videos */
+.apv-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1rem}
+.apv-card{min-width:0}
+.apv-frame{position:relative;aspect-ratio:16/9;border-radius:12px;overflow:hidden;background:#000;cursor:pointer}
+.apv-frame img{width:100%;height:100%;object-fit:cover;display:block}
+.apv-frame iframe{width:100%;height:100%;display:block;border:0}
+.apv-play{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:1.4rem;color:#fff;background:rgba(7,7,15,.35)}
+.apv-play::after{content:'';position:absolute;width:58px;height:58px;border-radius:50%;background:rgba(249,115,22,.9);z-index:-1}
+.apv-title{font-size:.84rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
 /* EVENTS */
 .event-row{display:grid;grid-template-columns:70px 1fr auto;gap:1rem;align-items:center;background:var(--bg3);border:none;border-radius:var(--r-m);padding:1rem 1.2rem;margin-bottom:.75rem}
@@ -803,7 +823,6 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
     <button class="nav-item nav-soon-item" onclick="showView('cuts')"><span class="icon">✂️</span>PHX Cuts<span class="nav-soon">SOON</span></button>
     <div class="sb-section">My PHX</div>
     <button class="nav-item" onclick="showView('mypass')"><span class="icon">💳</span>My Pass</button>
-    <button class="nav-item" onclick="showView('profile')"><span class="icon">👤</span>Profile</button>
     <button class="nav-item" onclick="openMyPage()"><span class="icon">⭐</span>My Page</button>
     <button class="nav-item" onclick="showView('settings')"><span class="icon">⚙️</span>Settings</button>
   </nav>
@@ -1009,55 +1028,14 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
         <span>💚 paid monthly</span>
       </div>
 
-      <!-- Expanded Now Playing -->
-      <div class="music-player-expanded">
-        <div class="np-header">
-          <div class="np-label">▶ Now Playing</div>
-          <div class="np-stream-badge">This track: <span id="current-stream-count">15,247</span> streams</div>
-        </div>
-        <div class="np-body">
-          <div class="np-art-big" id="np-art-icon">🎵</div>
-          <div class="np-details">
-            <div class="np-title-big" id="np-title-big">PHX <span class="badge badge-orange" style="font-size:.62rem">EXCLUSIVE</span></div>
-            <div class="np-artist-big" id="np-artist-big">Murkemz</div>
-            <div class="np-album" id="np-album">Recess EP · 2026 · Prod. PA. Dre</div>
-          </div>
-          <div class="np-side-actions">
-            <button class="np-side-btn" id="np-like-btn" title="Like" onclick="toggleCurrentTrackLike()">♥</button>
-            <button class="np-side-btn" title="Share to City Feed" onclick="shareCurrentTrackToFeed()">↗</button>
-          </div>
-        </div>
-        <div class="np-progress-area">
-          <div class="progress-wrap"><div class="progress-fill" id="prog-fill"></div></div>
-          <div class="progress-times"><span id="elapsed-time">0:00</span><span id="total-time">0:00</span></div>
-        </div>
-        <div class="np-controls">
-          <button class="ctrl-btn" id="ctrl-shuffle" title="Shuffle" aria-pressed="false" onclick="toggleShuffle()">⇄</button>
-          <button class="ctrl-btn" title="Previous" onclick="prevTrack()">⏮</button>
-          <button class="ctrl-btn ctrl-skip" title="-15s" onclick="skipSeconds(-15)">«15</button>
-          <button class="ctrl-btn play" id="play-btn" onclick="togglePlay()">▶</button>
-          <button class="ctrl-btn ctrl-skip" title="+15s" onclick="skipSeconds(15)">15»</button>
-          <button class="ctrl-btn" title="Next" onclick="nextTrack()">⏭</button>
-          <button class="ctrl-btn" id="ctrl-repeat" title="Repeat" aria-pressed="false" onclick="toggleRepeat()">↺</button>
-        </div>
-
-        <!-- Queue — visible inline (Apple Music style, not hidden in a bottom sheet) -->
-        <div class="queue-section">
-          <div class="queue-header">
-            <span class="queue-label">Up Next</span>
-            <span style="font-size:.72rem;color:var(--muted)" id="queue-count">—</span>
-          </div>
-          <!-- Filled from the live catalog — was four hard-coded rows whose
-               titles no longer matched what the database actually holds -->
-          <div class="queue-list track-list" id="queue-list"><div class="pf-empty">Loading…</div></div>
-        </div>
-      </div>
+      <!-- The player lives in the bottom-bar sheet now — tap the song bar.
+           This page is the catalog; the sheet is the player. -->
 
       <div>
           <!-- Artist Spotlight -->
           <div class="sh"><h3>Featured Artist</h3><a href="#" onclick="showArtistDirectory();return false">All Artists</a></div>
           <div class="artist-spotlight">
-            <div class="artist-banner">
+            <div class="artist-banner" onclick="showArtistPage('murkemz')" style="cursor:pointer" role="button" aria-label="Open Murkemz">
               <div class="artist-avatar">M</div>
               <div>
                 <div class="artist-banner-name">Murkemz <span class="badge badge-orange" style="font-size:.6rem">PHX Founder</span></div>
@@ -1069,6 +1047,10 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
                 <div class="astat"><div class="astat-val" id="murkemz-monthly">—</div><div class="astat-label">Monthly Listeners</div></div>
                 <div class="astat"><div class="astat-val" id="murkemz-total">—</div><div class="astat-label">Total Streams</div></div>
                 <div class="astat"><div class="astat-val" style="color:var(--green)">💸</div><div class="astat-label">Paid From Your Pass</div></div>
+              </div>
+              <div style="display:flex;gap:.6rem;flex-wrap:wrap">
+                <button class="upgrade-btn" style="margin:0;width:auto;padding:.55rem 1.3rem;font-size:.82rem" onclick="playSpotlightTop(this)">▶ Play Murkemz</button>
+                <button class="tb-btn" style="font-size:.8rem;padding:.5rem 1rem" onclick="showArtistPage('murkemz')">View artist →</button>
               </div>
             </div>
           </div>
@@ -1105,7 +1087,10 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
           <textarea class="form-input" id="set-bio" rows="2" maxlength="220" style="resize:none;width:100%;font-family:inherit"></textarea></div>
         <div class="form-field"><label class="form-label">City / neighborhood</label>
           <input class="form-input" id="set-city" maxlength="40"></div>
-        <button class="upgrade-btn" style="margin:.3rem 0 0;width:auto;padding:.6rem 1.4rem" onclick="saveSettingsProfile(this)">Save profile</button>
+        <div style="display:flex;gap:.6rem;flex-wrap:wrap;margin-top:.3rem">
+          <button class="upgrade-btn" style="margin:0;width:auto;padding:.6rem 1.4rem" onclick="saveSettingsProfile(this)">Save profile</button>
+          <button class="tb-btn" style="font-size:.8rem" onclick="showView('profile')">🖼 Photos &amp; profile page</button>
+        </div>
         <div id="set-profile-msg" style="font-size:.76rem;margin-top:.5rem;min-height:1em"></div>
       </div>
       <div class="card" style="max-width:560px;margin-bottom:1rem">
@@ -2073,29 +2058,34 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
 
 <!-- AUTH MODAL — Supabase email/password -->
 <!-- TYPED CODE GENERATOR (admin) -->
-<!-- Player sheet: the bottom bar's popup — Now Playing / Up Next / Recently Played -->
+<!-- Player sheet: THE player — the bottom bar's popup. Carries the legacy
+     now-playing ids so every existing updater (title, art, progress, stream
+     badge, like state) keeps working untouched. -->
 <div id="player-sheet" role="dialog" aria-modal="true" aria-label="Player" style="display:none;position:fixed;inset:0;z-index:540;background:rgba(7,7,15,.92);backdrop-filter:blur(6px);align-items:flex-end;justify-content:center" onclick="if(event.target===this)closePlayerSheet()">
-  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:20px 20px 0 0;max-width:520px;width:100%;max-height:86vh;overflow-y:auto;padding:1.1rem 1.2rem calc(1.2rem + env(safe-area-inset-bottom))">
-    <div style="width:44px;height:4px;border-radius:2px;background:var(--border);margin:0 auto .9rem;cursor:pointer" onclick="closePlayerSheet()"></div>
-    <div style="display:flex;align-items:center;gap:1rem;margin-bottom:.8rem">
+  <div class="ps-card">
+    <div style="width:44px;height:4px;border-radius:2px;background:var(--border);margin:0 auto 1rem;cursor:pointer;flex-shrink:0" onclick="closePlayerSheet()"></div>
+    <div class="ps-art-wrap"><div class="ps-art" id="np-art-icon">🎵</div></div>
+    <div style="display:flex;align-items:center;gap:.8rem;margin:.9rem 0 .2rem">
       <div style="flex:1;min-width:0">
-        <div id="ps-title" style="font-family:var(--disp);font-size:1.15rem;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">—</div>
-        <div id="ps-artist" style="font-size:.82rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">—</div>
+        <div class="np-title-big" id="np-title-big" style="font-size:1.25rem">—</div>
+        <div class="np-artist-big" id="np-artist-big">—</div>
+        <div class="np-album" id="np-album" style="font-size:.74rem;color:var(--muted)"></div>
       </div>
-      <button class="np-side-btn" id="ps-like-btn" title="Like song" onclick="toggleCurrentTrackLike();renderPlayerSheet()">♥</button>
-      <button class="np-side-btn" title="Share" onclick="shareCurrentTrackToFeed()">↗</button>
+      <button class="ps-side-btn" id="np-like-btn" title="Like song" onclick="toggleCurrentTrackLike()">♥</button>
+      <button class="ps-side-btn" title="Share to City Feed" onclick="shareCurrentTrackToFeed()">↗</button>
     </div>
-    <div class="progress-wrap" style="margin-bottom:.3rem"><div class="progress-fill" id="ps-fill"></div></div>
-    <div id="ps-time" style="font-family:var(--mono);font-size:.7rem;color:var(--muted);text-align:right;margin-bottom:.6rem">0:00 / 0:00</div>
-    <div class="np-controls" style="margin-bottom:1rem">
-      <button class="ctrl-btn" title="Shuffle" onclick="toggleShuffle()">⇄</button>
-      <button class="ctrl-btn" title="Previous" onclick="prevTrack()">⏮</button>
-      <button class="ctrl-btn play" id="ps-play-btn" onclick="togglePlay()">▶</button>
-      <button class="ctrl-btn" title="Next" onclick="nextTrack()">⏭</button>
-      <button class="ctrl-btn" title="Repeat" onclick="toggleRepeat()">↺</button>
+    <div style="font-size:.68rem;color:var(--faint);margin-bottom:.6rem">This track: <span id="current-stream-count">0</span> streams</div>
+    <div class="progress-wrap" style="cursor:pointer;height:6px" onclick="var r=this.getBoundingClientRect();seekToFraction((event.clientX-r.left)/r.width)"><div class="progress-fill" id="prog-fill"></div></div>
+    <div class="progress-times" style="margin-bottom:.7rem"><span id="elapsed-time">0:00</span><span id="total-time">0:00</span></div>
+    <div class="ps-controls">
+      <button class="ps-ctrl" id="ctrl-shuffle" aria-pressed="false" title="Shuffle" onclick="toggleShuffle()">⇄</button>
+      <button class="ps-ctrl" title="Previous" onclick="prevTrack()">⏮</button>
+      <button class="ps-ctrl ctrl-btn play big" id="play-btn" onclick="togglePlay()">▶</button>
+      <button class="ps-ctrl" title="Next" onclick="nextTrack()">⏭</button>
+      <button class="ps-ctrl" id="ctrl-repeat" aria-pressed="false" title="Repeat" onclick="toggleRepeat()">↺</button>
     </div>
-    <div class="sh" style="margin-bottom:.4rem"><h3 style="font-size:.82rem">Up Next</h3></div>
-    <div class="track-list" id="ps-queue"></div>
+    <div class="sh" style="margin:1rem 0 .4rem"><h3 style="font-size:.82rem">Up Next</h3><span style="font-size:.7rem;color:var(--muted);margin-left:auto" id="queue-count">—</span></div>
+    <div class="track-list queue-list" id="queue-list"><div class="pf-empty">Play something and the queue builds itself.</div></div>
     <div class="sh" style="margin:1rem 0 .4rem"><h3 style="font-size:.82rem">Recently Played</h3></div>
     <div class="track-list" id="ps-recent"></div>
   </div>
@@ -2119,7 +2109,8 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
       <div style="font-size:.95rem;font-weight:800" id="lib-sheet-title">Library</div>
       <button onclick="closeLibSheet()" aria-label="Close" style="background:none;border:none;color:var(--muted);cursor:pointer">✕</button>
     </div>
-    <div id="lib-sheet-body" style="max-height:62vh;overflow-y:auto"></div>
+    <div id="lib-sheet-actions" style="display:flex;gap:.5rem;margin-bottom:.7rem"></div>
+    <div id="lib-sheet-body" style="max-height:58vh;overflow-y:auto"></div>
   </div>
 </div>
 
@@ -3278,13 +3269,6 @@ setInterval(function() {
     if (elEl) elEl.textContent = fmtTime(elapsed);
     var mpT = document.getElementById('mp-time');
     if (mpT) mpT.textContent = fmtTime(elapsed) + ' / ' + fmtTime(totalSeconds);
-    // Player sheet mirrors the bar when open
-    var psf = document.getElementById('ps-fill');
-    if (psf) psf.style.width = prog + '%';
-    var psT = document.getElementById('ps-time');
-    if (psT) psT.textContent = fmtTime(elapsed) + ' / ' + fmtTime(totalSeconds);
-    var psPlay = document.getElementById('ps-play-btn'), mpPlay = document.getElementById('mp-play-btn');
-    if (psPlay && mpPlay && psPlay.textContent !== mpPlay.textContent) psPlay.textContent = mpPlay.textContent;
   }
 }, 300);
 
@@ -3825,6 +3809,7 @@ async function loadMyProfile() {
       .eq('id', _authUser.id).maybeSingle();
     _myProfile = pRes.data || null;
     paintMyAvatar();
+    updateAuthBtnLabel();
     return;
   }
 
@@ -3833,6 +3818,16 @@ async function loadMyProfile() {
   // roster with one empty shell per browser session.
   var res = await _sb.from('member_profiles').select('*').eq('device_id', getGuestId()).maybeSingle();
   _myProfile = res.data || null;
+}
+
+// Top bar shows a name, never an email address
+function updateAuthBtnLabel() {
+  var btn = document.getElementById('auth-btn');
+  if (!btn || !_authUser) return;
+  var p = _myProfile || {};
+  var name = (p.display_name && p.display_name !== 'PHX Member') ? p.display_name
+           : (p.username ? '@' + p.username : 'Account');
+  btn.textContent = '👤 ' + name + ' · Log Out';
 }
 
 // The pencil: accounts with a tag manage identity in Settings (tag changes
@@ -4031,7 +4026,7 @@ async function loadCityFeed(force) {
   // Posts + this device's likes, in parallel
   var results = await Promise.all([
     _sb.from('feed_posts')
-      .select('*, tracks(id,title,featuring,exclusive_tier,stream_count,duration_seconds,audio_url,artist_id,artists(name,slug))')
+      .select('*, tracks(id,title,cover_url,featuring,exclusive_tier,stream_count,duration_seconds,audio_url,artist_id,artists(name,slug))')
       .order('created_at', { ascending: false })
       .limit(30),
     _sb.from('post_likes').select('post_id,reaction').eq('user_id', getGuestId())
@@ -4050,7 +4045,7 @@ async function loadCityFeed(force) {
     .map(function(p){ return p.shared_post_id; });
   if (missingShared.length) {
     var sharedRes = await _sb.from('feed_posts')
-      .select('*, tracks(id,title,featuring,exclusive_tier,stream_count,duration_seconds,audio_url,artists(name,slug))')
+      .select('*, tracks(id,title,cover_url,featuring,exclusive_tier,stream_count,duration_seconds,audio_url,artists(name,slug))')
       .in('id', missingShared);
     (sharedRes.data || []).forEach(function(p){ _feedPosts[p.id] = p; });
   }
@@ -4131,11 +4126,10 @@ function renderComposer() {
           return '<option value="' + o.id + '"' + (o.id === choice ? ' selected' : '') + '>' + escapeHtml(o.label) + '</option>';
         }).join('') +
       '</select>' +
-      '<a href="#" style="color:var(--orange)" onclick="editUsername();return false" aria-label="Change username">✏️</a>' +
     '</div>';
   } else {
-    identityChip = '<div class="persona-chip"><strong style="color:var(--white)">' + persona.avatar + ' ' + escapeHtml(persona.name) + '</strong>' +
-      '<a href="#" style="color:var(--orange)" onclick="editUsername();return false" aria-label="Change username">✏️</a></div>';
+    // Identity edits live in Settings — no casual pencil in the feed
+    identityChip = '<div class="persona-chip"><strong style="color:var(--white)">' + persona.avatar + ' ' + escapeHtml(persona.name) + '</strong></div>';
   }
   return '<div class="composer">' +
     '<div class="composer-top">' +
@@ -4548,9 +4542,10 @@ function renderFeedPost(p) {
     var t = p.tracks;
     rememberTrackArtist(t);
     var artistName = t.artists ? t.artists.name : '';
+    var tArt = safeUrl(t.cover_url);
     trackCard = '<div class="track-row" style="background:var(--bg4);border:1px solid var(--border);margin-top:.6rem" ' +
       'onclick="playPostTrack(\'' + p.id + '\')">' +
-      '<div class="track-art">🎵</div>' +
+      '<div class="track-art">' + (tArt ? '<img src="' + tArt + '" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:6px">' : '🎵') + '</div>' +
       '<div class="track-info"><div class="track-title">' + escapeHtml(t.title) + '</div>' +
         '<div class="track-feat">' + artistLinkHtml(artistName, t.artists && t.artists.slug) +
           (t.featuring ? ' ft. ' + escapeHtml(t.featuring) : '') + '</div></div>' +
@@ -4581,7 +4576,7 @@ function renderFeedPost(p) {
         '<div style="font-size:.8rem;color:var(--muted);white-space:pre-wrap">' + escapeHtml(orig.content || '') + '</div>' +
         origMedia +
         (orig.tracks ? '<div class="track-row" style="background:var(--bg3);border:1px solid var(--border);margin-top:.45rem" onclick="event.stopPropagation();playPostTrack(\'' + orig.id + '\')">' +
-            '<div class="track-art">🎵</div>' +
+            '<div class="track-art">' + (safeUrl(orig.tracks.cover_url) ? '<img src="' + safeUrl(orig.tracks.cover_url) + '" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:6px">' : '🎵') + '</div>' +
             '<div class="track-info"><div class="track-title">' + escapeHtml(orig.tracks.title) + '</div>' +
               '<div class="track-feat">' + escapeHtml(orig.tracks.artists ? orig.tracks.artists.name : '') + '</div></div>' +
             '<div class="track-streams">▶</div>' +
@@ -5736,7 +5731,9 @@ async function submitTrack() {
       artist_id: artistId,
       title: projectName,
       type: relType === 'ep_track' ? 'ep' : (multi && relType === 'single' ? 'album' : 'album'),
-      cover_url: coverUrl
+      cover_url: coverUrl,
+      // Albums inherit the submission's genre so genre browsing catches them
+      genre: ((document.getElementById('track-genre') || {}).value || null)
     }).select('id').single();
     if (!albRes.error && albRes.data) albumId = albRes.data.id;
   }
@@ -7568,8 +7565,28 @@ function _normalizeQueueTrack(t) {
   };
 }
 
+// Explicit queues (playlists, liked songs) survive the next play: the lock
+// tells _resolveQueueFor "the queue is already set, don't rebuild it".
+var _queueLocked = false;
+function playListAsQueue(tracks, opts) {
+  opts = opts || {};
+  var list = (tracks || []).filter(function(t){ return t && t.id && t.audio_url; });
+  if (!list.length) { showToast('No playable songs in this list yet'); return; }
+  _playQueue = list.map(_normalizeQueueTrack);
+  _queuePos = opts.shuffle ? Math.floor(Math.random() * list.length) : 0;
+  if (opts.shuffle && typeof _shuffleOn !== 'undefined' && !_shuffleOn) toggleShuffle();
+  _queueLocked = true;
+  playTrackById(_playQueue[_queuePos].id);
+}
+
 // Figure out which visible list this track came from and make it the queue.
 function _resolveQueueFor(trackId) {
+  if (_queueLocked) {
+    _queueLocked = false;
+    for (var qi = 0; qi < _playQueue.length; qi++) {
+      if (_playQueue[qi].id === trackId) { _queuePos = qi; renderUpNext(); return; }
+    }
+  }
   var apActive = (function(){ var v = document.getElementById('v-artist-page'); return v && v.classList.contains('active'); })();
   var candidates = apActive
     ? [_artistPageTracks, (typeof _musicCatalogTracks !== 'undefined' ? _musicCatalogTracks : []), (typeof _lastSearchResults !== 'undefined' ? _lastSearchResults : [])]
@@ -8353,7 +8370,8 @@ _sb.auth.onAuthStateChange(function(event, session) {
   _authUser = session ? session.user : null;
   _markAuthResolved();   // identity is now known — release anything waiting on it
   var btn = document.getElementById('auth-btn');
-  if (btn) btn.textContent = _authUser ? '👤 ' + (_authUser.email || '').split('@')[0] + ' · Log Out' : 'Log In';
+  // Never the email — the profile name lands via updateAuthBtnLabel() once loaded
+  if (btn) btn.textContent = _authUser ? '👤 Account · Log Out' : 'Log In';
   if (event === 'PASSWORD_RECOVERY') {
     // User arrived from a reset-password email link
     var np = window.prompt('Enter a new password (8+ characters):');
@@ -9589,8 +9607,10 @@ async function showArtistPage(slug) {
     // Posts tab: everything posted AS this artist — via their artist Page
     // (matched by slug) or as the owner's artist voice. Not their posts as
     // other pages (those live on those pages).
-    _sb.from('pages').select('id').eq('slug', slug).eq('page_type','artist').maybeSingle()
+    _sb.from('pages').select('id').eq('slug', slug).eq('page_type','artist').maybeSingle(),
+    _sb.from('artist_videos').select('*').eq('artist_id', artist.id).order('position').order('created_at')
   ]);
+  _artistVideos = results[6].data || [];
   _artistPageTracks = results[0].data || [];
   var support = results[1].data || {};
   _artistMerch = results[2].data || [];
@@ -9618,7 +9638,7 @@ async function showArtistPage(slug) {
   _artistPosts = [];
   try {
     var artistPageRow = results[5].data;
-    var postSel = 'id,user_id,page_id,author_name,author_avatar,author_role,content,likes_count,comments_count,media_url,shared_post_id,created_at,tracks(id,title,featuring,exclusive_tier,stream_count,duration_seconds,audio_url,artist_id,artists(name,slug))';
+    var postSel = 'id,user_id,page_id,author_name,author_avatar,author_role,content,likes_count,comments_count,media_url,shared_post_id,created_at,tracks(id,title,cover_url,featuring,exclusive_tier,stream_count,duration_seconds,audio_url,artist_id,artists(name,slug))';
     var orParts = [];
     if (artistPageRow && artistPageRow.id) orParts.push('page_id.eq.' + artistPageRow.id);
     if (artist.user_id) orParts.push('and(user_id.eq.' + artist.user_id + ',page_id.is.null)');
@@ -9679,6 +9699,7 @@ async function showArtistPage(slug) {
 
     '<div class="ap-tabs" id="ap-tabs">' +
       '<button class="ap-tab on" data-tab="music" onclick="apTab(\'music\')">Music</button>' +
+      ((_artistVideos.length || artistPageCanEdit()) ? '<button class="ap-tab" data-tab="videos" onclick="apTab(\'videos\')">Videos' + (_artistVideos.length ? ' <span class="n">' + _artistVideos.length + '</span>' : '') + '</button>' : '') +
       (_artistMerch.length ? '<button class="ap-tab" data-tab="merch" onclick="apTab(\'merch\')">Merch <span class="n">' + _artistMerch.length + '</span></button>' : '') +
       '<button class="ap-tab" data-tab="shows" onclick="apTab(\'shows\')">Shows' +
         (_artistShows.length ? ' <span class="n">' + _artistShows.length + '</span>' : '') + '</button>' +
@@ -9687,6 +9708,7 @@ async function showArtistPage(slug) {
     '</div>' +
 
     '<div class="ap-panel" id="ap-panel-music">' + renderArtistTracks() + '</div>' +
+    '<div class="ap-panel" id="ap-panel-videos" hidden>' + renderArtistVideos(artist) + '</div>' +
     '<div class="ap-panel" id="ap-panel-posts" hidden>' + renderArtistPostsPanel() + '</div>' +
     '<div class="ap-panel" id="ap-panel-merch" hidden>' + renderArtistMerchPanel(shopUrl) + '</div>' +
     '<div class="ap-panel" id="ap-panel-shows" hidden>' +
@@ -9716,6 +9738,58 @@ function artistPageCanEdit() {
 
 // One row, used inside album sections and the singles list. `num` is the
 // tracklist position (album track number or list index).
+// ── Music videos: YouTube-hosted, watched in-app ──
+// Lite embeds: the thumbnail renders instantly; tapping swaps in the real
+// player (privacy-enhanced youtube-nocookie, autoplay). Owners paste any
+// YouTube link and it lands here — video files stay YouTube's bandwidth bill.
+var _artistVideos = [];
+function _ytIdFrom(url) {
+  var m = String(url || '').match(/(?:youtu\.be\/|v=|shorts\/|embed\/)([A-Za-z0-9_-]{6,20})/);
+  return m ? m[1] : (/^[A-Za-z0-9_-]{6,20}$/.test(String(url || '').trim()) ? String(url).trim() : null);
+}
+function renderArtistVideos(artist) {
+  var canEdit = artistPageCanEdit();
+  var html = _artistVideos.length ? _artistVideos.map(function(v) {
+    return '<div class="apv-card">' +
+      '<div class="apv-frame" id="apv-' + v.id + '" onclick="playArtistVideo(\'' + v.id + '\',\'' + v.youtube_id + '\')" role="button" aria-label="Play video">' +
+        '<img src="https://i.ytimg.com/vi/' + v.youtube_id + '/hqdefault.jpg" alt="" loading="lazy">' +
+        '<span class="apv-play">▶</span>' +
+      '</div>' +
+      '<div style="display:flex;align-items:center;gap:.5rem;margin-top:.45rem">' +
+        '<div class="apv-title" style="flex:1">' + escapeHtml(v.title) + '</div>' +
+        (canEdit ? '<button class="trk-add" aria-label="Remove video" onclick="removeArtistVideo(\'' + v.id + '\')">✕</button>' : '') +
+      '</div>' +
+    '</div>';
+  }).join('') : '<div class="pf-empty">' + (canEdit ? 'Drop your first music video below.' : 'No videos yet.') + '</div>';
+  if (canEdit) {
+    html += '<button class="pf-btn" style="margin-top:.8rem" onclick="addArtistVideoPrompt(\'' + artist.id + '\')">＋ Add a YouTube video</button>';
+  }
+  return '<div class="apv-grid">' + html + '</div>';
+}
+function playArtistVideo(id, ytId) {
+  var el = document.getElementById('apv-' + id);
+  if (!el) return;
+  el.outerHTML = '<div class="apv-frame playing"><iframe src="https://www.youtube-nocookie.com/embed/' + ytId + '?autoplay=1&playsinline=1" ' +
+    'title="Music video" frameborder="0" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe></div>';
+  trackEvent('video_play', 'artist_video', id, {});
+}
+async function addArtistVideoPrompt(artistId) {
+  var url = prompt('Paste the YouTube link:');
+  if (!url) return;
+  var ytId = _ytIdFrom(url);
+  if (!ytId) { showToast('That doesn\'t look like a YouTube link'); return; }
+  var title = prompt('Video title:') || 'Music video';
+  var res = await _sb.from('artist_videos').insert({ artist_id: artistId, title: title.slice(0, 100), youtube_id: ytId });
+  if (res.error) { showToast('Could not add video'); return; }
+  showToast('🎬 Video added');
+  if (_artistPage) showArtistPage(_artistPage.slug);
+}
+async function removeArtistVideo(id) {
+  if (!confirm('Remove this video from your page?')) return;
+  await _sb.from('artist_videos').delete().eq('id', id);
+  if (_artistPage) showArtistPage(_artistPage.slug);
+}
+
 function artistTrackRowHtml(t, num) {
   var idx = _artistPageTracks.indexOf(t);
   var locked = !canPlayTrack(t.exclusive_tier);
@@ -9734,6 +9808,10 @@ function artistTrackRowHtml(t, num) {
       '<div class="track-feat">' +
         (noAudio ? '<span style="color:var(--faint)">Audio coming soon</span>' : fmtK(t.stream_count || 0) + ' plays') +
         (t.featuring ? ' · ft. ' + escapeHtml(t.featuring) : '') + '</div></div>' +
+    '<button class="trk-like' + (_myTrackLikes[t.id] ? ' on' : '') + '" aria-label="Like song" ' +
+      'onclick="event.stopPropagation();toggleTrackLikeRow(\'' + t.id + '\', this)">♥</button>' +
+    '<button class="trk-add" aria-label="Add to playlist" ' +
+      'onclick="event.stopPropagation();openAddToPlaylist(\'' + t.id + '\')">＋</button>' +
     (canEdit ? '<button class="ap-navbtn" style="position:static;width:26px;height:26px;font-size:.7rem;flex-shrink:0" title="Edit track" ' +
       'onclick="event.stopPropagation();openTrackEditor(\'' + t.id + '\')">✎</button>' : '') +
     (dur ? '<div class="track-time">' + dur + '</div>' : '') +
@@ -10577,31 +10655,49 @@ function closeLibSheet() {
   var m = document.getElementById('lib-sheet');
   if (m) m.style.display = 'none';
 }
-function _openLibSheet(title, html) {
+var _libSheetTracks = [];   // whatever list the sheet is showing, playable order
+function _openLibSheet(title, html, withPlayButtons) {
   var m = document.getElementById('lib-sheet');
   if (!m) return;
   _setText('lib-sheet-title', title);
+  document.getElementById('lib-sheet-actions').innerHTML = withPlayButtons
+    ? '<button class="upgrade-btn" style="margin:0;width:auto;padding:.45rem 1.1rem;font-size:.78rem" onclick="playListAsQueue(_libSheetTracks)">▶ Play all</button>' +
+      '<button class="tb-btn" style="font-size:.76rem" onclick="playListAsQueue(_libSheetTracks,{shuffle:true})">⇄ Shuffle</button>'
+    : '';
   document.getElementById('lib-sheet-body').innerHTML = html;
   m.style.display = 'flex';
 }
 async function openLikedSongs() {
-  var res = await _sb.from('track_likes').select('track_id,tracks(id,title,cover_url,artists(name))')
+  var res = await _sb.from('track_likes').select('track_id,tracks(id,title,cover_url,audio_url,stream_count,artists(name,slug))')
     .eq('user_id', _authUser.id).order('created_at', { ascending: false }).limit(100);
   var rows = (res.data || []).filter(function(l){ return l.tracks; });
+  _libSheetTracks = rows.map(function(l){ return l.tracks; });
   _openLibSheet('♥ Liked Songs', rows.length
     ? rows.map(function(l) { return _libTrackRow(l.tracks); }).join('')
-    : '<div class="pf-empty">Tap the ♥ on any song to save it here.</div>');
+    : '<div class="pf-empty">Tap the ♥ on any song to save it here.</div>', rows.length > 0);
 }
 async function openPlaylist(plId, plName) {
-  var res = await _sb.from('playlist_tracks').select('track_id,position,tracks(id,title,cover_url,artists(name))')
+  var res = await _sb.from('playlist_tracks').select('track_id,position,tracks(id,title,cover_url,audio_url,stream_count,artists(name,slug))')
     .eq('playlist_id', plId).order('added_at');
   var rows = (res.data || []).filter(function(l){ return l.tracks; });
+  _libSheetTracks = rows.map(function(l){ return l.tracks; });
   _openLibSheet('🎧 ' + plName, rows.length
     ? rows.map(function(l) {
         return _libTrackRow(l.tracks,
           '<button class="trk-add" aria-label="Remove" onclick="event.stopPropagation();removeFromPlaylist(\'' + plId + '\',\'' + l.tracks.id + '\',\'' + escapeHtml(plName).replace(/'/g, '&#39;') + '\')">✕</button>');
       }).join('')
-    : '<div class="pf-empty">Empty playlist — use ＋ on any song in the catalog.</div>');
+    : '<div class="pf-empty">Empty playlist — use ＋ on any song in the catalog.</div>', rows.length > 0);
+}
+// Featured artist: play their catalog top-down as the queue
+async function playSpotlightTop(btn) {
+  if (btn) { btn.disabled = true; }
+  var a = await _sb.from('artists').select('id').eq('slug', 'murkemz').maybeSingle();
+  if (a.data) {
+    var tr = await _sb.from('tracks').select('id,title,cover_url,audio_url,stream_count,artists(name,slug)')
+      .eq('artist_id', a.data.id).eq('status', 'live').order('stream_count', { ascending: false }).limit(30);
+    playListAsQueue(tr.data || []);
+  }
+  if (btn) { btn.disabled = false; }
 }
 
 // ═══ PLAYER SHEET — the bottom bar opens the player as a popup ═══════
@@ -10618,12 +10714,9 @@ function closePlayerSheet() {
   if (m) m.style.display = 'none';
 }
 function renderPlayerSheet() {
-  _setText('ps-title', (document.getElementById('mp-title') || {}).textContent || '');
-  _setText('ps-artist', (document.getElementById('mp-artist') || {}).textContent || '');
-  var like = document.getElementById('ps-like-btn');
-  if (like) like.style.color = _myTrackLikes[currentTrackUuid()] ? 'var(--orange)' : '';
-  var q = document.getElementById('queue-list'), psq = document.getElementById('ps-queue');
-  if (psq) psq.innerHTML = (q && q.innerHTML.indexOf('track-row') !== -1) ? q.innerHTML : '<div class="pf-empty">Queue is empty.</div>';
+  // Title/art/progress/queue carry the legacy now-playing ids and are kept
+  // fresh by the existing player pipeline — the sheet only fills history.
+  if (typeof updateNpLikeButton === 'function') updateNpLikeButton();
   var rp = document.getElementById('ps-recent');
   if (rp) {
     // skip [0] — that's what's playing right now
@@ -10797,7 +10890,7 @@ function renderArtistAbout(artist, shopUrl) {
 }
 
 function apTab(name) {
-  ['music','posts','merch','shows','about'].forEach(function(t) {
+  ['music','videos','posts','merch','shows','about'].forEach(function(t) {
     var p = document.getElementById('ap-panel-' + t);
     if (p) p.hidden = (t !== name);
   });
