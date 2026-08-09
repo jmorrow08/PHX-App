@@ -3415,6 +3415,18 @@ _whenDomReady(function() {
   if (window.location.hash === '#signin') {
     setTimeout(function() { if (!_authUser) openAuthModal(); }, 600);
   }
+  // #join = landing CTAs ("Get the pass") → straight to Create Account.
+  // Arriving with an invite link (?ref=CODE) does the same automatically —
+  // nobody who came to sign up should have to hunt for the Log In button.
+  var wantsJoin = window.location.hash === '#join' ||
+    (!!localStorage.getItem('phx_pending_invite') && window.location.hash.indexOf('#artist/') !== 0);
+  if (wantsJoin) {
+    setTimeout(function() {
+      if (_authUser) return;
+      openAuthModal();
+      if (typeof setAuthTab === 'function') setAuthTab('signup');
+    }, 700);
+  }
 });
 
 document.addEventListener('DOMContentLoaded', function() {
