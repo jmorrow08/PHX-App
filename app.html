@@ -7264,6 +7264,12 @@ async function openFollowList(kind, id, mode) {
 }
 
 async function showMemberPage(userId) {
+  // One identity: if this account IS an artist, their artist page is their
+  // page — old member-profile links land there instead of a duplicate.
+  try {
+    var artRes = await _sb.from('artists').select('slug').eq('user_id', userId).eq('status', 'active').maybeSingle();
+    if (artRes.data && artRes.data.slug) { showArtistPage(artRes.data.slug); return; }
+  } catch (e) { reportFailure('memberToArtistRedirect', e); }
   showView('member-page');
   var el = document.getElementById('member-page-content');
   if (!el) return;
@@ -8187,13 +8193,15 @@ async function loadPeopleYouMayKnow() {
   if (!el) return;
   try {
     var results = await Promise.all([
-      _sb.from('artists').select('id,name,slug,avatar_url,genre').eq('status', 'active')
+      _sb.from('artists').select('id,user_id,name,slug,avatar_url,genre').eq('status', 'active')
         .order('monthly_listeners', { ascending: false }).limit(12),
       _sb.from('public_profiles').select('id,username,display_name,avatar_url,city,created_at')
         .order('created_at', { ascending: false }).limit(24)
     ]);
     var cards = [];
+    var artistOwners = {};
     (results[0].data || []).forEach(function(a) {
+      if (a.user_id) artistOwners[a.user_id] = true;
       if (_myFollows['artist:' + a.id]) return;
       if (_authUser && typeof _myArtistId !== 'undefined' && _myArtistId === a.id) return;
       cards.push(_pykCard(a.avatar_url, a.name, '🎤 ' + (a.genre || 'PHX Artist'),
@@ -8202,6 +8210,8 @@ async function loadPeopleYouMayKnow() {
     (results[1].data || []).forEach(function(u) {
       if (_authUser && u.id === _authUser.id) return;
       if (_myFollows['user:' + u.id]) return;
+      // One identity per person: artists are already here as artists
+      if (artistOwners[u.id]) return;
       cards.push(_pykCard(u.avatar_url, u.display_name || ('@' + u.username), u.city || 'Phoenix',
         "showMemberPage('" + u.id + "')", 'user', u.id));
     });
