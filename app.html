@@ -202,6 +202,18 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
 .vc-name{font-size:.8rem;font-weight:700;white-space:nowrap}
 .vc-tag{font:600 .58rem var(--mono);letter-spacing:.08em;color:var(--muted)}
 .vert-chip.live .vc-tag{color:var(--orange)}
+/* Track row actions: like + add-to-playlist */
+.trk-like,.trk-add{background:none;border:none;cursor:pointer;font-size:1rem;color:var(--faint);padding:.35rem .4rem;line-height:1;flex-shrink:0;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.trk-like.on{color:var(--orange)}
+.trk-like:hover,.trk-add:hover{color:var(--orange-l)}
+/* Your Library rail */
+.lib-rail{display:flex;gap:.7rem;overflow-x:auto;padding:.2rem .2rem .6rem;scrollbar-width:thin;max-width:100%}
+.lib-card{flex:0 0 118px;background:var(--bg3);border:1px solid var(--border);border-radius:14px;padding:.9rem .7rem;cursor:pointer;transition:border-color .18s}
+.lib-card:hover{border-color:rgba(249,115,22,.4)}
+.lib-ico{width:44px;height:44px;border-radius:10px;background:var(--bg4);display:flex;align-items:center;justify-content:center;font-size:1.2rem;margin-bottom:.5rem}
+.lib-name{font-size:.8rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lib-sub{font-size:.66rem;color:var(--muted);margin-top:.15rem}
+.rel-kind{font:600 .6rem var(--mono);letter-spacing:.06em;color:var(--orange-l)}
 
 /* EVENTS */
 .event-row{display:grid;grid-template-columns:70px 1fr auto;gap:1rem;align-items:center;background:var(--bg3);border:none;border-radius:var(--r-m);padding:1rem 1.2rem;margin-bottom:.75rem}
@@ -793,6 +805,7 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
     <button class="nav-item" onclick="showView('mypass')"><span class="icon">💳</span>My Pass</button>
     <button class="nav-item" onclick="showView('profile')"><span class="icon">👤</span>Profile</button>
     <button class="nav-item" onclick="openMyPage()"><span class="icon">⭐</span>My Page</button>
+    <button class="nav-item" onclick="showView('settings')"><span class="icon">⚙️</span>Settings</button>
   </nav>
 
   <!-- ── ARTIST NAV — artists are members too: full community access ── -->
@@ -812,6 +825,7 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
     <button class="nav-item" onclick="showView('artist-profile')"><span class="icon">👤</span>Artist Profile</button>
     <button class="nav-item" onclick="showView('mypass')"><span class="icon">💳</span>My Pass</button>
     <button class="nav-item" onclick="openMyPage()"><span class="icon">⭐</span>My Page</button>
+    <button class="nav-item" onclick="showView('settings')"><span class="icon">⚙️</span>Settings</button>
   </nav>
 
   <!-- ── ADMIN / SUPER NAV — browses the community as PHX App ── -->
@@ -1056,10 +1070,19 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
                 <div class="astat"><div class="astat-val" id="murkemz-total">—</div><div class="astat-label">Total Streams</div></div>
                 <div class="astat"><div class="astat-val" style="color:var(--green)">💸</div><div class="astat-label">Paid From Your Pass</div></div>
               </div>
-              <div class="sh" style="margin-bottom:.6rem"><h3 style="font-size:.82rem">Full Catalog</h3><span class="badge badge-orange" id="catalog-count">—</span></div><div id="genre-chips" style="display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.7rem"></div>
-              <div class="track-list" id="music-catalog"><div class="pf-empty">Loading catalog…</div></div>
             </div>
           </div>
+
+          <!-- The platform catalog is its own thing — it was living inside the
+               Featured Artist card, which read like every song was theirs. -->
+          <div class="sh"><h3>PHX Catalog</h3><span class="badge badge-orange" id="catalog-count">—</span></div>
+          <div style="font-size:.72rem;color:var(--muted);margin:-.2rem 0 .6rem">Every live song on the platform, all artists.</div>
+          <div id="genre-chips" style="display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.7rem"></div>
+          <div class="track-list" id="music-catalog"><div class="pf-empty">Loading catalog…</div></div>
+
+          <!-- Your Library — liked songs + playlists -->
+          <div class="sh" style="margin-top:1.2rem"><h3>Your Library</h3><button class="tb-btn" style="margin-left:auto;font-size:.72rem;padding:.25rem .6rem" onclick="createPlaylistPrompt()">＋ New playlist</button></div>
+          <div id="my-library"><div class="pf-empty">Sign in to build your library.</div></div>
 
           <!-- Roster grows by itself as artists sign up — never hand-edited -->
           <div class="sh" style="margin-top:1.2rem"><h3>PHX Roster</h3><a href="#" onclick="showArtistDirectory();return false">View all</a></div>
@@ -1070,6 +1093,36 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
       </div>
       <!-- "Your Listening Impact" + stream-tracking info moved to My Pass —
            this page is for playing music, the receipt lives with the pass. -->
+    </div>
+
+    <!-- SETTINGS — every member gets one; identity changes live here -->
+    <div class="view" id="v-settings">
+      <div class="card" style="max-width:560px;margin-bottom:1rem">
+        <div class="sh"><h3>Profile</h3></div>
+        <div class="form-field"><label class="form-label">Display name</label>
+          <input class="form-input" id="set-display" maxlength="40" placeholder="How your name shows on posts"></div>
+        <div class="form-field"><label class="form-label">Bio</label>
+          <textarea class="form-input" id="set-bio" rows="2" maxlength="220" style="resize:none;width:100%;font-family:inherit"></textarea></div>
+        <div class="form-field"><label class="form-label">City / neighborhood</label>
+          <input class="form-input" id="set-city" maxlength="40"></div>
+        <button class="upgrade-btn" style="margin:.3rem 0 0;width:auto;padding:.6rem 1.4rem" onclick="saveSettingsProfile(this)">Save profile</button>
+        <div id="set-profile-msg" style="font-size:.76rem;margin-top:.5rem;min-height:1em"></div>
+      </div>
+      <div class="card" style="max-width:560px;margin-bottom:1rem">
+        <div class="sh"><h3>Your @tag</h3></div>
+        <div style="font-size:.78rem;color:var(--muted);margin-bottom:.7rem;line-height:1.6">Your tag is your address on PHX — currently <b id="set-current-tag" style="color:var(--orange-l)">@—</b>. Changing it changes your page link and how people find you, and you can only change it <b>once every 30 days</b>.</div>
+        <div style="display:flex;gap:.5rem;align-items:center">
+          <span style="color:var(--muted);font-size:1.05rem">@</span>
+          <input class="form-input" id="set-username" maxlength="20" placeholder="newtag" style="flex:1">
+          <button class="tb-btn" onclick="changeTagFromSettings(this)">Change tag</button>
+        </div>
+        <div id="set-tag-msg" style="font-size:.76rem;margin-top:.5rem;min-height:1em"></div>
+      </div>
+      <div class="card" style="max-width:560px">
+        <div class="sh"><h3>Account</h3></div>
+        <div style="font-size:.8rem;color:var(--muted);margin-bottom:.8rem">Signed in as <b id="set-email" style="color:var(--white)">—</b></div>
+        <button class="tb-btn" onclick="signOut()">Log out</button>
+      </div>
     </div>
 
     <!-- EVENTS — Coming Soon -->
@@ -2020,6 +2073,56 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
 
 <!-- AUTH MODAL — Supabase email/password -->
 <!-- TYPED CODE GENERATOR (admin) -->
+<!-- Player sheet: the bottom bar's popup — Now Playing / Up Next / Recently Played -->
+<div id="player-sheet" role="dialog" aria-modal="true" aria-label="Player" style="display:none;position:fixed;inset:0;z-index:540;background:rgba(7,7,15,.92);backdrop-filter:blur(6px);align-items:flex-end;justify-content:center" onclick="if(event.target===this)closePlayerSheet()">
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:20px 20px 0 0;max-width:520px;width:100%;max-height:86vh;overflow-y:auto;padding:1.1rem 1.2rem calc(1.2rem + env(safe-area-inset-bottom))">
+    <div style="width:44px;height:4px;border-radius:2px;background:var(--border);margin:0 auto .9rem;cursor:pointer" onclick="closePlayerSheet()"></div>
+    <div style="display:flex;align-items:center;gap:1rem;margin-bottom:.8rem">
+      <div style="flex:1;min-width:0">
+        <div id="ps-title" style="font-family:var(--disp);font-size:1.15rem;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">—</div>
+        <div id="ps-artist" style="font-size:.82rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">—</div>
+      </div>
+      <button class="np-side-btn" id="ps-like-btn" title="Like song" onclick="toggleCurrentTrackLike();renderPlayerSheet()">♥</button>
+      <button class="np-side-btn" title="Share" onclick="shareCurrentTrackToFeed()">↗</button>
+    </div>
+    <div class="progress-wrap" style="margin-bottom:.3rem"><div class="progress-fill" id="ps-fill"></div></div>
+    <div id="ps-time" style="font-family:var(--mono);font-size:.7rem;color:var(--muted);text-align:right;margin-bottom:.6rem">0:00 / 0:00</div>
+    <div class="np-controls" style="margin-bottom:1rem">
+      <button class="ctrl-btn" title="Shuffle" onclick="toggleShuffle()">⇄</button>
+      <button class="ctrl-btn" title="Previous" onclick="prevTrack()">⏮</button>
+      <button class="ctrl-btn play" id="ps-play-btn" onclick="togglePlay()">▶</button>
+      <button class="ctrl-btn" title="Next" onclick="nextTrack()">⏭</button>
+      <button class="ctrl-btn" title="Repeat" onclick="toggleRepeat()">↺</button>
+    </div>
+    <div class="sh" style="margin-bottom:.4rem"><h3 style="font-size:.82rem">Up Next</h3></div>
+    <div class="track-list" id="ps-queue"></div>
+    <div class="sh" style="margin:1rem 0 .4rem"><h3 style="font-size:.82rem">Recently Played</h3></div>
+    <div class="track-list" id="ps-recent"></div>
+  </div>
+</div>
+
+<!-- Add to playlist -->
+<div id="addpl-modal" role="dialog" aria-modal="true" aria-label="Add to playlist" style="display:none;position:fixed;inset:0;z-index:545;background:rgba(7,7,15,.9);backdrop-filter:blur(5px);align-items:center;justify-content:center;padding:1rem" onclick="if(event.target===this)closeAddToPlaylist()">
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;max-width:360px;width:100%;padding:1.1rem">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.7rem">
+      <div style="font-size:.95rem;font-weight:800">Add to playlist</div>
+      <button onclick="closeAddToPlaylist()" aria-label="Close" style="background:none;border:none;color:var(--muted);cursor:pointer">✕</button>
+    </div>
+    <div id="addpl-list" style="max-height:50vh;overflow-y:auto"></div>
+  </div>
+</div>
+
+<!-- Library sheet: liked songs / a playlist's tracks -->
+<div id="lib-sheet" role="dialog" aria-modal="true" aria-label="Library" style="display:none;position:fixed;inset:0;z-index:544;background:rgba(7,7,15,.9);backdrop-filter:blur(5px);align-items:center;justify-content:center;padding:1rem" onclick="if(event.target===this)closeLibSheet()">
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;max-width:440px;width:100%;padding:1.1rem">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.7rem">
+      <div style="font-size:.95rem;font-weight:800" id="lib-sheet-title">Library</div>
+      <button onclick="closeLibSheet()" aria-label="Close" style="background:none;border:none;color:var(--muted);cursor:pointer">✕</button>
+    </div>
+    <div id="lib-sheet-body" style="max-height:62vh;overflow-y:auto"></div>
+  </div>
+</div>
+
 <!-- Follow list sheet: who follows this profile / who they follow -->
 <div id="follow-list-modal" role="dialog" aria-modal="true" aria-label="Follows" style="display:none;position:fixed;inset:0;z-index:545;background:rgba(7,7,15,.9);backdrop-filter:blur(5px);align-items:center;justify-content:center;padding:1rem">
   <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;max-width:420px;width:100%;padding:1.2rem">
@@ -2192,17 +2295,18 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
 <script>
 // ── VIEW SWITCHING ─────────────────────────────────────────────────────
 function openFullPlayer() {
-  showView('music');
-  setTimeout(function() {
-    var np = document.querySelector('.music-player-expanded');
-    if (np) np.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }, 120);
+  // The bar opens the player as a sheet (Apple Music gesture) — Now
+  // Playing, Up Next, and Recently Played without leaving the page.
+  var m = document.getElementById('player-sheet');
+  if (!m) return;
+  if (typeof renderPlayerSheet === 'function') renderPlayerSheet();
+  m.style.display = 'flex';
 }
 
 var titles = {
   home:'City Feed', discover:'Discover PHX', music:'PHX Music', reels:'Clips',
   events:'PHX Events', eats:'PHX Eats', audio:'PHX Audio',
-  drops:'PHX Drops', cuts:'PHX Cuts', mypass:'My PHX Pass', profile:'My Profile',
+  drops:'PHX Drops', cuts:'PHX Cuts', mypass:'My PHX Pass', profile:'My Profile', settings:'Settings',
   'member-page':'Profile', 'artist-page':'Artist', 'artist-directory':'Browse PHX', 'page-profile':'Page',
   'admin-roster':'Launch Desk', 'admin-merch':'Merch Connections', 'admin-pot':'Community Pot',
   'artist-tracks':'My Tracks', 'artist-analytics':'Analytics',
@@ -2394,6 +2498,7 @@ function showView(id) {
   if (id === 'home') { loadCityFeed(); loadTrendingRail(); }
   if (id === 'profile') loadMyPages();
   if (id === 'discover') { loadForYou(); loadTrendingRail(); loadPeopleYouMayKnow(); }
+  if (id === 'settings') loadSettings();
   if (id === 'music') { loadMusicCatalog(); loadListeningWent(); }
   if (id === 'artist-submit') populateGenreSelect();
   if (id === 'reels') loadReels();
@@ -3173,6 +3278,13 @@ setInterval(function() {
     if (elEl) elEl.textContent = fmtTime(elapsed);
     var mpT = document.getElementById('mp-time');
     if (mpT) mpT.textContent = fmtTime(elapsed) + ' / ' + fmtTime(totalSeconds);
+    // Player sheet mirrors the bar when open
+    var psf = document.getElementById('ps-fill');
+    if (psf) psf.style.width = prog + '%';
+    var psT = document.getElementById('ps-time');
+    if (psT) psT.textContent = fmtTime(elapsed) + ' / ' + fmtTime(totalSeconds);
+    var psPlay = document.getElementById('ps-play-btn'), mpPlay = document.getElementById('mp-play-btn');
+    if (psPlay && mpPlay && psPlay.textContent !== mpPlay.textContent) psPlay.textContent = mpPlay.textContent;
   }
 }, 300);
 
@@ -3256,6 +3368,11 @@ function playTrack(el, title, artist, feat, album, duration, trackId, streamCoun
 
   // Track play start for behavioral analytics
   trackEvent('play_start', 'track', uuid, { track_key: trackId, title: title });
+  if (typeof recordRecentPlay === 'function') recordRecentPlay(uuid, title, artist, artIcon);
+  if (typeof renderPlayerSheet === 'function' &&
+      (document.getElementById('player-sheet') || {}).style && document.getElementById('player-sheet').style.display === 'flex') {
+    setTimeout(renderPlayerSheet, 200);
+  }
 
   // Auto-play (handles UI state, real audio, stream timer, and Media Session state together)
   playAudio();
@@ -3718,13 +3835,82 @@ async function loadMyProfile() {
   _myProfile = res.data || null;
 }
 
-// Open the claim modal pre-filled for editing the current handle
+// The pencil: accounts with a tag manage identity in Settings (tag changes
+// are a 30-day-cooldown process there, not a casual modal). The claim modal
+// only appears for accounts that never picked a tag at all.
 function editUsername() {
+  if (_authUser && _myProfile && _myProfile.username) { showView('settings'); return; }
   var input = document.getElementById('username-input');
   if (input && _myProfile && _myProfile.username) input.value = _myProfile.username;
+  var disp = document.getElementById('displayname-input');
+  if (disp && _myProfile && _myProfile.display_name && _myProfile.display_name !== 'PHX Member') disp.value = _myProfile.display_name;
   var m = document.getElementById('username-modal');
   if (m) m.style.display = 'flex';
 }
+
+// ── SETTINGS ──
+function loadSettings() {
+  if (!_authUser) { openAuthModal(); return; }
+  var p = _myProfile || {};
+  var d = document.getElementById('set-display');
+  if (d) d.value = (p.display_name && p.display_name !== 'PHX Member') ? p.display_name : '';
+  var b = document.getElementById('set-bio');
+  if (b) b.value = p.bio || '';
+  var c = document.getElementById('set-city');
+  if (c) c.value = p.city || '';
+  _setText('set-current-tag', p.username ? '@' + p.username : 'not set');
+  _setText('set-email', _authUser.email || '—');
+  _setText('set-profile-msg', ''); _setText('set-tag-msg', '');
+}
+async function saveSettingsProfile(btn) {
+  if (!_authUser) return;
+  var disp = ((document.getElementById('set-display') || {}).value || '').trim();
+  var bio = ((document.getElementById('set-bio') || {}).value || '').trim();
+  var city = ((document.getElementById('set-city') || {}).value || '').trim();
+  var msg = document.getElementById('set-profile-msg');
+  if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+  // Blank display name falls back to the tag — nobody becomes "PHX Member"
+  var updates = {
+    display_name: disp || (_myProfile && _myProfile.username) || null,
+    bio: bio || null, city: city || null
+  };
+  var res = await _sb.from('profiles').update(updates).eq('id', _authUser.id);
+  if (btn) { btn.disabled = false; btn.textContent = 'Save profile'; }
+  if (res.error) {
+    if (msg) { msg.textContent = 'Could not save — try again.'; msg.style.color = 'var(--red)'; }
+    return;
+  }
+  if (_myProfile) { _myProfile.display_name = updates.display_name; _myProfile.bio = updates.bio; _myProfile.city = updates.city; }
+  if (msg) { msg.textContent = '✓ Saved'; msg.style.color = 'var(--green)'; }
+  showToast('Profile updated');
+}
+async function changeTagFromSettings(btn) {
+  var input = document.getElementById('set-username');
+  var msg = document.getElementById('set-tag-msg');
+  var v = ((input && input.value) || '').trim().toLowerCase();
+  if (!v) { if (msg) { msg.textContent = 'Type the new tag first.'; msg.style.color = 'var(--red)'; } return; }
+  if (!confirm('Change your tag to @' + v + '?\n\nYour page link changes, the old tag frees up for anyone, and you can\'t change again for 30 days.')) return;
+  if (btn) { btn.disabled = true; btn.textContent = 'Changing…'; }
+  var res = await _sb.rpc('change_username', { p_new: v });
+  if (btn) { btn.disabled = false; btn.textContent = 'Change tag'; }
+  var d = res.data || {};
+  if (res.error || !d.ok) {
+    var reasons = {
+      invalid_format: 'Tags are 3–20 characters: letters, numbers, _ or .',
+      taken: 'That tag is taken.',
+      same_username: 'That\'s already your tag.',
+      cooldown: 'You changed your tag recently — next change available ' + (d.next_change || 'in a few weeks') + '.'
+    };
+    if (msg) { msg.textContent = reasons[d.reason] || 'Could not change the tag.'; msg.style.color = 'var(--red)'; }
+    return;
+  }
+  if (_myProfile) _myProfile.username = d.username;
+  _setText('set-current-tag', '@' + d.username);
+  if (input) input.value = '';
+  if (msg) { msg.textContent = '✓ You\'re @' + d.username + ' now.'; msg.style.color = 'var(--green)'; }
+  showToast('Tag changed — @' + d.username);
+}
+function signOut() { signOutNow(); }
 
 async function claimUsername() {
   var input = document.getElementById('username-input');
@@ -6496,6 +6682,19 @@ async function runMusicSearch(query) {
     .eq('status', 'live')
     .ilike('title', like)
     .limit(15);
+
+  // Genre is searchable too — "hip hop", "r&b" etc. surface the catalog
+  var genreRes = await _sb
+    .from('tracks')
+    .select('id,title,featuring,producer,duration_seconds,audio_url,exclusive_tier,stream_count,artist_id,artists(name,slug)')
+    .eq('status', 'live')
+    .ilike('genre', like)
+    .limit(15);
+  if (genreRes.data && genreRes.data.length) {
+    var seenIds = {};
+    (titleRes.data || []).forEach(function(t){ seenIds[t.id] = 1; });
+    titleRes.data = (titleRes.data || []).concat(genreRes.data.filter(function(t){ return !seenIds[t.id]; }));
+  }
 
   var byArtistRes = artistIds.length
     ? await _sb
@@ -10201,6 +10400,10 @@ async function loadMusicCatalog() {
             : escapeHtml(t.artist_name || '')) +
           (t.featuring ? ' · ft. ' + escapeHtml(t.featuring) : '') + '</div></div>' +
       badge +
+      '<button class="trk-like' + (_myTrackLikes[t.id] ? ' on' : '') + '" aria-label="Like song" ' +
+        'onclick="event.stopPropagation();toggleTrackLikeRow(\'' + t.id + '\', this)">♥</button>' +
+      '<button class="trk-add" aria-label="Add to playlist" ' +
+        'onclick="event.stopPropagation();openAddToPlaylist(\'' + t.id + '\')">＋</button>' +
       '<div class="track-streams">' + fmtK(t.stream_count || 0) + '</div>' +
       (dur ? '<div class="track-time">' + dur + '</div>' : '') +
     '</div>';
@@ -10229,6 +10432,7 @@ async function loadMusicCatalog() {
   }
 
   loadMusicRails();
+  loadMyLibrary();
 }
 
 // Roster + new releases: both read straight from the database, so a new
@@ -10239,7 +10443,10 @@ async function loadMusicRails() {
   if (!rosterEl && !relEl) return;
   var r = await Promise.all([
     _sb.from('artists').select('name,slug,avatar_url,genre').eq('status', 'active').order('monthly_listeners', { ascending: false }).limit(20),
-    _sb.from('albums').select('id,title,type,cover_url,release_date,artist_id,artists(name,slug)').eq('hidden', false).order('created_at', { ascending: false }).limit(12)
+    _sb.from('albums').select('id,title,type,cover_url,release_date,created_at,artist_id,artists(name,slug)').eq('hidden', false).order('created_at', { ascending: false }).limit(12),
+    // Singles (no album) belong on the shelf too — a new approved song
+    // shows up here automatically, same as a new album.
+    _sb.from('tracks').select('id,title,cover_url,created_at,artists(name,slug)').is('album_id', null).eq('status', 'live').order('created_at', { ascending: false }).limit(8)
   ]);
   if (rosterEl) {
     var artists = r[0].data || [];
@@ -10253,15 +10460,182 @@ async function loadMusicRails() {
     }).join('') : '<div class="pf-empty">Roster fills as artists join.</div>';
   }
   if (relEl) {
-    var albums = (r[1].data || []).filter(function(al){ return al.artists && al.artists.slug; });
-    relEl.innerHTML = albums.length ? albums.map(function(al) {
-      var cover = safeUrl(al.cover_url);
-      return '<div class="ap-alcard" onclick="openAlbumFromMusic(\'' + escapeHtml(al.artists.slug) + '\',\'' + al.id + '\')">' +
-        '<div class="ap-alcard-cover">' + (cover ? '<img src="' + cover + '" alt="" loading="lazy">' : '💿') + '</div>' +
-        '<div class="ap-alcard-title">' + escapeHtml(al.title) + '</div>' +
-        '<div class="ap-alcard-meta">' + escapeHtml(al.artists.name) + '</div>' +
+    var rel = [];
+    (r[1].data || []).forEach(function(al) {
+      if (!al.artists || !al.artists.slug) return;
+      rel.push({ kind: al.type === 'ep' ? 'EP' : 'Album', title: al.title, cover: al.cover_url,
+        by: al.artists.name, at: al.created_at,
+        click: "openAlbumFromMusic('" + escapeHtml(al.artists.slug) + "','" + al.id + "')" });
+    });
+    (r[2].data || []).forEach(function(t) {
+      rel.push({ kind: 'Single', title: t.title, cover: t.cover_url,
+        by: t.artists ? t.artists.name : '', at: t.created_at,
+        click: "playTrackById('" + t.id + "', this)" });
+    });
+    rel.sort(function(a, b) { return new Date(b.at) - new Date(a.at); });
+    relEl.innerHTML = rel.length ? rel.slice(0, 12).map(function(x) {
+      var cover = safeUrl(x.cover);
+      return '<div class="ap-alcard" onclick="' + x.click + '">' +
+        '<div class="ap-alcard-cover">' + (cover ? '<img src="' + cover + '" alt="" loading="lazy">' : (x.kind === 'Single' ? '🎵' : '💿')) + '</div>' +
+        '<div class="ap-alcard-title">' + escapeHtml(x.title) + '</div>' +
+        '<div class="ap-alcard-meta"><span class="rel-kind">' + x.kind + '</span> · ' + escapeHtml(x.by) + '</div>' +
       '</div>';
     }).join('') : '<div class="pf-empty">New releases land here.</div>';
+  }
+}
+
+// ═══ YOUR LIBRARY — liked songs + playlists ═══════════════════════════
+async function toggleTrackLikeRow(trackId, btn) {
+  if (!requireAuthAction('Saving songs')) return;
+  var { data, error } = await _sb.rpc('toggle_track_like', { p_track_id: trackId, p_user_id: getGuestId() });
+  if (error || !data) return;
+  _myTrackLikes[trackId] = data.liked;
+  if (btn) btn.classList.toggle('on', !!data.liked);
+  updateNpLikeButton();
+  loadMyLibrary();
+}
+
+async function loadMyLibrary() {
+  var el = document.getElementById('my-library');
+  if (!el) return;
+  if (!_authUser) { el.innerHTML = '<div class="pf-empty">Sign in to build your library.</div>'; return; }
+  var r = await Promise.all([
+    _sb.from('track_likes').select('track_id').eq('user_id', _authUser.id),
+    _sb.from('playlists').select('id,name,playlist_tracks(track_id)').eq('user_id', _authUser.id).order('created_at')
+  ]);
+  var likeCount = (r[0].data || []).length;
+  var pls = r[1].data || [];
+  el.innerHTML = '<div class="lib-rail">' +
+    '<div class="lib-card" onclick="openLikedSongs()">' +
+      '<div class="lib-ico" style="background:linear-gradient(135deg,#7C2D12,var(--orange))">♥</div>' +
+      '<div class="lib-name">Liked Songs</div><div class="lib-sub">' + likeCount + ' song' + (likeCount === 1 ? '' : 's') + '</div></div>' +
+    pls.map(function(p) {
+      var n = (p.playlist_tracks || []).length;
+      return '<div class="lib-card" onclick="openPlaylist(\'' + p.id + '\',\'' + escapeHtml(p.name).replace(/'/g, '&#39;') + '\')">' +
+        '<div class="lib-ico">🎧</div>' +
+        '<div class="lib-name">' + escapeHtml(p.name) + '</div><div class="lib-sub">' + n + ' song' + (n === 1 ? '' : 's') + '</div></div>';
+    }).join('') +
+  '</div>';
+}
+function createPlaylistPrompt() {
+  if (!requireAuthAction('Playlists')) return;
+  var name = prompt('Name your playlist:');
+  if (!name || !name.trim()) return;
+  _sb.from('playlists').insert({ user_id: _authUser.id, name: name.trim().slice(0, 60) }).then(function(res) {
+    if (res.error) { showToast('Could not create playlist'); return; }
+    showToast('🎧 Playlist created');
+    loadMyLibrary();
+  });
+}
+async function openAddToPlaylist(trackId) {
+  if (!requireAuthAction('Playlists')) return;
+  var m = document.getElementById('addpl-modal'), list = document.getElementById('addpl-list');
+  if (!m || !list) return;
+  list.innerHTML = '<div class="pf-empty">Loading…</div>';
+  m.style.display = 'flex';
+  var res = await _sb.from('playlists').select('id,name').eq('user_id', _authUser.id).order('created_at');
+  var pls = res.data || [];
+  list.innerHTML =
+    pls.map(function(p) {
+      return '<button class="post-menu-item" style="font-size:.88rem" onclick="addTrackToPlaylist(\'' + p.id + '\',\'' + trackId + '\')">🎧 ' + escapeHtml(p.name) + '</button>';
+    }).join('') +
+    '<button class="post-menu-item" style="color:var(--orange-l)" onclick="closeAddToPlaylist();createPlaylistThenAdd(\'' + trackId + '\')">＋ New playlist…</button>';
+}
+function closeAddToPlaylist() {
+  var m = document.getElementById('addpl-modal');
+  if (m) m.style.display = 'none';
+}
+async function createPlaylistThenAdd(trackId) {
+  var name = prompt('Name your playlist:');
+  if (!name || !name.trim()) return;
+  var res = await _sb.from('playlists').insert({ user_id: _authUser.id, name: name.trim().slice(0, 60) }).select('id').single();
+  if (res.error || !res.data) { showToast('Could not create playlist'); return; }
+  await addTrackToPlaylist(res.data.id, trackId);
+  loadMyLibrary();
+}
+async function addTrackToPlaylist(plId, trackId) {
+  var res = await _sb.from('playlist_tracks').insert({ playlist_id: plId, track_id: trackId });
+  if (res.error) showToast(String(res.error.code) === '23505' ? 'Already in that playlist' : 'Could not add song');
+  else { showToast('✓ Added to playlist'); loadMyLibrary(); }
+  closeAddToPlaylist();
+}
+async function removeFromPlaylist(plId, trackId, plName) {
+  await _sb.from('playlist_tracks').delete().eq('playlist_id', plId).eq('track_id', trackId);
+  openPlaylist(plId, plName);
+  loadMyLibrary();
+}
+function _libTrackRow(t, extra) {
+  var art = safeUrl(t.cover_url);
+  return '<div class="track-row" onclick="closeLibSheet();playTrackById(\'' + t.id + '\', this)">' +
+    '<div class="track-art">' + (art ? '<img src="' + art + '" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:6px">' : '🎵') + '</div>' +
+    '<div class="track-info"><div class="track-title">' + escapeHtml(t.title) + '</div>' +
+      '<div class="track-feat">' + escapeHtml(t.artists ? t.artists.name : '') + '</div></div>' +
+    (extra || '') +
+  '</div>';
+}
+function closeLibSheet() {
+  var m = document.getElementById('lib-sheet');
+  if (m) m.style.display = 'none';
+}
+function _openLibSheet(title, html) {
+  var m = document.getElementById('lib-sheet');
+  if (!m) return;
+  _setText('lib-sheet-title', title);
+  document.getElementById('lib-sheet-body').innerHTML = html;
+  m.style.display = 'flex';
+}
+async function openLikedSongs() {
+  var res = await _sb.from('track_likes').select('track_id,tracks(id,title,cover_url,artists(name))')
+    .eq('user_id', _authUser.id).order('created_at', { ascending: false }).limit(100);
+  var rows = (res.data || []).filter(function(l){ return l.tracks; });
+  _openLibSheet('♥ Liked Songs', rows.length
+    ? rows.map(function(l) { return _libTrackRow(l.tracks); }).join('')
+    : '<div class="pf-empty">Tap the ♥ on any song to save it here.</div>');
+}
+async function openPlaylist(plId, plName) {
+  var res = await _sb.from('playlist_tracks').select('track_id,position,tracks(id,title,cover_url,artists(name))')
+    .eq('playlist_id', plId).order('added_at');
+  var rows = (res.data || []).filter(function(l){ return l.tracks; });
+  _openLibSheet('🎧 ' + plName, rows.length
+    ? rows.map(function(l) {
+        return _libTrackRow(l.tracks,
+          '<button class="trk-add" aria-label="Remove" onclick="event.stopPropagation();removeFromPlaylist(\'' + plId + '\',\'' + l.tracks.id + '\',\'' + escapeHtml(plName).replace(/'/g, '&#39;') + '\')">✕</button>');
+      }).join('')
+    : '<div class="pf-empty">Empty playlist — use ＋ on any song in the catalog.</div>');
+}
+
+// ═══ PLAYER SHEET — the bottom bar opens the player as a popup ═══════
+var _recentPlayed = [];
+try { _recentPlayed = JSON.parse(localStorage.getItem('phx_recent_played') || '[]'); } catch (e) {}
+function recordRecentPlay(trackId, title, artist, art) {
+  if (!title) return;
+  _recentPlayed = [{ id: trackId, t: title, a: artist || '', art: art || '' }]
+    .concat(_recentPlayed.filter(function(x){ return x.id !== trackId; })).slice(0, 10);
+  try { localStorage.setItem('phx_recent_played', JSON.stringify(_recentPlayed)); } catch (e) {}
+}
+function closePlayerSheet() {
+  var m = document.getElementById('player-sheet');
+  if (m) m.style.display = 'none';
+}
+function renderPlayerSheet() {
+  _setText('ps-title', (document.getElementById('mp-title') || {}).textContent || '');
+  _setText('ps-artist', (document.getElementById('mp-artist') || {}).textContent || '');
+  var like = document.getElementById('ps-like-btn');
+  if (like) like.style.color = _myTrackLikes[currentTrackUuid()] ? 'var(--orange)' : '';
+  var q = document.getElementById('queue-list'), psq = document.getElementById('ps-queue');
+  if (psq) psq.innerHTML = (q && q.innerHTML.indexOf('track-row') !== -1) ? q.innerHTML : '<div class="pf-empty">Queue is empty.</div>';
+  var rp = document.getElementById('ps-recent');
+  if (rp) {
+    // skip [0] — that's what's playing right now
+    var past = _recentPlayed.slice(1);
+    rp.innerHTML = past.length ? past.map(function(x) {
+      var art = safeUrl(x.art);
+      return '<div class="track-row" onclick="playTrackById(\'' + x.id + '\', this)">' +
+        '<div class="track-art">' + (art ? '<img src="' + art + '" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:6px">' : '🎵') + '</div>' +
+        '<div class="track-info"><div class="track-title">' + escapeHtml(x.t) + '</div>' +
+          '<div class="track-feat">' + escapeHtml(x.a) + '</div></div>' +
+      '</div>';
+    }).join('') : '<div class="pf-empty">Nothing played before this yet.</div>';
   }
 }
 
