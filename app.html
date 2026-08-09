@@ -7969,6 +7969,8 @@ function _profilePostsHtml(secId) {
           '<div style="font-size:.66rem;color:var(--faint)">' + when + '</div></div></div>' +
         (po.content ? '<div class="pf-post-txt">' + escapeHtml(String(po.content).slice(0, 280)) + '</div>' : '') +
         mediaHtml +
+        (po.tracks ? '<div class="track-row" style="background:var(--bg4);border:1px solid var(--border);margin-top:.45rem" onclick="event.stopPropagation();openPostFromDiscover(\'' + po.id + '\')">' +
+          '<div class="track-art">🎵</div><div class="track-info"><div class="track-title">' + escapeHtml(po.tracks.title || '') + '</div></div><div class="track-streams">▶</div></div>' : '') +
         '<div class="pf-post-meta" style="margin-top:.45rem">🔥 ' + (po.likes_count || 0) + ' · 💬 ' + (po.comments_count || 0) + '</div>' +
       '</div>';
     }).join('') : '<div class="pf-empty">' + (c.filter === 'clips' ? 'No clips yet.' : c.filter === 'photos' ? 'No photos yet.' : 'No posts yet.') + '</div>');
@@ -10470,44 +10472,11 @@ var _artistPosts = [];
 // Posts tab on the artist page: a Clips strip up top, then the posts.
 // Music stays the default landing tab — this is one tap away, never first.
 function renderArtistPostsPanel() {
-  if (!_artistPosts.length) return '<div class="pf-empty">No posts yet.</div>';
-  var isVid = function(u){ return /\.(mp4|webm|mov)(\?|$)/i.test(u || ''); };
-  var clips = _artistPosts.filter(function(p){ return isVid(p.media_url); });
-  var clipsRow = '';
-  if (clips.length) {
-    clipsRow = '<div class="pf-sec" style="margin-top:0"><h3>Clips</h3></div>' +
-      '<div style="display:flex;gap:.5rem;overflow-x:auto;padding-bottom:.4rem;margin-bottom:1rem">' +
-      clips.map(function(p) {
-        return '<div onclick="openClipAt(\'' + p.id + '\')" role="button" aria-label="Watch clip" ' +
-          'style="position:relative;flex:0 0 110px;height:170px;border-radius:10px;overflow:hidden;cursor:pointer;background:#000">' +
-          '<video muted playsinline preload="metadata" src="' + safeUrl(p.media_url) + '" style="width:100%;height:100%;object-fit:cover;pointer-events:none"></video>' +
-          '<span style="position:absolute;bottom:.35rem;left:.4rem;font-size:.68rem;font-weight:700">▶ ' + (p.likes_count || 0) + '</span>' +
-        '</div>';
-      }).join('') + '</div>';
-  }
-  var postCards = _artistPosts.map(function(p) {
-    var when = _agoLabel ? _agoLabel(p.created_at) : new Date(p.created_at).toLocaleDateString();
-    var mediaUrl = safeUrl(p.media_url);
-    var media = '';
-    if (mediaUrl && isVid(p.media_url)) {
-      media = feedVideoEmbed(p.id, mediaUrl, 320);
-    } else if (mediaUrl) {
-      media = '<img loading="lazy" alt="" style="width:100%;max-height:320px;object-fit:cover;border-radius:8px;margin-top:.45rem" src="' + mediaUrl + '">';
-    }
-    return '<div class="feed-post" style="margin-bottom:.7rem">' +
-      '<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.35rem">' +
-        '<span style="font-size:.82rem;font-weight:700">' + escapeHtml(p.author_name || '') + '</span>' +
-        '<span style="font-size:.72rem;color:var(--muted)">' + when + '</span></div>' +
-      '<div style="font-size:.86rem;white-space:pre-wrap">' + escapeHtml(p.content || '') + '</div>' +
-      media +
-      (p.tracks ? '<div class="track-row" style="background:var(--bg4);border:1px solid var(--border);margin-top:.45rem" onclick="openPostFromDiscover(\'' + p.id + '\')">' +
-        '<div class="track-art">🎵</div><div class="track-info"><div class="track-title">' + escapeHtml(p.tracks.title) + '</div></div><div class="track-streams">▶</div></div>' : '') +
-      '<div style="display:flex;gap:1rem;margin-top:.5rem;font-size:.76rem;color:var(--muted)">' +
-        '<span>❤️ ' + (p.likes_count || 0) + '</span><span>💬 ' + (p.comments_count || 0) + '</span>' +
-        '<a href="#" style="color:var(--orange)" onclick="openPostFromDiscover(\'' + p.id + '\');return false">Open →</a></div>' +
-    '</div>';
-  }).join('');
-  return clipsRow + '<div class="pf-sec"' + (clips.length ? '' : ' style="margin-top:0"') + '><h3>Posts</h3></div>' + postCards;
+  // Same renderer as member/business pages — avatar cards + All/Photos/
+  // Clips chips. One template, every profile; no page updates alone.
+  return renderProfilePosts('ap-posts', _artistPosts,
+    (_artistPage && _artistPage.name) || 'Artist',
+    (_artistPage && _artistPage.avatar_url) || '');
 }
 var _merchFilter = 'all';
 
@@ -10632,7 +10601,7 @@ async function showArtistPage(slug) {
 
     '<div class="ap-tabs" id="ap-tabs">' +
       '<button class="ap-tab on" data-tab="music" onclick="apTab(\'music\')">Music</button>' +
-      ((_artistVideos.length || artistPageCanEdit()) ? '<button class="ap-tab" data-tab="videos" onclick="apTab(\'videos\')">Videos' + (_artistVideos.length ? ' <span class="n">' + _artistVideos.length + '</span>' : '') + '</button>' : '') +
+      ((_artistVideos.length || (artistPageCanEdit() && artistVideosAllowed())) ? '<button class="ap-tab" data-tab="videos" onclick="apTab(\'videos\')">Videos' + (_artistVideos.length ? ' <span class="n">' + _artistVideos.length + '</span>' : '') + '</button>' : '') +
       (_artistMerch.length ? '<button class="ap-tab" data-tab="merch" onclick="apTab(\'merch\')">Merch <span class="n">' + _artistMerch.length + '</span></button>' : '') +
       '<button class="ap-tab" data-tab="shows" onclick="apTab(\'shows\')">Shows' +
         (_artistShows.length ? ' <span class="n">' + _artistShows.length + '</span>' : '') + '</button>' +
@@ -10664,9 +10633,34 @@ function renderMoneyStrip(artist, support) {
 
 var _artistAlbums = [];
 
+// Genre dropdown filler — polls briefly since builders return HTML strings
+// that land in the DOM a beat later.
+async function _populateGenreSelect(id, curSlug, curLabel) {
+  var res = await _sb.from('genres').select('slug,label,icon').eq('is_active', true).order('sort_order');
+  var rows = res.data || [];
+  var tries = 0;
+  (function put() {
+    var sel = document.getElementById(id);
+    if (!sel) { if (++tries < 40) setTimeout(put, 200); return; }
+    sel.innerHTML = '<option value="">Select a genre…</option>' + rows.map(function(g) {
+      var on = (curSlug && g.slug === curSlug) || (!curSlug && curLabel && g.label === curLabel);
+      return '<option value="' + escapeHtml(g.slug) + '" data-label="' + escapeHtml(g.label) + '"' + (on ? ' selected' : '') + '>' +
+        (g.icon ? g.icon + ' ' : '') + escapeHtml(g.label) + '</option>';
+    }).join('');
+  })();
+}
+
 function artistPageCanEdit() {
+  // _accountRole is the truth; currentRole is presentation (an admin
+  // surfaced as artist/member must still edit any page)
   return !!(_authUser && _artistPage && _artistPage.user_id === _authUser.id) ||
-         currentRole === 'admin' || currentRole === 'super';
+         _accountRole === 'admin' || _accountRole === 'super';
+}
+// Music videos are a Full/Headline artist feature (tier capability)
+function artistVideosAllowed() {
+  if (_accountRole === 'admin' || _accountRole === 'super') return true;
+  var t = (_artistPage && _artistPage.tier) || 'basic';
+  return t === 'full' || t === 'headline';
 }
 
 // One row, used inside album sections and the singles list. `num` is the
@@ -10682,6 +10676,10 @@ function _ytIdFrom(url) {
 }
 function renderArtistVideos(artist) {
   var canEdit = artistPageCanEdit();
+  if (canEdit && !artistVideosAllowed()) {
+    return '<div class="card" style="border-color:rgba(249,115,22,.3)"><div class="sh"><h3>🎬 Music Videos</h3><span class="badge badge-orange" style="font-size:.6rem">FULL ARTIST</span></div>' +
+      '<div style="font-size:.82rem;color:var(--muted);line-height:1.7">Music videos on your page unlock with the Full Artist plan — paste YouTube links and they play right on your profile.</div></div>';
+  }
   var html = _artistVideos.length ? _artistVideos.map(function(v) {
     return '<div class="apv-card">' +
       '<div class="apv-frame" id="apv-' + v.id + '" onclick="playArtistVideo(\'' + v.id + '\',\'' + v.youtube_id + '\')" role="button" aria-label="Play video">' +
@@ -11026,7 +11024,10 @@ async function loadArtistProfileEditor() {
       '<div class="form-field"><label class="form-label">Profile photo</label><input class="form-input" type="file" id="apf-avatar" accept="image/*"></div>' +
       '<div class="form-field"><label class="form-label">Banner / poster</label><input class="form-input" type="file" id="apf-banner" accept="image/*"></div>' +
       f('Display Name', 'apf-name', a.name) +
-      f('Genre', 'apf-genre', a.genre, 'e.g. PHX Hip-Hop') +
+      // Genre is a pick, not a typing exercise — free text made the catalog
+      // filters ragged ("Hip Hop" vs "hip-hop" vs "PHX Hip-Hop")
+      (function() { _populateGenreSelect('apf-genre', a.genre_slug || null, a.genre || null); return ''; })() +
+      '<div class="form-field"><label class="form-label">Genre</label><select class="form-select" id="apf-genre"><option value="">Loading genres…</option></select></div>' +
       '<div class="form-field"><label class="form-label">Bio</label><textarea class="form-input" id="apf-bio" rows="5" style="resize:vertical">' + escapeHtml(a.bio || '') + '</textarea></div>' +
       f('City', 'apf-city', a.city, 'Phoenix, AZ') +
       '<button class="upgrade-btn" style="margin:0" onclick="saveArtistProfile()">Save Changes</button>' +
@@ -11060,7 +11061,11 @@ async function saveArtistProfile() {
   if (msg) { msg.style.color = 'var(--muted)'; msg.textContent = 'Saving…'; }
   try {
     var v = function(id){ return ((document.getElementById(id) || {}).value || '').trim(); };
-    var patch = { name: v('apf-name') || _myArtistRow.name, genre: v('apf-genre') || null,
+    var gSel = document.getElementById('apf-genre');
+    var gOpt = (gSel && gSel.selectedIndex > 0) ? gSel.options[gSel.selectedIndex] : null;
+    var patch = { name: v('apf-name') || _myArtistRow.name,
+                  genre: gOpt ? (gOpt.dataset.label || gOpt.textContent) : null,
+                  genre_slug: gOpt ? gOpt.value : null,
                   bio: v('apf-bio') || null, city: v('apf-city') || null };
     var ava = await _apfUpload('apf-avatar', 'avatar');
     var ban = await _apfUpload('apf-banner', 'banner');
