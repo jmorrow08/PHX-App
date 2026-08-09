@@ -176,6 +176,10 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
 .react-opt:hover,.react-opt:active{background:rgba(249,115,22,.12)}
 .react-opt .re{font-size:1.7rem;line-height:1}
 .react-opt .rl{font-size:.58rem;font-weight:700;letter-spacing:.02em;color:var(--muted);white-space:nowrap}
+.fp-menu-btn{font-size:1.15rem;font-weight:700;color:var(--faint);letter-spacing:.05em;padding:.35rem .6rem;min-height:36px}
+.post-menu{position:absolute;top:110%;right:0;z-index:90;min-width:190px;background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:.3rem;box-shadow:0 10px 34px rgba(0,0,0,.55)}
+.post-menu-item{display:block;width:100%;text-align:left;background:none;border:none;color:var(--white);font-size:.82rem;padding:.55rem .7rem;border-radius:8px;cursor:pointer;white-space:nowrap}
+.post-menu-item:hover{background:rgba(249,115,22,.1);color:var(--orange-l)}
 
 /* EVENTS */
 .event-row{display:grid;grid-template-columns:70px 1fr auto;gap:1rem;align-items:center;background:var(--bg3);border:none;border-radius:var(--r-m);padding:1rem 1.2rem;margin-bottom:.75rem}
@@ -4461,9 +4465,9 @@ function renderFeedPost(p) {
         (p.page_id ? followBtnHtml('page', p.page_id) :
          (p.user_id && p.user_id !== getGuestId() && p.author_role !== 'admin') ? followBtnHtml('user', p.user_id) : '') +
       '</h4><span>' + when + (p.shared_post_id ? ' · 🔁 reposted' : '') + '</span></div>' +
-      (isAdminRole
-        ? '<button class="fp-act" style="margin-left:auto" title="Hide post" onclick="hideFeedPost(\'' + p.id + '\')">🚫</button>'
-        : '<button class="fp-act" style="margin-left:auto" title="Report post" onclick="openReportModal(\'post\',\'' + p.id + '\')">⚠️</button>') +
+      '<span style="position:relative;margin-left:auto">' +
+        '<button class="fp-act fp-menu-btn" aria-label="Post options" onclick="togglePostMenu(\'' + p.id + '\', event, ' + (isAdminRole ? 'true' : 'false') + ')">⋯</button>' +
+        '<span id="post-menu-' + p.id + '"></span></span>' +
     '</div>' +
     '<div class="fp-body">' + escapeHtml(p.content) + '</div>' +
     mediaEmbed + trackCard + repostEmbed +
@@ -4980,6 +4984,29 @@ var REPORT_CATEGORIES = [
   { key: 'illegal',       label: '⛔ Illegal goods or services' }
 ];
 var _reportTarget = null;
+
+// ── Post ⋯ menu: quiet corner menu instead of a loud report triangle ──
+function togglePostMenu(postId, ev, isAdmin) {
+  ev.stopPropagation();
+  var slot = document.getElementById('post-menu-' + postId);
+  var wasOpen = slot && slot.innerHTML !== '';
+  closePostMenus();
+  if (!slot || wasOpen) return;
+  var item = function(icon, label, action) {
+    return '<button class="post-menu-item" onclick="event.stopPropagation();closePostMenus();' + action + '">' + icon + ' ' + label + '</button>';
+  };
+  slot.innerHTML = '<div class="post-menu">' +
+    item('🔗', 'Copy link', 'copyPostLink(\'' + postId + '\', this)') +
+    item('🚩', 'Report post', 'openReportModal(\'post\',\'' + postId + '\')') +
+    (isAdmin ? item('🚫', 'Hide post (admin)', 'hideFeedPost(\'' + postId + '\')') : '') +
+  '</div>';
+  setTimeout(function() { document.addEventListener('click', closePostMenus, { once: true }); }, 50);
+}
+function closePostMenus() {
+  document.querySelectorAll('.post-menu').forEach(function(m) {
+    var s = m.parentElement; if (s) s.innerHTML = '';
+  });
+}
 
 function openReportModal(targetType, targetId) {
   if (!requireAuthAction('Reporting')) return;
