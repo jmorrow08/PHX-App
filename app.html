@@ -8827,7 +8827,7 @@ async function showArtistPage(slug) {
     _sb.from('shows').select('*').eq('artist_id', artist.id).eq('status','live')
       .gte('starts_at', new Date(Date.now() - 6*3600*1000).toISOString())
       .order('starts_at', { ascending: true }),
-    _sb.from('albums').select('*').eq('artist_id', artist.id).order('created_at', { ascending: true }),
+    _sb.from('albums').select('*').eq('artist_id', artist.id).eq('hidden', false).order('created_at', { ascending: true }),
     // Posts tab: everything posted AS this artist — via their artist Page
     // (matched by slug) or as the owner's artist voice. Not their posts as
     // other pages (those live on those pages).
@@ -8926,16 +8926,11 @@ async function showArtistPage(slug) {
     '</div>';
 }
 
-// Public: the story + how many people fund them. Never a dollar figure.
-// Artist/admin: the same strip plus their real earnings.
+// Fan-powered strip retired from public artist pages (founder call,
+// 2026-08-08) — the money story lives on the landing page and My Pass.
+// Earnings themselves stay in the artist portal and admin.
 function renderMoneyStrip(artist, support) {
-  // No stats on the public strip — the message carries it. Supporter and
-  // payout counts live in the artist portal and admin, not on a page
-  // strangers land on.
-  return '<div class="ap-money">' +
-    '<div class="ap-money-tag"><i></i>Fan-powered</div>' +
-    '<div class="ap-money-line">Streaming ' + escapeHtml(artist.name) + ' here pays ' + escapeHtml(artist.name) + '.</div>' +
-  '</div>';
+  return '';
 }
 
 var _artistAlbums = [];
@@ -9669,7 +9664,7 @@ async function loadMusicRails() {
   if (!rosterEl && !relEl) return;
   var r = await Promise.all([
     _sb.from('artists').select('name,slug,avatar_url,genre').eq('status', 'active').order('monthly_listeners', { ascending: false }).limit(20),
-    _sb.from('albums').select('id,title,type,cover_url,release_date,artist_id,artists(name,slug)').order('created_at', { ascending: false }).limit(12)
+    _sb.from('albums').select('id,title,type,cover_url,release_date,artist_id,artists(name,slug)').eq('hidden', false).order('created_at', { ascending: false }).limit(12)
   ]);
   if (rosterEl) {
     var artists = r[0].data || [];
