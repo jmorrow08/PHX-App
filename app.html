@@ -6198,10 +6198,14 @@ async function loadAdminInvites() {
     _sb.from('invite_codes').select('*').order('created_at', { ascending: false }).limit(50),
     _sb.from('referrals').select('*').order('created_at', { ascending: false }).limit(50),
     _sb.from('member_profiles').select('device_id,username,display_name'),
-    _sb.from('artists').select('id,name')
+    _sb.from('artists').select('id,name'),
+    // Real accounts live in profiles (admin-readable); member_profiles is
+    // guests only, which is why names used to come back as raw ids here.
+    _sb.from('profiles').select('id,username,display_name,role')
   ]);
   var codes = r[0].data || [], refs = r[1].data || [],
-      members = r[2].data || [], artists = r[3].data || [];
+      members = r[2].data || [], artists = r[3].data || [],
+      accounts = r[4].data || [];
 
   if (!codes.length && !refs.length) {
     el.innerHTML = _authUser
@@ -6211,6 +6215,9 @@ async function loadAdminInvites() {
   }
   function who(id) {
     if (!id) return '—';
+    var p = accounts.filter(function(x){ return x.id === id; })[0];
+    if (p) return (p.display_name || (p.username ? '@' + p.username : null) || id.slice(0, 8)) +
+                  (p.role === 'artist' ? ' 🎤' : '');
     var m = members.filter(function(x){ return x.device_id === id; })[0];
     if (m) return m.display_name || ('@' + m.username);
     var a = artists.filter(function(x){ return x.id === id; })[0];
@@ -6223,7 +6230,7 @@ async function loadAdminInvites() {
       return '<div style="display:flex;align-items:center;gap:.7rem;padding:.55rem .7rem;border:1px solid var(--border);border-radius:10px;margin-bottom:.4rem;flex-wrap:wrap">' +
         '<code style="font-family:var(--mono);font-size:.86rem;font-weight:700;color:var(--orange);letter-spacing:.1em">' + escapeHtml(c.code) + '</code>' +
         '<div style="flex:1;min-width:110px"><div style="font-size:.8rem;font-weight:600">' + escapeHtml(c.label || c.kind || 'Invite') + '</div>' +
-          '<div style="font-size:.7rem;color:var(--muted)">Owner: ' + escapeHtml(who(c.owner_user_id || c.owner_artist_id)) +
+          '<div style="font-size:.7rem;color:var(--muted)">Owner: ' + escapeHtml((c.owner_user_id || c.owner_artist_id) ? who(c.owner_user_id || c.owner_artist_id) : 'PHX house code') +
             ' · ' + (c.uses || 0) + ' used · ' + left + ' left</div></div>' +
         '<span class="badge" style="font-size:.6rem;color:' + (c.is_active ? 'var(--green)' : 'var(--faint)') + ';border:1px solid rgba(241,241,248,.14)">' +
           (c.is_active ? 'Active' : 'Off') + '</span>' +
@@ -6235,7 +6242,7 @@ async function loadAdminInvites() {
         refs.map(function(rf) {
           return '<div style="display:flex;align-items:center;gap:.6rem;padding:.45rem 0;border-bottom:1px solid var(--border);font-size:.8rem;flex-wrap:wrap">' +
             '<code style="font-family:var(--mono);font-size:.74rem;color:var(--orange-l)">' + escapeHtml(rf.code || '') + '</code>' +
-            '<span style="flex:1;min-width:140px">' + escapeHtml(who(rf.referrer_user_id || rf.referrer_artist_id)) +
+            '<span style="flex:1;min-width:140px">' + escapeHtml((rf.referrer_user_id || rf.referrer_artist_id) ? who(rf.referrer_user_id || rf.referrer_artist_id) : 'PHX house code') +
               ' <span style="color:var(--faint)">→</span> ' + escapeHtml(who(rf.referee_user_id)) + '</span>' +
             '<span class="badge" style="font-size:.6rem;color:' + (rf.status === 'qualified' ? 'var(--green)' : 'var(--muted)') +
               ';border:1px solid rgba(241,241,248,.14)">' + escapeHtml(rf.status || 'pending') + '</span>' +
