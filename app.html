@@ -4095,6 +4095,10 @@ function initFeedVideos() {
   document.querySelectorAll('video.feed-video:not([data-io])').forEach(function(v) {
     v.setAttribute('data-io', '1');
     _feedVidIO.observe(v);
+    // Kick videos already on screen right away — the observer's first
+    // callback lands a frame later and first paint shouldn't wait for it.
+    var r = v.getBoundingClientRect();
+    if (r.height && r.top < window.innerHeight && r.bottom > 0) v.play().catch(function(){});
   });
 }
 // Feed videos render from several places (city feed, artist Posts tab,
