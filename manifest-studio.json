@@ -1,0 +1,23 @@
+{
+  "name": "PHX Studio — Operations",
+  "short_name": "Studio",
+  "description": "PHX operations: roster, codes, payouts, growth, activity. Admin accounts only.",
+  "start_url": "/studio",
+  "display": "standalone",
+  "background_color": "#07070F",
+  "theme_color": "#F97316",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon-studio-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-studio-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "categories": ["business", "productivity"]
+}

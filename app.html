@@ -11,11 +11,21 @@
 <meta property="og:url" content="https://thephx.app/app">
 <link rel="canonical" href="https://thephx.app/app">
 <meta name="twitter:card" content="summary">
-<link rel="manifest" href="manifest.json">
+<link rel="manifest" href="manifest.json" id="pwa-manifest">
 <link rel="icon" href="/favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
-<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png" id="pwa-touch-icon">
+<script>
+// /studio installs as its own home-screen app (PHX Studio, platinum icon).
+// The swap must happen synchronously in <head> — iOS reads the manifest link
+// at Add-to-Home-Screen time, so it has to be correct before first paint.
+if (location.pathname.replace(/\/+$/, '') === '/studio') {
+  document.getElementById('pwa-manifest').setAttribute('href', '/manifest-studio.json');
+  document.getElementById('pwa-touch-icon').setAttribute('href', '/apple-touch-icon-studio.png');
+  document.title = 'PHX Studio';
+}
+</script>
 <meta name="theme-color" content="#F97316">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
