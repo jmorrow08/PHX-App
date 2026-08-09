@@ -7498,7 +7498,10 @@ async function renderOnboard() {
         '<span style="font-size:1.1rem;color:var(--muted)">@</span>' +
         '<input class="form-input" id="onb-username" placeholder="yourhandle" maxlength="20" value="' + escapeHtml(p.username || _randomHandle()) + '" style="flex:1">' +
       '</div>' +
-      '<input class="form-input" id="onb-display" placeholder="Display name (optional)" maxlength="40" value="' + escapeHtml(p.display_name || '') + '" style="margin-bottom:.55rem">' +
+      // The account default 'PHX Member' is a placeholder, not a name the
+      // person chose — prefilling it made people keep it. Blank means blank;
+      // left empty, their handle becomes their display name.
+      '<input class="form-input" id="onb-display" placeholder="Display name (optional — your handle if blank)" maxlength="40" value="' + escapeHtml((p.display_name && p.display_name !== 'PHX Member') ? p.display_name : '') + '" style="margin-bottom:.55rem">' +
       '<input class="form-input" id="onb-city" placeholder="Neighborhood or city (optional)" maxlength="40" style="margin-bottom:.9rem">' +
       '<button class="upgrade-btn" style="margin:0;width:100%" onclick="onbNext()">Continue</button>' +
       '<div id="onb-msg" style="font-size:.78rem;color:var(--red);margin-top:.55rem;min-height:1em"></div>'
