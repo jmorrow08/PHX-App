@@ -6254,7 +6254,7 @@ function getGuestId() {
 
 function openAuthModal() {
   if (_authUser) { // already signed in → this button is "Log Out"
-    _sb.auth.signOut();
+    _sb.auth.signOut().then(function(){ location.reload(); }, function(){ location.reload(); });
     return;
   }
   document.getElementById('auth-modal').style.display = 'flex';
@@ -7105,12 +7105,12 @@ async function renderOnboard() {
     '<p style="color:var(--muted);font-size:.85rem;margin-bottom:1rem">Follow a few artists to start your music, and a few people to fill your feed.</p>' +
     (artists.length
       ? '<div style="font:600 .68rem var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:.5rem">Artists</div>' +
-        gridOpen + artists.map(function(a){ return tile('artist', a.id, a.name, a.genre); }).join('') + '</div>'
+        gridOpen + artists.map(function(a){ return tile('artist', a.id, a.name, a.genre, a.avatar_url); }).join('') + '</div>'
       : '') +
     (people.length
       ? '<div style="font:600 .68rem var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:.5rem">People &amp; pages</div>' +
         gridOpen + people.map(function(p) {
-          return tile(p.kind === 'page' ? 'page' : 'user', p.id, p.name, p.subtitle);
+          return tile(p.kind === 'page' ? 'page' : 'user', p.id, p.name, p.subtitle, p.avatar_url);
         }).join('') + '</div>'
       : '') +
     '<button class="upgrade-btn" style="margin:0;width:100%" onclick="_onbStep=4;renderOnboard()">Continue</button>' +
@@ -7592,9 +7592,16 @@ _sb.auth.onAuthStateChange(function(event, session) {
       // Fresh account with no @username → claim it now. The row itself may
       // exist (the signup trigger creates it) with a null handle, so test the
       // handle rather than the row.
-      if (_authUser && !(_myProfile && _myProfile.username)) {
-        var m = document.getElementById('username-modal');
-        if (m) m.style.display = 'flex';
+      if (_authUser) {
+        // The onboarding wizard owns handle-claiming for accounts. Only nudge
+        // with this modal if onboarding finished without a username somehow.
+        _sb.from('profiles').select('username,onboarded_at').eq('id', _authUser.id).maybeSingle().then(function(r) {
+          var prof = (r && r.data) || {};
+          if (!prof.username && prof.onboarded_at) {
+            var m = document.getElementById('username-modal');
+            if (m) m.style.display = 'flex';
+          }
+        });
       }
     });
     loadMyPages();
