@@ -7918,6 +7918,62 @@ async function openFollowList(kind, id, mode) {
   }
 }
 
+// ── Profile posts: real cards (avatar, name, media) + All/Photos/Clips chips ──
+var _profilePostsCache = {};
+function renderProfilePosts(secId, posts, name, avatarUrl) {
+  var prev = _profilePostsCache[secId];
+  _profilePostsCache[secId] = { posts: posts || [], name: name || 'PHX', avatar: avatarUrl || '', filter: (prev && prev.filter) || 'all' };
+  return '<div id="' + secId + '">' + _profilePostsHtml(secId) + '</div>';
+}
+function setProfilePostsFilter(secId, f) {
+  var c = _profilePostsCache[secId];
+  if (!c) return;
+  c.filter = f;
+  var el = document.getElementById(secId);
+  if (el) el.innerHTML = _profilePostsHtml(secId);
+}
+function _profilePostsHtml(secId) {
+  var c = _profilePostsCache[secId];
+  if (!c) return '';
+  var isVid = function(u) { return /\.(mp4|webm|mov)(\?|$)/i.test(u || ''); };
+  var list = c.posts.filter(function(po) {
+    if (c.filter === 'photos') return po.media_url && !isVid(po.media_url);
+    if (c.filter === 'clips') return po.media_url && isVid(po.media_url);
+    return true;
+  });
+  var chip = function(key, label) {
+    return '<button class="ap-chip' + (c.filter === key ? ' on' : '') + '" onclick="setProfilePostsFilter(\'' + secId + '\',\'' + key + '\')">' + label + '</button>';
+  };
+  var ava = safeUrl(c.avatar);
+  var avaHtml = '<div style="width:34px;height:34px;border-radius:50%;overflow:hidden;background:linear-gradient(135deg,var(--orange-d),var(--purple));display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.85rem;flex-shrink:0">' +
+    (ava ? '<img src="' + ava + '" alt="" style="width:100%;height:100%;object-fit:cover">' : escapeHtml((c.name || '?').charAt(0).toUpperCase())) + '</div>';
+  return '<div class="pf-sec"><h3>Posts</h3></div>' +
+    '<div style="display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.7rem">' +
+      chip('all', 'All') + chip('photos', '📷 Photos') + chip('clips', '🎬 Clips') + '</div>' +
+    (list.length ? list.map(function(po) {
+      var diff = Math.floor((Date.now() - new Date(po.created_at).getTime()) / 60000);
+      var when = diff < 60 ? diff + 'm ago' : diff < 1440 ? Math.floor(diff / 60) + 'h ago' : Math.floor(diff / 1440) + 'd ago';
+      var mediaHtml = '';
+      if (po.media_url) {
+        var mu = safeUrl(po.media_url);
+        mediaHtml = isVid(po.media_url)
+          ? '<div style="position:relative;border-radius:10px;overflow:hidden;margin-top:.5rem;background:#000">' +
+              '<video muted playsinline preload="metadata" src="' + mu + '" style="width:100%;max-height:300px;object-fit:cover;display:block;pointer-events:none"></video>' +
+              '<span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:1.5rem;text-shadow:0 2px 10px rgba(0,0,0,.6)">▶</span></div>'
+          : '<img loading="lazy" src="' + mu + '" alt="" style="width:100%;max-height:300px;object-fit:cover;border-radius:10px;margin-top:.5rem;display:block">';
+      }
+      var open = isVid(po.media_url) ? "openClipAt('" + po.id + "')" : "showView('home');setTimeout(function(){scrollToPost('" + po.id + "')},400)";
+      return '<div class="pf-post" onclick="' + open + '">' +
+        '<div style="display:flex;align-items:center;gap:.55rem;margin-bottom:.45rem">' + avaHtml +
+          '<div style="min-width:0"><div style="font-size:.84rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + escapeHtml(c.name) + '</div>' +
+          '<div style="font-size:.66rem;color:var(--faint)">' + when + '</div></div></div>' +
+        (po.content ? '<div class="pf-post-txt">' + escapeHtml(String(po.content).slice(0, 280)) + '</div>' : '') +
+        mediaHtml +
+        '<div class="pf-post-meta" style="margin-top:.45rem">🔥 ' + (po.likes_count || 0) + ' · 💬 ' + (po.comments_count || 0) + '</div>' +
+      '</div>';
+    }).join('') : '<div class="pf-empty">' + (c.filter === 'clips' ? 'No clips yet.' : c.filter === 'photos' ? 'No photos yet.' : 'No posts yet.') + '</div>');
+}
+
 async function showMemberPage(userId) {
   // One identity: if this account IS an artist, their artist page is their
   // page — old member-profile links land there instead of a duplicate.
@@ -8039,29 +8095,7 @@ async function showMemberPage(userId) {
                   '</div>';
                 }).join('') + '</div>'
             : '') +
-          (function() {
-            // Clips strip: this member's video posts, tap → Clips player
-            var vids = posts.filter(function(po){ return /\.(mp4|webm|mov)(\?|$)/i.test(po.media_url || ''); });
-            if (!vids.length) return '';
-            return '<div class="pf-sec"><h3>Clips</h3></div>' +
-              '<div style="display:flex;gap:.5rem;overflow-x:auto;padding-bottom:.4rem">' +
-              vids.map(function(po) {
-                return '<div onclick="openClipAt(\'' + po.id + '\')" role="button" aria-label="Watch clip" style="position:relative;flex:0 0 100px;height:150px;border-radius:10px;overflow:hidden;cursor:pointer;background:#000">' +
-                  '<video muted playsinline preload="metadata" src="' + safeUrl(po.media_url) + '" style="width:100%;height:100%;object-fit:cover;pointer-events:none"></video>' +
-                  '<span style="position:absolute;bottom:.3rem;left:.35rem;font-size:.66rem;font-weight:700">▶ ' + (po.likes_count || 0) + '</span>' +
-                '</div>';
-              }).join('') + '</div>';
-          })() +
-          '<div class="pf-sec"><h3>Posts</h3></div>' +
-          (posts.length ? posts.map(function(po) {
-            var d = new Date(po.created_at);
-            var diff = Math.floor((Date.now() - d.getTime()) / 60000);
-            var when = diff < 60 ? diff + 'm ago' : diff < 1440 ? Math.floor(diff/60) + 'h ago' : Math.floor(diff/1440) + 'd ago';
-            return '<div class="pf-post" onclick="showView(\'home\');setTimeout(function(){scrollToPost(\'' + po.id + '\')},400)">' +
-              '<div class="pf-post-txt">' + escapeHtml((po.content || '').slice(0, 220)) + '</div>' +
-              '<div class="pf-post-meta">❤️ ' + (po.likes_count || 0) + ' · 💬 ' + (po.comments_count || 0) + ' · ' + when + '</div>' +
-            '</div>';
-          }).join('') : '<div class="pf-empty">No posts yet.</div>') +
+          renderProfilePosts('mp-posts', posts, name, p.avatar_url) +
         '</div>' +
       '</div>';
   } catch (e) {
@@ -10301,16 +10335,7 @@ async function showPageProfile(slugOrId) {
           : '') +
         (pageCan(pg.page_type, 'menu') ? '<div class="pf-sec"><h3>Menu</h3></div><div class="pf-empty">Menu coming with PHX Eats.</div>' : '') +
         (pageCan(pg.page_type, 'perks') ? '<div class="pf-sec"><h3>Member perks</h3></div><div class="pf-empty">Perks launch with the partner program.</div>' : '') +
-        '<div class="pf-sec"><h3>Posts</h3></div>' +
-        (posts.length ? posts.map(function(po) {
-          var d = new Date(po.created_at);
-          var diff = Math.floor((Date.now() - d.getTime()) / 60000);
-          var when = diff < 60 ? diff + 'm ago' : diff < 1440 ? Math.floor(diff/60) + 'h ago' : Math.floor(diff/1440) + 'd ago';
-          return '<div class="pf-post" onclick="showView(\'home\');setTimeout(function(){scrollToPost(\'' + po.id + '\')},400)">' +
-            '<div class="pf-post-txt">' + escapeHtml((po.content || '').slice(0, 220)) + '</div>' +
-            '<div class="pf-post-meta">❤️ ' + (po.likes_count || 0) + ' · 💬 ' + (po.comments_count || 0) + ' · ' + when + '</div>' +
-          '</div>';
-        }).join('') : '<div class="pf-empty">No posts yet.</div>') +
+        renderProfilePosts('pp-posts', posts, pg.name, pg.avatar_url) +
       '</div>' +
     '</div>';
 }
