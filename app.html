@@ -1426,6 +1426,8 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
     <div class="view" id="v-mypass">
       <!-- Your Week: the app keeps score of YOU — streak, level, listening -->
       <div id="my-week-card" style="margin-bottom:1rem"></div>
+      <!-- The points shop: spend on things money can't buy -->
+      <div id="points-shop" style="margin-bottom:1rem"></div>
       <div class="card" style="margin-bottom:1rem">
         <div class="card-title" style="margin-bottom:.8rem">Invite the city</div>
         <div id="referral-panel"><div style="color:var(--muted);font-size:.85rem">Loading…</div></div>
@@ -4455,6 +4457,17 @@ async function loadCityFeed(force) {
     });
   }
 
+  // Author extras for the whole page in one query: founding #s + flair
+  try {
+    var uids = sorted.map(function(p){ return p.user_id; }).filter(Boolean);
+    uids = uids.filter(function(v, i){ return uids.indexOf(v) === i; }).slice(0, 60);
+    if (uids.length) {
+      var metaRes = await _sb.from('public_profiles').select('id,founding_number,flair').in('id', uids);
+      _authorMeta = {};
+      (metaRes.data || []).forEach(function(m){ _authorMeta[m.id] = m; });
+    }
+  } catch (e) { reportFailure('authorMeta', e); }
+
   container.innerHTML = '<div id="feed-prompt"></div>' + renderComposer() +
     (sorted.map(renderFeedPost).join('') ||
      '<div style="color:var(--muted);font-size:.84rem;padding:1rem 0">No posts yet — be the first.</div>');
@@ -4494,6 +4507,8 @@ async function loadMyWeek() {
   var d = res.data;
   if (res.error || !d || !d.ok) { el.innerHTML = ''; return; }
   window._myStreak = d.streak || 0;
+  window._myPoints = d.points_total || 0;
+  loadPointsShop();
   var levelColor = { Ember: 'var(--muted)', Flame: 'var(--orange-l)', Inferno: 'var(--orange)', Phoenix: 'var(--gold)' }[d.level] || 'var(--muted)';
   var nextAt = d.level === 'Ember' ? 100 : d.level === 'Flame' ? 500 : d.level === 'Inferno' ? 1500 : null;
   var tile = function(v, l) { return '<div style="flex:1;min-width:76px;text-align:center"><div style="font-family:var(--disp);font-size:1.25rem;font-weight:800">' + v + '</div><div style="font-size:.62rem;color:var(--muted)">' + l + '</div></div>'; };
@@ -4509,6 +4524,93 @@ async function loadMyWeek() {
       tile(String(d.early_ears || 0), 'early ears 👂') + '</div>' +
     '<div style="font-size:.7rem;color:var(--faint);margin-top:.7rem">' + fmtK(d.points_total || 0) + ' PHX Points all-time' +
       (nextAt ? ' · ' + (nextAt - d.points_total) + ' to ' + (d.level === 'Ember' ? 'Flame' : d.level === 'Flame' ? 'Inferno' : 'Phoenix') : ' · top of the mountain') + '</div></div>';
+}
+
+// ── THE POINTS SHOP: spend on what money can't buy ──
+function loadPointsShop() {
+  var el = document.getElementById('points-shop');
+  if (!el || !_authUser) { if (el) el.innerHTML = ''; return; }
+  var bal = window._myPoints || 0;
+  var hasFlair = !!(_myProfile && _myProfile.flair);
+  var item = function(icon, name, sub, cost, action, owned) {
+    var can = bal >= cost && !owned;
+    return '<div style="display:flex;align-items:center;gap:.7rem;padding:.6rem 0;border-bottom:1px solid var(--border)">' +
+      '<span style="font-size:1.3rem;width:34px;text-align:center">' + icon + '</span>' +
+      '<div style="flex:1;min-width:0"><div style="font-size:.86rem;font-weight:700">' + name + '</div>' +
+        '<div style="font-size:.7rem;color:var(--muted)">' + sub + '</div></div>' +
+      (owned ? '<span class="badge badge-orange" style="font-size:.6rem">OWNED</span>'
+             : '<button class="tb-btn" style="font-size:.74rem"' + (can ? ' onclick="' + action + '"' : ' disabled style="opacity:.45"') + '>' + cost + ' pts</button>') +
+    '</div>';
+  };
+  el.innerHTML = '<div class="card">' +
+    '<div class="sh" style="margin-bottom:.4rem"><h3>🛍 Points shop</h3><span class="badge badge-orange" style="font-size:.62rem">' + fmtK(bal) + ' pts</span></div>' +
+    '<div style="font-size:.72rem;color:var(--muted);margin-bottom:.5rem">Earned by showing up — spent on things money can\'t buy.</div>' +
+    item('🚀', 'Boost your latest post', 'Rides high in Popular for 24 hours', 250, "buyShopItem('boost', this)") +
+    item('🔥', 'Flame flair', 'The flame next to your name, everywhere, forever', 150, "buyShopItem('flair', this)", hasFlair) +
+    '<div style="font-size:.7rem;color:var(--faint);margin-top:.6rem">More on artist pages: 🏆 join a supporters wall (200) · ⭐ spotlight votes (100).</div></div>';
+}
+async function buyShopItem(what, btn, target) {
+  if (btn) btn.disabled = true;
+  var res = await _sb.rpc('spend_points', { p_what: what, p_target: target || null });
+  if (btn) btn.disabled = false;
+  var d = res.data || {};
+  if (res.error || !d.ok) {
+    var msgs = { balance: 'Not enough points yet — keep showing up 🔥', no_post: 'Post something first, then boost it.',
+                 already_boosted: 'That post is already boosted.', owned: 'Already yours.' };
+    showToast(msgs[d.reason] || 'Could not complete that.');
+    return;
+  }
+  var wins = { boost: '🚀 Boosted — your post rides high for 24h', flair: '🔥 Flair unlocked — it\'s next to your name now',
+               spotlight_vote: '⭐ Vote cast for next month\'s spotlight', wall: '🏆 You\'re on the wall for this month' };
+  showToast(wins[d.what] || '✓ Done');
+  if (d.what === 'flair' && _myProfile) _myProfile.flair = '🔥';
+  loadMyWeek().then ? loadMyWeek() : loadMyWeek();
+  setTimeout(loadPointsShop, 800);
+  if (d.what === 'wall' || d.what === 'spotlight_vote') { if (_artistPage) loadArtistSupport(_artistPage.id); }
+}
+
+// ── Artist page: supporters wall + spotlight votes + who's going ──
+async function loadArtistSupport(artistId) {
+  var el = document.getElementById('ap-support-row');
+  if (!el) return;
+  var res = await _sb.rpc('artist_wall', { p_artist: artistId });
+  var wall = res.data || [];
+  el.innerHTML = '<div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap">' +
+    '<span style="font-size:.72rem;color:var(--muted)">🏆 Supporters wall · ' + new Date().toLocaleDateString('en-US', { month: 'long' }) + ':</span>' +
+    (wall.length ? wall.map(function(w) {
+      return '<span onclick="showMemberPage(\'' + w.id + '\')" role="button" style="font-size:.76rem;font-weight:700;color:var(--orange-l);cursor:pointer">' + escapeHtml(w.name) + '</span>';
+    }).join('<span style="color:var(--faint)">·</span>') : '<span style="font-size:.72rem;color:var(--faint)">be the first name up here</span>') +
+    (_authUser ? '<span style="margin-left:auto;display:flex;gap:.4rem">' +
+      '<button class="tb-btn" style="font-size:.68rem;padding:.25rem .6rem" onclick="buyShopItem(\'wall\', this, \'' + artistId + '\')">🏆 Join · 200</button>' +
+      '<button class="tb-btn" style="font-size:.68rem;padding:.25rem .6rem" onclick="buyShopItem(\'spotlight_vote\', this, \'' + artistId + '\')">⭐ Spotlight · 100</button></span>' : '') +
+  '</div>';
+}
+async function _loadRsvpCounts() {
+  var ids = (_artistShows || []).map(function(s){ return s.id; });
+  if (!ids.length) return;
+  var res = await _sb.from('show_rsvps').select('show_id,user_id').in('show_id', ids);
+  var rows = res.data || [];
+  ids.forEach(function(id) {
+    var btn = document.getElementById('rsvp-' + id);
+    if (!btn) return;
+    var mine = _authUser && rows.some(function(r){ return r.show_id === id && r.user_id === _authUser.id; });
+    var n = rows.filter(function(r){ return r.show_id === id; }).length;
+    btn.textContent = (mine ? '✓ Going' : '🙋 I\'m going') + (n ? ' · ' + n : '');
+    btn.classList.toggle('on', !!mine);
+  });
+}
+async function toggleRsvpUI(showId, btn) {
+  if (!requireAuthAction('RSVPing')) return;
+  if (btn) btn.disabled = true;
+  var res = await _sb.rpc('toggle_rsvp', { p_show: showId });
+  if (btn) btn.disabled = false;
+  var d = res.data || {};
+  if (res.error || !d.ok) return;
+  if (btn) {
+    btn.textContent = (d.going ? '✓ Going' : '🙋 I\'m going') + ' · ' + d.count;
+    btn.classList.toggle('on', !!d.going);
+  }
+  showToast(d.going ? '🙋 You\'re on the list — see you there' : 'Taken off the list');
 }
 
 // ── Scene leaders: this month's most active members (resets monthly) ──
@@ -4606,7 +4708,18 @@ function feedScore(p, reportCounts) {
   // Following means something: people and pages you follow rank ahead of
   // strangers in Popular (the dedicated Following tab stays follows-only).
   var followBoost = (_myFollows['user:' + p.user_id] || _myFollows['page:' + p.page_id]) ? 4 : 0;
-  return (engagement + freshBonus + followBoost - reportPenalty) / Math.pow(ageHours + 2, 1.2);
+  // Points-bought boost: rides high while it lasts
+  var boostBonus = (p.boosted_until && new Date(p.boosted_until) > new Date()) ? 8 : 0;
+  return (engagement + freshBonus + followBoost + boostBonus - reportPenalty) / Math.pow(ageHours + 2, 1.2);
+}
+var _authorMeta = {};   // user_id -> {founding_number, flair} for feed chrome
+function authorChrome(userId) {
+  var m = _authorMeta[userId];
+  if (!m) return '';
+  var out = '';
+  if (m.flair) out += ' <span title="PHX flair">' + m.flair + '</span>';
+  if (m.founding_number) out += ' <span class="badge badge-orange" style="font-size:.55rem;padding:.1rem .4rem" title="Founding member">#' + m.founding_number + '</span>';
+  return out;
 }
 
 // Photo filters — CSS filter strings applied via canvas re-encode on post
@@ -5034,7 +5147,7 @@ function renderFeedPost(p) {
                  'style="background:' + bg + ';cursor:pointer" onclick="' + authorClick + '"') +
       // The name routes exactly like the avatar — it used to drop author_name,
       // so clicking a seeded artist's name silently did nothing.
-      '<div class="fp-meta"><h4><span style="cursor:pointer" onclick="' + authorClick + '">' + escapeHtml(p.author_name) + '</span> ' + badge +
+      '<div class="fp-meta"><h4><span style="cursor:pointer" onclick="' + authorClick + '">' + escapeHtml(p.author_name) + '</span>' + authorChrome(p.user_id) + ' ' + badge +
         // Follow the author: pages > users; skip self + official PHX
         (p.page_id ? followBtnHtml('page', p.page_id) :
          (p.user_id && p.user_id !== getGuestId() && p.author_role !== 'admin') ? followBtnHtml('user', p.user_id) : '') +
@@ -6475,6 +6588,15 @@ async function loadAdminEngagement() {
     }).join('') : '<div class="pf-empty">Leaderboard fills as points flow.</div>';
   }
   _setText('ana-prompt-current', d.current_prompt ? '“' + d.current_prompt + '”' : 'No prompt set.');
+  // Spotlight votes: the founder decision feed
+  var sv = await _sb.rpc('spotlight_tally');
+  var lEl2 = document.getElementById('ana-leaders');
+  if (lEl2 && sv.data) {
+    lEl2.innerHTML += '<div class="sh" style="margin:1rem 0 .4rem"><h3>⭐ Spotlight votes · this month</h3></div>' +
+      ((sv.data || []).length ? sv.data.map(function(x) {
+        return '<div style="display:flex;justify-content:space-between;padding:.3rem 0;border-bottom:1px solid var(--border);font-size:.8rem"><span>' + escapeHtml(x.name) + '</span><b style="color:var(--orange-l)">' + x.votes + '</b></div>';
+      }).join('') : '<div class="pf-empty" style="padding:.4rem 0">No votes yet — members spend 100 pts per vote on artist pages.</div>');
+  }
 }
 async function setStudioPrompt(btn) {
   var inp = document.getElementById('ana-prompt-input');
@@ -8969,6 +9091,7 @@ async function loadReferralPanel() {
       '</div>' +
       (d.founding_number ? '<div style="font-size:.78rem;color:var(--orange-l);margin-bottom:.5rem">🔥 PHX Native #' + d.founding_number + ' — rate locked for life</div>' : '') +
       '<div style="font-size:.72rem;color:var(--faint);margin-top:.3rem">Share it — everyone who joins on your code is part of your corner of the city.</div>' +
+      '<div id="ref-lineage" style="font-size:.72rem;color:var(--orange-l);margin-top:.35rem"></div>' +
       (_canMintCodes
         ? '<div style="margin-top:1rem;padding-top:.9rem;border-top:1px solid var(--border)">' +
             '<div style="font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:.5rem">Hand out codes</div>' +
@@ -8983,6 +9106,26 @@ async function loadReferralPanel() {
   } catch (e) {
     el.innerHTML = '<div style="color:var(--muted);font-size:.85rem">Couldn\'t load referrals.</div>';
   }
+  _loadLineage();
+}
+
+// Lineage: whose code brought you into the city — family tree as identity
+async function _loadLineage() {
+  var el = document.getElementById('ref-lineage');
+  if (!el || !_authUser) return;
+  try {
+    var me = await _sb.from('profiles').select('referred_by,referred_by_artist,joined_via_code').eq('id', _authUser.id).maybeSingle();
+    var d = me.data || {};
+    if (d.referred_by) {
+      var w = await _sb.from('public_profiles').select('display_name,username').eq('id', d.referred_by).maybeSingle();
+      if (w.data) el.textContent = '🐦‍🔥 Brought into the city by ' + (w.data.display_name || '@' + w.data.username);
+    } else if (d.referred_by_artist) {
+      var a = await _sb.from('artists').select('name').eq('id', d.referred_by_artist).maybeSingle();
+      if (a.data) el.textContent = '🐦‍🔥 Brought into the city by ' + a.data.name;
+    } else if (d.joined_via_code) {
+      el.textContent = '🐦‍🔥 Day-one entry · code ' + d.joined_via_code;
+    }
+  } catch (e) { reportFailure('lineage', e); }
 }
 
 // Partner minting (Bryce + flagged managers): one-use typed codes from My
@@ -10674,7 +10817,12 @@ async function showArtistPage(slug) {
     var tries = 0;
     (function put() {
       var s = document.getElementById('ap-follow-stat');
-      if (s) { s.textContent = txt; return; }
+      if (s) {
+        s.textContent = txt;
+        loadArtistSupport(artist.id);
+        _loadRsvpCounts();
+        return;
+      }
       if (++tries < 40) setTimeout(put, 250);
     })();
   })();
@@ -10740,6 +10888,7 @@ async function showArtistPage(slug) {
         'onclick="toggleFavoriteUI(\'' + artist.id + '\', this)">' + (_myFavorites[artist.id] ? '★ Favorite' : '☆ Favorite') + '</button>' +
       (artistPageCanEdit() ? '<button class="ap-follow" onclick="openArtistEditor()">✎ Edit page</button>' : '') +
     '</div>' +
+    '<div id="ap-support-row" style="padding:0 22px .4rem;min-height:1px"></div>' +
 
     renderMoneyStrip(artist, support) +
 
@@ -11889,6 +12038,7 @@ function renderArtistShows(artist) {
         '<div style="font-size:.74rem;color:var(--muted);margin-top:2px">' + escapeHtml(tp.time) + ' · ' + escapeHtml(meta) +
           (price ? ' · ' + escapeHtml(price) : '') + '</div>' +
       '</div>' +
+      '<button class="tb-btn" id="rsvp-' + s.id + '" style="font-size:.7rem;padding:.3rem .6rem;white-space:nowrap" onclick="toggleRsvpUI(\'' + s.id + '\', this)">🙋 I\'m going</button>' +
       (ticket
         ? '<a class="pf-btn" style="padding:.35rem .85rem;font-size:.74rem" href="' + ticket + '" target="_blank" rel="noopener">Tickets ↗</a>'
         : '<span class="ap-card-note">' + (s.is_free ? 'No ticket needed' : 'TBA') + '</span>') +
