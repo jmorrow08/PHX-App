@@ -1799,6 +1799,20 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
 
     <!-- ADMIN — MASTER ROSTER: every identity + outstanding claim codes -->
     <div class="view" id="v-admin-roster">
+      <!-- Launch Desk: the one-glance strip for handout night -->
+      <div class="admin-kpi-grid" style="margin-bottom:1rem">
+        <div class="admin-kpi"><div class="admin-kpi-val" style="color:var(--orange)" id="ld-requests">—</div><div class="admin-kpi-label">Pending requests</div></div>
+        <div class="admin-kpi"><div class="admin-kpi-val" style="color:var(--purple-l)" id="ld-artists">—</div><div class="admin-kpi-label">Artists awaiting approval</div></div>
+        <div class="admin-kpi"><div class="admin-kpi-val" style="color:var(--teal)" id="ld-signups">—</div><div class="admin-kpi-label">Signups today</div><div class="admin-kpi-change" style="color:var(--muted)" id="ld-redemptions"></div></div>
+        <div class="admin-kpi"><div class="admin-kpi-val" style="color:var(--green)" id="ld-email">—</div><div class="admin-kpi-label">Emails sent today</div><div class="admin-kpi-change" id="ld-email-sub" style="color:var(--muted)"></div></div>
+      </div>
+      <div class="card" style="margin-bottom:1rem">
+        <div class="sh" style="margin-bottom:.6rem"><h3>Email queue</h3>
+          <span class="badge badge-orange" id="ld-email-badge">…</span>
+          <button class="tb-btn" style="margin-left:auto;font-size:.74rem;padding:.28rem .6rem" onclick="runEmailDrainer(this)">Send queued now</button></div>
+        <div style="font-size:.78rem;color:var(--muted);margin-bottom:.7rem">Delivers automatically every 5 minutes. The button retries failures and pushes everything queued immediately.</div>
+        <div id="ld-email-list"><div class="pf-empty">Loading…</div></div>
+      </div>
       <div class="card" style="margin-bottom:1rem">
         <div class="sh" style="margin-bottom:.6rem"><h3>Access requests</h3>
           <span class="badge badge-orange" id="access-req-count">…</span>
@@ -2391,7 +2405,7 @@ function showView(id) {
   if (id === 'admin-growth') loadAdminGrowth();
   if (id === 'admin-content') { loadPendingTracks(); loadAdminOps(); }
   if (id === 'admin-reports') loadReports();
-  if (id === 'admin-roster') loadAdminRoster();
+  if (id === 'admin-roster') { loadAdminRoster(); loadLaunchDesk(); }
   if (id === 'admin-pot') loadPotDashboard();
   if (id === 'artist-earnings') loadArtistReferral();
   if (id === 'admin-merch') loadMerchConnections();
@@ -5505,6 +5519,42 @@ function resetSubmitForm() {
 // One place to see every identity on PHX and which claim codes are still
 // outstanding. Previously you couldn't tell who existed or what was unclaimed.
 // ═══════════════════════════════════════════════════════════════════════
+// ── Launch Desk: the handout-night strip + email queue health ──
+async function loadLaunchDesk() {
+  var res = await _sb.rpc('admin_launch_desk');
+  var d = res.data;
+  if (res.error || !d) return;
+  _setText('ld-requests', String(d.pending_requests));
+  _setText('ld-artists', String(d.pending_artists));
+  _setText('ld-signups', String(d.signups_today));
+  _setText('ld-redemptions', d.redemptions_today + ' code redemption' + (d.redemptions_today === 1 ? '' : 's'));
+  _setText('ld-email', String(d.email.sent_today));
+  _setText('ld-email-sub', d.email.queued + ' queued · ' + d.email.failed + ' failed');
+  _setText('ld-email-badge', (d.email.queued + d.email.sending) + ' in flight');
+  var list = document.getElementById('ld-email-list');
+  if (list) {
+    list.innerHTML = (d.email_recent && d.email_recent.length) ? d.email_recent.map(function(e) {
+      var col = e.status === 'sent' ? 'var(--green)' : e.status === 'failed' ? 'var(--red)' : 'var(--orange)';
+      return '<div style="display:flex;gap:.6rem;align-items:center;padding:.35rem 0;border-bottom:1px solid var(--border);font-size:.76rem">' +
+        '<span style="color:' + col + ';font-weight:700;min-width:52px">' + escapeHtml(e.status) + '</span>' +
+        '<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + escapeHtml(e.to) + ' · ' + escapeHtml(e.template) + (e.error ? ' — <span style="color:var(--red)">' + escapeHtml(e.error) + '</span>' : '') + '</span>' +
+        '<span style="color:var(--faint)">' + escapeHtml(e.at) + '</span></div>';
+    }).join('') : '<div class="pf-empty">No emails yet — approvals and code sends will show here.</div>';
+  }
+}
+async function runEmailDrainer(btn) {
+  if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
+  var res = await _sb.rpc('admin_run_email_drainer');
+  if (btn) { btn.disabled = false; btn.textContent = 'Send queued now'; }
+  var d = res.data || {};
+  if (res.error || !d.ok) {
+    showToast(d.reason === 'no_resend_key_in_vault' ? 'Resend key missing from Vault' : 'Drainer error');
+    return;
+  }
+  showToast('📧 ' + (d.submitted || 0) + ' submitted · ' + (d.confirmed_sent || 0) + ' confirmed sent');
+  setTimeout(loadLaunchDesk, 1200);
+}
+
 async function loadAdminRoster() {
   loadAdminInvites();
   loadAccessRequests();
