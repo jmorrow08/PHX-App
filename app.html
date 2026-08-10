@@ -8978,6 +8978,19 @@ async function redeemPendingInvite() {
   var code = '';
   try { code = localStorage.getItem('phx_pending_invite') || ''; } catch (e) { reportFailure('redeemPendingInvite', e); }
   if (!code) return;
+  // GUARD: codes are for NEW accounts. An established member who taps an
+  // invite link (their own, or a friend's) must never consume it — that's
+  // how a founder self-redeemed his own single-use code and got his
+  // founding number reassigned.
+  try {
+    var gRes = await _sb.from('profiles').select('access_status,onboarded_at').eq('id', _authUser.id).maybeSingle();
+    var g = gRes.data || {};
+    if (g.access_status === 'active' && g.onboarded_at) {
+      try { localStorage.removeItem('phx_pending_invite'); } catch (e2) {}
+      showToast('You\'re already in the city — that code stays fresh for its owner 🐦‍🔥');
+      return;
+    }
+  } catch (e) { reportFailure('redeemGuard', e); }
   // A code can either CLAIM pre-built pages/artist records (handed to someone
   // whose page PHX built for them) or be an ordinary referral invite. Try the
   // claim path first; it's a no-op for normal codes.
