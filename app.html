@@ -2446,7 +2446,11 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
       <button class="tb-btn" id="auth-tab-signup" style="flex:1" onclick="setAuthTab('signup')">Create Account</button>
     </div>
     <input class="form-input" id="auth-email" type="email" placeholder="you@email.com" style="margin-bottom:.6rem" autocomplete="email">
-    <input class="form-input" id="auth-password" type="password" placeholder="Password (8+ characters)" style="margin-bottom:.8rem" autocomplete="current-password">
+    <div style="position:relative;margin-bottom:.35rem">
+      <input class="form-input" id="auth-password" type="password" placeholder="Password" style="padding-right:2.9rem" autocomplete="current-password" oninput="authPwHint(this.value)">
+      <button type="button" onclick="togglePw('auth-password', this)" aria-label="Show password" style="position:absolute;right:.45rem;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.05rem;padding:.35rem">👁</button>
+    </div>
+    <div id="auth-pw-hint" style="font-size:.7rem;color:var(--muted);margin-bottom:.8rem">Password: at least 8 characters</div>
     <div id="auth-invite-wrap" style="display:none;margin-bottom:.8rem">
       <input class="form-input" id="auth-invite" type="text" placeholder="Invite code" maxlength="12"
              style="text-transform:uppercase;letter-spacing:.12em;font-family:ui-monospace,monospace" autocomplete="off">
@@ -7913,14 +7917,36 @@ async function signInWithGoogle() {
   }
 }
 
+// Show/hide password — typos are the #1 "can't log in"
+function togglePw(id, btn) {
+  var i = document.getElementById(id);
+  if (!i) return;
+  i.type = i.type === 'password' ? 'text' : 'password';
+  if (btn) { btn.textContent = i.type === 'password' ? '👁' : '🙈'; btn.setAttribute('aria-label', i.type === 'password' ? 'Show password' : 'Hide password'); }
+}
+// Live requirement line — goes green the moment the password qualifies
+function authPwHint(v) {
+  var h = document.getElementById('auth-pw-hint');
+  if (!h) return;
+  var len = (v || '').length;
+  if (!len) { h.textContent = 'Password: at least 8 characters'; h.style.color = 'var(--muted)'; return; }
+  h.textContent = len >= 8 ? '✓ Password length is good' : 'Password: ' + len + '/8 characters';
+  h.style.color = len >= 8 ? 'var(--green)' : 'var(--orange-l)';
+}
+
 async function submitAuth() {
   var email = ((document.getElementById('auth-email') || {}).value || '').trim();
   var password = (document.getElementById('auth-password') || {}).value || '';
   var errEl = document.getElementById('auth-error');
   var infoEl = document.getElementById('auth-info');
   errEl.style.display = 'none'; infoEl.style.display = 'none';
-  if (!email || password.length < 8) {
-    errEl.textContent = 'Enter your email or @username and a password of 8+ characters.';
+  if (!email) {
+    errEl.textContent = 'Enter your email' + (_authTab === 'signup' ? '.' : ' or @username.');
+    errEl.style.display = 'block';
+    return;
+  }
+  if (password.length < 8) {
+    errEl.textContent = 'Password needs at least 8 characters — yours is ' + password.length + '. Tap 👁 to double-check it.';
     errEl.style.display = 'block';
     return;
   }
@@ -7955,11 +7981,13 @@ async function submitAuth() {
       return;
     }
     if (inviteCode) { try { localStorage.setItem('phx_pending_invite', inviteCode); } catch (e) { reportFailure('submitAuth', e); } }
-    res = await _sb.auth.signUp({ email: email, password: password,
-      options: {
-        emailRedirectTo: window.location.origin + '/app.html',
-        data: { terms_accepted: 'true', terms_version: PHX_TERMS_VERSION }
-      } });
+    try {
+      res = await _sb.auth.signUp({ email: email, password: password,
+        options: {
+          emailRedirectTo: window.location.origin + '/app.html',
+          data: { terms_accepted: 'true', terms_version: PHX_TERMS_VERSION }
+        } });
+    } catch (netErr) { res = { error: { message: 'phx_network' } }; }
     if (!res.error && res.data.user && !res.data.session) {
       infoEl.textContent = '✓ Check your email to confirm your account, then sign in.';
       infoEl.style.display = 'block';
@@ -7967,11 +7995,26 @@ async function submitAuth() {
       return;
     }
   } else {
-    res = await _sb.auth.signInWithPassword({ email: email, password: password });
+    try {
+      res = await _sb.auth.signInWithPassword({ email: email, password: password });
+    } catch (netErr) { res = { error: { message: 'phx_network' } }; }
   }
   btn.disabled = false;
   if (res.error) {
-    errEl.textContent = res.error.message;
+    // Human errors, not API strings — "Load failed" cost us a signup
+    var m = String(res.error.message || '');
+    errEl.textContent =
+      m === 'phx_network' || /load failed|failed to fetch|network/i.test(m)
+        ? 'Couldn\'t reach PHX — check your connection. VPNs, content blockers, and iCloud Private Relay can block it.' :
+      /password.*(short|least|character)/i.test(m)
+        ? 'Password needs at least 8 characters. Tap 👁 to check what you typed.' :
+      /invalid login/i.test(m)
+        ? 'Wrong email/username or password. Tap 👁 to double-check the password.' :
+      /already registered|already exists/i.test(m)
+        ? 'That email already has an account — switch to Sign In.' :
+      /rate limit/i.test(m)
+        ? 'Too many tries — give it a minute and try again.' :
+      m;
     errEl.style.display = 'block';
     return;
   }
