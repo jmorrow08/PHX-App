@@ -4385,8 +4385,10 @@ async function resolveAuthorAvatars(posts) {
 }
 
 function authorAvatarUrl(p) {
-  return (p.page_id && _avatarCache['page:' + p.page_id]) ||
-         (p.user_id && _avatarCache['user:' + p.user_id]) ||
+  // A page post wears the PAGE's face or nothing — never the owner's
+  // personal photo (one account, separate voices).
+  if (p.page_id) return _avatarCache['page:' + p.page_id] || '';
+  return (p.user_id && _avatarCache['user:' + p.user_id]) ||
          (p.author_name && _avatarCache['name:' + p.author_name]) || '';
 }
 
