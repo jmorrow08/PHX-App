@@ -8956,6 +8956,9 @@ async function finishOnboarding(skipFollows) {
     showToast('Welcome to PHX 🏙️');
     if (typeof applyAccountRole === 'function') applyAccountRole();
     if (typeof loadCityFeed === 'function') loadCityFeed(true);
+    // The wizard's last word: the notifications soft-ask, right when
+    // goodwill is highest and the browser prompt makes sense to say yes to
+    setTimeout(function () { if (typeof showPushPrompt === 'function') showPushPrompt('onboarding'); }, 1600);
   } catch (e) {
     if (msg) { msg.style.color = 'var(--red)'; msg.textContent = 'Something went wrong.'; }
   }
@@ -9713,6 +9716,44 @@ async function enablePushNotifications(btn) {
   if (btn) { btn.textContent = '✓ Push enabled'; btn.style.color = 'var(--green)'; }
   trackEvent('push_enabled', 'push', null, {});
 }
+
+// ── The soft ask: our own branded popup BEFORE the browser's permission
+// prompt. Shown once after onboarding and re-offered at most every 14 days.
+// If they say yes here, the OS prompt that follows almost always gets a yes.
+function showPushPrompt(source) {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) return;
+  if (Notification.permission !== 'default') return;   // already granted or hard-blocked
+  if (!_authUser) return;
+  var last = parseInt(localStorage.getItem('phx_push_prompt_at') || '0', 10);
+  if (source !== 'onboarding' && Date.now() - last < 14 * 86400000) return;
+  localStorage.setItem('phx_push_prompt_at', String(Date.now()));
+
+  var m = document.createElement('div');
+  m.id = 'push-prompt-modal';
+  m.style.cssText = 'position:fixed;inset:0;z-index:560;background:rgba(7,7,15,.82);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:1rem';
+  m.innerHTML =
+    '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:18px;max-width:380px;width:100%;padding:1.7rem;text-align:center">' +
+      '<div style="font-size:2.2rem;margin-bottom:.5rem">🔔</div>' +
+      '<div style="font-size:1.15rem;font-weight:800;margin-bottom:.4rem">Don\'t miss your city</div>' +
+      '<p style="color:var(--muted);font-size:.85rem;line-height:1.5;margin-bottom:1.2rem">When someone follows you, replies to you, or an artist you back drops something new — it pops up on your phone like any other app.</p>' +
+      '<button class="upgrade-btn" style="margin:0;width:100%" id="push-prompt-yes">Turn them on</button>' +
+      '<button onclick="document.getElementById(\'push-prompt-modal\').remove()" style="display:block;width:100%;background:none;border:none;color:var(--muted);cursor:pointer;font-size:.8rem;margin-top:.7rem;text-decoration:underline">Not now</button>' +
+    '</div>';
+  document.body.appendChild(m);
+  document.getElementById('push-prompt-yes').onclick = async function () {
+    var btn = this;
+    btn.disabled = true; btn.textContent = 'One tap on the browser prompt…';
+    try { await enablePushNotifications(btn); } catch (e) { reportFailure('pushPrompt', e); }
+    setTimeout(function () { var el = document.getElementById('push-prompt-modal'); if (el) el.remove(); }, 900);
+  };
+  trackEvent('push_prompt_shown', 'push', null, { source: source || 'boot' });
+}
+
+// Returning members who never turned push on get the soft ask once they've
+// settled in — never in the first seconds of a session.
+whenAuthResolved().then(function () {
+  if (_authUser) setTimeout(function () { showPushPrompt('boot'); }, 9000);
+});
 
 // ═══════════════════════════════════════════════════════════════════════
 // CLIPS — PHX's vertical video. One immersive player, reached from the
