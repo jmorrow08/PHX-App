@@ -514,6 +514,14 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
 /* Shows + conversion footer */
 .ap-show{display:flex;align-items:center;gap:14px;padding:12px 0;border-bottom:1px solid rgba(241,241,248,.06)}
 .ap-show:last-child{border-bottom:none}
+.ap-show-info{flex:1;min-width:0}
+.ap-show-actions{display:flex;gap:.5rem;align-items:center;flex-shrink:0}
+/* Mobile: info gets the full line next to the date; buttons drop to their own row */
+@media(max-width:600px){
+  .ap-show{flex-wrap:wrap;row-gap:8px}
+  .ap-show-info{flex:1 1 calc(100% - 62px)}
+  .ap-show-actions{flex:1 1 100%;justify-content:flex-end}
+}
 .ap-date{text-align:center;flex-shrink:0;width:38px}
 .ap-date .m{font:600 9px var(--mono);letter-spacing:.1em;color:var(--orange)}
 .ap-date .d{font-family:var(--disp);font-size:1.35rem;font-weight:700;letter-spacing:-.03em;line-height:1}
@@ -2058,6 +2066,13 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
         <div style="font-size:.78rem;color:var(--muted);margin-bottom:.7rem">Who invited whom. Every signup must redeem a code — there is no open sign-up. Codes are typed: an <strong>Artist</strong> code lands the person in the artist lane, a <strong>Member</strong> code in the member lane.</div>
         <div id="admin-invites"><div class="pf-empty">Loading…</div></div>
       </div>
+      <div class="card" style="margin-bottom:1rem">
+        <div class="sh" style="margin-bottom:.6rem"><h3>Shows &amp; RSVPs</h3>
+          <span class="badge badge-teal" id="ld-rsvp-badge">…</span>
+          <button class="tb-btn" style="margin-left:auto;font-size:.74rem;padding:.28rem .6rem" onclick="loadShowRsvps()">↻</button></div>
+        <div style="font-size:.78rem;color:var(--muted);margin-bottom:.7rem">Who tapped "I'm going." Everyone on the list gets an automatic reminder the day before.</div>
+        <div id="ld-rsvp-list"><div class="pf-empty">Loading…</div></div>
+      </div>
       <div class="card">
         <div class="sh" style="margin-bottom:.6rem"><h3>Everyone on PHX</h3><span class="badge badge-orange" id="roster-count">…</span></div>
         <div id="admin-roster-list"><div class="pf-empty">Loading…</div></div>
@@ -2435,10 +2450,10 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
 </div>
 
 <div id="auth-modal" role="dialog" aria-modal="true" aria-label="Sign in or create account" style="display:none;position:fixed;inset:0;z-index:520;background:rgba(7,7,15,.88);backdrop-filter:blur(5px);align-items:center;justify-content:center;padding:1rem">
-  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;max-width:400px;width:100%;padding:1.5rem">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+  <div id="auth-card" style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;max-width:400px;width:100%;padding:1.5rem">
+    <div id="auth-card-head" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
       <div style="font-size:1.4rem;font-weight:900;background:linear-gradient(135deg,#F97316,#EAB308);-webkit-background-clip:text;-webkit-text-fill-color:transparent">PHX</div>
-      <button onclick="closeAuthModal()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem">✕</button>
+      <button id="auth-close" onclick="closeAuthModal()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem">✕</button>
     </div>
     <button class="tb-btn" id="google-signin-btn" onclick="signInWithGoogle()" style="display:none;width:100%;align-items:center;justify-content:center;gap:.6rem;padding:.7rem;margin-bottom:.9rem;background:#fff;color:#1f1f1f;border-color:#fff;font-weight:600">
       <svg width="17" height="17" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24s.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
@@ -2479,6 +2494,22 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
         and I'm 13 or older.</span>
     </label>
     <div id="auth-signin-terms" style="margin-top:.8rem;font-size:.7rem;color:var(--muted);line-height:1.5">By signing in you agree to the <a href="legal.html" target="_blank" style="color:var(--orange)">PHX Terms of Service &amp; Privacy Policy</a>.</div>
+  </div>
+</div>
+
+<!-- AUTH LANDING — the front door. Signed-out visitors to the app see this
+     and only this: no half-usable demo behind a gate, no hunting for the
+     Log In button. Public artist/page profiles stay public by design. -->
+<div id="auth-landing" style="display:none;position:fixed;inset:0;z-index:500;overflow:auto;background:#07070F">
+  <div style="position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse 70% 45% at 50% -5%,rgba(249,115,22,.16),transparent 60%),radial-gradient(ellipse 45% 35% at 85% 100%,rgba(234,179,8,.07),transparent 60%),radial-gradient(ellipse 40% 30% at 8% 85%,rgba(168,85,247,.06),transparent 60%)"></div>
+  <div style="position:relative;min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2.2rem 1.2rem;gap:0">
+    <img src="icon-192.png" alt="" width="64" height="64" style="border-radius:16px;box-shadow:0 8px 32px rgba(249,115,22,.35);margin-bottom:1rem">
+    <div style="font-size:2.1rem;font-weight:900;letter-spacing:.02em;background:linear-gradient(135deg,#F97316,#EAB308);-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1">PHX</div>
+    <div style="font-family:var(--disp);font-size:1rem;color:var(--white);margin-top:.55rem;font-weight:600;text-align:center">The city's music, backed by your plays.</div>
+    <div style="font:600 .64rem var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin:.6rem 0 1.4rem;border:1px solid rgba(249,115,22,.35);border-radius:999px;padding:.3rem .85rem">Invite only · Phoenix first</div>
+    <div id="auth-landing-slot" style="width:100%;max-width:400px"></div>
+    <div style="font-size:.78rem;color:var(--muted);margin-top:1.1rem;text-align:center">No invite code? <a href="/" style="color:var(--orange)">Request access →</a></div>
+    <div style="font-size:.68rem;color:var(--faint);margin-top:1.6rem;text-align:center">PHX · Phoenix, AZ · <a href="legal.html" target="_blank" style="color:var(--faint)">Terms &amp; Privacy</a></div>
   </div>
 </div>
 
@@ -4581,6 +4612,104 @@ async function buyShopItem(what, btn, target) {
   loadMyWeek().then ? loadMyWeek() : loadMyWeek();
   setTimeout(loadPointsShop, 800);
   if (d.what === 'wall' || d.what === 'spotlight_vote') { if (_artistPage) loadArtistSupport(_artistPage.id); }
+}
+
+// ── Artist page: DROPS — favorites get it first ──────────────────────────
+// RLS does the gating: favoriters (and the owner/admins) see a drop the
+// moment it lands; everyone else sees it after the early window expires.
+var _artistDrops = [];
+async function loadArtistDrops(artist) {
+  var box = document.getElementById('ap-drops');
+  if (!box || !artist) return;
+  var canEdit = typeof artistPageCanEdit === 'function' && artistPageCanEdit();
+  var res = await _sb.from('drops')
+    .select('*, tracks(title)')
+    .eq('artist_id', artist.id)
+    .order('created_at', { ascending: false })
+    .limit(6);
+  _artistDrops = res.data || [];
+  if (!_artistDrops.length && !canEdit) { box.innerHTML = ''; return; }
+  box.innerHTML =
+    '<div class="pf-sec" style="margin-top:0;display:flex;align-items:center;gap:.6rem"><h3>🎁 Drops</h3>' +
+      (canEdit ? '<button class="tb-btn" style="margin-left:auto;font-size:.7rem;padding:.28rem .7rem" onclick="openDropEditor(\'' + artist.id + '\')">+ Drop</button>' : '') +
+    '</div>' +
+    (_artistDrops.length ? _artistDrops.map(function(d) {
+      var early = (new Date(d.created_at).getTime() + d.early_hours * 3600000) > Date.now();
+      var link = safeUrl(d.link_url);
+      return '<div style="background:var(--bg3);border-radius:var(--r-s);padding:.85rem 1rem;margin-bottom:.6rem">' +
+        '<div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap">' +
+          '<span style="font-family:var(--disp);font-size:.92rem;font-weight:700">' + escapeHtml(d.title) + '</span>' +
+          (early ? '<span style="font:600 .58rem var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--gold);border:1px solid rgba(234,179,8,.4);border-radius:999px;padding:.14rem .5rem">⚡ Favorites first</span>' : '') +
+          '<span style="font-size:.68rem;color:var(--faint);margin-left:auto">' + _agoLabel(d.created_at) + '</span>' +
+          (typeof artistPageCanEdit === 'function' && artistPageCanEdit()
+            ? '<button style="background:none;border:none;color:var(--faint);cursor:pointer;font-size:.72rem" title="Delete" onclick="deleteDropUI(\'' + d.id + '\')">✕</button>' : '') +
+        '</div>' +
+        (d.body ? '<div style="font-size:.8rem;color:var(--muted);margin-top:.35rem;line-height:1.5">' + escapeHtml(d.body) + '</div>' : '') +
+        (d.tracks && d.tracks.title ? '<div style="font-size:.74rem;color:var(--orange);margin-top:.35rem">🎵 ' + escapeHtml(d.tracks.title) + ' — in the catalog below</div>' : '') +
+        (link ? '<a href="' + link + '" target="_blank" rel="noopener" class="pf-btn" style="margin-top:.5rem;padding:.32rem .8rem;font-size:.72rem;display:inline-block">Open ↗</a>' : '') +
+      '</div>';
+    }).join('')
+    : '<div class="pf-empty" style="margin-bottom:.6rem">No drops yet — post one and every fan who starred you hears about it first.</div>');
+}
+
+function openDropEditor(artistId) {
+  var wrap = document.getElementById('drop-editor');
+  if (!wrap) {
+    wrap = document.createElement('div');
+    wrap.id = 'drop-editor';
+    wrap.style.cssText = 'position:fixed;inset:0;z-index:545;background:rgba(7,7,15,.88);backdrop-filter:blur(5px);display:flex;align-items:center;justify-content:center;padding:1rem';
+    wrap.addEventListener('click', function(e){ if (e.target === wrap) wrap.style.display = 'none'; });
+    document.body.appendChild(wrap);
+  }
+  wrap.style.display = 'flex';
+  wrap.innerHTML =
+    '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:18px;max-width:420px;width:100%;padding:1.6rem">' +
+      '<div style="font-size:1.05rem;font-weight:800;margin-bottom:.25rem">🎁 Post a drop</div>' +
+      '<p style="color:var(--muted);font-size:.8rem;margin-bottom:1rem">Your ★ favorites get notified now and see it first. Everyone else sees it when the early window ends.</p>' +
+      '<input class="form-input" id="drop-title" placeholder="What\'s dropping?" maxlength="120" style="margin-bottom:.55rem">' +
+      '<textarea class="form-input" id="drop-body" placeholder="Details (optional)" maxlength="500" rows="3" style="margin-bottom:.55rem;resize:vertical"></textarea>' +
+      '<input class="form-input" id="drop-link" placeholder="Link (optional — tickets, presave, merch…)" style="margin-bottom:.55rem">' +
+      '<select class="form-select" id="drop-early" style="margin-bottom:.9rem">' +
+        '<option value="12">Favorites-first window: 12 hours</option>' +
+        '<option value="24" selected>Favorites-first window: 24 hours</option>' +
+        '<option value="48">Favorites-first window: 48 hours</option>' +
+        '<option value="72">Favorites-first window: 3 days</option>' +
+      '</select>' +
+      '<button class="upgrade-btn" style="margin:0;width:100%" onclick="submitDrop(\'' + artistId + '\', this)">Post the drop</button>' +
+      '<button onclick="document.getElementById(\'drop-editor\').style.display=\'none\'" style="display:block;width:100%;background:none;border:none;color:var(--muted);cursor:pointer;font-size:.8rem;margin-top:.7rem;text-decoration:underline">Cancel</button>' +
+      '<div id="drop-msg" style="font-size:.76rem;color:var(--red);margin-top:.5rem;min-height:1em"></div>' +
+    '</div>';
+}
+
+async function submitDrop(artistId, btn) {
+  var title = (document.getElementById('drop-title').value || '').trim();
+  var msg = document.getElementById('drop-msg');
+  if (!title) { if (msg) msg.textContent = 'Give the drop a title.'; return; }
+  if (btn) { btn.disabled = true; btn.textContent = 'Posting…'; }
+  var res = await _sb.rpc('create_drop', {
+    p_artist_id: artistId,
+    p_title: title,
+    p_body: (document.getElementById('drop-body').value || '').trim() || null,
+    p_link_url: (document.getElementById('drop-link').value || '').trim() || null,
+    p_early_hours: parseInt(document.getElementById('drop-early').value, 10) || 24
+  });
+  if (btn) { btn.disabled = false; btn.textContent = 'Post the drop'; }
+  var d = res.data || {};
+  if (res.error || !d.ok) {
+    if (msg) msg.textContent = d.reason === 'content_blocked' ? 'That wording got flagged — try rephrasing.' : 'Could not post the drop.';
+    return;
+  }
+  document.getElementById('drop-editor').style.display = 'none';
+  showToast('🎁 Drop posted — ' + (d.notified || 0) + ' favorite' + (d.notified === 1 ? '' : 's') + ' notified first');
+  if (_artistPage) loadArtistDrops(_artistPage);
+}
+
+async function deleteDropUI(id) {
+  if (!confirm('Delete this drop?')) return;
+  var res = await _sb.rpc('delete_drop', { p_id: id });
+  if (res.error || !(res.data || {}).ok) { showToast('Could not delete'); return; }
+  showToast('Drop deleted');
+  if (_artistPage) loadArtistDrops(_artistPage);
 }
 
 // ── Artist page: supporters wall + spotlight votes + who's going ──
@@ -6833,6 +6962,7 @@ async function ashReject(id, btn) {
 
 // ── Launch Desk: the handout-night strip + email queue health ──
 async function loadLaunchDesk() {
+  loadShowRsvps();
   var res = await _sb.rpc('admin_launch_desk');
   var d = res.data;
   if (res.error || !d) return;
@@ -6854,6 +6984,32 @@ async function loadLaunchDesk() {
     }).join('') : '<div class="pf-empty">No emails yet — approvals and code sends will show here.</div>';
   }
 }
+// Shows & RSVPs: the guest list, live. Tap a row to see exactly who's coming.
+async function loadShowRsvps() {
+  var list = document.getElementById('ld-rsvp-list');
+  if (!list) return;
+  var res = await _sb.rpc('admin_show_rsvps');
+  var d = res.data || {};
+  if (res.error || !d.ok) { list.innerHTML = '<div class="pf-empty">Could not load RSVPs.</div>'; return; }
+  var shows = d.shows || [];
+  var total = shows.reduce(function(a, s){ return a + (s.rsvp_count || 0); }, 0);
+  _setText('ld-rsvp-badge', total + ' going');
+  list.innerHTML = shows.length ? shows.map(function(s, i) {
+    var when = new Date(s.starts_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    var names = (s.names || []).filter(Boolean);
+    return '<div style="border-bottom:1px solid var(--border);padding:.5rem 0">' +
+      '<div style="display:flex;align-items:center;gap:.6rem;cursor:pointer" onclick="var n=document.getElementById(\'rsvp-names-' + i + '\');n.style.display=n.style.display===\'none\'?\'block\':\'none\'">' +
+        '<span style="font:600 .68rem var(--mono);color:var(--orange);min-width:46px">' + escapeHtml(when) + '</span>' +
+        '<span style="flex:1;min-width:0;font-size:.82rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><strong>' + escapeHtml(s.title) + '</strong>' + (s.artist ? ' <span style="color:var(--muted)">· ' + escapeHtml(s.artist) + '</span>' : '') + '</span>' +
+        '<span class="status-chip ' + ((s.rsvp_count || 0) > 0 ? 'sc-active' : 'sc-pending') + '" style="white-space:nowrap">🙋 ' + (s.rsvp_count || 0) + '</span>' +
+      '</div>' +
+      '<div id="rsvp-names-' + i + '" style="display:none;font-size:.76rem;color:var(--muted);padding:.4rem 0 .2rem 3.3rem">' +
+        (names.length ? names.map(escapeHtml).join(' · ') : 'Nobody yet — share the show from the artist page.') +
+      '</div>' +
+    '</div>';
+  }).join('') : '<div class="pf-empty">No upcoming shows. Add one from any artist page.</div>';
+}
+
 async function runEmailDrainer(btn) {
   if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
   var res = await _sb.rpc('admin_run_email_drainer');
@@ -7825,11 +7981,53 @@ function openAuthModal() {
     _sb.auth.signOut().then(function(){ location.reload(); }, function(){ location.reload(); });
     return;
   }
+  // If the full-page auth landing is up, the form is already on screen —
+  // just point the cursor at it instead of stacking a modal on top.
+  var landing = document.getElementById('auth-landing');
+  if (landing && landing.style.display !== 'none') {
+    var em = document.getElementById('auth-email');
+    if (em) em.focus();
+    return;
+  }
   document.getElementById('auth-modal').style.display = 'flex';
 }
 function closeAuthModal() {
   document.getElementById('auth-modal').style.display = 'none';
 }
+
+// ── Full-page auth landing for signed-out visitors ──
+// The ONE auth card lives in two homes: embedded in the landing while signed
+// out, floating as a modal for public-profile browsing. Same DOM node moves.
+function _isPublicProfileRoute() {
+  var m = (window.location.pathname || '').match(/^\/([a-z0-9][a-z0-9._-]{1,40})\/?$/i);
+  var slug = m ? m[1].toLowerCase() : '';
+  if (slug && ['app','index','legal','admin','artist','tour','studio'].indexOf(slug) === -1) return true;
+  if ((window.location.hash || '').indexOf('#artist/') === 0) return true;
+  if (/[?&]artist=/.test(window.location.search || '')) return true;
+  return false;
+}
+function applyAuthLanding() {
+  var landing = document.getElementById('auth-landing');
+  var card = document.getElementById('auth-card');
+  var slot = document.getElementById('auth-landing-slot');
+  var modal = document.getElementById('auth-modal');
+  if (!landing || !card || !slot || !modal) return;
+  var show = !_authUser && !_isPublicProfileRoute();
+  landing.style.display = show ? 'block' : 'none';
+  var close = document.getElementById('auth-close');
+  if (close) close.style.display = show ? 'none' : '';
+  if (show) {
+    if (card.parentNode !== slot) slot.appendChild(card);
+    modal.style.display = 'none';
+    document.body.style.overflow = 'hidden';
+  } else {
+    if (card.parentNode !== modal) modal.appendChild(card);
+    document.body.style.overflow = '';
+  }
+}
+_whenDomReady(function () {
+  whenAuthResolved().then(function () { applyAuthLanding(); });
+});
 function setAuthTab(tab) {
   _authTab = tab;
   var si = document.getElementById('auth-tab-signin');
@@ -9541,6 +9739,7 @@ _sb.auth.onAuthStateChange(function(event, session) {
   var wasUser = _authUser;
   _authUser = session ? session.user : null;
   _markAuthResolved();   // identity is now known — release anything waiting on it
+  if (typeof applyAuthLanding === 'function') applyAuthLanding();
   var btn = document.getElementById('auth-btn');
   // Signed in = no account chip in the top bar at all — identity lives in
   // the menu, logout lives in Settings. Guests still get Log In.
@@ -10716,9 +10915,9 @@ async function showPageProfile(slugOrId) {
               return '<div class="ap-show">' +
                 '<div class="ap-date"><div class="m">' + tp.mon + '</div>' +
                   '<div class="d">' + tp.day + '</div></div>' +
-                '<div style="flex:1;min-width:0"><div style="font-family:var(--disp);font-size:.9rem;font-weight:600">' + escapeHtml(s.title) + '</div>' +
+                '<div class="ap-show-info"><div style="font-family:var(--disp);font-size:.9rem;font-weight:600">' + escapeHtml(s.title) + '</div>' +
                   '<div style="font-size:.74rem;color:var(--muted)">' + escapeHtml(tp.time) + ' · ' + escapeHtml([s.venue, s.city].filter(Boolean).join(' · ')) + '</div></div>' +
-                (ticket ? '<a class="pf-btn" style="padding:.35rem .85rem;font-size:.74rem" href="' + ticket + '" target="_blank" rel="noopener">Tickets ↗</a>' : '') +
+                (ticket ? '<div class="ap-show-actions"><a class="pf-btn" style="padding:.35rem .85rem;font-size:.74rem" href="' + ticket + '" target="_blank" rel="noopener">Tickets ↗</a></div>' : '') +
               '</div>';
             }).join('')
           : '') +
@@ -10928,6 +11127,7 @@ async function showArtistPage(slug) {
         s.textContent = txt;
         loadArtistSupport(artist.id);
         _loadRsvpCounts();
+        loadArtistDrops(artist);
         return;
       }
       if (++tries < 40) setTimeout(put, 250);
@@ -11009,7 +11209,7 @@ async function showArtistPage(slug) {
       '<button class="ap-tab" data-tab="posts" onclick="apTab(\'posts\')">Posts' + (_artistPosts.length ? ' <span class="n">' + _artistPosts.length + '</span>' : '') + '</button>' +
     '</div>' +
 
-    '<div class="ap-panel" id="ap-panel-music">' + renderArtistTracks() + '</div>' +
+    '<div class="ap-panel" id="ap-panel-music"><div id="ap-drops"></div>' + renderArtistTracks() + '</div>' +
     '<div class="ap-panel" id="ap-panel-videos" hidden>' + renderArtistVideos(artist) + '</div>' +
     '<div class="ap-panel" id="ap-panel-posts" hidden>' + renderArtistPostsPanel() + '</div>' +
     '<div class="ap-panel" id="ap-panel-merch" hidden>' + renderArtistMerchPanel(shopUrl) + '</div>' +
@@ -12176,19 +12376,22 @@ function renderArtistShows(artist) {
     var mon = tp.mon, day = tp.day;
     var ticket = safeUrl(s.ticket_url);
     var meta = [s.venue, s.city].filter(Boolean).join(' · ');
-    var price = s.is_free ? 'Free entry' : (s.price_text || '');
+    // price_text carries the richer line (dress code, DJ, etc.) when set
+    var price = s.price_text || (s.is_free ? 'Free entry' : '');
     return '<div class="ap-show">' +
       '<div class="ap-date"><div class="m">' + mon + '</div><div class="d">' + day + '</div></div>' +
-      '<div style="flex:1;min-width:0">' +
+      '<div class="ap-show-info">' +
         '<div style="font-family:var(--disp);font-size:.9rem;font-weight:600">' + escapeHtml(s.title) + '</div>' +
-        '<div style="font-size:.74rem;color:var(--muted);margin-top:2px">' + escapeHtml(tp.time) + ' · ' + escapeHtml(meta) +
-          (price ? ' · ' + escapeHtml(price) : '') + '</div>' +
+        '<div style="font-size:.74rem;color:var(--muted);margin-top:2px;line-height:1.45">' + escapeHtml(tp.time) + ' · ' + escapeHtml(meta) +
+          (price ? '<br>' + escapeHtml(price) : '') + '</div>' +
       '</div>' +
-      '<button class="tb-btn" id="rsvp-' + s.id + '" style="font-size:.7rem;padding:.3rem .6rem;white-space:nowrap" onclick="toggleRsvpUI(\'' + s.id + '\', this)">🙋 I\'m going</button>' +
-      (ticket
-        ? '<a class="pf-btn" style="padding:.35rem .85rem;font-size:.74rem" href="' + ticket + '" target="_blank" rel="noopener">Tickets ↗</a>'
-        : '<span class="ap-card-note">' + (s.is_free ? 'No ticket needed' : 'TBA') + '</span>') +
-      (canEdit ? '<button class="ap-navbtn" style="position:static;width:26px;height:26px;font-size:.7rem" title="Edit" onclick="openShowEditor(\'' + s.id + '\')">✎</button>' : '') +
+      '<div class="ap-show-actions">' +
+        '<button class="tb-btn" id="rsvp-' + s.id + '" style="font-size:.7rem;padding:.3rem .6rem;white-space:nowrap" onclick="toggleRsvpUI(\'' + s.id + '\', this)">🙋 I\'m going</button>' +
+        (ticket
+          ? '<a class="pf-btn" style="padding:.35rem .85rem;font-size:.74rem" href="' + ticket + '" target="_blank" rel="noopener">Tickets ↗</a>'
+          : '<span class="ap-card-note">' + (s.is_free ? 'No ticket needed' : 'TBA') + '</span>') +
+        (canEdit ? '<button class="ap-navbtn" style="position:static;width:26px;height:26px;font-size:.7rem" title="Edit" onclick="openShowEditor(\'' + s.id + '\')">✎</button>' : '') +
+      '</div>' +
     '</div>';
   }).join('') +
   (canEdit ? '<button class="pf-btn" style="margin-top:.8rem" onclick="openShowEditor(null)">+ Add a show</button>' : '');
