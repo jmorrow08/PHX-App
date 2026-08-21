@@ -8078,6 +8078,10 @@ function applyAuthLanding() {
   landing.style.display = show ? 'block' : 'none';
   var close = document.getElementById('auth-close');
   if (close) close.style.display = show ? 'none' : '';
+  // The landing already says PHX in lights — the card's mini-header is
+  // only needed when the card floats as a modal over a public page.
+  var head = document.getElementById('auth-card-head');
+  if (head) head.style.display = show ? 'none' : 'flex';
   if (show) {
     if (card.parentNode !== slot) slot.appendChild(card);
     modal.style.display = 'none';
