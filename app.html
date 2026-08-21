@@ -514,6 +514,13 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
 /* Shows + conversion footer */
 .ap-show{display:flex;align-items:center;gap:14px;padding:12px 0;border-bottom:1px solid rgba(241,241,248,.06)}
 .ap-show:last-child{border-bottom:none}
+/* Styled file picker — the browser's gray "Choose File" widget never ships */
+.file-pick{display:flex;align-items:center;gap:.7rem;background:var(--bg3);border:1px dashed rgba(249,115,22,.35);border-radius:12px;padding:.6rem .8rem;cursor:pointer;transition:border-color .15s}
+.file-pick:hover{border-color:var(--orange)}
+.file-pick input[type=file]{display:none}
+.file-pick .fp-thumb{width:38px;height:38px;border-radius:10px;object-fit:cover;display:none;flex-shrink:0}
+.file-pick .fp-btn{font-size:.78rem;font-weight:700;color:var(--orange);white-space:nowrap}
+.file-pick .fp-name{font-size:.74rem;color:var(--muted);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ap-show-info{flex:1;min-width:0}
 .ap-show-actions{display:flex;gap:.5rem;align-items:center;flex-shrink:0}
 /* Mobile: info gets the full line next to the date; buttons drop to their own row */
@@ -7995,6 +8002,61 @@ function closeAuthModal() {
   document.getElementById('auth-modal').style.display = 'none';
 }
 
+// Styled file-pick: shows the chosen file's name + a live thumbnail
+function _filePickShow(input) {
+  var wrap = input.closest('.file-pick');
+  if (!wrap) return;
+  var f = input.files && input.files[0];
+  var name = wrap.querySelector('.fp-name');
+  var thumb = wrap.querySelector('.fp-thumb');
+  if (name) name.textContent = f ? f.name : 'No file chosen';
+  if (thumb && f && f.type.indexOf('image/') === 0) {
+    thumb.src = URL.createObjectURL(f);
+    thumb.style.display = 'block';
+  }
+}
+function filePickHtml(id, accept, label, hint) {
+  return '<label class="file-pick"><input type="file" id="' + id + '" accept="' + accept + '" onchange="_filePickShow(this)">' +
+    '<img class="fp-thumb" alt=""><span class="fp-btn">' + label + '</span><span class="fp-name">' + (hint || 'No file chosen') + '</span></label>';
+}
+
+// Branded set-new-password sheet for the email reset link
+function showPasswordResetSheet() {
+  var wrap = document.createElement('div');
+  wrap.id = 'pw-reset-sheet';
+  wrap.style.cssText = 'position:fixed;inset:0;z-index:560;background:rgba(7,7,15,.9);backdrop-filter:blur(5px);display:flex;align-items:center;justify-content:center;padding:1rem';
+  wrap.innerHTML =
+    '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:18px;max-width:380px;width:100%;padding:1.7rem">' +
+      '<div style="font-size:1.4rem;font-weight:900;background:linear-gradient(135deg,#F97316,#EAB308);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:.6rem">PHX</div>' +
+      '<div style="font-size:1.05rem;font-weight:800;margin-bottom:.3rem">Set your new password</div>' +
+      '<p style="color:var(--muted);font-size:.82rem;margin-bottom:1rem">You\'re verified from the reset link — pick a new password and you\'re back in.</p>' +
+      '<div style="position:relative;margin-bottom:.4rem">' +
+        '<input class="form-input" id="pw-reset-input" type="password" placeholder="New password (8+ characters)" style="padding-right:2.9rem" autocomplete="new-password">' +
+        '<button type="button" onclick="togglePw(\'pw-reset-input\', this)" aria-label="Show password" style="position:absolute;right:.45rem;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.05rem;padding:.35rem">👁</button>' +
+      '</div>' +
+      '<div id="pw-reset-msg" style="font-size:.76rem;color:var(--muted);margin-bottom:.9rem;min-height:1em">At least 8 characters.</div>' +
+      '<button class="upgrade-btn" style="margin:0;width:100%" onclick="submitPasswordReset(this)">Save &amp; sign in</button>' +
+    '</div>';
+  document.body.appendChild(wrap);
+  setTimeout(function(){ var i = document.getElementById('pw-reset-input'); if (i) i.focus(); }, 150);
+}
+async function submitPasswordReset(btn) {
+  var input = document.getElementById('pw-reset-input');
+  var msg = document.getElementById('pw-reset-msg');
+  var np = input ? input.value : '';
+  if (!np || np.length < 8) { if (msg) { msg.style.color = 'var(--red)'; msg.textContent = 'Needs at least 8 characters.'; } return; }
+  if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+  var r = await _sb.auth.updateUser({ password: np });
+  if (r.error) {
+    if (btn) { btn.disabled = false; btn.textContent = 'Save & sign in'; }
+    if (msg) { msg.style.color = 'var(--red)'; msg.textContent = 'Could not update: ' + r.error.message; }
+    return;
+  }
+  var sheet = document.getElementById('pw-reset-sheet');
+  if (sheet) sheet.remove();
+  showToast('✓ Password updated — you\'re signed in');
+}
+
 // ── Full-page auth landing for signed-out visitors ──
 // The ONE auth card lives in two homes: embedded in the landing while signed
 // out, floating as a modal for public-profile browsing. Same DOM node moves.
@@ -8254,9 +8316,9 @@ function openPageEditor(pageId) {
       '<textarea class="form-input" id="pe-bio" placeholder="Bio" rows="3" style="margin-bottom:.55rem">' + escapeHtml(pg.bio || '') + '</textarea>' +
       '<input class="form-input" id="pe-city" placeholder="City" value="' + escapeHtml(pg.city || '') + '" style="margin-bottom:.55rem">' +
       '<div style="font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:.6rem 0 .35rem">Profile picture</div>' +
-      '<input type="file" id="pe-avatar" accept="image/*" class="form-input" style="margin-bottom:.55rem">' +
+      '<div style="margin-bottom:.55rem">' + filePickHtml('pe-avatar', 'image/*', '📷 Choose photo', 'JPG or PNG') + '</div>' +
       '<div style="font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:.6rem 0 .35rem">Banner (1200×630 works best)</div>' +
-      '<input type="file" id="pe-banner" accept="image/*" class="form-input" style="margin-bottom:.55rem">' +
+      '<div style="margin-bottom:.55rem">' + filePickHtml('pe-banner', 'image/*', '🖼 Choose banner', 'Wide image') + '</div>' +
       '<input class="form-input" id="pe-ig" placeholder="Instagram URL" value="' + escapeHtml(links.instagram || '') + '" style="margin-bottom:.55rem">' +
       '<input class="form-input" id="pe-web" placeholder="Website" value="' + escapeHtml(links.website || '') + '" style="margin-bottom:.9rem">' +
       '<button class="upgrade-btn" style="margin:0;width:100%" onclick="savePageEditor(\'' + pg.id + '\')">Save</button>' +
@@ -8979,7 +9041,7 @@ async function renderOnboard() {
     m.innerHTML = shell(
       '<div style="font-size:1.2rem;font-weight:800;margin-bottom:.35rem">Add a picture</div>' +
       '<p style="color:var(--muted);font-size:.85rem;margin-bottom:1rem">Optional — you can always change it later.</p>' +
-      '<input type="file" id="onb-avatar" accept="image/*" class="form-input" style="margin-bottom:1rem">' +
+      '<div style="margin-bottom:1rem">' + filePickHtml('onb-avatar', 'image/*', '📷 Choose a photo', 'Selfie, logo, whatever feels like you') + '</div>' +
       '<button class="upgrade-btn" style="margin:0;width:100%" onclick="onbNext()">Continue</button>' +
       '<button onclick="onbNext(true)" style="display:block;width:100%;background:none;border:none;color:var(--muted);cursor:pointer;font-size:.8rem;margin-top:.7rem;text-decoration:underline">Skip</button>' +
       '<div id="onb-msg" style="font-size:.78rem;color:var(--muted);margin-top:.55rem;min-height:1em"></div>'
@@ -9748,13 +9810,9 @@ _sb.auth.onAuthStateChange(function(event, session) {
     if (!_authUser) btn.textContent = 'Log In';
   }
   if (event === 'PASSWORD_RECOVERY') {
-    // User arrived from a reset-password email link
-    var np = window.prompt('Enter a new password (8+ characters):');
-    if (np && np.length >= 8) {
-      _sb.auth.updateUser({ password: np }).then(function(r) {
-        alert(r.error ? 'Could not update password: ' + r.error.message : '✓ Password updated. You are signed in.');
-      });
-    }
+    // User arrived from a reset-password email link. A branded sheet, not a
+    // browser prompt — nobody should type a new password into a gray OS box.
+    showPasswordResetSheet();
     return;
   }
   // Resolve the role on the FIRST auth event even when nothing changed —
@@ -11621,8 +11679,8 @@ async function loadArtistProfileEditor() {
           (a.verified ? '<div style="font-size:.82rem;color:var(--orange)">✓ Verified Artist</div>' : '') +
           '<div style="font-size:.76rem;color:var(--muted)">thephx.app/' + escapeHtml(a.slug || '') + '</div></div>' +
       '</div>' +
-      '<div class="form-field"><label class="form-label">Profile photo</label><input class="form-input" type="file" id="apf-avatar" accept="image/*"></div>' +
-      '<div class="form-field"><label class="form-label">Banner / poster</label><input class="form-input" type="file" id="apf-banner" accept="image/*"></div>' +
+      '<div class="form-field"><label class="form-label">Profile photo</label>' + filePickHtml('apf-avatar', 'image/*', '📷 Choose photo', 'JPG or PNG') + '</div>' +
+      '<div class="form-field"><label class="form-label">Banner / poster</label>' + filePickHtml('apf-banner', 'image/*', '🖼 Choose banner', 'Wide image') + '</div>' +
       f('Display Name', 'apf-name', a.name) +
       // Genre is a pick, not a typing exercise — free text made the catalog
       // filters ragged ("Hip Hop" vs "hip-hop" vs "PHX Hip-Hop")
