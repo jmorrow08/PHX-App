@@ -1689,9 +1689,14 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
               <label class="form-label">Tier Gate</label>
               <select class="form-select" id="track-tier-gate">
                 <option value="free">Free — all members</option>
+
+                <option value="first_listen">⚡ First Listen — your ★ favorites hear it first (48hr), then everyone</option>
+
+                <option value="favorites">🔒 Favorites only — just the people who starred you</option>
+
                 <option value="native">Native+ members only</option>
+
                 <option value="insider">Insider members only</option>
-                <option value="timed">Time-locked exclusive (48hr)</option>
               </select>
             </div>
             <div class="form-field">
@@ -4604,10 +4609,14 @@ async function loadArtistDrops(artist) {
     (_artistDrops.length ? _artistDrops.map(function(d) {
       var early = (new Date(d.created_at).getTime() + d.early_hours * 3600000) > Date.now();
       var link = safeUrl(d.link_url);
+      var chip = '';
+      if (d.access === 'favorites_only') chip = '🔒 Favorites only';
+      else if (d.access === 'first_listen' && early) chip = '⚡ First Listen · favorites early';
+      else if (d.access === 'open' && early) chip = '📣 Drop';
       return '<div style="background:var(--bg3);border-radius:var(--r-s);padding:.85rem 1rem;margin-bottom:.6rem">' +
         '<div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap">' +
           '<span style="font-family:var(--disp);font-size:.92rem;font-weight:700">' + escapeHtml(d.title) + '</span>' +
-          (early ? '<span style="font:600 .58rem var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--gold);border:1px solid rgba(234,179,8,.4);border-radius:999px;padding:.14rem .5rem">⚡ Favorites first</span>' : '') +
+          (chip ? '<span style="font:600 .58rem var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--gold);border:1px solid rgba(234,179,8,.4);border-radius:999px;padding:.14rem .5rem">' + chip + '</span>' : '') +
           '<span style="font-size:.68rem;color:var(--faint);margin-left:auto">' + _agoLabel(d.created_at) + '</span>' +
           (typeof artistPageCanEdit === 'function' && artistPageCanEdit()
             ? '<button style="background:none;border:none;color:var(--faint);cursor:pointer;font-size:.72rem" title="Delete" onclick="deleteDropUI(\'' + d.id + '\')">✕</button>' : '') +
@@ -4637,16 +4646,33 @@ function openDropEditor(artistId) {
       '<input class="form-input" id="drop-title" placeholder="What\'s dropping?" maxlength="120" style="margin-bottom:.55rem">' +
       '<textarea class="form-input" id="drop-body" placeholder="Details (optional)" maxlength="500" rows="3" style="margin-bottom:.55rem;resize:vertical"></textarea>' +
       '<input class="form-input" id="drop-link" placeholder="Link (optional — tickets, presave, merch…)" style="margin-bottom:.55rem">' +
+      '<select class="form-select" id="drop-track" style="margin-bottom:.55rem"><option value="">Attach a track from your catalog (optional)</option></select>' +
+      '<div style="font-size:.68rem;color:var(--faint);margin:-.3rem 0 .6rem">An attached track takes the drop\'s gate — favorites can play it, others see it locked.</div>' +
+      '<select class="form-select" id="drop-access" style="margin-bottom:.55rem" onchange="document.getElementById(\'drop-early\').style.display = this.value === \'first_listen\' ? \'\' : \'none\'">' +
+        '<option value="first_listen" selected>⚡ First Listen — favorites first, then everyone</option>' +
+        '<option value="favorites_only">🔒 Favorites only — never opens to the public</option>' +
+        '<option value="open">📣 Open — everyone, favorites still get pinged first</option>' +
+      '</select>' +
       '<select class="form-select" id="drop-early" style="margin-bottom:.9rem">' +
         '<option value="12">Favorites-first window: 12 hours</option>' +
-        '<option value="24" selected>Favorites-first window: 24 hours</option>' +
-        '<option value="48">Favorites-first window: 48 hours</option>' +
+        '<option value="24">Favorites-first window: 24 hours</option>' +
+        '<option value="48" selected>Favorites-first window: 48 hours</option>' +
         '<option value="72">Favorites-first window: 3 days</option>' +
+        '<option value="168">Favorites-first window: 1 week</option>' +
       '</select>' +
       '<button class="upgrade-btn" style="margin:0;width:100%" onclick="submitDrop(\'' + artistId + '\', this)">Post the drop</button>' +
       '<button onclick="document.getElementById(\'drop-editor\').style.display=\'none\'" style="display:block;width:100%;background:none;border:none;color:var(--muted);cursor:pointer;font-size:.8rem;margin-top:.7rem;text-decoration:underline">Cancel</button>' +
       '<div id="drop-msg" style="font-size:.76rem;color:var(--red);margin-top:.5rem;min-height:1em"></div>' +
     '</div>';
+  // Populate the track picker with the artist's own live catalog
+  _sb.from('tracks').select('id,title').eq('artist_id', artistId).eq('status', 'live').order('title')
+    .then(function(r) {
+      var sel = document.getElementById('drop-track');
+      if (!sel || !r.data) return;
+      r.data.forEach(function(t) {
+        var o = document.createElement('option'); o.value = t.id; o.textContent = '🎵 ' + t.title; sel.appendChild(o);
+      });
+    });
 }
 
 async function submitDrop(artistId, btn) {
@@ -4659,7 +4685,9 @@ async function submitDrop(artistId, btn) {
     p_title: title,
     p_body: (document.getElementById('drop-body').value || '').trim() || null,
     p_link_url: (document.getElementById('drop-link').value || '').trim() || null,
-    p_early_hours: parseInt(document.getElementById('drop-early').value, 10) || 24
+    p_track_id: (document.getElementById('drop-track') || {}).value || null,
+    p_early_hours: parseInt(document.getElementById('drop-early').value, 10) || 48,
+    p_access: (document.getElementById('drop-access') || {}).value || 'first_listen'
   });
   if (btn) { btn.disabled = false; btn.textContent = 'Post the drop'; }
   var d = res.data || {};
@@ -5581,7 +5609,7 @@ function playPostTrack(postId) {
   var p = _feedPosts[postId];
   if (!p || !p.tracks) return;
   var t = p.tracks;
-  if (!canPlayTrack(t.exclusive_tier)) {
+  if (!canPlayTrack(t)) {
     alert('🔒 This track requires ' + (t.exclusive_tier === 'insider' ? 'an Insider' : 'a Native') + ' Pass.');
     return;
   }
@@ -6098,7 +6126,7 @@ async function loadForYou() {
   rail.innerHTML = _forYouTracks.map(function(t, i) {
     rememberTrackArtist(t);
     var artistName = t.artists ? t.artists.name : 'Unknown Artist';
-    var locked = !canPlayTrack(t.exclusive_tier);
+    var locked = !canPlayTrack(t);
     var tierBadge = t.exclusive_tier === 'insider' ? '<span class="status-chip sc-insider" style="font-size:.6rem">Insider</span>' :
                     t.exclusive_tier === 'native'  ? '<span class="status-chip sc-native" style="font-size:.6rem">Native+</span>' : '';
     return '<div class="track-row' + (locked ? ' locked' : '') + '" onclick="playForYouTrack(' + i + ', this)">' +
@@ -6170,7 +6198,7 @@ var _forYouTracks = [];
 function playForYouTrack(idx, el) {
   var t = _forYouTracks[idx];
   if (!t) return;
-  if (!canPlayTrack(t.exclusive_tier)) {
+  if (!canPlayTrack(t)) {
     alert('🔒 This track requires ' + (t.exclusive_tier === 'insider' ? 'an Insider' : 'a Native') + ' Pass.');
     return;
   }
@@ -6241,9 +6269,10 @@ function handleFileSelect(input) {
           '<span style="flex:1;font-size:.8rem;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + escapeHtml(cleanName) + '</span>' +
           '<select id="multi-tier-' + i + '" class="form-select" style="width:auto;font-size:.72rem;padding:.25rem .4rem">' +
             '<option value="free"' + (globalTier === 'free' ? ' selected' : '') + '>Free — everyone</option>' +
+            '<option value="first_listen"' + (globalTier === 'first_listen' || globalTier === 'timed' ? ' selected' : '') + '>⚡ First Listen (48hr)</option>' +
+            '<option value="favorites"' + (globalTier === 'favorites' ? ' selected' : '') + '>🔒 Favorites only</option>' +
             '<option value="native"' + (globalTier === 'native' ? ' selected' : '') + '>Native+ only</option>' +
             '<option value="insider"' + (globalTier === 'insider' ? ' selected' : '') + '>Insider only</option>' +
-            '<option value="timed"' + (globalTier === 'timed' ? ' selected' : '') + '>48hr exclusive</option>' +
           '</select>' +
         '</div>';
       }).join('');
@@ -6420,7 +6449,7 @@ async function submitTrack() {
   }
 
   // Exclusive tier mapping — per-track selectors win on multi-uploads
-  var excMap = { free: null, native: 'native', insider: 'insider', timed: 'native' };
+  var excMap = { free: null, native: 'native', insider: 'insider', timed: 'first_listen', first_listen: 'first_listen', favorites: 'favorites' };
 
   // 3) Upload every file and create its pending track row
   for (var i = 0; i < files.length; i++) {
@@ -6437,7 +6466,7 @@ async function submitTrack() {
       if (tierSel && tierSel.value) trackGate = tierSel.value;
     }
     var excTier = excMap[trackGate] || null;
-    var excUntil = (trackGate === 'timed') ? new Date(Date.now() + 172800000).toISOString() : null;
+    var excUntil = (trackGate === 'timed' || trackGate === 'first_listen') ? new Date(Date.now() + 172800000).toISOString() : null;
 
     var durSec = await getAudioDuration(file);
 
@@ -7885,20 +7914,39 @@ function tierRank(role) {
 function requiredTierRank(exclusiveTier) {
   return { native:1, insider:2 }[exclusiveTier] || 0;
 }
-function canPlayTrack(exclusiveTier) {
-  // Pre-billing phase: every signed-up member hears the full catalog.
-  // The sign-audio edge function enforces the same rule server-side; tier
+// Accepts a track object (preferred — needed for favorites gates) or a bare
+// tier string. The sign-audio edge function enforces the same rules.
+function canPlayTrack(t) {
+  var isObj = t && typeof t === 'object';
+  var tier = isObj ? t.exclusive_tier : t;
+  if (tier === 'favorites' || tier === 'first_listen') {
+    if (_accountRole === 'admin' || _accountRole === 'super') return true;
+    var until = isObj ? t.exclusive_until : null;
+    if (tier === 'first_listen' && until && new Date(until) <= new Date()) return true;
+    var aid = isObj ? (t.artist_id || (t.artists && t.artists.id)) : null;
+    if (aid && typeof _myArtistId !== 'undefined' && _myArtistId === aid) return true;
+    return !!(aid && _myFavorites[aid]);
+  }
+  // Pre-billing phase: every signed-up member hears the full catalog; tier
   // locks re-arm automatically the day billing_live flips on.
   if (_authUser && !_billingLive) return true;
-  return tierRank(currentRole) >= requiredTierRank(exclusiveTier);
+  return tierRank(currentRole) >= requiredTierRank(tier);
+}
+// Chip for the favorites gates (tier chips for native/insider live in each renderer)
+function favGateChip(t) {
+  if (!t || !t.exclusive_tier) return '';
+  if (t.exclusive_tier === 'favorites') return ' <span class="status-chip" style="font-size:.6rem;color:var(--gold);border-color:rgba(234,179,8,.4)">🔒 Favorites</span>';
+  if (t.exclusive_tier === 'first_listen' && (!t.exclusive_until || new Date(t.exclusive_until) > new Date())) return ' <span class="status-chip" style="font-size:.6rem;color:var(--gold);border-color:rgba(234,179,8,.4)">⚡ First Listen</span>';
+  return '';
 }
 
 function renderSearchResultRow(t, idx) {
   rememberTrackArtist(t);
   var artistName = t.artists ? t.artists.name : 'Unknown Artist';
-  var locked = !canPlayTrack(t.exclusive_tier);
+  var locked = !canPlayTrack(t);
   var tierBadge = t.exclusive_tier === 'insider' ? '<span class="status-chip sc-insider" style="font-size:.6rem">Insider</span>' :
                   t.exclusive_tier === 'native'  ? '<span class="status-chip sc-native" style="font-size:.6rem">Native+</span>' : '';
+  tierBadge += favGateChip(t);
   var streams = formatCount(t.stream_count || 0);
   return '<div class="track-row' + (locked ? ' locked' : '') + '" onclick="playSearchResultByIndex(this, ' + idx + ')">' +
     '<div class="track-num">▶</div>' +
@@ -7912,7 +7960,7 @@ function renderSearchResultRow(t, idx) {
 function playSearchResultByIndex(el, idx) {
   var track = _lastSearchResults[idx];
   if (!track) return;
-  if (!canPlayTrack(track.exclusive_tier)) {
+  if (!canPlayTrack(track)) {
     var toast = document.getElementById('search-lock-toast');
     var need = track.exclusive_tier === 'insider' ? 'an Insider Pass' : 'a Native Pass';
     toast.textContent = '🔒 This track requires ' + need + '. Upgrade to unlock.';
@@ -8735,7 +8783,7 @@ async function playTrackById(trackId, el) {
     .eq('id', trackId).maybeSingle();
   var t = res.data;
   if (!t) { showToast('Track unavailable'); return; }
-  if (!canPlayTrack(t.exclusive_tier)) {
+  if (!canPlayTrack(t)) {
     showToast('🔒 This track needs ' + (t.exclusive_tier === 'insider' ? 'an Insider' : 'a Native') + ' Pass');
     return;
   }
@@ -11348,7 +11396,7 @@ async function removeArtistVideo(id) {
 
 function artistTrackRowHtml(t, num) {
   var idx = _artistPageTracks.indexOf(t);
-  var locked = !canPlayTrack(t.exclusive_tier);
+  var locked = !canPlayTrack(t);
   var noAudio = !t.audio_url;
   var badge = t.exclusive_tier === 'insider' ? ' <span class="status-chip sc-insider" style="font-size:.6rem">Insider</span>'
             : t.exclusive_tier === 'native' ? ' <span class="status-chip sc-native" style="font-size:.6rem">Native+</span>' : '';
@@ -11844,6 +11892,11 @@ function openTrackEditor(trackId) {
     '<label class="form-label">Who can play it</label>' +
     '<select class="form-input" id="te-tier" style="margin-bottom:.6rem">' +
       '<option value=""' + (!t.exclusive_tier ? ' selected' : '') + '>Everyone (free)</option>' +
+
+      '<option value="first_listen"' + (t.exclusive_tier === 'first_listen' ? ' selected' : '') + '>⚡ First Listen — favorites first (48hr)</option>' +
+
+      '<option value="favorites"' + (t.exclusive_tier === 'favorites' ? ' selected' : '') + '>🔒 Favorites only</option>' +
+
       '<option value="native"' + (t.exclusive_tier === 'native' ? ' selected' : '') + '>Native pass and up</option>' +
       '<option value="insider"' + (t.exclusive_tier === 'insider' ? ' selected' : '') + '>Insider pass only</option>' +
     '</select>' +
@@ -11865,6 +11918,8 @@ async function saveTrackEditor(trackId) {
       track_number: parseInt((document.getElementById('te-num') || {}).value, 10) || null,
       exclusive_tier: (document.getElementById('te-tier') || {}).value || null
     };
+    // First Listen is a window; favorites-only and the tier gates are open-ended
+    patch.exclusive_until = patch.exclusive_tier === 'first_listen' ? new Date(Date.now() + 172800000).toISOString() : null;
     var input = document.getElementById('te-audio');
     var f = input && input.files && input.files[0];
     if (f) {
@@ -11975,7 +12030,7 @@ async function loadTrendingRail() {
     if (t.artist_slug) TRACK_ARTIST[t.id] = { name: t.artist_name, slug: t.artist_slug };
     if (t.cover_url) TRACK_ART[t.id] = t.cover_url;
     var art = safeUrl(t.cover_url);
-    var locked = !canPlayTrack(t.exclusive_tier);
+    var locked = !canPlayTrack(t);
     return '<div class="track-row' + (locked ? ' locked' : '') + '" onclick="playTrackById(\'' + t.id + '\', this)">' +
       '<div class="track-num">' + (i+1) + '</div>' +
       '<div class="track-art">' + (art ? '<img src="' + art + '" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:6px">' : '🎵') + '</div>' +
@@ -12025,7 +12080,7 @@ async function loadMusicCatalog() {
   // Spotlight shows the hits, not the archive: six rows, then View all
   var shown = _catalogExpanded ? tracks : tracks.slice(0, 6);
   list.innerHTML = shown.map(function(t, i) {
-    var locked = !canPlayTrack(t.exclusive_tier);
+    var locked = !canPlayTrack(t);
     var mins = Math.floor((t.duration_seconds||0)/60), secs = (t.duration_seconds||0)%60;
     var dur = t.duration_seconds ? (mins + ':' + (secs<10?'0':'') + secs) : '';
     var art = safeUrl(t.cover_url);
@@ -12622,7 +12677,7 @@ function playArtistPageTrack(el, idx) {
       : '🎧 Audio coming soon for this one.');
     return;
   }
-  if (!canPlayTrack(t.exclusive_tier)) {
+  if (!canPlayTrack(t)) {
     var toast = document.getElementById('artist-page-lock-toast');
     if (toast) {
       toast.textContent = '🔒 This track requires ' + (t.exclusive_tier === 'insider' ? 'an Insider Pass' : 'a Native Pass') + '.';
