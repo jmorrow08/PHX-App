@@ -671,6 +671,14 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
 .pass-holder{font-family:var(--disp);font-size:1.05rem;font-weight:600;margin-bottom:.15rem}
 .pass-tier-label{font-size:.76rem;color:var(--orange-l);font-weight:600;margin-bottom:.15rem}
 .pass-since{font-size:.74rem;color:var(--muted);margin-bottom:1.2rem}
+#v-mypass .my-pass-card{max-width:560px;margin-bottom:.9rem}
+.my-pass-card::after{content:'';position:absolute;inset:0;pointer-events:none;background:linear-gradient(115deg,transparent 38%,rgba(255,255,255,.045) 50%,transparent 62%)}
+.pass-avatar{width:54px;height:54px;border-radius:50%;object-fit:cover;border:2px solid rgba(249,115,22,.55);box-shadow:0 4px 18px rgba(249,115,22,.25);flex-shrink:0;position:relative;z-index:1}
+.pass-row{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1rem;position:relative;z-index:1}
+.pass-chip{font-size:.74rem;color:var(--white);background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:.34rem .75rem}
+.pass-chip b{color:var(--gold);font-weight:800}
+.pass-wallet-line{font:600 .62rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--faint)}
+.pass-actions{display:flex;gap:.7rem;max-width:560px;margin-bottom:1.1rem}
 .pass-wallet-btns{display:flex;gap:.6rem;flex-wrap:wrap}
 .wallet-btn{display:flex;align-items:center;gap:.5rem;padding:.5rem 1rem;border-radius:100px;font-family:var(--disp);font-size:.76rem;font-weight:600;cursor:pointer;border:1px solid rgba(241,241,248,.2);background:transparent;color:var(--white);white-space:nowrap;transition:border-color var(--t) var(--ease)}
 .wallet-btn:hover{border-color:rgba(241,241,248,.45)}
@@ -1444,96 +1452,47 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
 
     <!-- MY PASS -->
     <div class="view" id="v-mypass">
-      <!-- Your Week: the app keeps score of YOU — streak, level, listening -->
+      <!-- THE PASS — one card, everything real. No samples, no previews. -->
+      <div class="my-pass-card" data-pass-num="preview" id="my-pass-card">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem">
+          <div>
+            <div class="pass-logo" id="pass-logo-line">PHX · Founding<span id="pass-preview-tag" style="display:none"></span></div>
+            <div class="pass-number-big" id="pass-number-big">#—</div>
+          </div>
+          <img id="pass-avatar" class="pass-avatar" alt="" style="display:none">
+        </div>
+        <div class="pass-holder" id="pass-holder">—</div>
+        <div class="pass-tier-label" id="pass-tier-label">PHX Member</div>
+        <div class="pass-since" id="pass-since">Your founding number is assigned when you redeem your code</div>
+        <div class="pass-row">
+          <div class="pass-chip" id="points-panel" style="display:none"><b id="points-balance">0</b> PHX Points</div>
+          <div class="pass-chip" id="pass-streak-chip" style="display:none">🔥 <b id="pass-streak">0</b>-day streak</div>
+        </div>
+        <div class="pass-wallet-line">🍎 Apple Wallet · 🤖 Google Wallet — arrive with billing</div>
+      </div>
+      <div class="pass-actions">
+        <button class="receipt-share-btn" onclick="sharePhx(this)">Share PHX ↗</button>
+        <button class="receipt-ghost-btn" onclick="showReceiptHistory()">Receipt history</button>
+      </div>
+
+      <!-- Your Week: streak, level, listening — the app keeping score of YOU -->
       <div id="my-week-card" style="margin-bottom:1rem"></div>
-      <!-- The points shop: spend on things money can't buy -->
-      <div id="points-shop" style="margin-bottom:1rem"></div>
+
+      <div class="card" style="margin-bottom:1rem">
+        <div class="card-title" style="margin-bottom:.3rem">Your receipt</div>
+        <div style="font-size:.78rem;color:var(--muted);margin-bottom:.9rem">The Phoenix artists your listening backed this month.</div>
+        <div id="my-receipt"><div class="pf-empty">Loading…</div></div>
+      </div>
+
       <div class="card" style="margin-bottom:1rem">
         <div class="card-title" style="margin-bottom:.8rem">Invite the city</div>
         <div id="referral-panel"><div style="color:var(--muted);font-size:.85rem">Loading…</div></div>
       </div>
-      <div class="card" style="margin-bottom:1rem">
-        <div class="card-title" style="margin-bottom:.3rem">Your monthly receipt</div>
-        <div style="font-size:.78rem;color:var(--muted);margin-bottom:.9rem">The Phoenix artists your listening supported this month.</div>
-        <div id="my-receipt"><div class="pf-empty">Loading…</div></div>
-      </div>
-      <div class="grid-2">
-        <div>
-          <div class="my-pass-card" data-pass-num="preview">
-            <div class="pass-logo" id="pass-logo-line">PHX · Founding <span id="pass-preview-tag" style="font-size:.6rem;opacity:.7">PREVIEW</span></div>
-            <div class="pass-number-big" id="pass-number-big">#—</div>
-            <div class="pass-holder" id="pass-holder">Your Name Here</div>
-            <div class="pass-tier-label" id="pass-tier-label">PHX Member</div>
-            <div class="pass-since" id="pass-since">Your founding number is assigned when you redeem your code · founding rate locked for life</div>
-            <div class="pass-wallet-btns">
-              <button class="wallet-btn" disabled style="opacity:.5;cursor:default" title="Wallet passes ship with billing">🍎 Apple Wallet — soon</button>
-              <button class="wallet-btn" disabled style="opacity:.5;cursor:default" title="Wallet passes ship with billing">🤖 Google Wallet — soon</button>
-            </div>
-          </div>
-          <div style="font-size:.8rem;color:var(--faint);text-align:center;margin-top:.4rem">Founding numbers are permanent — 1,000 total, first come first served.</div>
-          <div id="points-panel" style="display:none;margin-top:.8rem;padding:.8rem 1rem;background:var(--bg3);border:1px solid rgba(249,115,22,.25);border-radius:12px;text-align:center">
-            <div style="font-size:1.4rem;font-weight:800;color:var(--gold)" id="points-balance">0</div>
-            <div style="font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)">PHX Points</div>
-            <div style="font-size:.72rem;color:var(--muted);margin-top:.4rem">Earn by listening, posting, and bringing people in. Redeem for merch and early access to drops when the store opens.</div>
-          </div>
-        </div>
-        <div>
-          <!-- THE RECEIPT — where my money went this month -->
-          <div class="receipt">
-            <!-- Percentages only — the receipt names WHO your listening
-                 supported, never dollar splits. Same rule as the live
-                 receipt renderer: money stays in the artist portal + admin. -->
-            <div class="receipt-head"><span>THE RECEIPT · SAMPLE</span><span>JUL 2026</span></div>
-            <div class="receipt-row receipt-divider" style="margin-top:.7rem;border-top:none;border-bottom:1px dashed rgba(36,27,16,.35)"><span>YOUR LISTENING</span><b>PAID YOUR ARTISTS</b></div>
-            <div class="receipt-artist">
-              <div class="receipt-artist-line"><span>MURKEMZ</span><span><span class="pct">86%</span> of your listening</span></div>
-              <div class="receipt-bar"><div class="receipt-bar-fill" style="width:86%"></div></div>
-            </div>
-            <div class="receipt-artist">
-              <div class="receipt-artist-line"><span>+ EVERY ARTIST YOU PLAY</span><span><span class="pct">14%</span></span></div>
-              <div class="receipt-bar"><div class="receipt-bar-fill" style="width:14%"></div></div>
-            </div>
-            <div class="receipt-foot"><span>SAMPLE RECEIPT · YOURS ARRIVES MONTHLY</span><span class="receipt-barcode"></span></div>
-          </div>
-          <div class="receipt-actions">
-            <button class="receipt-share-btn" onclick="sharePhx(this)">Share PHX ↗</button>
-            <button class="receipt-ghost-btn" onclick="showReceiptHistory()">History</button>
-          </div>
-          <div style="font-size:.78rem;color:var(--faint);text-align:center;margin-top:.9rem">Sample receipt — yours is generated from your real listening each month.</div>
-        </div>
-      </div>
-      <div class="grid-2" style="margin-top:.5rem">
-        <div>
-          <div class="sh"><h3>Perks — launching Q3 2026</h3></div>
-          <div class="perks-list">
-            <div class="perk-row" style="opacity:.6">
-              <div class="perk-icon">🍽️</div>
-              <div><div class="perk-biz">Phoenix restaurants</div><div class="perk-offer">Member discounts — partners announced as they sign</div></div>
-              <span class="perk-status used">Q3 2026</span>
-            </div>
-            <div class="perk-row" style="opacity:.6">
-              <div class="perk-icon">✂️</div>
-              <div><div class="perk-biz">Barbershops &amp; salons</div><div class="perk-offer">PHX Native discounts + priority booking</div></div>
-              <span class="perk-status used">Q4 2026</span>
-            </div>
-            <div class="perk-row" style="opacity:.6">
-              <div class="perk-icon">👕</div>
-              <div><div class="perk-biz">Local streetwear drops</div><div class="perk-offer">Early access for Insider passes</div></div>
-              <span class="perk-status used">Q3 2026</span>
-            </div>
-          </div>
-        </div>
-        <div>
-          <div class="sh"><h3>Your pass impact <span style="font-size:.62rem;color:var(--faint);font-weight:500">SAMPLE</span></h3></div>
-          <div style="display:flex;gap:2rem;padding:.4rem 0 1rem">
-            <div><div style="font-family:var(--disp);font-size:1.7rem;font-weight:700;letter-spacing:-.03em">86%</div><div style="font-size:.74rem;color:var(--faint);margin-top:.2rem">listening → your top artist</div></div>
-            <div><div style="font-family:var(--disp);font-size:1.7rem;font-weight:700;letter-spacing:-.03em">3</div><div style="font-size:.74rem;color:var(--faint);margin-top:.2rem">artists supported</div></div>
-            <div><div style="font-family:var(--disp);font-size:1.7rem;font-weight:700;letter-spacing:-.03em;color:var(--orange-l)">$47</div><div style="font-size:.74rem;color:var(--faint);margin-top:.2rem">saved in perks</div></div>
-          </div>
-          <div style="font-size:.8rem;color:var(--muted);line-height:1.6">Your pass supports the Phoenix artists you actually listen to — and unlocks the whole city as Eats, Drops &amp; Events launch.</div>
-        </div>
-      </div>
+
+      <!-- The points shop: spend on things money can't buy -->
+      <div id="points-shop" style="margin-bottom:1rem"></div>
     </div>
+
 
     <!-- PROFILE -->
     <div class="view" id="v-profile">
@@ -4561,6 +4520,8 @@ async function loadMyWeek() {
   window._myStreak = d.streak || 0;
   window._myPoints = d.points_total || 0;
   loadPointsShop();
+  var sc = document.getElementById('pass-streak-chip');
+  if (sc) { _setText('pass-streak', String(d.streak || 0)); sc.style.display = (d.streak || 0) > 0 ? '' : 'none'; }
   var levelColor = { Ember: 'var(--muted)', Flame: 'var(--orange-l)', Inferno: 'var(--orange)', Phoenix: 'var(--gold)' }[d.level] || 'var(--muted)';
   var nextAt = d.level === 'Ember' ? 100 : d.level === 'Flame' ? 500 : d.level === 'Inferno' ? 1500 : null;
   var tile = function(v, l) { return '<div style="flex:1;min-width:76px;text-align:center"><div style="font-family:var(--disp);font-size:1.25rem;font-weight:800">' + v + '</div><div style="font-size:.62rem;color:var(--muted)">' + l + '</div></div>'; };
@@ -9359,10 +9320,12 @@ async function loadMyPassCard() {
   if (!_authUser) return;
   try {
     var res = await _sb.from('profiles')
-      .select('display_name,username,tier,membership,founding_number,locked_price_cents,created_at,role')
+      .select('display_name,username,tier,membership,founding_number,locked_price_cents,created_at,role,avatar_url')
       .eq('id', _authUser.id).maybeSingle();
     var p = res.data;
     if (!p) return;
+    var av = document.getElementById('pass-avatar');
+    if (av) { if (p.avatar_url) { av.src = p.avatar_url; av.style.display = 'block'; } else { av.style.display = 'none'; } }
     var tierLabel = p.tier === 'insider' ? 'PHX Insider' : p.tier === 'native' ? 'PHX Native' : 'Explorer';
     var founding = p.membership === 'founding' || p.founding_number != null;
     var since = p.created_at ? new Date(p.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : '';
