@@ -10792,7 +10792,7 @@ async function loadAdminOps() {
   try {
     var results = await Promise.all([
       _sb.from('profiles').select('id,username,display_name,tier,role,created_at').order('created_at', { ascending: false }).limit(50),
-      _sb.from('artists').select('id,name,slug,total_streams,status,verified').order('total_streams', { ascending: false }),
+      _sb.from('artists').select('id,name,slug,total_streams,status,verified,user_id,agreement_accepted_at').order('total_streams', { ascending: false }),
       _sb.from('tracks').select('title,stream_count,status,exclusive_tier,artists(name,slug)').order('stream_count', { ascending: false }),
       _sb.from('subscriptions').select('tier,amount_cents,status'),
       _sb.from('artist_payouts').select('artist_id,total_streams,total_earnings_cents,status'),
