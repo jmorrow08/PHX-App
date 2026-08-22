@@ -5,12 +5,16 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>PHX App — Member Dashboard</title>
 <meta name="description" content="PHX — the Phoenix scene membership. Stream local artists, and your pass pays the artists you actually play.">
-<meta property="og:title" content="PHX App — Phoenix scene membership">
-<meta property="og:description" content="Stream Phoenix artists. Your pass pays the artists you actually play — with a receipt to prove it.">
+<meta property="og:title" content="PHX — the city's music, backed by your plays">
+<meta property="og:description" content="Invite-only Phoenix music membership. Stream local artists, back them with your plays, see the receipt.">
+<meta property="og:image" content="https://thephx.app/assets/og-logo.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://thephx.app/app">
 <link rel="canonical" href="https://thephx.app/app" id="pwa-canonical">
-<meta name="twitter:card" content="summary">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://thephx.app/assets/og-logo.png">
 <link rel="manifest" href="manifest.json" id="pwa-manifest">
 <link rel="icon" href="/favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
@@ -677,8 +681,34 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
 .pass-holder{font-family:var(--disp);font-size:1.05rem;font-weight:600;margin-bottom:.15rem}
 .pass-tier-label{font-size:.76rem;color:var(--orange-l);font-weight:600;margin-bottom:.15rem}
 .pass-since{font-size:.74rem;color:var(--muted);margin-bottom:1.2rem}
-#v-mypass .my-pass-card{max-width:560px;margin-bottom:.9rem}
-.my-pass-card::after{content:'';position:absolute;inset:0;pointer-events:none;background:linear-gradient(115deg,transparent 38%,rgba(255,255,255,.045) 50%,transparent 62%)}
+/* ── My Pass v3: the flagship card ── */
+.pass-stage{max-width:560px;margin:0 0 1rem;perspective:1200px}
+#v-mypass .my-pass-card{margin:0;padding:1.5rem 1.6rem 1.3rem;border-radius:22px;border:1px solid rgba(249,115,22,.38);
+  background:
+    radial-gradient(120% 90% at 100% 0%,rgba(249,115,22,.22),transparent 55%),
+    radial-gradient(80% 60% at 0% 100%,rgba(234,179,8,.10),transparent 60%),
+    linear-gradient(150deg,#2A1206,#12070D 55%,var(--bg3));
+  box-shadow:0 24px 60px rgba(0,0,0,.45),0 0 0 1px rgba(255,255,255,.03) inset;
+  transition:transform .4s var(--ease)}
+#v-mypass .my-pass-card:hover{transform:translateY(-2px) rotateX(1.5deg)}
+.my-pass-card::after{content:'';position:absolute;inset:0;pointer-events:none;border-radius:inherit;
+  background:linear-gradient(115deg,transparent 35%,rgba(255,255,255,.06) 48%,rgba(255,255,255,.02) 52%,transparent 65%)}
+.pass-top{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;position:relative;z-index:1}
+.pass-foot{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;margin-top:1.1rem;position:relative;z-index:1}
+.pass-barcode{margin-left:auto;width:96px;height:26px;opacity:.55;background:repeating-linear-gradient(90deg,var(--orange-l) 0 2px,transparent 2px 4px,var(--orange-l) 4px 7px,transparent 7px 9px,var(--orange-l) 9px 10px,transparent 10px 13px)}
+#v-mypass .pass-number-big{font-size:3.2rem;margin-bottom:.6rem;background:linear-gradient(135deg,#FFF 20%,#F97316 120%);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+/* Week tiles */
+.pass-tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:.5rem;max-width:560px;margin-bottom:1rem}
+.pass-tile{background:var(--bg3);border-radius:14px;padding:.75rem .6rem;text-align:center}
+.pass-tile b{display:block;font-family:var(--disp);font-size:1.15rem;font-weight:800;letter-spacing:-.02em}
+.pass-tile span{display:block;font:600 .58rem var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-top:.2rem}
+@media(max-width:480px){.pass-tiles{grid-template-columns:repeat(2,1fr)}}
+/* Segmented control + panes */
+.pass-seg{display:inline-flex;background:var(--bg3);border-radius:999px;padding:.25rem;gap:.2rem;margin-bottom:1rem}
+.pass-seg-btn{border:none;background:transparent;color:var(--muted);font-family:inherit;font-size:.8rem;font-weight:600;padding:.5rem 1rem;border-radius:999px;cursor:pointer;transition:all .18s var(--ease)}
+.pass-seg-btn.on{background:var(--white);color:var(--bg)}
+.pass-pane{background:var(--bg3);border-radius:var(--r-m);padding:1.2rem 1.3rem;margin-bottom:1rem}
+.pass-pane[hidden]{display:none}
 .pass-avatar{width:54px;height:54px;border-radius:50%;object-fit:cover;border:2px solid rgba(249,115,22,.55);box-shadow:0 4px 18px rgba(249,115,22,.25);flex-shrink:0;position:relative;z-index:1}
 .pass-row{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1rem;position:relative;z-index:1}
 .pass-chip{font-size:.74rem;color:var(--white);background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:.34rem .75rem}
@@ -1466,47 +1496,51 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
 
     <!-- MY PASS -->
     <div class="view" id="v-mypass">
-      <!-- THE PASS — one card, everything real. No samples, no previews. -->
-      <div class="my-pass-card" data-pass-num="preview" id="my-pass-card">
-        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem">
-          <div>
-            <div class="pass-logo" id="pass-logo-line">PHX · Founding<span id="pass-preview-tag" style="display:none"></span></div>
-            <div class="pass-number-big" id="pass-number-big">#—</div>
+      <!-- THE PASS — flagship card. One face, all real. -->
+      <div class="pass-stage">
+        <div class="my-pass-card" data-pass-num="preview" id="my-pass-card">
+          <div class="pass-top">
+            <div>
+              <div class="pass-logo" id="pass-logo-line">PHX · Founding<span id="pass-preview-tag" style="display:none"></span></div>
+              <div class="pass-number-big" id="pass-number-big">#—</div>
+            </div>
+            <img id="pass-avatar" class="pass-avatar" alt="" style="display:none">
           </div>
-          <img id="pass-avatar" class="pass-avatar" alt="" style="display:none">
+          <div class="pass-holder" id="pass-holder">—</div>
+          <div class="pass-tier-label" id="pass-tier-label">PHX Member</div>
+          <div class="pass-since" id="pass-since">Your founding number is assigned when you redeem your code</div>
+          <div class="pass-foot">
+            <div class="pass-chip" id="points-panel" style="display:none"><b id="points-balance">0</b> pts</div>
+            <div class="pass-chip" id="pass-streak-chip" style="display:none">🔥 <b id="pass-streak">0</b></div>
+            <div class="pass-barcode" aria-hidden="true"></div>
+          </div>
         </div>
-        <div class="pass-holder" id="pass-holder">—</div>
-        <div class="pass-tier-label" id="pass-tier-label">PHX Member</div>
-        <div class="pass-since" id="pass-since">Your founding number is assigned when you redeem your code</div>
-        <div class="pass-row">
-          <div class="pass-chip" id="points-panel" style="display:none"><b id="points-balance">0</b> PHX Points</div>
-          <div class="pass-chip" id="pass-streak-chip" style="display:none">🔥 <b id="pass-streak">0</b>-day streak</div>
-        </div>
-        <div class="pass-wallet-line">🍎 Apple Wallet · 🤖 Google Wallet — arrive with billing</div>
-      </div>
-      <div class="pass-actions">
-        <button class="receipt-share-btn" onclick="sharePhx(this)">Share PHX ↗</button>
-        <button class="receipt-ghost-btn" onclick="showReceiptHistory()">Receipt history</button>
       </div>
 
-      <!-- Your Week: streak, level, listening — the app keeping score of YOU -->
-      <div id="my-week-card" style="margin-bottom:1rem"></div>
+      <!-- Your week as four tiles: streak · points · minutes · artists backed -->
+      <div id="my-week-card"></div>
 
-      <div class="card" style="margin-bottom:1rem">
-        <div class="card-title" style="margin-bottom:.3rem">Your receipt</div>
-        <div style="font-size:.78rem;color:var(--muted);margin-bottom:.9rem">The Phoenix artists your listening backed this month.</div>
+      <!-- One thing at a time: receipt, invite, shop -->
+      <div class="pass-seg" role="tablist">
+        <button class="pass-seg-btn on" data-pane="receipt" onclick="passPane('receipt')">Receipt</button>
+        <button class="pass-seg-btn" data-pane="invite" onclick="passPane('invite')">Invite</button>
+        <button class="pass-seg-btn" data-pane="shop" onclick="passPane('shop')">Points shop</button>
+      </div>
+      <div class="pass-pane" id="pass-pane-receipt">
+        <div style="font-size:.78rem;color:var(--muted);margin-bottom:.8rem">The Phoenix artists your listening backed this month.</div>
         <div id="my-receipt"><div class="pf-empty">Loading…</div></div>
+        <div class="receipt-actions" style="margin-top:.9rem">
+          <button class="receipt-share-btn" onclick="sharePhx(this)">Share PHX ↗</button>
+          <button class="receipt-ghost-btn" onclick="showReceiptHistory()">History</button>
+        </div>
       </div>
-
-      <div class="card" style="margin-bottom:1rem">
-        <div class="card-title" style="margin-bottom:.8rem">Invite the city</div>
+      <div class="pass-pane" id="pass-pane-invite" hidden>
         <div id="referral-panel"><div style="color:var(--muted);font-size:.85rem">Loading…</div></div>
       </div>
-
-      <!-- The points shop: spend on things money can't buy -->
-      <div id="points-shop" style="margin-bottom:1rem"></div>
+      <div class="pass-pane" id="pass-pane-shop" hidden>
+        <div id="points-shop"></div>
+      </div>
     </div>
-
 
     <!-- PROFILE -->
     <div class="view" id="v-profile">
@@ -4544,19 +4578,28 @@ async function loadMyWeek() {
   if (sc) { _setText('pass-streak', String(d.streak || 0)); sc.style.display = (d.streak || 0) > 0 ? '' : 'none'; }
   var levelColor = { Ember: 'var(--muted)', Flame: 'var(--orange-l)', Inferno: 'var(--orange)', Phoenix: 'var(--gold)' }[d.level] || 'var(--muted)';
   var nextAt = d.level === 'Ember' ? 100 : d.level === 'Flame' ? 500 : d.level === 'Inferno' ? 1500 : null;
-  var tile = function(v, l) { return '<div style="flex:1;min-width:76px;text-align:center"><div style="font-family:var(--disp);font-size:1.25rem;font-weight:800">' + v + '</div><div style="font-size:.62rem;color:var(--muted)">' + l + '</div></div>'; };
-  el.innerHTML = '<div class="card" style="background:linear-gradient(135deg,#1A0E06,var(--bg3) 65%)">' +
-    '<div style="display:flex;align-items:center;gap:.6rem;margin-bottom:.8rem">' +
-      '<div class="card-title" style="margin:0">Your week on PHX</div>' +
-      '<span class="badge" style="margin-left:auto;color:' + levelColor + ';border-color:rgba(249,115,22,.3);font-size:.62rem">🔥 ' + escapeHtml(d.level) + '</span></div>' +
-    '<div style="display:flex;gap:.5rem;flex-wrap:wrap">' +
+  var tile = function(v, l, c) { return '<div class="pass-tile"><b' + (c ? ' style="color:' + c + '"' : '') + '>' + v + '</b><span>' + l + '</span></div>'; };
+  el.innerHTML =
+    '<div class="pass-tiles">' +
       tile('🔥 ' + (d.streak || 0), 'day streak') +
+      tile('+' + (d.points_7d || 0), 'pts this week', 'var(--gold)') +
       tile(fmtK(d.minutes_7d || 0), 'listen min') +
       tile(String(d.artists_7d || 0), 'artists backed') +
-      tile('+' + (d.points_7d || 0), 'points this week') +
-      tile(String(d.early_ears || 0), 'early ears 👂') + '</div>' +
-    '<div style="font-size:.7rem;color:var(--faint);margin-top:.7rem">' + fmtK(d.points_total || 0) + ' PHX Points all-time' +
-      (nextAt ? ' · ' + (nextAt - d.points_total) + ' to ' + (d.level === 'Ember' ? 'Flame' : d.level === 'Flame' ? 'Inferno' : 'Phoenix') : ' · top of the mountain') + '</div></div>';
+    '</div>' +
+    '<div style="max-width:560px;display:flex;align-items:center;gap:.6rem;font-size:.72rem;color:var(--faint);margin:-.4rem 0 1rem .2rem">' +
+      '<span style="color:' + levelColor + ';font-weight:700">🔥 ' + escapeHtml(d.level) + '</span>' +
+      '<span>' + fmtK(d.points_total || 0) + ' pts all-time' +
+      (nextAt ? ' · ' + (nextAt - d.points_total) + ' to ' + (d.level === 'Ember' ? 'Flame' : d.level === 'Flame' ? 'Inferno' : 'Phoenix') : ' · top of the mountain') + '</span>' +
+    '</div>';
+}
+
+// My Pass segmented panes
+function passPane(name) {
+  document.querySelectorAll('.pass-seg-btn').forEach(function(b){ b.classList.toggle('on', b.dataset.pane === name); });
+  ['receipt','invite','shop'].forEach(function(p) {
+    var el = document.getElementById('pass-pane-' + p);
+    if (el) el.hidden = (p !== name);
+  });
 }
 
 // ── THE POINTS SHOP: spend on what money can't buy ──
@@ -9211,6 +9254,13 @@ async function renderOnboard() {
         '<div><b style="color:var(--white)">★ Favorites</b> — star artists on their page; favorites are first in line for drops.</div>' +
         '<div><b style="color:var(--white)">💳 My Pass</b> — your number, your receipt, your points, your invite code.</div>' +
       '</div>' +
+      // Artists accept the distribution agreement once, here, before their first upload
+      ((_accountRole === 'artist' || (typeof _myArtistId !== 'undefined' && _myArtistId))
+        ? '<label style="display:flex;align-items:flex-start;gap:.55rem;margin:0 0 .9rem;padding:.75rem .85rem;background:var(--bg3);border:1px solid rgba(249,115,22,.3);border-radius:12px;cursor:pointer">' +
+            '<input type="checkbox" id="onb-agree" style="margin-top:.15rem;accent-color:var(--orange);flex-shrink:0">' +
+            '<span style="font-size:.76rem;color:var(--muted);line-height:1.5">I agree to the <a href="legal.html#artist-agreement" target="_blank" style="color:var(--orange)">PHX Artist Distribution Agreement</a> — non-exclusive license to stream my music, net-60 payouts, DMCA takedown policy. I\'ll confirm I own the rights on each upload.</span>' +
+          '</label>'
+        : '') +
       '<button class="upgrade-btn" style="margin:0;width:100%" onclick="finishOnboarding()">Enter PHX 🐦‍🔥</button>' +
       '<button onclick="finishOnboarding()" style="display:block;width:100%;background:none;border:none;color:var(--muted);cursor:pointer;font-size:.8rem;margin-top:.7rem;text-decoration:underline">Skip the tour</button>' +
       '<div id="onb-msg" style="font-size:.78rem;color:var(--muted);margin-top:.55rem;min-height:1em"></div>'
@@ -9315,7 +9365,13 @@ async function onbNext(skip) {
 async function finishOnboarding(skipFollows) {
   if (skipFollows) { _onbFollows = []; _onbPeople = []; }
   var msg = document.getElementById('onb-msg');
-  if (msg) msg.textContent = 'Setting up…';
+  var agree = document.getElementById('onb-agree');
+  if (agree && !agree.checked) {
+    if (msg) { msg.style.color = 'var(--red)'; msg.textContent = 'Artists need to accept the distribution agreement to enter.'; }
+    return;
+  }
+  if (agree && agree.checked) { try { await _sb.rpc('accept_artist_agreement', { p_version: 'artist-agreement-v1.1' }); } catch (e) { reportFailure('acceptAgreement', e); } }
+  if (msg) { msg.style.color = ''; msg.textContent = 'Setting up…'; }
   // Follow the selected people/pages up front so the feed has content the
   // moment they land on it
   var persona = currentPersona();
@@ -9515,7 +9571,9 @@ async function loadMyPassCard() {
     _setText('pass-number-big', founding && p.founding_number != null ? '#' + p.founding_number : '—');
     _setText('pass-holder', p.display_name || (p.username ? '@' + p.username : 'PHX Member'));
     _setText('pass-tier-label', tierLabel + ' — ' + (p.role === 'artist' ? 'Artist' : 'Member'));
-    _setText('pass-since', (since ? 'Member since ' + since + ' · ' : '') + rateLine);
+    // Rate line retired from the card (founder call) — the pass says who you
+    // are and when you got here; pricing lives on the landing/billing surfaces.
+    _setText('pass-since', since ? 'Member since ' + since : '');
 
     // PHX Points balance (earn ledger; redemptions come with the store)
     var ptsRes = await _sb.from('points_ledger').select('delta').eq('user_id', _authUser.id);
@@ -10808,7 +10866,10 @@ async function loadAdminOps() {
       var earningsByArtist = {};
       payouts.forEach(function(p){ earningsByArtist[p.artist_id] = (earningsByArtist[p.artist_id]||0) + (p.total_earnings_cents||0); });
       atb.innerHTML = artists.length ? artists.map(function(a) {
-        return '<tr><td><strong>' + escapeHtml(a.name) + '</strong>' + (a.slug === 'murkemz' ? ' <span class="badge badge-orange" style="font-size:.6rem">Founder</span>' : '') + '</td>' +
+        var agreeChip = a.agreement_accepted_at
+          ? ' <span title="Artist agreement accepted ' + new Date(a.agreement_accepted_at).toLocaleDateString() + '" style="font-size:.62rem;color:var(--green)">✓ agreement</span>'
+          : (a.user_id ? ' <span class="status-chip sc-pending" style="font-size:.56rem">agreement pending</span>' : '');
+        return '<tr><td><strong>' + escapeHtml(a.name) + '</strong>' + (a.slug === 'murkemz' ? ' <span class="badge badge-orange" style="font-size:.6rem">Founder</span>' : '') + agreeChip + '</td>' +
           '<td style="color:var(--teal)">' + fmtK(a.total_streams) + '</td>' +
           '<td style="color:var(--green)">' + fmtUsd(earningsByArtist[a.id] || 0) + '</td>' +
           '<td>' + (a.status === 'active'
