@@ -521,6 +521,12 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
 .file-pick .fp-thumb{width:38px;height:38px;border-radius:10px;object-fit:cover;display:none;flex-shrink:0}
 .file-pick .fp-btn{font-size:.78rem;font-weight:700;color:var(--orange);white-space:nowrap}
 .file-pick .fp-name{font-size:.74rem;color:var(--muted);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pm-mode.on,.pm-range.on{color:var(--orange);border-color:rgba(249,115,22,.45)}
+.pm-card{display:flex;gap:14px;align-items:flex-start;background:var(--bg3);border-radius:var(--r-m);padding:.9rem 1rem;margin-bottom:.6rem}
+.pm-kind{font:600 .58rem var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--orange-l);border:1px solid rgba(249,115,22,.35);border-radius:999px;padding:.12rem .5rem;white-space:nowrap}
+.leaflet-container{background:#0B0B14;font-family:inherit}
+.pm-popup .leaflet-popup-content-wrapper{background:var(--bg2);color:var(--white);border-radius:12px;border:1px solid var(--border)}
+.pm-popup .leaflet-popup-tip{background:var(--bg2)}
 .ap-show-info{flex:1;min-width:0}
 .ap-show-actions{display:flex;gap:.5rem;align-items:center;flex-shrink:0}
 /* Mobile: info gets the full line next to the date; buttons drop to their own row */
@@ -967,7 +973,7 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
     <div class="sb-section">Live Now</div>
     <button class="nav-item" onclick="showView('music')"><span class="icon">🎵</span>PHX Music<span class="badge-teal badge" style="margin-left:auto;font-size:.58rem;padding:.1rem .45rem">LIVE</span></button>
     <div class="sb-section">Coming Soon</div>
-    <button class="nav-item nav-soon-item" onclick="showView('events')"><span class="icon">🎟️</span>PHX Events<span class="nav-soon">SOON</span></button>
+    <button class="nav-item" onclick="showView('events')"><span class="icon">🗺️</span>Plug Map</button>
     <button class="nav-item nav-soon-item" onclick="showView('eats')"><span class="icon">🍽️</span>PHX Eats<span class="nav-soon">SOON</span></button>
     <button class="nav-item nav-soon-item" onclick="showView('audio')"><span class="icon">🎙️</span>PHX Audio<span class="nav-soon">SOON</span></button>
     <button class="nav-item nav-soon-item" onclick="showView('drops')"><span class="icon">👕</span>PHX Drops<span class="nav-soon">SOON</span></button>
@@ -1369,19 +1375,27 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
 
     <!-- EVENTS — Coming Soon -->
     <div class="view" id="v-events">
-      <div class="coming-soon-view">
-        <div class="cs-icon">🎟️</div>
-        <div class="cs-title">PHX Events</div>
-        <div class="cs-subtitle">Live shows, ticketing, and PHX Pass access — all in one place. Exclusive member pre-sales and VIP entry built in.</div>
-        <div class="cs-features">
-          <div class="cs-feature"><span class="cs-feature-icon">🎤</span>Live show calendar for PHX venues — Rebel Lounge, Trill, Roosevelt Row and more</div>
-          <div class="cs-feature"><span class="cs-feature-icon">💳</span>PHX Pass discounts and early access applied automatically at checkout</div>
-          <div class="cs-feature"><span class="cs-feature-icon">📍</span>RSVP, tickets, and VIP line-skip — all in the app</div>
-          <div class="cs-feature"><span class="cs-feature-icon">🎵</span>Artist performances directly tied to PHX Music — stream before the show, buy tickets after</div>
+      <!-- PLUG MAP — the city's calendar in one place. Shows + events from
+           every page and source, list or map, with RSVP on the spot. -->
+      <div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;margin-bottom:.9rem">
+        <div>
+          <div class="sh" style="margin:0"><h3>🗺️ Plug Map</h3></div>
+          <div style="font-size:.78rem;color:var(--muted)">Every show, shoot and listening party in the city — one place.</div>
         </div>
-        <button class="cs-notify-btn">Notify Me When Live</button>
-        <div class="cs-timeline">Estimated Launch: Q3 2026</div>
+        <div style="margin-left:auto;display:flex;gap:.4rem">
+          <button class="tb-btn pm-mode on" data-mode="list" onclick="plugMapMode('list')">List</button>
+          <button class="tb-btn pm-mode" data-mode="map" onclick="plugMapMode('map')">Map</button>
+        </div>
       </div>
+      <div style="display:flex;gap:.4rem;overflow-x:auto;padding-bottom:.5rem;margin-bottom:.6rem;scrollbar-width:none">
+        <button class="tb-btn pm-range on" data-range="week" onclick="plugMapRange('week')">This week</button>
+        <button class="tb-btn pm-range" data-range="weekend" onclick="plugMapRange('weekend')">Weekend</button>
+        <button class="tb-btn pm-range" data-range="month" onclick="plugMapRange('month')">30 days</button>
+        <button class="tb-btn pm-range" data-range="all" onclick="plugMapRange('all')">All upcoming</button>
+      </div>
+      <div id="plug-map-canvas" style="display:none;height:380px;border-radius:var(--r-m);overflow:hidden;background:var(--bg3);margin-bottom:.9rem"></div>
+      <div id="plug-map-list"><div class="pf-empty">Loading the city…</div></div>
+      <div style="font-size:.7rem;color:var(--faint);margin-top:1rem">Artists add shows from their page. Venue, listing and ticket feeds join the map as they connect.</div>
     </div>
 
     <!-- PHX EATS — Coming Soon -->
@@ -2568,7 +2582,7 @@ function openFullPlayer() {
 
 var titles = {
   home:'City Feed', discover:'Discover PHX', music:'PHX Music', reels:'Clips',
-  events:'PHX Events', eats:'PHX Eats', audio:'PHX Audio',
+  events:'Plug Map', eats:'PHX Eats', audio:'PHX Audio',
   drops:'PHX Drops', cuts:'PHX Cuts', mypass:'My PHX Pass', profile:'My Profile', settings:'Settings',
   'member-page':'Profile', 'artist-page':'Artist', 'artist-directory':'Browse PHX', 'page-profile':'Page',
   'admin-roster':'Launch Desk', 'admin-merch':'Merch Connections', 'admin-pot':'Community Pot', 'admin-ash':'Ash', 'admin-analytics':'Analytics',
@@ -2769,6 +2783,7 @@ function showView(id) {
   if (titleEl) titleEl.textContent = titles[id] || id;
   if (id === 'home') renderStarterRail();
   if (id === 'mypass') { loadReferralPanel(); loadMyReceipt(); loadMyPassCard(); loadMyWeek(); }
+  if (id === 'events') { loadPlugMap(); }
   if (id === 'admin-dashboard') { loadAdminStreamData(); loadAdminOps(); }
   if (id === 'admin-system') loadPlatformHealth();
   if (id === 'admin-members' || id === 'admin-artists' || id === 'admin-financials') loadAdminOps();
@@ -4708,6 +4723,109 @@ async function deleteDropUI(id) {
   if (_artistPage) loadArtistDrops(_artistPage);
 }
 
+// ── PLUG MAP — the city's calendar: shows ∪ events, list or map ──────────
+var _pmMode = 'list', _pmRange = 'week', _pmRows = [], _pmMap = null, _pmLayer = null;
+function plugMapMode(m) {
+  _pmMode = m;
+  document.querySelectorAll('.pm-mode').forEach(function(b){ b.classList.toggle('on', b.dataset.mode === m); });
+  var canvas = document.getElementById('plug-map-canvas');
+  if (canvas) canvas.style.display = m === 'map' ? 'block' : 'none';
+  if (m === 'map') renderPlugMapMap();
+}
+function plugMapRange(r) {
+  _pmRange = r;
+  document.querySelectorAll('.pm-range').forEach(function(b){ b.classList.toggle('on', b.dataset.range === r); });
+  loadPlugMap();
+}
+function _pmWindow() {
+  var now = new Date(), end;
+  if (_pmRange === 'week') end = new Date(now.getTime() + 7 * 86400000);
+  else if (_pmRange === 'month') end = new Date(now.getTime() + 30 * 86400000);
+  else if (_pmRange === 'weekend') {
+    // Fri 00:00 through Sun 23:59 of the upcoming (or current) weekend
+    var d = new Date(now); var day = d.getDay(); var toFri = (5 - day + 7) % 7;
+    var fri = new Date(d.getFullYear(), d.getMonth(), d.getDate() + (day >= 5 ? -(day - 5) : toFri));
+    var sun = new Date(fri.getFullYear(), fri.getMonth(), fri.getDate() + 2, 23, 59, 59);
+    return { from: day >= 5 ? now : fri, to: sun };
+  } else end = new Date(now.getTime() + 365 * 86400000);
+  return { from: now, to: end };
+}
+async function loadPlugMap() {
+  var list = document.getElementById('plug-map-list');
+  if (!list) return;
+  var w = _pmWindow();
+  var res = await _sb.from('city_events').select('*')
+    .gte('starts_at', w.from.toISOString()).lte('starts_at', w.to.toISOString())
+    .order('starts_at', { ascending: true }).limit(80);
+  _pmRows = res.data || [];
+  var KIND = { show: 'Show', shoot: 'Video shoot', listening_party: 'Listening party', open_mic: 'Open mic', drop: 'Drop', ticketed: 'Ticketed', perk: 'Perk', other: 'Event' };
+  if (!_pmRows.length) {
+    list.innerHTML = '<div class="pf-empty">Nothing on the calendar for this window yet. Artists: add your show from your page — it lands here instantly.</div>';
+  } else {
+    list.innerHTML = _pmRows.map(function(e) {
+      var tp = showTimeParts(e);
+      var ticket = safeUrl(e.ticket_url);
+      var where = [e.venue_name, e.city].filter(Boolean).join(' · ');
+      var price = e.price_text || (e.is_free ? 'Free' : '');
+      return '<div class="pm-card">' +
+        '<div class="ap-date"><div class="m">' + tp.mon + '</div><div class="d">' + tp.day + '</div></div>' +
+        '<div style="flex:1;min-width:0">' +
+          '<div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap"><span class="pm-kind">' + (KIND[e.kind] || 'Event') + '</span>' +
+            (e.artist_name ? artistLinkHtml(e.artist_name, e.artist_slug) : '') + '</div>' +
+          '<div style="font-family:var(--disp);font-size:.95rem;font-weight:700;margin-top:.25rem">' + escapeHtml(e.title) + '</div>' +
+          '<div style="font-size:.76rem;color:var(--muted);margin-top:2px;line-height:1.45">' + escapeHtml(tp.time) + ' · ' + escapeHtml(where) + (price ? '<br>' + escapeHtml(price) : '') + '</div>' +
+          '<div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;margin-top:.55rem">' +
+            (e.src === 'show' ? '<button class="tb-btn" id="rsvp-' + e.id + '" style="font-size:.7rem;padding:.3rem .6rem" onclick="toggleRsvpUI(\'' + e.id + '\', this)">🙋 I\'m going</button>' : '') +
+            (ticket ? '<a class="pf-btn" style="padding:.32rem .8rem;font-size:.72rem" href="' + ticket + '" target="_blank" rel="noopener">Tickets ↗</a>' : '') +
+            (e.lat && e.lng ? '<a class="pf-btn" style="padding:.32rem .8rem;font-size:.72rem" href="https://maps.apple.com/?q=' + encodeURIComponent(e.venue_name || e.title) + '&ll=' + e.lat + ',' + e.lng + '" target="_blank" rel="noopener">Directions</a>' : '') +
+          '</div>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+    // RSVP counts for the show rows
+    var ids = _pmRows.filter(function(e){ return e.src === 'show'; }).map(function(e){ return e.id; });
+    if (ids.length) {
+      var rr = await _sb.from('show_rsvps').select('show_id,user_id').in('show_id', ids);
+      var by = {}; (rr.data || []).forEach(function(r){ (by[r.show_id] = by[r.show_id] || []).push(r.user_id); });
+      ids.forEach(function(id) {
+        var btn = document.getElementById('rsvp-' + id); if (!btn) return;
+        var n = (by[id] || []).length, mine = _authUser && (by[id] || []).indexOf(_authUser.id) !== -1;
+        btn.textContent = (mine ? '✓ Going' : '🙋 I\'m going') + (n ? ' · ' + n : '');
+        btn.classList.toggle('on', !!mine);
+      });
+    }
+  }
+  if (_pmMode === 'map') renderPlugMapMap();
+}
+function _loadLeaflet(cb) {
+  if (window.L) { cb(); return; }
+  var css = document.createElement('link'); css.rel = 'stylesheet'; css.href = 'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css'; document.head.appendChild(css);
+  var js = document.createElement('script'); js.src = 'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js'; js.onload = cb; document.head.appendChild(js);
+}
+function renderPlugMapMap() {
+  var el = document.getElementById('plug-map-canvas');
+  if (!el) return;
+  _loadLeaflet(function() {
+    if (!_pmMap) {
+      _pmMap = L.map(el, { zoomControl: true, attributionControl: true }).setView([33.4484, -112.0740], 11);
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; OpenStreetMap &copy; CARTO', maxZoom: 19
+      }).addTo(_pmMap);
+    }
+    if (_pmLayer) _pmLayer.remove();
+    _pmLayer = L.layerGroup().addTo(_pmMap);
+    var pts = [];
+    _pmRows.forEach(function(e) {
+      if (!e.lat || !e.lng) return;
+      var tp = showTimeParts(e);
+      var mk = L.circleMarker([e.lat, e.lng], { radius: 9, color: '#F97316', fillColor: '#F97316', fillOpacity: .85, weight: 2 }).addTo(_pmLayer);
+      mk.bindPopup('<div style="font-family:inherit;min-width:180px"><b>' + escapeHtml(e.title) + '</b><br><span style="font-size:.78rem;opacity:.8">' + escapeHtml(tp.mon + ' ' + tp.day + ' · ' + tp.time) + '<br>' + escapeHtml(e.venue_name || '') + '</span></div>', { className: 'pm-popup' });
+      pts.push([e.lat, e.lng]);
+    });
+    setTimeout(function() { _pmMap.invalidateSize(); if (pts.length) _pmMap.fitBounds(pts, { padding: [40, 40], maxZoom: 14 }); }, 80);
+  });
+}
+
 // ── Artist page: supporters wall + spotlight votes + who's going ──
 async function loadArtistSupport(artistId) {
   var el = document.getElementById('ap-support-row');
@@ -6493,6 +6611,9 @@ async function submitTrack() {
       cover_url:      coverUrl,
       exclusive_tier: excTier,
       exclusive_until:excUntil,
+      // The agreement checkbox is the clickwrap; stamp the acceptance on the upload
+      agreement_accepted_at: new Date().toISOString(),
+      agreement_version: 'artist-agreement-v1.1',
       status:         'pending',
       is_active:      false,
       duration_seconds: durSec,
