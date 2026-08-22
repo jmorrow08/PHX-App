@@ -83,9 +83,16 @@
     setTimeout(function () {
       ticking = false;
       var y = window.scrollY || 0;
-      if (y < 48) bar.classList.remove('hidden');
-      else if (y > lastY + 6 && !sidebar.classList.contains('mobile-open')) bar.classList.add('hidden');
-      else if (y < lastY - 6) bar.classList.remove('hidden');
+      // Top bar, bottom tabs and the mini player move together: out of the
+      // way while reading down, back the moment you scroll up.
+      var bottoms = [document.querySelector('.bottom-tabs'), document.querySelector('.mini-player')];
+      var setHidden = function (h) {
+        bar.classList.toggle('hidden', h);
+        bottoms.forEach(function (el) { if (el) el.classList.toggle('hidden', h); });
+      };
+      if (y < 48) setHidden(false);
+      else if (y > lastY + 6 && !sidebar.classList.contains('mobile-open')) setHidden(true);
+      else if (y < lastY - 6) setHidden(false);
       lastY = y;
     }, 80);
   }, { passive: true });

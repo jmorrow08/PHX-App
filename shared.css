@@ -531,13 +531,14 @@ body { padding-bottom: 52px; }
   }
   .demo-nav-label { display: none !important; }
 
-  /* Mini player: full-width, sits above bottom tabs */
+  /* Mini player: floats just above the pill tabs */
   .mini-player {
-    left: 0 !important;
-    right: 0 !important;
-    bottom: 60px !important;
-    padding: .6rem 1rem !important;
-    border-radius: 14px 14px 0 0 !important;
+    left: 12px !important;
+    right: 12px !important;
+    bottom: calc(76px + env(safe-area-inset-bottom, 0px)) !important;
+    padding: .55rem .9rem !important;
+    border-radius: 16px !important;
+    border: 1px solid rgba(241,241,248,.08) !important;
     gap: .7rem !important;
   }
   .mp-time { display: none !important; }
@@ -564,19 +565,26 @@ body { padding-bottom: 52px; }
 .bottom-tabs { display: none; }
 
 @media (max-width: 768px) {
+  /* Floating pill — lifted off the very bottom so thumbs reach it, and it
+     slides away on scroll-down like the top bar (see shared.js). */
   .bottom-tabs {
     display: flex;
     position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 60px;
-    background: var(--bg2, #0A0A12);
-    border-top: 1px solid rgba(241,241,248,.07);
+    left: 12px;
+    right: 12px;
+    bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+    height: 58px;
+    background: rgba(10,10,18,.94);
+    border: 1px solid rgba(241,241,248,.09);
+    border-radius: 999px;
+    box-shadow: 0 12px 34px rgba(0,0,0,.55);
     z-index: 400;
-    /* safe area for iPhone home indicator */
-    padding-bottom: env(safe-area-inset-bottom, 0px);
+    padding: 0 .3rem;
+    transition: transform .28s cubic-bezier(.2,.8,.2,1), opacity .28s;
   }
+  .bottom-tabs.hidden { transform: translateY(calc(100% + 24px)); opacity: 0; pointer-events: none; }
+  .mini-player { transition: transform .28s cubic-bezier(.2,.8,.2,1), opacity .28s; }
+  .mini-player.hidden { transform: translateY(160%); opacity: 0; pointer-events: none; }
 
   .bt-item {
     flex: 1;
