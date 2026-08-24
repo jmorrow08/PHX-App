@@ -1637,6 +1637,15 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
 
     <!-- ARTIST — MY TRACKS -->
     <div class="view" id="v-artist-tracks">
+      <div class="card" style="margin-bottom:1rem">
+        <div class="card-title" style="margin-bottom:.3rem">🪪 Credited on someone else's song?</div>
+        <div style="font-size:.78rem;color:var(--muted);margin-bottom:.7rem">If you're featured on tracks here under any name, claim that name — once PHX verifies it, every credit links straight to your page, everywhere in the app.</div>
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+          <input class="form-input" id="claim-credit-name" placeholder="The name exactly as it appears in the credit" maxlength="60" style="flex:1;min-width:200px">
+          <button class="tb-btn" style="color:var(--orange);border-color:rgba(249,115,22,.4)" onclick="submitFeatureClaim(this)">Claim it</button>
+        </div>
+        <div id="claim-credit-msg" style="font-size:.76rem;color:var(--muted);margin-top:.45rem;min-height:1em"></div>
+      </div>
       <div class="a-stat-grid">
         <div class="a-stat"><div class="a-stat-val" style="color:var(--teal)" id="artist-total-streams">—</div><div class="a-stat-label">Total Streams</div></div>
         <div class="a-stat"><div class="a-stat-val" style="color:var(--orange)" id="artist-monthly-listeners">—</div><div class="a-stat-label">Monthly Listeners</div></div>
@@ -1933,6 +1942,11 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
               <tr><td colspan="5" style="color:var(--muted)">Loading…</td></tr>
             </tbody>
           </table>
+        </div>
+        <div class="card">
+          <div class="sh" style="margin-bottom:1rem"><h3>Feature claims</h3><span class="badge badge-orange" id="fc-badge">…</span></div>
+          <div style="font-size:.78rem;color:var(--muted);margin-bottom:.7rem">Artists claiming the name they're credited under on other artists' songs. Approving links every matching credit to their page.</div>
+          <div id="feature-claims-list"><div class="pf-empty">Loading…</div></div>
         </div>
         <div class="card">
           <div class="sh" style="margin-bottom:1rem"><h3>Artist Applications</h3><span class="status-chip sc-pending">0 waiting</span></div>
@@ -2855,6 +2869,7 @@ function showView(id) {
   if (id === 'admin-dashboard') { loadAdminStreamData(); loadAdminOps(); }
   if (id === 'admin-system') loadPlatformHealth();
   if (id === 'admin-members' || id === 'admin-artists' || id === 'admin-financials') loadAdminOps();
+  if (id === 'admin-artists') loadFeatureClaims();
   if (id === 'admin-activity') loadAdminActivity(_activityFilterUser);
   if (id === 'admin-growth') loadAdminGrowth();
   if (id === 'admin-content') { loadPendingTracks(); loadAdminOps(); }
@@ -5826,6 +5841,29 @@ function pickComposerTrack(id) {
   if (typeof _refreshAudioOpts === 'function') _refreshAudioOpts();
 }
 
+async function submitFeatureClaim(btn) {
+  var input = document.getElementById('claim-credit-name');
+  var msg = document.getElementById('claim-credit-msg');
+  var name = (input ? input.value : '').trim();
+  if (!name) { if (msg) msg.textContent = 'Type the credited name first.'; return; }
+  if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
+  var res = await _sb.rpc('claim_feature_credit', { p_name: name });
+  if (btn) { btn.disabled = false; btn.textContent = 'Claim it'; }
+  var d = res.data || {};
+  if (res.error || !d.ok) {
+    var why = d.reason === 'name_not_found' ? 'That name doesn\'t appear in any live track credits — check the spelling against the song.'
+      : d.reason === 'already_claimed' ? 'That credit is already linked to an artist.'
+      : d.reason === 'claim_pending' ? 'A claim for that name is already waiting for review.'
+      : d.reason === 'not_an_artist' ? 'Only artist accounts can claim credits.'
+      : 'Could not submit the claim.';
+    if (msg) { msg.style.color = 'var(--red)'; msg.textContent = why; }
+    return;
+  }
+  if (msg) { msg.style.color = 'var(--green)'; msg.textContent = '✓ Claim sent — PHX reviews it, and you\'ll get a notification. It covers ' + d.tracks + ' track' + (d.tracks === 1 ? '' : 's') + '.'; }
+  if (input) input.value = '';
+  showToast('🪪 Credit claim submitted');
+}
+
 async function populateComposerTracks() {
   var sel = document.getElementById('composer-track');
   if (!sel || sel.options.length > 1) return;
@@ -7768,6 +7806,35 @@ async function loadLaunchDesk() {
     }).join('') : '<div class="pf-empty">No emails yet — approvals and code sends will show here.</div>';
   }
 }
+// Feature claims queue: who says a credit is theirs, and on which tracks
+async function loadFeatureClaims() {
+  var list = document.getElementById('feature-claims-list');
+  if (!list) return;
+  var res = await _sb.rpc('admin_feature_claims');
+  var d = res.data || {};
+  if (res.error || !d.ok) { list.innerHTML = '<div class="pf-empty">Could not load claims.</div>'; return; }
+  var claims = d.claims || [];
+  _setText('fc-badge', claims.length + ' pending');
+  list.innerHTML = claims.length ? claims.map(function(c) {
+    var tracks = (c.tracks || []).slice(0, 6);
+    return '<div style="border-bottom:1px solid var(--border);padding:.6rem 0">' +
+      '<div style="font-size:.84rem"><strong>' + escapeHtml(c.artist) + '</strong> claims the credit <strong style="color:var(--orange)">"' + escapeHtml(c.name) + '"</strong></div>' +
+      (tracks.length ? '<div style="font-size:.72rem;color:var(--muted);margin:.25rem 0 .45rem">' + tracks.map(escapeHtml).join('<br>') + '</div>' : '') +
+      '<div style="display:flex;gap:.5rem">' +
+        '<button class="tb-btn" style="font-size:.72rem;color:var(--green);border-color:rgba(34,197,94,.35)" onclick="decideFeatureClaim(\'' + c.id + '\', true, this)">✓ Approve</button>' +
+        '<button class="tb-btn" style="font-size:.72rem;color:var(--red)" onclick="decideFeatureClaim(\'' + c.id + '\', false, this)">✕ Reject</button>' +
+      '</div></div>';
+  }).join('') : '<div class="pf-empty">No pending claims.</div>';
+}
+async function decideFeatureClaim(id, approve, btn) {
+  if (btn) btn.disabled = true;
+  var res = await _sb.rpc('admin_decide_feature_claim', { p_id: id, p_approve: approve });
+  if (res.error || !(res.data || {}).ok) { if (btn) btn.disabled = false; showToast('Could not save the decision'); return; }
+  showToast(approve ? '✓ Credit linked — their name lights up app-wide' : 'Claim rejected');
+  _artistLinkMap = null; _loadArtistLinkMap();
+  loadFeatureClaims();
+}
+
 // Shows & RSVPs: the guest list, live. Tap a row to see exactly who's coming.
 async function loadShowRsvps() {
   var list = document.getElementById('ld-rsvp-list');
@@ -8705,6 +8772,11 @@ async function _loadArtistLinkMap() {
     var r = await _sb.from('artists').select('name,slug').eq('status', 'active');
     _artistLinkMap = {};
     (r.data || []).forEach(function(a) { if (a.slug) _artistLinkMap[a.name.toLowerCase()] = a.slug; });
+    // Claimed credit names (aliases) — "Timbawolf Bleez" links to DubsUpEnt
+    var al = await _sb.from('artist_aliases').select('alias, artists(slug,status)');
+    (al.data || []).forEach(function(x) {
+      if (x.artists && x.artists.slug && x.artists.status === 'active') _artistLinkMap[x.alias.toLowerCase()] = x.artists.slug;
+    });
   } catch (e) { _artistLinkMap = {}; }
 }
 _whenDomReady(function(){ _loadArtistLinkMap(); });
