@@ -11541,7 +11541,7 @@ async function loadArtistDashboard() {
           '<div class="tm-art">' + (safeUrl(t.cover_url) ? '<img src="' + safeUrl(t.cover_url) + '" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:6px">' : '🎵') + '</div>' +
           '<div class="tm-info"><div class="tm-title">' + escapeHtml(t.title) +
             (t.exclusive_tier ? ' <span class="badge badge-orange" style="font-size:.6rem">EXCLUSIVE</span>' : '') + '</div>' +
-          '<div class="tm-meta">' + escapeHtml([t.featuring ? 'ft. ' + t.featuring : '', t.producer ? 'Prod. ' + t.producer : '', dur].filter(Boolean).join(' · ')) + '</div></div>' +
+          '<div class="tm-meta">' + [t.featuring ? 'ft. ' + featuringHtml(t.featuring) : '', t.producer ? escapeHtml('Prod. ' + t.producer) : '', escapeHtml(dur)].filter(Boolean).join(' · ') + '</div></div>' +
           '<div class="tm-streams">' + fmtK(t.stream_count) + '</div>' +
           chip + '</div>';
       }).join('') : '<div style="color:var(--muted);font-size:.84rem;padding:.6rem 0">No tracks yet — hit Submit New Track to get your first one in review.</div>';
@@ -12428,7 +12428,7 @@ function artistTrackRowHtml(t, num) {
     '<div class="track-info"><div class="track-title">' + escapeHtml(t.title) + badge + '</div>' +
       '<div class="track-feat">' +
         (noAudio ? '<span style="color:var(--faint)">Audio coming soon</span>' : fmtK(t.stream_count || 0) + ' plays') +
-        (t.featuring ? ' · ft. ' + escapeHtml(t.featuring) : '') + '</div></div>' +
+        (t.featuring ? ' · ft. ' + featuringHtml(t.featuring) : '') + '</div></div>' +
     '<button class="trk-like' + (_myTrackLikes[t.id] ? ' on' : '') + '" aria-label="Like song" ' +
       'onclick="event.stopPropagation();toggleTrackLikeRow(\'' + t.id + '\', this)">♥</button>' +
     '<button class="trk-add" aria-label="Add to playlist" ' +
@@ -13111,7 +13111,7 @@ async function loadMusicCatalog() {
           (t.artist_slug
             ? '<a href="#artist/' + escapeHtml(t.artist_slug) + '" onclick="event.stopPropagation();showArtistPage(\'' + escapeHtml(t.artist_slug) + '\');return false" style="color:var(--muted)">' + escapeHtml(t.artist_name) + '</a>'
             : escapeHtml(t.artist_name || '')) +
-          (t.featuring ? ' · ft. ' + escapeHtml(t.featuring) : '') + '</div></div>' +
+          (t.featuring ? ' · ft. ' + featuringHtml(t.featuring) : '') + '</div></div>' +
       badge +
       '<button class="trk-like' + (_myTrackLikes[t.id] ? ' on' : '') + '" aria-label="Like song" ' +
         'onclick="event.stopPropagation();toggleTrackLikeRow(\'' + t.id + '\', this)">♥</button>' +
