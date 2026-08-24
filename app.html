@@ -1003,7 +1003,8 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
 <div id="boot-veil" style="position:fixed;inset:0;z-index:900;background:#07070F;display:flex;align-items:center;justify-content:center;transition:opacity .3s ease">
   <img src="icon-192.png" alt="" width="72" height="72" style="border-radius:18px;animation:bv-pulse 1.4s ease-in-out infinite">
 </div>
-<style>@keyframes bv-pulse{0%,100%{opacity:.75;transform:scale(1)}50%{opacity:1;transform:scale(1.06)}}</style>
+<style>@keyframes ptr-rot{from{transform:translateY(84px) rotate(0)}to{transform:translateY(84px) rotate(360deg)}}
+@keyframes bv-pulse{0%,100%{opacity:.75;transform:scale(1)}50%{opacity:1;transform:scale(1.06)}}</style>
 
 <div class="app-shell">
 <!-- SIDEBAR -->
@@ -2839,6 +2840,7 @@ function showView(id) {
   if (requiresAuth(id)) { showLockedGate(id); return; }
   // Profile screens push their own richer entry (which artist/member/page)
   if (['artist-page', 'member-page', 'page-profile'].indexOf(id) === -1) _navPush('view', id);
+  window._curView = id;
   document.querySelectorAll('.view').forEach(function(v){ v.classList.remove('active'); });
   document.querySelectorAll('.nav-item').forEach(function(n){ n.classList.remove('active'); });
   var view = document.getElementById('v-'+id);
@@ -8930,6 +8932,66 @@ document.addEventListener('visibilitychange', function() {
     if (rv) { rv.style.opacity = '0'; setTimeout(function(){ rv.remove(); }, 260); }
   }
 });
+
+// ── Pull-to-refresh — essential in the installed app (no reload button).
+// Drag down from the top of a view: the bird follows your pull, release
+// past the threshold and that view's data reloads. Views with their own
+// scrollers or gestures (Clips, Lens, sheets, the map) are left alone.
+var _ptr = { y0: 0, on: false, dist: 0, busy: false };
+var _PTR_REFRESH = {
+  home:     function(){ return Promise.resolve(loadCityFeed(true)).then(function(){ loadTrendingRail(); }); },
+  discover: function(){ loadForYou(); loadTrendingRail(); loadPeopleYouMayKnow(); loadSceneLeaders(); return Promise.resolve(); },
+  music:    function(){ loadMusicCatalog(); loadListeningWent(); return Promise.resolve(); },
+  events:   function(){ return Promise.resolve(loadPlugMap()); },
+  mypass:   function(){ loadReferralPanel(); loadMyReceipt(); loadMyPassCard(); loadMyWeek(); return Promise.resolve(); },
+  'artist-tracks': function(){ return Promise.resolve(loadArtistDashboard()); },
+  'admin-dashboard': function(){ loadAdminStreamData(); loadAdminOps(); return Promise.resolve(); }
+};
+function _ptrIndicator() {
+  var el = document.getElementById('ptr-spin');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'ptr-spin';
+    el.style.cssText = 'position:fixed;top:-58px;left:50%;margin-left:-22px;width:44px;height:44px;border-radius:50%;background:var(--bg2);border:1px solid rgba(249,115,22,.4);box-shadow:0 6px 22px rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;font-size:1.25rem;z-index:480;transition:transform .18s ease;will-change:transform';
+    el.textContent = '🐦‍🔥';
+    document.body.appendChild(el);
+  }
+  return el;
+}
+document.addEventListener('touchstart', function(e) {
+  if (_ptr.busy || window.scrollY > 0 || e.touches.length !== 1) return;
+  var t = e.target;
+  if (t && t.closest && t.closest('#v-reels,#phx-lens,#notif-panel,#track-sheet,#trim-modal,#drop-editor,#plug-map-canvas,#auth-landing,#onboard-modal,.mini-player,.bottom-tabs')) return;
+  if (!_PTR_REFRESH[window._curView]) return;
+  _ptr.on = true; _ptr.y0 = e.touches[0].clientY; _ptr.dist = 0;
+}, { passive: true });
+document.addEventListener('touchmove', function(e) {
+  if (!_ptr.on || _ptr.busy) return;
+  if (window.scrollY > 0) { _ptr.on = false; _ptrHide(); return; }
+  _ptr.dist = e.touches[0].clientY - _ptr.y0;
+  if (_ptr.dist > 12) {
+    var el = _ptrIndicator();
+    var pull = Math.min(_ptr.dist * 0.45, 95);
+    el.style.transform = 'translateY(' + (pull + 58) + 'px) rotate(' + (pull * 4) + 'deg)';
+  }
+}, { passive: true });
+document.addEventListener('touchend', function() {
+  if (!_ptr.on) return;
+  _ptr.on = false;
+  var el = document.getElementById('ptr-spin');
+  if (_ptr.dist * 0.45 >= 62 && _PTR_REFRESH[window._curView]) {
+    _ptr.busy = true;
+    if (el) { el.style.transform = 'translateY(84px)'; el.style.animation = 'ptr-rot .7s linear infinite'; }
+    var t0 = Date.now();
+    Promise.resolve(_PTR_REFRESH[window._curView]()).catch(function(){}).then(function() {
+      setTimeout(function() { _ptr.busy = false; _ptrHide(); }, Math.max(0, 500 - (Date.now() - t0)));
+    });
+  } else { _ptrHide(); }
+}, { passive: true });
+function _ptrHide() {
+  var el = document.getElementById('ptr-spin');
+  if (el) { el.style.animation = ''; el.style.transform = ''; }
+}
 function applyAuthLanding() {
   var landing = document.getElementById('auth-landing');
   var card = document.getElementById('auth-card');
