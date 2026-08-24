@@ -1446,6 +1446,7 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
           <div style="font-size:.78rem;color:var(--muted)">Every show, shoot and listening party in the city — one place.</div>
         </div>
         <div style="margin-left:auto;display:flex;gap:.4rem">
+          <button class="tb-btn" style="color:var(--orange);border-color:rgba(249,115,22,.4)" onclick="openSubmitEvent()">＋ Submit</button>
           <button class="tb-btn pm-mode on" data-mode="list" onclick="plugMapMode('list')">List</button>
           <button class="tb-btn pm-mode" data-mode="map" onclick="plugMapMode('map')">Map</button>
         </div>
@@ -7865,6 +7866,70 @@ async function decideFeatureClaim(id, approve, btn) {
   showToast(approve ? '✓ Credit linked — their name lights up app-wide' : 'Claim rejected');
   _artistLinkMap = null; _loadArtistLinkMap();
   loadFeatureClaims();
+}
+
+// ── Submit an event: any member hands the map a flyer or a link; it waits in
+// the Studio queue for a 1-tap publish. The community layer of the Plug Map.
+function openSubmitEvent() {
+  if (!requireAuthAction('Submitting an event')) return;
+  var wrap = document.getElementById('submit-event-sheet');
+  if (!wrap) {
+    wrap = document.createElement('div');
+    wrap.id = 'submit-event-sheet';
+    wrap.style.cssText = 'position:fixed;inset:0;z-index:545;background:rgba(7,7,15,.88);backdrop-filter:blur(5px);display:flex;align-items:center;justify-content:center;padding:1rem';
+    wrap.addEventListener('click', function(e){ if (e.target === wrap) wrap.style.display = 'none'; });
+    document.body.appendChild(wrap);
+  }
+  wrap.style.display = 'flex';
+  wrap.innerHTML =
+    '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:18px;max-width:430px;width:100%;padding:1.6rem;max-height:90vh;overflow:auto">' +
+      '<div style="font-size:1.05rem;font-weight:800;margin-bottom:.25rem">🗺️ Put it on the map</div>' +
+      '<p style="color:var(--muted);font-size:.8rem;margin-bottom:1rem">Show, open mic, pop-up — drop the flyer or the details. PHX reviews it, then the whole city sees it.</p>' +
+      '<input class="form-input" id="se-title" placeholder="What\'s happening?" maxlength="120" style="margin-bottom:.55rem">' +
+      '<input class="form-input" id="se-venue" placeholder="Venue or spot (name, address…)" maxlength="120" style="margin-bottom:.55rem">' +
+      '<input class="form-input" id="se-when" type="datetime-local" style="margin-bottom:.55rem">' +
+      '<input class="form-input" id="se-link" placeholder="Tickets or info link (optional)" style="margin-bottom:.55rem">' +
+      '<div style="margin-bottom:.55rem">' + filePickHtml('se-flyer', 'image/*', '🖼 Add the flyer', 'Optional — a photo of the flyer works') + '</div>' +
+      '<textarea class="form-input" id="se-note" placeholder="Anything else? (optional)" maxlength="300" rows="2" style="margin-bottom:.9rem;resize:vertical"></textarea>' +
+      '<button class="upgrade-btn" style="margin:0;width:100%" onclick="sendSubmitEvent(this)">Send it in</button>' +
+      '<button onclick="document.getElementById(\'submit-event-sheet\').style.display=\'none\'" style="display:block;width:100%;background:none;border:none;color:var(--muted);cursor:pointer;font-size:.8rem;margin-top:.7rem;text-decoration:underline">Cancel</button>' +
+      '<div id="se-msg" style="font-size:.76rem;color:var(--red);margin-top:.5rem;min-height:1em"></div>' +
+    '</div>';
+}
+async function sendSubmitEvent(btn) {
+  var title = (document.getElementById('se-title').value || '').trim();
+  var when = document.getElementById('se-when').value;
+  var msg = document.getElementById('se-msg');
+  if (!title) { if (msg) msg.textContent = 'Give it a name.'; return; }
+  if (!when) { if (msg) msg.textContent = 'Pick the date and time.'; return; }
+  if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
+  var flyerUrl = null;
+  var fInput = document.getElementById('se-flyer');
+  var f = fInput && fInput.files && fInput.files[0];
+  if (f && f.size <= 15728640) {
+    var path = getGuestId().slice(0,8) + '/flyer_' + Date.now() + '.' + (f.name.split('.').pop() || 'jpg');
+    var up = await _sb.storage.from('post-media').upload(path, f, { contentType: f.type });
+    if (!up.error) { var ur = _sb.storage.from('post-media').getPublicUrl(path); flyerUrl = ur.data ? ur.data.publicUrl : null; }
+  }
+  var res = await _sb.rpc('submit_event', {
+    p_title: title,
+    p_venue: (document.getElementById('se-venue').value || '').trim() || null,
+    p_starts_at: new Date(when).toISOString(),
+    p_link: (document.getElementById('se-link').value || '').trim() || null,
+    p_flyer_url: flyerUrl,
+    p_note: (document.getElementById('se-note').value || '').trim() || null
+  });
+  if (btn) { btn.disabled = false; btn.textContent = 'Send it in'; }
+  var d = res.data || {};
+  if (res.error || !d.ok) {
+    if (msg) msg.textContent = d.reason === 'rate_limited' ? 'That\'s 5 submissions today — try tomorrow.'
+      : d.reason === 'date_required' ? 'The date needs to be in the future.'
+      : d.reason === 'content_blocked' ? 'That wording got flagged — rephrase it.'
+      : 'Could not submit — try again.';
+    return;
+  }
+  document.getElementById('submit-event-sheet').style.display = 'none';
+  showToast('🗺️ Sent — it hits the map once PHX approves it');
 }
 
 // Shows & RSVPs: the guest list, live. Tap a row to see exactly who's coming.
