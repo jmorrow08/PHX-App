@@ -1049,7 +1049,7 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
     <button class="nav-item nav-dup" onclick="showView('reels')"><span class="icon">🎬</span>Clips</button>
     <button class="nav-item nav-dup" onclick="showView('music')"><span class="icon">🎵</span>PHX Music</button>
     <div class="sb-section">My Music</div>
-    <button class="nav-item active" onclick="showView('artist-tracks')"><span class="icon">🎼</span>My Tracks</button>
+    <button class="nav-item" onclick="showView('artist-tracks')"><span class="icon">🎼</span>My Tracks</button>
     <button class="nav-item" onclick="showView('artist-analytics')"><span class="icon">📊</span>Analytics</button>
     <button class="nav-item" onclick="showView('artist-earnings')"><span class="icon">💚</span>Earnings</button>
     <div class="sb-section">Tools</div>
@@ -4049,9 +4049,11 @@ _whenDomReady(function() {
 });
 
 document.addEventListener('DOMContentLoaded', function() {
-  // Sync UI to the signed-out default; a restored session upgrades it
-  // via applyAccountRole() when auth state resolves.
-  setRole('explorer');
+  // Sync UI to the signed-out default — but ONLY when nobody is signed in.
+  // With a stored session the explorer paint is guaranteed throwaway work
+  // (the real role repaints moments later); skipping it means the first
+  // painted frame IS the final one. The boot veil covers the wait.
+  if (!_hasStoredSession()) setRole('explorer');
   var btn = document.getElementById('install-banner-action');
   if (btn) {
     btn.addEventListener('click', function() {
@@ -10592,7 +10594,6 @@ async function applyAccountRole() {
   if (needsAdminDom || needsArtistDom) { window.location.reload(); return; }
   _accountRole = role;   // the one place this is ever assigned
   _roleResolved = true;
-  if (typeof _revealApp === "function") setTimeout(_revealApp, 60);
   // Surface split: /studio is the ops surface, /app is the member app.
   // A staff account at /app gets the regular member experience (their
   // pages/artist tools live in Profile → My Pages); at /studio they get
@@ -10638,6 +10639,7 @@ async function applyAccountRole() {
       }
     }
     paintMyAvatar();   // after setRole(), which rewrites the tile's textContent
+    _revealApp();      // the layout on screen is now the final one
   });
 }
 
