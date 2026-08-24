@@ -545,7 +545,7 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
 .composer-voice-caret{position:absolute;right:-5px;bottom:-3px;width:17px;height:17px;border-radius:50%;background:var(--bg2);border:1px solid var(--border);color:var(--muted);font-size:.62rem;display:flex;align-items:center;justify-content:center;pointer-events:none}
 /* Drawer: on phones the bottom tabs own these five — no doubles in the menu */
 @media(max-width:768px){.sb-nav .nav-dup{display:none}}
-.pm-mode.on,.pm-range.on{color:var(--orange);border-color:rgba(249,115,22,.45)}
+.pm-mode.on,.pm-range.on,.pm-cat.on{color:var(--orange);border-color:rgba(249,115,22,.45)}
 .pm-card{display:flex;gap:14px;align-items:flex-start;background:var(--bg3);border-radius:var(--r-m);padding:.9rem 1rem;margin-bottom:.6rem}
 .pm-kind{font:600 .58rem var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--orange-l);border:1px solid rgba(249,115,22,.35);border-radius:999px;padding:.12rem .5rem;white-space:nowrap}
 .leaflet-container{background:#0B0B14;font-family:inherit}
@@ -1026,11 +1026,11 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
     <div class="sb-section">Explore</div>
     <button class="nav-item nav-dup active" onclick="showView('home')"><span class="icon">🏙️</span>City Feed</button>
     <button class="nav-item nav-dup" onclick="showView('discover')"><span class="icon">🔍</span>Discover</button>
-    <button class="nav-item nav-dup" onclick="showView('reels')"><span class="icon">🎬</span>Clips</button>
+    <button class="nav-item" onclick="showView('reels')"><span class="icon">🎬</span>Clips</button>
     <div class="sb-section">Live Now</div>
     <button class="nav-item nav-dup" onclick="showView('music')"><span class="icon">🎵</span>PHX Music<span class="badge-teal badge" style="margin-left:auto;font-size:.58rem;padding:.1rem .45rem">LIVE</span></button>
     <div class="sb-section">Coming Soon</div>
-    <button class="nav-item" onclick="showView('events')"><span class="icon">🗺️</span>Plug Map</button>
+    <button class="nav-item nav-dup" onclick="showView('events')"><span class="icon">🗺️</span>Plug Map</button>
     <button class="nav-item nav-soon-item" onclick="showView('eats')"><span class="icon">🍽️</span>PHX Eats<span class="nav-soon">SOON</span></button>
     <button class="nav-item nav-soon-item" onclick="showView('audio')"><span class="icon">🎙️</span>PHX Audio<span class="nav-soon">SOON</span></button>
     <button class="nav-item nav-soon-item" onclick="showView('drops')"><span class="icon">👕</span>PHX Drops<span class="nav-soon">SOON</span></button>
@@ -1048,7 +1048,7 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
     <div class="sb-section">Community</div>
     <button class="nav-item nav-dup" onclick="showView('home')"><span class="icon">🏙️</span>City Feed</button>
     <button class="nav-item nav-dup" onclick="showView('discover')"><span class="icon">🔍</span>Discover</button>
-    <button class="nav-item nav-dup" onclick="showView('reels')"><span class="icon">🎬</span>Clips</button>
+    <button class="nav-item" onclick="showView('reels')"><span class="icon">🎬</span>Clips</button>
     <button class="nav-item nav-dup" onclick="showView('music')"><span class="icon">🎵</span>PHX Music</button>
     <div class="sb-section">My Music</div>
     <button class="nav-item" onclick="showView('artist-tracks')"><span class="icon">🎼</span>My Tracks</button>
@@ -1070,7 +1070,7 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
       <div class="sb-section">Community</div>
       <button class="nav-item nav-dup" onclick="showView('home')"><span class="icon">🏙️</span>City Feed</button>
       <button class="nav-item nav-dup" onclick="showView('discover')"><span class="icon">🔍</span>Discover</button>
-      <button class="nav-item nav-dup" onclick="showView('reels')"><span class="icon">🎬</span>Clips</button>
+      <button class="nav-item" onclick="showView('reels')"><span class="icon">🎬</span>Clips</button>
       <button class="nav-item nav-dup" onclick="showView('music')"><span class="icon">🎵</span>PHX Music</button>
     </div>
     <!-- Studio nav renders from STUDIO_SECTIONS × the signed-in role's
@@ -1456,6 +1456,15 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
         <button class="tb-btn pm-range" data-range="weekend" onclick="plugMapRange('weekend')">Weekend</button>
         <button class="tb-btn pm-range" data-range="month" onclick="plugMapRange('month')">30 days</button>
         <button class="tb-btn pm-range" data-range="all" onclick="plugMapRange('all')">All upcoming</button>
+      </div>
+      <div style="display:flex;gap:.4rem;overflow-x:auto;padding-bottom:.5rem;margin-bottom:.6rem;scrollbar-width:none">
+        <button class="tb-btn pm-cat on" data-cat="all" onclick="plugMapCat('all')">Everything</button>
+        <button class="tb-btn pm-cat" data-cat="music" onclick="plugMapCat('music')">🎵 Music</button>
+        <button class="tb-btn pm-cat" data-cat="nightlife" onclick="plugMapCat('nightlife')">🌙 Nightlife</button>
+        <button class="tb-btn pm-cat" data-cat="food_drink" onclick="plugMapCat('food_drink')">🍽 Food & drink</button>
+        <button class="tb-btn pm-cat" data-cat="family" onclick="plugMapCat('family')">🧒 Family</button>
+        <button class="tb-btn pm-cat" data-cat="community" onclick="plugMapCat('community')">🤝 Community</button>
+        <button class="tb-btn pm-cat" data-cat="art" onclick="plugMapCat('art')">🎨 Art</button>
       </div>
       <div id="plug-map-canvas" style="display:none;height:380px;border-radius:var(--r-m);overflow:hidden;background:var(--bg3);margin-bottom:.9rem"></div>
       <div id="plug-map-list"><div class="pf-empty">Loading the city…</div></div>
@@ -2331,8 +2340,8 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
   <button class="bt-item" data-view="music" onclick="btNav('music',this)">
     <span class="bt-icon">🎵</span><span class="bt-lbl">Music</span>
   </button>
-  <button class="bt-item" data-view="reels" onclick="btNav('reels',this)">
-    <span class="bt-icon">🎬</span><span class="bt-lbl">Clips</span>
+  <button class="bt-item" data-view="events" onclick="btNav('events',this)">
+    <span class="bt-icon">🗺️</span><span class="bt-lbl">Map</span>
   </button>
   <button class="bt-item" data-view="discover" onclick="btNav('discover',this)">
     <span class="bt-icon">🔍</span><span class="bt-lbl">Discover</span>
@@ -2354,8 +2363,8 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
   <button class="bt-item" data-view="artist-earnings" onclick="btNav('artist-earnings',this)">
     <span class="bt-icon">💰</span><span class="bt-lbl">Earnings</span>
   </button>
-  <button class="bt-item" data-view="reels" onclick="btNav('reels',this)">
-    <span class="bt-icon">🎬</span><span class="bt-lbl">Clips</span>
+  <button class="bt-item" data-view="events" onclick="btNav('events',this)">
+    <span class="bt-icon">🗺️</span><span class="bt-lbl">Map</span>
   </button>
 </nav>
 <nav class="bottom-tabs" id="bt-admin" style="display:none" aria-label="Admin navigation">
@@ -2368,8 +2377,8 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
   <button class="bt-item" data-view="admin-content" onclick="btNav('admin-content',this)">
     <span class="bt-icon">🎵</span><span class="bt-lbl">Content</span>
   </button>
-  <button class="bt-item" data-view="reels" onclick="btNav('reels',this)">
-    <span class="bt-icon">🎬</span><span class="bt-lbl">Clips</span>
+  <button class="bt-item" data-view="events" onclick="btNav('events',this)">
+    <span class="bt-icon">🗺️</span><span class="bt-lbl">Map</span>
   </button>
   <button class="bt-item" data-view="admin-system" onclick="btNav('admin-system',this)">
     <span class="bt-icon">⚙️</span><span class="bt-lbl">Settings</span>
@@ -4868,6 +4877,18 @@ function _pmWindow() {
   } else end = new Date(now.getTime() + 365 * 86400000);
   return { from: now, to: end };
 }
+var _pmCat = 'all';
+var _PM_MUSIC_KINDS = { show:1, shoot:1, listening_party:1, open_mic:1, drop:1, ticketed:1 };
+function plugMapCat(c) {
+  _pmCat = c;
+  document.querySelectorAll('.pm-cat').forEach(function(b){ b.classList.toggle('on', b.dataset.cat === c); });
+  loadPlugMap();
+}
+function _pmCatMatch(e) {
+  if (_pmCat === 'all') return true;
+  if (_pmCat === 'music') return !!_PM_MUSIC_KINDS[e.kind];
+  return e.kind === _pmCat;
+}
 async function loadPlugMap() {
   var list = document.getElementById('plug-map-list');
   if (!list) return;
@@ -4875,8 +4896,8 @@ async function loadPlugMap() {
   var res = await _sb.from('city_events').select('*')
     .gte('starts_at', w.from.toISOString()).lte('starts_at', w.to.toISOString())
     .order('starts_at', { ascending: true }).limit(80);
-  _pmRows = res.data || [];
-  var KIND = { show: 'Show', shoot: 'Video shoot', listening_party: 'Listening party', open_mic: 'Open mic', drop: 'Drop', ticketed: 'Ticketed', perk: 'Perk', other: 'Event' };
+  _pmRows = (res.data || []).filter(_pmCatMatch);
+  var KIND = { show: 'Show', shoot: 'Video shoot', listening_party: 'Listening party', open_mic: 'Open mic', drop: 'Drop', ticketed: 'Ticketed', perk: 'Perk', other: 'Event', community: 'Community', family: 'Family & kids', food_drink: 'Food & drink', nightlife: 'Nightlife', art: 'Art', sports: 'Sports', market: 'Market' };
   if (!_pmRows.length) {
     list.innerHTML = '<div class="pf-empty">Nothing on the calendar for this window yet. Artists: add your show from your page — it lands here instantly.</div>';
   } else {
@@ -5121,6 +5142,7 @@ var PHOTO_FILTERS = {
   fade:    { label: 'Fade', css: 'contrast(.88) brightness(1.12) saturate(.75)' }
 };
 var _composerStamp = false;        // 🐦‍🔥 PHX wordmark baked into the corner
+var _composerTrustedClip = false;  // set when WE produced the file (trim/bake/Lens) — skip the re-probe
 var _composerAudioMode = 'original';  // original | replace | mix (video + song)
 var _composerSongVol = 0.6;           // song gain when mixing
 var _composerPosterTime = null;    // cover-frame pick (seconds), null = auto
@@ -5211,7 +5233,7 @@ function _refreshAudioOpts() {
 }
 
 function clearComposerMedia() {
-  _composerMediaFile = null; _composerFilter = 'none'; _composerStamp = false; _composerPosterTime = null; _composerAudioMode = 'original';
+  _composerMediaFile = null; _composerFilter = 'none'; _composerStamp = false; _composerPosterTime = null; _composerAudioMode = 'original'; _composerTrustedClip = false;
   var m1 = document.getElementById('composer-media'); if (m1) m1.value = '';
   var m2 = document.getElementById('composer-camera'); if (m2) m2.value = '';
   var nameEl = document.getElementById('composer-media-name'); if (nameEl) nameEl.style.display = 'none';
@@ -5418,6 +5440,7 @@ function handleComposerMedia(input) {
   _composerFilter = 'none';
   _composerStamp = false;
   _composerPosterTime = null;
+  _composerTrustedClip = false;
   if (nameEl) {
     nameEl.textContent = '✓ ' + file.name + ' (' + (file.size / 1048576).toFixed(1) + ' MB)';
     nameEl.style.color = 'var(--green)';
@@ -5576,6 +5599,7 @@ async function startTrimExport() {
       return;
     }
     _composerMediaFile = new File([blob], 'clip-' + Math.round(e0 - s0) + 's.' + ext, { type: type });
+    _composerTrustedClip = true;   // our own export — duration is the span by construction
     _composerFilter = 'none';
     if (nameEl) {
       nameEl.textContent = '✓ Trimmed clip · ' + Math.round(e0 - s0) + 's (' + (blob.size / 1048576).toFixed(1) + ' MB)';
@@ -5587,6 +5611,8 @@ async function startTrimExport() {
   };
   v.pause();
   v.currentTime = s0;
+  // Safety: stalls pad wall-clock recording — stop at span length regardless
+  setTimeout(finish, (e0 - s0 + 2) * 1000);
   v.onseeked = function() {
     v.onseeked = null;
     v.play().then(function() {
@@ -5783,6 +5809,7 @@ function _lensStopRec() { if (_lensRec && _lensRec.state === 'recording') { try 
 function _lensAttach(file) {
   closePhxLens();
   _composerMediaFile = file;
+  _composerTrustedClip = true;
   _composerFilter = 'none';   // the look is baked into the capture itself
   _composerStamp = false; _composerPosterTime = null; _composerAudioMode = 'original';
   var nameEl = document.getElementById('composer-media-name');
@@ -6337,7 +6364,7 @@ async function submitFeedPost() {
     if (postBtn) { postBtn.textContent = 'Uploading…'; postBtn.disabled = true; }
     // The 90s clip cap re-checked here — the picker's metadata probe is
     // async, so a fast Post click could otherwise slip past it.
-    if (/^video\//.test(_composerMediaFile.type)) {
+    if (/^video\//.test(_composerMediaFile.type) && !_composerTrustedClip) {
       var dur = await new Promise(function(resolve) {
         var pv = document.createElement('video');
         pv.preload = 'metadata';
@@ -6345,7 +6372,7 @@ async function submitFeedPost() {
         pv.onerror = function() { URL.revokeObjectURL(pv.src); resolve(0); };
         pv.src = URL.createObjectURL(_composerMediaFile);
       });
-      if (dur > 90.5) {
+      if (isFinite(dur) && dur > 90.5) {
         if (postBtn) { postBtn.textContent = 'Post'; postBtn.disabled = false; }
         if (errEl) { errEl.textContent = 'Clips max out at 90 seconds — this video is ' + Math.round(dur) + 's.'; errEl.style.display = 'block'; }
         return;
