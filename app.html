@@ -5085,8 +5085,8 @@ function renderMediaPreview() {
         }).join('') +
       '</div>';
   } else {
-    box.innerHTML = '<video src="' + url + '" controls playsinline style="width:100%;max-height:260px;border-radius:10px;background:#000"></video>' +
-      '<div style="font-size:.7rem;color:var(--muted);margin-top:.3rem">Video posts as recorded — trim &amp; filters coming soon.</div>';
+    box.innerHTML = '<video src="' + url + '" controls playsinline onloadedmetadata="_fitFeedVideo(this)" style="width:100%;max-height:340px;border-radius:12px;background:var(--bg3);object-fit:cover"></video>' +
+      '<div style="font-size:.7rem;color:var(--muted);margin-top:.3rem">Posts inline like this — tap opens it full-screen in Clips. Long or heavy videos trim &amp; compress automatically.</div>';
   }
   box.style.display = 'block';
 }
@@ -5131,29 +5131,39 @@ function handleComposerMedia(input) {
   var file = input.files[0];
   var nameEl = document.getElementById('composer-media-name');
   if (!file) { _composerMediaFile = null; if (nameEl) nameEl.style.display = 'none'; renderMediaPreview(); return; }
-  if (file.size > 52428800) {
+  var isVideo = /^video\//.test(file.type);
+  if (!isVideo && file.size > 52428800) {
+    showToast('⚠️ That file is too large — 50MB max for photos.');
     if (nameEl) { nameEl.textContent = '⚠️ File too large — 50MB max.'; nameEl.style.color = 'var(--red)'; nameEl.style.display = 'block'; }
     _composerMediaFile = null;
     input.value = '';
     return;
   }
-  // Clips cap: 90 seconds (IG Reels standard). Longer videos open the trim
-  // sheet so the poster picks which 90 seconds to keep — the selection is
-  // re-encoded client-side and becomes the attached file.
-  if (/^video\//.test(file.type)) {
+  // Videos: 90s cap (IG Reels standard) AND a 50MB upload ceiling. Phone
+  // cameras blow past 50MB easily, so instead of rejecting we run the file
+  // through the trim sheet's re-encoder — same flow trims AND compresses.
+  if (isVideo) {
     var probe = document.createElement('video');
     probe.preload = 'metadata';
     probe.onloadedmetadata = function() {
       URL.revokeObjectURL(probe.src);
-      if (probe.duration > 90.5) {
+      var tooLong = probe.duration > 90.5;
+      var tooBig = file.size > 52428800;
+      if (tooLong || tooBig) {
         _composerMediaFile = null;
         input.value = '';
         renderMediaPreview();
         if (!window.MediaRecorder) {
-          if (nameEl) { nameEl.textContent = '⚠️ Clips max out at 90 seconds — this one is ' + Math.round(probe.duration) + 's. Trim it and try again.'; nameEl.style.color = 'var(--red)'; nameEl.style.display = 'block'; }
+          showToast('⚠️ This video is too ' + (tooLong ? 'long (90s max)' : 'large (50MB max)') + ' and this browser can\'t compress it. Trim it in your camera roll first.');
+          if (nameEl) { nameEl.textContent = '⚠️ Too ' + (tooLong ? 'long' : 'large') + ' — trim it and try again.'; nameEl.style.color = 'var(--red)'; nameEl.style.display = 'block'; }
           return;
         }
-        if (nameEl) { nameEl.textContent = '✂️ ' + Math.round(probe.duration) + 's video — pick the 90 seconds to keep.'; nameEl.style.color = 'var(--orange-l)'; nameEl.style.display = 'block'; }
+        if (nameEl) {
+          nameEl.textContent = tooLong
+            ? '✂️ ' + Math.round(probe.duration) + 's video — pick the 90 seconds to keep.'
+            : '🎬 Big file (' + (file.size / 1048576).toFixed(0) + ' MB) — we\'ll compress it to post. Tap "Use this part."';
+          nameEl.style.color = 'var(--orange-l)'; nameEl.style.display = 'block';
+        }
         openTrimSheet(file, probe.duration);
       }
     };
@@ -5167,6 +5177,33 @@ function handleComposerMedia(input) {
     nameEl.style.display = 'block';
   }
   renderMediaPreview();
+}
+
+// Grab a poster frame from a video file — the feed paints this instantly
+// instead of a black box while the video loads.
+function _captureVideoPoster(file) {
+  return new Promise(function(resolve) {
+    try {
+      var v = document.createElement('video');
+      v.preload = 'auto'; v.muted = true; v.playsInline = true;
+      var done = false;
+      var bail = setTimeout(function(){ if (!done) { done = true; URL.revokeObjectURL(v.src); resolve(null); } }, 6000);
+      v.onloadeddata = function() { try { v.currentTime = Math.min(0.4, (v.duration || 1) / 3); } catch (e) { resolve(null); } };
+      v.onseeked = function() {
+        if (done) return;
+        done = true; clearTimeout(bail);
+        try {
+          var c = document.createElement('canvas');
+          var scale = Math.min(1, 720 / Math.max(v.videoWidth, v.videoHeight));
+          c.width = Math.round(v.videoWidth * scale); c.height = Math.round(v.videoHeight * scale);
+          c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
+          c.toBlob(function(b){ URL.revokeObjectURL(v.src); resolve(b); }, 'image/jpeg', 0.82);
+        } catch (e) { URL.revokeObjectURL(v.src); resolve(null); }
+      };
+      v.onerror = function(){ if (!done) { done = true; clearTimeout(bail); resolve(null); } };
+      v.src = URL.createObjectURL(file);
+    } catch (e) { resolve(null); }
+  });
 }
 
 // ── Trim sheet: pick which 90 seconds of a longer video to post ──
@@ -5259,7 +5296,8 @@ async function startTrimExport() {
   var mime = ['video/mp4', 'video/webm;codecs=vp9', 'video/webm'].filter(function(t) {
     return MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t);
   })[0];
-  var rec = new MediaRecorder(stream, mime ? { mimeType: mime, videoBitsPerSecond: 5000000 } : undefined);
+  // 4Mbps keeps a full 90s clip safely under the 50MB upload ceiling
+  var rec = new MediaRecorder(stream, mime ? { mimeType: mime, videoBitsPerSecond: 4000000 } : undefined);
   var chunks = [];
   rec.ondataavailable = function(ev) { if (ev.data && ev.data.size) chunks.push(ev.data); };
   var s0 = _trimS, e0 = _trimE;
@@ -5321,11 +5359,26 @@ async function populateComposerTracks() {
 // Autoplays muted while at least half on screen, pauses (and re-mutes) when
 // scrolled away, one tap on the speaker for sound, tap the video itself to
 // open the immersive Clips player at this exact clip.
-function feedVideoEmbed(postId, url, maxH) {
+// The IG rules for feed video: portrait shows at 4:5 (cropped, no bars),
+// landscape at its own ratio capped at 1.91:1, square as square. The black
+// letterbox never ships.
+function _fitFeedVideo(v) {
+  var ar = (v.videoWidth || 0) / (v.videoHeight || 1);
+  if (!ar || !isFinite(ar)) return;
+  var shown = ar < 0.8 ? 0.8 : (ar > 1.91 ? 1.91 : ar);
+  v.style.aspectRatio = String(shown);
+  v.style.maxHeight = 'none';
+  v.style.height = 'auto';
+  v.style.objectFit = Math.abs(shown - ar) > 0.02 ? 'cover' : 'contain';
+  v.style.background = 'var(--bg3)';
+}
+function feedVideoEmbed(postId, url, maxH, poster) {
   return '<div style="position:relative;cursor:pointer" role="button" aria-label="Open in Clips" ' +
       'onclick="event.stopPropagation();openClipAt(\'' + postId + '\')">' +
     '<video class="feed-video" muted loop playsinline preload="metadata" ' +
-      'style="width:100%;max-height:' + maxH + 'px;border-radius:10px;margin-top:.5rem;background:#000;display:block" src="' + url + '"></video>' +
+      (poster ? 'poster="' + safeUrl(poster) + '" ' : '') +
+      'onloadedmetadata="_fitFeedVideo(this)" ' +
+      'style="width:100%;max-height:' + maxH + 'px;border-radius:12px;margin-top:.5rem;background:var(--bg3);display:block;object-fit:cover" src="' + url + '"></video>' +
     '<button class="fv-mute" onclick="event.stopPropagation();toggleFeedMute(this)" aria-label="Unmute">🔇</button>' +
   '</div>';
 }
@@ -5447,7 +5500,7 @@ function renderFeedPost(p) {
       if (origMediaUrl) {
         var origIsVideo = /\.(mp4|webm|mov)(\?|$)/i.test(orig.media_url || '');
         origMedia = origIsVideo
-          ? feedVideoEmbed(orig.id, origMediaUrl, 320)
+          ? feedVideoEmbed(orig.id, origMediaUrl, 320, orig.media_poster)
           : '<img loading="lazy" alt="" style="width:100%;max-height:320px;object-fit:cover;border-radius:8px;margin-top:.45rem" src="' + origMediaUrl + '">';
       }
       repostEmbed = '<div style="border:1px solid var(--border);border-radius:10px;padding:.7rem .8rem;margin-top:.6rem;background:var(--bg4);cursor:pointer" onclick="scrollToPost(\'' + orig.id + '\')">' +
@@ -5476,7 +5529,7 @@ function renderFeedPost(p) {
   if (mediaUrl) {
     var isVideo = /\.(mp4|webm|mov)(\?|$)/i.test(p.media_url);
     mediaEmbed = isVideo
-      ? feedVideoEmbed(p.id, mediaUrl, 420)
+      ? feedVideoEmbed(p.id, mediaUrl, 420, p.media_poster)
       : '<img loading="lazy" alt="" style="width:100%;max-height:420px;object-fit:cover;border-radius:10px;margin-top:.6rem" src="' + mediaUrl + '">';
   }
 
@@ -5716,15 +5769,16 @@ async function submitFeedPost() {
   var trackSel = document.getElementById('composer-track');
   var errEl = document.getElementById('composer-error');
   var content = (textEl ? textEl.value : '').trim();
-  if (!content) {
-    if (errEl) { errEl.textContent = 'Write something first.'; errEl.style.display = 'block'; }
+  // A caption is optional when there's a photo or video attached
+  if (!content && !_composerMediaFile) {
+    if (errEl) { errEl.textContent = 'Write something — or attach a photo or video.'; errEl.style.display = 'block'; }
     return;
   }
   var persona = currentPersona();
   var postBtn = document.getElementById('composer-post-btn');
 
   // Upload attached video/photo to Storage first (bake photo filter in via canvas)
-  var mediaUrl = null;
+  var mediaUrl = null, mediaPoster = null;
   if (_composerMediaFile) {
     if (postBtn) { postBtn.textContent = 'Uploading…'; postBtn.disabled = true; }
     // The 90s clip cap re-checked here — the picker's metadata probe is
@@ -5743,20 +5797,44 @@ async function submitFeedPost() {
         return;
       }
     }
+    if (_composerMediaFile.size > 52428800) {
+      if (postBtn) { postBtn.textContent = 'Post'; postBtn.disabled = false; }
+      showToast('⚠️ File too large to upload (50MB max). Re-attach it and let us compress it.');
+      if (errEl) { errEl.textContent = 'File too large — re-attach and it will compress.'; errEl.style.display = 'block'; }
+      return;
+    }
     var uploadFile = _composerMediaFile;
     if (_composerMediaFile.type.indexOf('image/') === 0 && _composerFilter !== 'none') {
       uploadFile = await applyFilterToImage(_composerMediaFile, PHOTO_FILTERS[_composerFilter].css);
     }
     var ext = uploadFile.name.split('.').pop().toLowerCase();
-    var path = getGuestId().slice(0,8) + '/' + Date.now() + '.' + ext;
+    var stem = getGuestId().slice(0,8) + '/' + Date.now();
+    var path = stem + '.' + ext;
     var up = await _sb.storage.from('post-media').upload(path, uploadFile, { contentType: uploadFile.type });
-    if (postBtn) { postBtn.textContent = 'Post'; postBtn.disabled = false; }
     if (up.error) {
+      if (postBtn) { postBtn.textContent = 'Post'; postBtn.disabled = false; }
+      showToast('⚠️ Upload failed: ' + up.error.message);
       if (errEl) { errEl.textContent = 'Media upload failed: ' + up.error.message; errEl.style.display = 'block'; }
+      reportFailure('postMediaUpload', up.error);
       return;
     }
     var urlRes = _sb.storage.from('post-media').getPublicUrl(path);
     mediaUrl = urlRes.data ? urlRes.data.publicUrl : null;
+    // Poster frame for videos — feed paints it instantly, no black box
+    if (/^video\//.test(uploadFile.type)) {
+      try {
+        var posterBlob = await _captureVideoPoster(uploadFile);
+        if (posterBlob) {
+          var pPath = stem + '_poster.jpg';
+          var pUp = await _sb.storage.from('post-media').upload(pPath, posterBlob, { contentType: 'image/jpeg' });
+          if (!pUp.error) {
+            var pRes = _sb.storage.from('post-media').getPublicUrl(pPath);
+            mediaPoster = pRes.data ? pRes.data.publicUrl : null;
+          }
+        }
+      } catch (e) { reportFailure('posterCapture', e); }
+    }
+    if (postBtn) { postBtn.textContent = 'Post'; postBtn.disabled = false; }
   }
 
   var { data, error } = await _sb.rpc('create_feed_post', {
@@ -5768,7 +5846,8 @@ async function submitFeedPost() {
     p_track_id: (trackSel && trackSel.value) || null,
     p_page_id: persona.page_id || null,
     p_shared_post_id: null,
-    p_media_url: mediaUrl
+    p_media_url: mediaUrl,
+    p_media_poster: mediaPoster
   });
   if (error || !data || !data.ok) {
     var msg = (data && data.reason === 'rate_limited') ? 'Rate limited — max 5 posts per 10 minutes.' :
