@@ -191,3 +191,7 @@ npx serve .
 ```
 
 Sign in with a real account — the demo role bar is gone; roles come from `profiles.role`.
+
+
+## August 22–24, 2026
+Media pipeline (filters/Lens/soundtrack/posters), boot-render discipline (veil, no throwaway paint, resume snapshot shield, pull-to-refresh), feature-credit claims + "Featured on" stats, Plug Map ingestion (dormant until TICKETMASTER_API_KEY lands in internal_secrets), DubsUpEnt catalog. Full detail: docs/PHX-Operating-Manual.md → "Update — August 22–24, 2026".

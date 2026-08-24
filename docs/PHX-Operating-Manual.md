@@ -100,3 +100,45 @@ Stripe keys + billing_live flip · real audio uploads (biggest "feels real" step
 - RPC return values are authoritative; same-statement SELECTs read stale snapshots.
 - Verify with rollback transactions before touching launch-critical rows; hide (status flags), don't delete.
 - Every deploy: `node --check` the extracted inline script first; verify on the live site, not just locally.
+
+
+---
+
+## Update — August 22–24, 2026 (the media + map build)
+
+_Everything below is live in production. Recorded here so Ash, future hires, and future sessions inherit the truth._
+
+### Media pipeline (the composer is now a camera app)
+- **Video posting fixed at the root**: caption optional with media (client + server), oversize videos auto-compress through the trim re-encoder instead of silently dying, upload failures toast AND log to `user_events`, poster frames captured & stored (`feed_posts.media_poster`).
+- **Feed video renders IG-style**: portrait 4:5 crop, landscape ≤1.91:1, poster-first paint, no letterbox.
+- **Filter rack** (photos AND video, baked in on post via offscreen re-encode): PHX Heat, Camelback, Ember, Monsoon, Desert Night, The 602, Vivid, Fade. Swipe across the preview to change; 🐦‍🔥 PHX stamp add-on; cover-frame picker drives the poster.
+- **Song + video sound modes**: Video sound / Song only / Both (with song-volume slider) — baked into the file. Full-track only; snippet picker is future work.
+- **PHX Lens** — in-app camera (`openPhxLens`): live swipe filters while framing, tap = photo, hold = video (90s cap), flip camera, filter bakes into the capture. Falls back to the OS camera if permission/API unavailable. Legal camera section updated (camera/mic only while Lens is open, on-device, nothing stored until the shutter).
+- **Trim sheet**: dragging scrubs paused; release replays the selection.
+
+### Boot & app-shell discipline
+- **Boot veil**: covers first paint until identity + role + final view are settled; failsafe 4.5s. No intermediate layouts ever visible.
+- **No throwaway paint**: with a stored session the explorer pre-paint is skipped entirely.
+- **Resume veil**: on backgrounding, the screen is covered with the PHX mark so iOS's app-switcher snapshot never replays a stale page on reopen.
+- **Navigation guard**: a role RE-run (token refresh/resume) never yanks navigation; only a genuine role change or boot navigates. Admin/super land on the Studio dashboard; members and artists land on Home.
+- **Pull-to-refresh** on Home, Discover, Music, Plug Map, My Pass, artist + admin dashboards.
+- Service worker precache refreshed (phx-shell-v6); asset URLs are version-bumped on change (standing rule).
+
+### Feature credits & "Featured on"
+- `artist_aliases` + `feature_claims`: artists claim the name they're credited under (My Tracks → 🪪 card); Studio → Artists → **Feature claims** approves; approval links every matching "ft." credit app-wide, past and future. Seeded: Jaye Mali, Murkemz, Timbawolf Bleez → DubsUpEnt.
+- All feature credits render as underlined artist links wherever tracks render (catalog, albums, search, track manager) — audio or not.
+- **"Featured on" stats** (`artist_featured_stats`): plays your credits earned on other artists' songs, all-time + 30d, on the artist dashboard. STATS ONLY — a stream counts once, to the track owner. **Money splits: deliberately deferred** until billing; recorded direction = owner-set optional splits.
+
+### Plug Map (city calendar)
+- Live view (🗺️ nav): list + dark map (Leaflet/CARTO), range chips, RSVP inline, kind tags. `city_events` view = artist shows ∪ published `events`.
+- **Ingestion pipeline live and dormant-safe** (`ingest-events` edge function, spec: PHX-Event-Ingestion-Agent.md): pg_cron nightly 09:10 UTC + fast pass 23:00 UTC, auth via `internal_secrets.INGEST_SECRET`. Pass 1 geocodes artist-added shows (Nominatim, polite rate). Pass 2 syncs Ticketmaster Phoenix music events (auto-publish, trust .95) — **no-ops until** `TICKETMASTER_API_KEY` is inserted into `internal_secrets`. Past events auto-expire. Runs logged to `ingest_runs`.
+- **Studio → Launch Desk → Event queue**: draft (low-trust) events wait for 1-tap publish/reject.
+- Weekly "🗺️ This week in the city" auto-post (Thu 9am PHX) from the PHX page; skips quiet weeks.
+- **To finish v2**: Ticketmaster key (developer.ticketmaster.com → insert into internal_secrets), venue page_read sources + flyer submissions → queue, followed-artist/venue event notifications.
+
+### Community & catalog
+- DubsUpEnt (Timbawolf Bleez) full discography seeded from Apple Music data: Love As A Verb EP (2026), Damage: Hits n Cuts (2021), Fully Loaded (2018) — 29 tracks, real art, features credited (Murkemz, Jaye Mali, Zae Stone et al.), audio pending upload.
+- Artist approval now: in-app notification + email + **City Feed broadcast from the PHX page** (first approval only).
+- Weekly artist listener-report email (Mon), personalized Friday digest, day-before show reminders to RSVPs — all cron.
+- Drops: First Listen (favorites early) / Favorites only / Open, track picker, auto-drop when a gated track goes live; favorites gates enforced server-side in sign-audio v3.
+- Long-press discipline (nothing selects except posts/comments/bios/inputs), horizontal overflow clipped app-wide, admin tables scroll inside cards.

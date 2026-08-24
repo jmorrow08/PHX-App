@@ -1645,6 +1645,7 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
           <button class="tb-btn" style="color:var(--orange);border-color:rgba(249,115,22,.4)" onclick="submitFeatureClaim(this)">Claim it</button>
         </div>
         <div id="claim-credit-msg" style="font-size:.76rem;color:var(--muted);margin-top:.45rem;min-height:1em"></div>
+        <div id="featured-on-panel" style="display:none;margin-top:.9rem;padding-top:.8rem;border-top:1px solid var(--border)"></div>
       </div>
       <div class="a-stat-grid">
         <div class="a-stat"><div class="a-stat-val" style="color:var(--teal)" id="artist-total-streams">—</div><div class="a-stat-label">Total Streams</div></div>
@@ -2131,6 +2132,13 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
           <button class="tb-btn" style="margin-left:auto;font-size:.74rem;padding:.28rem .6rem" onclick="openCodeGen()">+ Generate code</button></div>
         <div style="font-size:.78rem;color:var(--muted);margin-bottom:.7rem">Who invited whom. Every signup must redeem a code — there is no open sign-up. Codes are typed: an <strong>Artist</strong> code lands the person in the artist lane, a <strong>Member</strong> code in the member lane.</div>
         <div id="admin-invites"><div class="pf-empty">Loading…</div></div>
+      </div>
+      <div class="card" style="margin-bottom:1rem">
+        <div class="sh" style="margin-bottom:.6rem"><h3>Event queue</h3>
+          <span class="badge badge-orange" id="eq-badge">…</span>
+          <button class="tb-btn" style="margin-left:auto;font-size:.74rem;padding:.28rem .6rem" onclick="loadEventQueue()">↻</button></div>
+        <div style="font-size:.78rem;color:var(--muted);margin-bottom:.7rem">Low-trust ingested events wait here for a 1-tap approve before they hit the Plug Map. Trusted feeds (Ticketmaster, venue-direct) publish automatically.</div>
+        <div id="event-queue-list"><div class="pf-empty">Loading…</div></div>
       </div>
       <div class="card" style="margin-bottom:1rem">
         <div class="sh" style="margin-bottom:.6rem"><h3>Shows &amp; RSVPs</h3>
@@ -2879,6 +2887,7 @@ function showView(id) {
   if (id === 'artist-earnings') loadArtistReferral();
   if (id === 'admin-merch') loadMerchConnections();
   if (id === 'artist-tracks' || id === 'artist-analytics' || id === 'artist-earnings') loadArtistDashboard();
+  if (id === 'artist-tracks') loadFeaturedOn();
   if (id === 'artist-analytics') loadArtistDeepAnalytics();
   if (id === 'artist-profile') loadArtistProfileEditor();
   if (id === 'home') { loadCityFeed(); loadTrendingRail(); }
@@ -5841,6 +5850,28 @@ function pickComposerTrack(id) {
   if (typeof _refreshAudioOpts === 'function') _refreshAudioOpts();
 }
 
+// "Featured on" — plays your credits earned on other artists' songs.
+// Stats only: streams still count once, to the track owner.
+async function loadFeaturedOn() {
+  var box = document.getElementById('featured-on-panel');
+  if (!box) return;
+  var res = await _sb.rpc('artist_featured_stats');
+  var d = res.data || {};
+  if (res.error || !d.ok || !(d.tracks || []).length) { box.style.display = 'none'; return; }
+  box.style.display = 'block';
+  box.innerHTML =
+    '<div style="font:600 .68rem var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:.5rem">Featured on</div>' +
+    '<div style="display:flex;gap:1.6rem;margin-bottom:.6rem">' +
+      '<div><div style="font-family:var(--disp);font-size:1.3rem;font-weight:800">' + fmtK(d.alltime || 0) + '</div><div style="font-size:.66rem;color:var(--muted)">plays on your features</div></div>' +
+      '<div><div style="font-family:var(--disp);font-size:1.3rem;font-weight:800;color:var(--orange-l)">' + fmtK(d.plays_30d || 0) + '</div><div style="font-size:.66rem;color:var(--muted)">last 30 days</div></div>' +
+    '</div>' +
+    (d.tracks || []).slice(0, 8).map(function(t) {
+      return '<div style="display:flex;justify-content:space-between;gap:.7rem;font-size:.8rem;padding:.3rem 0;border-bottom:1px solid var(--line)">' +
+        '<span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + escapeHtml(t.title) + ' <span style="color:var(--muted)">— ' + artistLinkHtml(t.owner, t.owner_slug) + '</span></span>' +
+        '<span style="color:var(--teal);white-space:nowrap">' + fmtK(t.plays || 0) + ' plays</span></div>';
+    }).join('');
+}
+
 async function submitFeatureClaim(btn) {
   var input = document.getElementById('claim-credit-name');
   var msg = document.getElementById('claim-credit-msg');
@@ -7785,6 +7816,7 @@ async function ashReject(id, btn) {
 // ── Launch Desk: the handout-night strip + email queue health ──
 async function loadLaunchDesk() {
   loadShowRsvps();
+  loadEventQueue();
   var res = await _sb.rpc('admin_launch_desk');
   var d = res.data;
   if (res.error || !d) return;
@@ -7836,6 +7868,34 @@ async function decideFeatureClaim(id, approve, btn) {
 }
 
 // Shows & RSVPs: the guest list, live. Tap a row to see exactly who's coming.
+async function loadEventQueue() {
+  var list = document.getElementById('event-queue-list');
+  if (!list) return;
+  var res = await _sb.rpc('admin_event_queue');
+  var d = res.data || {};
+  if (res.error || !d.ok) { list.innerHTML = '<div class="pf-empty">Could not load the queue.</div>'; return; }
+  var evs = d.events || [];
+  _setText('eq-badge', evs.length + ' waiting');
+  list.innerHTML = evs.length ? evs.map(function(e) {
+    var when = new Date(e.starts_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return '<div style="border-bottom:1px solid var(--border);padding:.55rem 0">' +
+      '<div style="font-size:.84rem"><span style="font:600 .66rem var(--mono);color:var(--orange);margin-right:.5rem">' + escapeHtml(when) + '</span><strong>' + escapeHtml(e.title) + '</strong>' +
+        (e.venue ? ' <span style="color:var(--muted)">@ ' + escapeHtml(e.venue) + '</span>' : '') + '</div>' +
+      '<div style="display:flex;gap:.5rem;margin-top:.35rem">' +
+        '<button class="tb-btn" style="font-size:.72rem;color:var(--green);border-color:rgba(34,197,94,.35)" onclick="decideEventQueue(\'' + e.id + '\', true, this)">✓ Publish</button>' +
+        '<button class="tb-btn" style="font-size:.72rem;color:var(--red)" onclick="decideEventQueue(\'' + e.id + '\', false, this)">✕ Reject</button>' +
+        (e.source_url ? '<a class="tb-btn" style="font-size:.72rem;text-decoration:none" target="_blank" rel="noopener" href="' + safeUrl(e.source_url) + '">Source ↗</a>' : '') +
+      '</div></div>';
+  }).join('') : '<div class="pf-empty">Queue is clear — trusted feeds publish straight to the map.</div>';
+}
+async function decideEventQueue(id, approve, btn) {
+  if (btn) btn.disabled = true;
+  var res = await _sb.rpc('admin_decide_event', { p_id: id, p_approve: approve });
+  if (res.error || !(res.data || {}).ok) { if (btn) btn.disabled = false; showToast('Could not save'); return; }
+  showToast(approve ? '✓ On the map' : 'Rejected');
+  loadEventQueue();
+}
+
 async function loadShowRsvps() {
   var list = document.getElementById('ld-rsvp-list');
   if (!list) return;
