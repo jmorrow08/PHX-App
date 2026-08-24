@@ -173,7 +173,8 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
 .has-ava{position:relative;overflow:hidden}
 .avatar-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:inherit;display:block}
 .ava-sm{width:32px;height:32px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:.85rem;flex-shrink:0;background:var(--card2)}
-.artist-link{color:inherit;text-decoration:none;cursor:pointer}
+.artist-link{color:inherit;cursor:pointer;text-decoration:underline;text-decoration-color:rgba(249,115,22,.55);text-underline-offset:2px;text-decoration-thickness:1px}
+.artist-link:hover{color:var(--orange-l);text-decoration-color:var(--orange)}
 .artist-link:hover{color:var(--orange);text-decoration:underline}
 .fp-meta h4{font-family:var(--disp);font-size:.92rem;font-weight:600}
 .fp-meta span{font-size:.74rem;color:var(--faint)}
@@ -3123,7 +3124,12 @@ function setRole(role) {
   var onPublicDeepLink = /^#(artist|page)\//.test(window.location.hash || '') ||
     (/^\/[a-z0-9][a-z0-9._-]{1,40}$/i.test(pathname) &&
      ['/app', '/index', '/legal', '/app.html', '/index.html'].indexOf(pathname.toLowerCase()) === -1);
-  if (!onPublicDeepLink) showView(r.defaultView);
+  // Navigate only when the role genuinely changed or this is the boot nav —
+  // a re-run of the same role (token refresh, resume) must never yank the
+  // person off whatever screen they're on.
+  if (!onPublicDeepLink && (window._lastNavRole !== role || !window._bootNavDone)) showView(r.defaultView);
+  window._lastNavRole = role;
+  window._bootNavDone = true;
 
   // Re-render feed — persona and admin moderation controls depend on role
   if (_cityFeedLoaded) loadCityFeed(true);
@@ -5959,7 +5965,7 @@ function renderFeedPost(p) {
       '<div class="track-art">' + (tArt ? '<img src="' + tArt + '" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:6px">' : '🎵') + '</div>' +
       '<div class="track-info"><div class="track-title">' + escapeHtml(t.title) + '</div>' +
         '<div class="track-feat">' + artistLinkHtml(artistName, t.artists && t.artists.slug) +
-          (t.featuring ? ' ft. ' + escapeHtml(t.featuring) : '') + '</div></div>' +
+          (t.featuring ? ' ft. ' + featuringHtml(t.featuring) : '') + '</div></div>' +
       '<div class="track-streams">▶ ' + formatCount(t.stream_count || 0) + '</div>' +
     '</div>';
   }
@@ -6908,7 +6914,7 @@ async function loadForYou() {
       '<div class="track-num">▶</div>' +
       '<div class="track-art">🎵</div>' +
       '<div class="track-info"><div class="track-title">' + escapeHtml(t.title) + ' ' + tierBadge + '</div>' +
-        '<div class="track-feat">' + artistLinkHtml(artistName, t.artists && t.artists.slug) + (t.featuring ? ' ft. ' + escapeHtml(t.featuring) : '') + '</div></div>' +
+        '<div class="track-feat">' + artistLinkHtml(artistName, t.artists && t.artists.slug) + (t.featuring ? ' ft. ' + featuringHtml(t.featuring) : '') + '</div></div>' +
       '<div class="track-streams">' + formatCount(t.stream_count || 0) + '</div>' +
     '</div>';
   }).join('');
@@ -8487,7 +8493,7 @@ async function loadPendingTracks() {
     var hasAudio = !!t.audio_url;
     return '<div style="display:flex;align-items:center;gap:.75rem;padding:.8rem;background:var(--bg4);border-radius:10px;border:1px solid var(--border);margin-bottom:.5rem;flex-wrap:wrap">' +
       '<div style="flex:1;min-width:180px">' +
-        '<div style="font-size:.88rem;font-weight:600">' + escapeHtml(t.title) + (t.featuring ? ' <span style="color:var(--muted)">ft. ' + escapeHtml(t.featuring) + '</span>' : '') + '</div>' +
+        '<div style="font-size:.88rem;font-weight:600">' + escapeHtml(t.title) + (t.featuring ? ' <span style="color:var(--muted)">ft. ' + featuringHtml(t.featuring) + '</span>' : '') + '</div>' +
         '<div style="font-size:.74rem;color:var(--muted);margin-top:.15rem">' + escapeHtml(artist) + ' · ' + escapeHtml(t.release_type||'single') + ' · submitted ' + when + '</div>' +
         (t.producer ? '<div style="font-size:.72rem;color:var(--muted)">Prod. ' + escapeHtml(t.producer) + '</div>' : '') +
       '</div>' +
@@ -8688,6 +8694,28 @@ function artistLinkHtml(name, slug, style) {
     ' onclick="event.stopPropagation();showArtistPage(\'' + s + '\');return false">' + label + '</a>';
 }
 
+// Feature credits: each name that matches a PHX artist becomes their link.
+// Loaded once; misses render as plain text (features from off-platform).
+var _artistLinkMap = null;
+async function _loadArtistLinkMap() {
+  if (_artistLinkMap) return;
+  try {
+    var r = await _sb.from('artists').select('name,slug').eq('status', 'active');
+    _artistLinkMap = {};
+    (r.data || []).forEach(function(a) { if (a.slug) _artistLinkMap[a.name.toLowerCase()] = a.slug; });
+  } catch (e) { _artistLinkMap = {}; }
+}
+_whenDomReady(function(){ _loadArtistLinkMap(); });
+function featuringHtml(feat) {
+  if (!feat) return '';
+  return String(feat).split(/,|&| and /i).map(function(n) {
+    var name = n.trim();
+    if (!name) return '';
+    var slug = _artistLinkMap && _artistLinkMap[name.toLowerCase()];
+    return slug ? artistLinkHtml(name, slug) : escapeHtml(name);
+  }).filter(Boolean).join(', ');
+}
+
 // Tier hierarchy for gating playback (not search itself)
 function tierRank(role) {
   return { explorer:0, native:1, insider:2, artist:3, admin:3, super:3 }[role] || 0;
@@ -8733,7 +8761,7 @@ function renderSearchResultRow(t, idx) {
     '<div class="track-num">▶</div>' +
     '<div class="track-art">🎵</div>' +
     '<div class="track-info"><div class="track-title">' + escapeHtml(t.title) + ' ' + tierBadge + '</div>' +
-      '<div class="track-feat">' + artistLinkHtml(artistName, t.artists && t.artists.slug) + (t.featuring ? ' ft. ' + escapeHtml(t.featuring) : '') + '</div></div>' +
+      '<div class="track-feat">' + artistLinkHtml(artistName, t.artists && t.artists.slug) + (t.featuring ? ' ft. ' + featuringHtml(t.featuring) : '') + '</div></div>' +
     '<div class="track-streams">' + streams + '</div>' +
   '</div>';
 }
@@ -8884,6 +8912,24 @@ function _revealApp() {
   }, wait);
 }
 setTimeout(_revealApp, 4500);   // failsafe: never trap anyone behind the veil
+
+// iOS snapshots the last visible screen when an app is backgrounded and
+// replays it as the launch image on reopen — that replayed ghost was the
+// "old page flashes first" bug. Cover the screen the moment we go to the
+// background so the snapshot is always the PHX mark; lift it on return.
+document.addEventListener('visibilitychange', function() {
+  if (document.visibilityState === 'hidden') {
+    if (document.getElementById('resume-veil')) return;
+    var v = document.createElement('div');
+    v.id = 'resume-veil';
+    v.style.cssText = 'position:fixed;inset:0;z-index:900;background:#07070F;display:flex;align-items:center;justify-content:center;transition:opacity .25s ease';
+    v.innerHTML = '<img src="icon-192.png" alt="" width="72" height="72" style="border-radius:18px">';
+    document.body.appendChild(v);
+  } else {
+    var rv = document.getElementById('resume-veil');
+    if (rv) { rv.style.opacity = '0'; setTimeout(function(){ rv.remove(); }, 260); }
+  }
+});
 function applyAuthLanding() {
   var landing = document.getElementById('auth-landing');
   var card = document.getElementById('auth-card');
