@@ -5062,47 +5062,84 @@ function authorChrome(userId) {
 }
 
 // Photo filters — CSS filter strings applied via canvas re-encode on post
+// The filter rack — Phoenix-flavored looks first, classics after. Same CSS
+// string drives the live preview AND the canvas bake, photos and video alike.
 var PHOTO_FILTERS = {
-  none:  { label: 'Normal', css: 'none' },
-  warm:  { label: 'PHX Heat', css: 'sepia(.28) saturate(1.45) contrast(1.05) brightness(1.03)' },
-  vivid: { label: 'Vivid', css: 'saturate(1.8) contrast(1.15)' },
-  bw:    { label: 'Mono', css: 'grayscale(1) contrast(1.12)' },
-  fade:  { label: 'Fade', css: 'contrast(.88) brightness(1.12) saturate(.75)' }
+  none:    { label: 'Normal', css: 'none' },
+  warm:    { label: 'PHX Heat', css: 'sepia(.28) saturate(1.45) contrast(1.05) brightness(1.03)' },
+  sunset:  { label: 'Camelback', css: 'sepia(.22) saturate(1.4) contrast(1.1) hue-rotate(-12deg) brightness(1.04)' },
+  ember:   { label: 'Ember', css: 'sepia(.3) saturate(1.35) contrast(1.14) hue-rotate(-18deg)' },
+  monsoon: { label: 'Monsoon', css: 'saturate(.82) contrast(1.16) brightness(.94) hue-rotate(8deg)' },
+  night:   { label: 'Desert Night', css: 'saturate(1.15) contrast(1.22) brightness(.88) hue-rotate(14deg)' },
+  vivid:   { label: 'Vivid', css: 'saturate(1.8) contrast(1.15)' },
+  bw:      { label: 'The 602', css: 'grayscale(1) contrast(1.22) brightness(1.02)' },
+  fade:    { label: 'Fade', css: 'contrast(.88) brightness(1.12) saturate(.75)' }
 };
+var _composerStamp = false;        // 🐦‍🔥 PHX wordmark baked into the corner
+var _composerPosterTime = null;    // cover-frame pick (seconds), null = auto
+var _stampImg = null;
+function _getStampImg() {
+  return new Promise(function(res) {
+    if (_stampImg) return res(_stampImg);
+    var im = new Image();
+    im.onload = function(){ _stampImg = im; res(im); };
+    im.onerror = function(){ res(null); };
+    im.src = 'assets/logo-wordmark.png';
+  });
+}
+function _drawStamp(ctx, w, h) {
+  if (!_stampImg) return;
+  var sw = Math.round(w * 0.22);
+  var sh = Math.round(sw * _stampImg.naturalHeight / _stampImg.naturalWidth);
+  ctx.globalAlpha = 0.85;
+  ctx.drawImage(_stampImg, w - sw - Math.round(w * .035), h - sh - Math.round(w * .035), sw, sh);
+  ctx.globalAlpha = 1;
+}
+function toggleComposerStamp() { _composerStamp = !_composerStamp; renderMediaPreview(); }
 
 function renderMediaPreview() {
   var box = document.getElementById('composer-media-preview');
   if (!box || !_composerMediaFile) { if (box) box.style.display = 'none'; return; }
   var url = URL.createObjectURL(_composerMediaFile);
   var isImage = _composerMediaFile.type.indexOf('image/') === 0;
+  var chips =
+    '<div style="display:flex;gap:.4rem;margin-top:.5rem;flex-wrap:wrap">' +
+      Object.keys(PHOTO_FILTERS).map(function(k) {
+        var active = k === _composerFilter;
+        return '<button class="tb-btn" style="font-size:.7rem;padding:.25rem .6rem;' + (active ? 'color:var(--orange);border-color:rgba(249,115,22,.4)' : '') + '" onclick="setComposerFilter(\'' + k + '\')">' + PHOTO_FILTERS[k].label + '</button>';
+      }).join('') +
+      '<button class="tb-btn" style="font-size:.7rem;padding:.25rem .6rem;' + (_composerStamp ? 'color:var(--gold);border-color:rgba(234,179,8,.4)' : '') + '" onclick="toggleComposerStamp()">🐦‍🔥 PHX stamp</button>' +
+    '</div>';
   if (isImage) {
     box.innerHTML =
       '<img id="composer-preview-img" src="' + url + '" style="width:100%;max-height:260px;object-fit:cover;border-radius:10px;filter:' + PHOTO_FILTERS[_composerFilter].css + '">' +
-      '<div style="display:flex;gap:.4rem;margin-top:.5rem;flex-wrap:wrap">' +
-        Object.keys(PHOTO_FILTERS).map(function(k) {
-          var active = k === _composerFilter;
-          return '<button class="tb-btn" style="font-size:.7rem;padding:.25rem .6rem;' + (active ? 'color:var(--orange);border-color:rgba(249,115,22,.4)' : '') + '" onclick="setComposerFilter(\'' + k + '\')">' + PHOTO_FILTERS[k].label + '</button>';
-        }).join('') +
-      '</div>';
+      chips;
   } else {
-    box.innerHTML = '<video src="' + url + '" controls playsinline onloadedmetadata="_fitFeedVideo(this)" style="width:100%;max-height:340px;border-radius:12px;background:var(--bg3);object-fit:cover"></video>' +
-      '<div style="font-size:.7rem;color:var(--muted);margin-top:.3rem">Posts inline like this — tap opens it full-screen in Clips. Long or heavy videos trim &amp; compress automatically.</div>';
+    box.innerHTML =
+      '<video id="composer-preview-vid" src="' + url + '" controls playsinline ' +
+        'onloadedmetadata="_fitFeedVideo(this);var r=document.getElementById(\'composer-cover-range\');if(r)r.max=this.duration.toFixed(1)" ' +
+        'style="width:100%;max-height:340px;border-radius:12px;background:var(--bg3);object-fit:cover;filter:' + PHOTO_FILTERS[_composerFilter].css + '"></video>' +
+      chips +
+      '<div style="margin-top:.55rem">' +
+        '<div style="font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:.25rem">Cover frame — drag to pick the thumbnail</div>' +
+        '<input type="range" id="composer-cover-range" min="0" max="90" step="0.1" value="' + (_composerPosterTime || 0) + '" style="width:100%;accent-color:var(--orange)" ' +
+          'oninput="var v=document.getElementById(\'composer-preview-vid\');if(v){v.pause();v.currentTime=parseFloat(this.value);}_composerPosterTime=parseFloat(this.value)">' +
+      '</div>' +
+      '<div style="font-size:.7rem;color:var(--muted);margin-top:.3rem">Posts inline, tap opens full-screen in Clips. Filters and the stamp bake in when you post; long or heavy videos trim &amp; compress automatically.</div>';
   }
   box.style.display = 'block';
 }
 
 function setComposerFilter(key) {
   _composerFilter = key;
-  var img = document.getElementById('composer-preview-img');
-  if (img) img.style.filter = PHOTO_FILTERS[key].css;
-  // refresh chip highlight
-  renderMediaPreview();
+  renderMediaPreview();   // re-renders preview (img or video) + chip highlight
 }
 
 // Re-encode a photo through canvas with the chosen filter baked in
-function applyFilterToImage(file, filterCss) {
+async function applyFilterToImage(file, filterCss) {
+  if (filterCss === 'none' && !_composerStamp) return file;
+  if (_composerStamp) await _getStampImg();
   return new Promise(function(resolve) {
-    if (filterCss === 'none') { resolve(file); return; }
     var img = new Image();
     img.onload = function() {
       var maxW = 1920;
@@ -5111,14 +5148,77 @@ function applyFilterToImage(file, filterCss) {
       canvas.width = Math.round(img.naturalWidth * scale);
       canvas.height = Math.round(img.naturalHeight * scale);
       var ctx = canvas.getContext('2d');
-      ctx.filter = filterCss;
+      if (filterCss !== 'none') ctx.filter = filterCss;
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      ctx.filter = 'none';
+      if (_composerStamp) _drawStamp(ctx, canvas.width, canvas.height);
       canvas.toBlob(function(blob) {
         resolve(blob ? new File([blob], 'filtered.jpg', { type: 'image/jpeg' }) : file);
       }, 'image/jpeg', 0.9);
     };
     img.onerror = function() { resolve(file); };
     img.src = URL.createObjectURL(file);
+  });
+}
+
+// Bake a filter and/or the PHX stamp into a video — offscreen re-encode,
+// same canvas.captureStream machinery as the trim sheet and watermark export.
+async function _bakeVideo(file, filterCss, stamp, progressBtn) {
+  if ((filterCss === 'none' || !filterCss) && !stamp) return file;
+  if (!window.MediaRecorder) return file;   // preview-only filter is better than a dead post
+  if (stamp) await _getStampImg();
+  return new Promise(function(resolve) {
+    var v = document.createElement('video');
+    v.muted = false; v.playsInline = true; v.preload = 'auto';
+    var done = false;
+    var bail = setTimeout(function(){ if (!done) { done = true; resolve(file); } }, 240000);
+    v.onerror = function(){ if (!done) { done = true; clearTimeout(bail); resolve(file); } };
+    v.onloadedmetadata = function() {
+      var vw = v.videoWidth || 720, vh = v.videoHeight || 1280;
+      var scale = Math.min(1, 1280 / Math.max(vw, vh));
+      var canvas = document.createElement('canvas');
+      canvas.width = Math.round(vw * scale / 2) * 2;
+      canvas.height = Math.round(vh * scale / 2) * 2;
+      var ctx = canvas.getContext('2d');
+      var stream = canvas.captureStream(30);
+      try {
+        var actx = new (window.AudioContext || window.webkitAudioContext)();
+        var src = actx.createMediaElementSource(v);
+        var dest = actx.createMediaStreamDestination();
+        src.connect(dest);
+        var at = dest.stream.getAudioTracks()[0];
+        if (at) stream.addTrack(at);
+      } catch (err) { reportFailure('bakeAudio', err); }
+      var mime = ['video/mp4', 'video/webm;codecs=vp9', 'video/webm'].filter(function(t) {
+        return MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t);
+      })[0];
+      var rec = new MediaRecorder(stream, mime ? { mimeType: mime, videoBitsPerSecond: 4000000 } : undefined);
+      var chunks = [];
+      rec.ondataavailable = function(ev) { if (ev.data && ev.data.size) chunks.push(ev.data); };
+      rec.onstop = function() {
+        if (done) return;
+        done = true; clearTimeout(bail);
+        var type = (rec.mimeType || mime || 'video/webm').split(';')[0];
+        var ext = type.indexOf('mp4') !== -1 ? 'mp4' : 'webm';
+        var blob = new Blob(chunks, { type: type });
+        resolve(blob.size ? new File([blob], 'styled.' + ext, { type: type }) : file);
+      };
+      var tick = setInterval(function() {
+        if (filterCss && filterCss !== 'none') ctx.filter = filterCss;
+        ctx.drawImage(v, 0, 0, canvas.width, canvas.height);
+        ctx.filter = 'none';
+        if (stamp) _drawStamp(ctx, canvas.width, canvas.height);
+        if (progressBtn && v.duration) progressBtn.textContent = 'Styling… ' + Math.min(99, Math.round(v.currentTime / v.duration * 100)) + '%';
+      }, 33);
+      v.onended = function() {
+        clearInterval(tick);
+        try { rec.stop(); } catch (err) { reportFailure('bakeStop', err); }
+      };
+      v.play().then(function(){ rec.start(500); }, function() {
+        if (!done) { done = true; clearTimeout(bail); resolve(file); }
+      });
+    };
+    v.src = URL.createObjectURL(file);
   });
 }
 
@@ -5171,6 +5271,8 @@ function handleComposerMedia(input) {
   }
   _composerMediaFile = file;
   _composerFilter = 'none';
+  _composerStamp = false;
+  _composerPosterTime = null;
   if (nameEl) {
     nameEl.textContent = '✓ ' + file.name + ' (' + (file.size / 1048576).toFixed(1) + ' MB)';
     nameEl.style.color = 'var(--green)';
@@ -5181,14 +5283,19 @@ function handleComposerMedia(input) {
 
 // Grab a poster frame from a video file — the feed paints this instantly
 // instead of a black box while the video loads.
-function _captureVideoPoster(file) {
+function _captureVideoPoster(file, t) {
   return new Promise(function(resolve) {
     try {
       var v = document.createElement('video');
       v.preload = 'auto'; v.muted = true; v.playsInline = true;
       var done = false;
       var bail = setTimeout(function(){ if (!done) { done = true; URL.revokeObjectURL(v.src); resolve(null); } }, 6000);
-      v.onloadeddata = function() { try { v.currentTime = Math.min(0.4, (v.duration || 1) / 3); } catch (e) { resolve(null); } };
+      v.onloadeddata = function() {
+        try {
+          var want = (typeof t === 'number' && isFinite(t)) ? Math.max(0, Math.min(t, (v.duration || 1) - 0.05)) : Math.min(0.4, (v.duration || 1) / 3);
+          v.currentTime = want;
+        } catch (e) { resolve(null); }
+      };
       v.onseeked = function() {
         if (done) return;
         done = true; clearTimeout(bail);
@@ -5797,15 +5904,19 @@ async function submitFeedPost() {
         return;
       }
     }
-    if (_composerMediaFile.size > 52428800) {
+    var uploadFile = _composerMediaFile;
+    if (_composerMediaFile.type.indexOf('image/') === 0) {
+      uploadFile = await applyFilterToImage(_composerMediaFile, PHOTO_FILTERS[_composerFilter].css);
+    } else if (/^video\//.test(_composerMediaFile.type) && (_composerFilter !== 'none' || _composerStamp)) {
+      if (postBtn) postBtn.textContent = 'Styling…';
+      uploadFile = await _bakeVideo(_composerMediaFile, PHOTO_FILTERS[_composerFilter].css, _composerStamp, postBtn);
+      if (postBtn) postBtn.textContent = 'Uploading…';
+    }
+    if (uploadFile.size > 52428800) {
       if (postBtn) { postBtn.textContent = 'Post'; postBtn.disabled = false; }
       showToast('⚠️ File too large to upload (50MB max). Re-attach it and let us compress it.');
       if (errEl) { errEl.textContent = 'File too large — re-attach and it will compress.'; errEl.style.display = 'block'; }
       return;
-    }
-    var uploadFile = _composerMediaFile;
-    if (_composerMediaFile.type.indexOf('image/') === 0 && _composerFilter !== 'none') {
-      uploadFile = await applyFilterToImage(_composerMediaFile, PHOTO_FILTERS[_composerFilter].css);
     }
     var ext = uploadFile.name.split('.').pop().toLowerCase();
     var stem = getGuestId().slice(0,8) + '/' + Date.now();
@@ -5823,7 +5934,7 @@ async function submitFeedPost() {
     // Poster frame for videos — feed paints it instantly, no black box
     if (/^video\//.test(uploadFile.type)) {
       try {
-        var posterBlob = await _captureVideoPoster(uploadFile);
+        var posterBlob = await _captureVideoPoster(uploadFile, _composerPosterTime);
         if (posterBlob) {
           var pPath = stem + '_poster.jpg';
           var pUp = await _sb.storage.from('post-media').upload(pPath, posterBlob, { contentType: 'image/jpeg' });
@@ -5861,6 +5972,8 @@ async function submitFeedPost() {
   trackEvent('post_create', 'post', data.id, { has_track: !!(trackSel && trackSel.value), has_media: !!mediaUrl });
   _composerMediaFile = null;
   _composerFilter = 'none';
+  _composerStamp = false;
+  _composerPosterTime = null;
   loadCityFeed(true).then(populateComposerTracks);
 }
 
