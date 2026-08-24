@@ -997,6 +997,12 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
   <link rel="stylesheet" href="shared.css?v=10">
 </head>
 <body>
+<!-- Boot veil: covers the app until identity + role + first view are settled,
+     then fades. One smooth reveal instead of layout jumps. -->
+<div id="boot-veil" style="position:fixed;inset:0;z-index:900;background:#07070F;display:flex;align-items:center;justify-content:center;transition:opacity .3s ease">
+  <img src="icon-192.png" alt="" width="72" height="72" style="border-radius:18px;animation:bv-pulse 1.4s ease-in-out infinite">
+</div>
+<style>@keyframes bv-pulse{0%,100%{opacity:.75;transform:scale(1)}50%{opacity:1;transform:scale(1.06)}}</style>
 
 <div class="app-shell">
 <!-- SIDEBAR -->
@@ -2959,7 +2965,7 @@ var ROLES = {
     playsLeftVisible: false,
     navId: 'nav-admin', bottomId: 'sb-bottom-other',
     otherName: 'Admin', otherRole: 'PHX Admin', otherAva: '⚙',
-    defaultView: 'home',
+    defaultView: 'admin-dashboard',
     finTagVisible: false, sysTagVisible: false,
   },
   super: {
@@ -2973,7 +2979,7 @@ var ROLES = {
     playsLeftVisible: false,
     navId: 'nav-admin', bottomId: 'sb-bottom-other',
     otherName: 'Jaye Mali', otherRole: 'Super Admin · PHX Founder', otherAva: 'J',
-    defaultView: 'home',
+    defaultView: 'admin-dashboard',
     finTagVisible: true, sysTagVisible: true,
   },
 };
@@ -5017,7 +5023,7 @@ function renderComposer() {
       '</select>' +
       '<input type="file" id="composer-media" accept="video/mp4,video/webm,video/quicktime,image/jpeg,image/png,image/webp,image/gif" style="display:none" onchange="handleComposerMedia(this)">' +
       '<input type="file" id="composer-camera" accept="image/*,video/*" capture="environment" style="display:none" onchange="handleComposerMedia(this)">' +
-      '<button class="cp-chip" title="Record with camera" onclick="document.getElementById(\'composer-camera\').click()">📸 Camera</button>' +
+      '<button class="cp-chip" title="Open PHX Lens" onclick="openPhxLens()">📸 PHX Lens</button>' +
       '<button class="cp-chip" id="composer-media-btn" title="Add a photo or video" onclick="document.getElementById(\'composer-media\').click()">🖼️ Photo · Video</button>' +
       '<button class="cp-chip" id="composer-track-btn" onclick="openTrackSheet()">🎵 Add a song</button>' +
       '<button class="cp-post" id="composer-post-btn" onclick="submitFeedPost()">Post</button>' +
@@ -5080,6 +5086,8 @@ var PHOTO_FILTERS = {
   fade:    { label: 'Fade', css: 'contrast(.88) brightness(1.12) saturate(.75)' }
 };
 var _composerStamp = false;        // 🐦‍🔥 PHX wordmark baked into the corner
+var _composerAudioMode = 'original';  // original | replace | mix (video + song)
+var _composerSongVol = 0.6;           // song gain when mixing
 var _composerPosterTime = null;    // cover-frame pick (seconds), null = auto
 var _stampImg = null;
 function _getStampImg() {
@@ -5129,6 +5137,7 @@ function renderMediaPreview() {
     '<div style="font-size:.66rem;color:var(--faint);margin-top:.35rem;text-align:center">← swipe the ' + (isImage ? 'photo' : 'video') + ' to change filters →</div>' +
     chips +
     (isImage ? '' :
+      '<div id="composer-audio-opts" style="display:none;margin-top:.55rem"></div>' +
       '<div style="margin-top:.55rem">' +
         '<div style="font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:.25rem">Cover frame — drag to pick the thumbnail</div>' +
         '<input type="range" id="composer-cover-range" min="0" max="90" step="0.1" value="' + (_composerPosterTime || 0) + '" style="width:100%;accent-color:var(--orange)" ' +
@@ -5136,10 +5145,38 @@ function renderMediaPreview() {
       '</div>');
   box.style.display = 'block';
   _refreshFilterChips();
+  _refreshAudioOpts();
+}
+
+// Video + song attached → choose whose sound wins (and the song's volume)
+function setComposerAudioMode(m) { _composerAudioMode = m; _refreshAudioOpts(); }
+function _refreshAudioOpts() {
+  var box = document.getElementById('composer-audio-opts');
+  if (!box) return;
+  var sel = document.getElementById('composer-track');
+  var hasSong = !!(sel && sel.value);
+  var isVideo = _composerMediaFile && /^video\//.test(_composerMediaFile.type);
+  if (!hasSong || !isVideo) { box.style.display = 'none'; _composerAudioMode = 'original'; return; }
+  var chip = function(m, label) {
+    var on = _composerAudioMode === m;
+    return '<button class="tb-btn" style="font-size:.7rem;padding:.28rem .65rem;' + (on ? 'color:var(--orange);border-color:rgba(249,115,22,.4)' : '') + '" onclick="setComposerAudioMode(\'' + m + '\')">' + label + '</button>';
+  };
+  box.style.display = 'block';
+  box.innerHTML =
+    '<div style="font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:.35rem">Sound — the song bakes into the video</div>' +
+    '<div style="display:flex;gap:.4rem;flex-wrap:wrap">' +
+      chip('original', '🎬 Video sound') + chip('replace', '🎵 Song only') + chip('mix', '🎚 Both') +
+    '</div>' +
+    (_composerAudioMode === 'mix' || _composerAudioMode === 'replace'
+      ? '<div style="display:flex;align-items:center;gap:.6rem;margin-top:.5rem">' +
+          '<span style="font-size:.7rem;color:var(--muted);white-space:nowrap">Song volume</span>' +
+          '<input type="range" min="0" max="100" value="' + Math.round(_composerSongVol * 100) + '" style="flex:1;accent-color:var(--orange)" oninput="_composerSongVol=this.value/100">' +
+        '</div>'
+      : '');
 }
 
 function clearComposerMedia() {
-  _composerMediaFile = null; _composerFilter = 'none'; _composerStamp = false; _composerPosterTime = null;
+  _composerMediaFile = null; _composerFilter = 'none'; _composerStamp = false; _composerPosterTime = null; _composerAudioMode = 'original';
   var m1 = document.getElementById('composer-media'); if (m1) m1.value = '';
   var m2 = document.getElementById('composer-camera'); if (m2) m2.value = '';
   var nameEl = document.getElementById('composer-media-name'); if (nameEl) nameEl.style.display = 'none';
@@ -5216,8 +5253,10 @@ async function applyFilterToImage(file, filterCss) {
 
 // Bake a filter and/or the PHX stamp into a video — offscreen re-encode,
 // same canvas.captureStream machinery as the trim sheet and watermark export.
-async function _bakeVideo(file, filterCss, stamp, progressBtn) {
-  if ((filterCss === 'none' || !filterCss) && !stamp) return file;
+async function _bakeVideo(file, filterCss, stamp, progressBtn, audioOpts) {
+  audioOpts = audioOpts || {};
+  var wantsSong = audioOpts.mode === 'replace' || audioOpts.mode === 'mix';
+  if ((filterCss === 'none' || !filterCss) && !stamp && !wantsSong) return file;
   if (!window.MediaRecorder) return file;   // preview-only filter is better than a dead post
   if (stamp) await _getStampImg();
   return new Promise(function(resolve) {
@@ -5234,11 +5273,25 @@ async function _bakeVideo(file, filterCss, stamp, progressBtn) {
       canvas.height = Math.round(vh * scale / 2) * 2;
       var ctx = canvas.getContext('2d');
       var stream = canvas.captureStream(30);
+      var songEl = null;
       try {
         var actx = new (window.AudioContext || window.webkitAudioContext)();
-        var src = actx.createMediaElementSource(v);
         var dest = actx.createMediaStreamDestination();
-        src.connect(dest);
+        if (audioOpts.mode !== 'replace') {
+          var src = actx.createMediaElementSource(v);
+          src.connect(dest);
+        } else {
+          v.muted = true;
+        }
+        if (wantsSong && audioOpts.songUrl) {
+          songEl = new Audio();
+          songEl.crossOrigin = 'anonymous';
+          songEl.src = audioOpts.songUrl;
+          var songSrc = actx.createMediaElementSource(songEl);
+          var gain = actx.createGain();
+          gain.gain.value = Math.max(0, Math.min(1, audioOpts.songVol == null ? 0.6 : audioOpts.songVol));
+          songSrc.connect(gain); gain.connect(dest);
+        }
         var at = dest.stream.getAudioTracks()[0];
         if (at) stream.addTrack(at);
       } catch (err) { reportFailure('bakeAudio', err); }
@@ -5265,9 +5318,13 @@ async function _bakeVideo(file, filterCss, stamp, progressBtn) {
       }, 33);
       v.onended = function() {
         clearInterval(tick);
+        if (songEl) { try { songEl.pause(); } catch (e) {} }
         try { rec.stop(); } catch (err) { reportFailure('bakeStop', err); }
       };
-      v.play().then(function(){ rec.start(500); }, function() {
+      v.play().then(function() {
+        if (songEl) songEl.play().catch(function(e){ reportFailure('bakeSongPlay', e); });
+        rec.start(500);
+      }, function() {
         if (!done) { done = true; clearTimeout(bail); resolve(file); }
       });
     };
@@ -5509,6 +5566,196 @@ async function startTrimExport() {
   };
 }
 
+// ═══ PHX LENS — the in-app camera. Filters apply LIVE while you frame the
+// shot (swipe to change, Snapchat-style). Tap the shutter for a photo, hold
+// it to record video (90s cap). Filters bake into the capture itself.
+// Camera runs ONLY while the Lens is open; tracks stop the moment it closes.
+var _lensStream = null, _lensFacing = 'environment', _lensRec = null, _lensChunks = [],
+    _lensTick = null, _lensHold = null, _lensT0 = 0, _lensCanvas = null, _lensCtx = null;
+
+async function openPhxLens() {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.MediaRecorder) {
+    document.getElementById('composer-camera').click();   // OS camera fallback
+    return;
+  }
+  var wrap = document.getElementById('phx-lens');
+  if (!wrap) {
+    wrap = document.createElement('div');
+    wrap.id = 'phx-lens';
+    wrap.style.cssText = 'position:fixed;inset:0;z-index:600;background:#000;display:flex;flex-direction:column';
+    document.body.appendChild(wrap);
+  }
+  wrap.style.display = 'flex';
+  wrap.innerHTML =
+    '<div style="position:relative;flex:1;overflow:hidden" ontouchstart="_lensTS(event)" ontouchend="_lensTE(event)">' +
+      '<video id="lens-view" autoplay playsinline muted style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"></video>' +
+      '<div id="lens-filter-name" style="position:absolute;top:calc(18px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);background:rgba(7,7,15,.72);border-radius:999px;padding:.32rem .95rem;font-weight:800;font-size:.9rem;color:#fff;opacity:0;transition:opacity .25s;pointer-events:none;white-space:nowrap"></div>' +
+      '<div id="lens-rec-badge" style="display:none;position:absolute;top:calc(18px + env(safe-area-inset-top,0px));left:16px;background:rgba(220,38,38,.9);border-radius:999px;padding:.28rem .7rem;font-weight:800;font-size:.78rem;color:#fff">● <span id="lens-rec-time">0:00</span></div>' +
+      '<button onclick="closePhxLens()" aria-label="Close" style="position:absolute;top:calc(14px + env(safe-area-inset-top,0px));right:14px;width:36px;height:36px;border-radius:50%;background:rgba(7,7,15,.6);border:none;color:#fff;font-size:1rem;cursor:pointer">✕</button>' +
+      '<div style="position:absolute;left:0;right:0;bottom:0;padding:0 0 calc(26px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;align-items:center;gap:14px;background:linear-gradient(transparent,rgba(0,0,0,.55))">' +
+        '<div id="lens-chips" style="display:flex;gap:.4rem;overflow-x:auto;max-width:92%;padding:.2rem;scrollbar-width:none">' +
+          Object.keys(PHOTO_FILTERS).map(function(k) {
+            return '<button class="tb-btn" data-lk="' + k + '" style="font-size:.68rem;padding:.24rem .6rem;white-space:nowrap;flex-shrink:0;background:rgba(7,7,15,.55)" onclick="_lensSetFilter(\'' + k + '\')">' + PHOTO_FILTERS[k].label + '</button>';
+          }).join('') + '</div>' +
+        '<div style="display:flex;align-items:center;gap:34px">' +
+          '<div style="width:44px"></div>' +
+          '<button id="lens-shutter" aria-label="Capture" style="width:76px;height:76px;border-radius:50%;border:5px solid #fff;background:rgba(255,255,255,.25);cursor:pointer;transition:transform .12s, background .2s"></button>' +
+          '<button onclick="flipPhxLens()" aria-label="Flip camera" style="width:44px;height:44px;border-radius:50%;background:rgba(7,7,15,.6);border:none;color:#fff;font-size:1.15rem;cursor:pointer">🔄</button>' +
+        '</div>' +
+        '<div style="font-size:.68rem;color:rgba(255,255,255,.7)">tap for photo · hold for video · swipe for filters</div>' +
+      '</div>' +
+    '</div>';
+  var sh = document.getElementById('lens-shutter');
+  sh.addEventListener('pointerdown', _lensShutterDown);
+  sh.addEventListener('pointerup', _lensShutterUp);
+  sh.addEventListener('pointercancel', _lensShutterUp);
+  _lensSetFilter(_composerFilter || 'none');
+  await _lensStart();
+}
+
+async function _lensStart() {
+  _lensStop();
+  try {
+    _lensStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: _lensFacing, width: { ideal: 1280 }, height: { ideal: 1920 } },
+      audio: true
+    });
+  } catch (e) {
+    closePhxLens();
+    showToast('📷 Camera unavailable — using the phone camera instead.');
+    document.getElementById('composer-camera').click();
+    return;
+  }
+  var v = document.getElementById('lens-view');
+  if (v) {
+    v.srcObject = _lensStream;
+    v.style.transform = _lensFacing === 'user' ? 'scaleX(-1)' : '';
+    v.style.filter = PHOTO_FILTERS[_lensFilter] ? PHOTO_FILTERS[_lensFilter].css : 'none';
+  }
+}
+function _lensStop() {
+  if (_lensStream) { _lensStream.getTracks().forEach(function(t){ t.stop(); }); _lensStream = null; }
+}
+function closePhxLens() {
+  clearTimeout(_lensHold); clearInterval(_lensTick);
+  if (_lensRec && _lensRec.state !== 'inactive') { try { _lensRec.stop(); } catch (e) {} }
+  _lensRec = null;
+  _lensStop();
+  var w = document.getElementById('phx-lens');
+  if (w) w.style.display = 'none';
+}
+async function flipPhxLens() {
+  _lensFacing = _lensFacing === 'user' ? 'environment' : 'user';
+  await _lensStart();
+}
+
+var _lensFilter = 'none', _lensSwX = 0, _lensSwY = 0;
+function _lensSetFilter(k) {
+  _lensFilter = k;
+  var v = document.getElementById('lens-view');
+  if (v) v.style.filter = PHOTO_FILTERS[k].css;
+  document.querySelectorAll('#lens-chips [data-lk]').forEach(function(b) {
+    var on = b.dataset.lk === k;
+    b.style.color = on ? 'var(--orange)' : '#fff';
+    b.style.borderColor = on ? 'rgba(249,115,22,.6)' : '';
+  });
+  var el = document.getElementById('lens-filter-name');
+  if (el) { el.textContent = PHOTO_FILTERS[k].label; el.style.opacity = '1'; clearTimeout(el._t); el._t = setTimeout(function(){ el.style.opacity = '0'; }, 900); }
+}
+function _lensTS(e) { var t = e.touches && e.touches[0]; if (t) { _lensSwX = t.clientX; _lensSwY = t.clientY; } }
+function _lensTE(e) {
+  var t = e.changedTouches && e.changedTouches[0]; if (!t) return;
+  var dx = t.clientX - _lensSwX, dy = t.clientY - _lensSwY;
+  if (Math.abs(dx) < 48 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+  var keys = Object.keys(PHOTO_FILTERS);
+  var i = keys.indexOf(_lensFilter); if (i < 0) i = 0;
+  _lensSetFilter(keys[(i + (dx < 0 ? 1 : keys.length - 1)) % keys.length]);
+}
+
+function _lensDrawSetup() {
+  var v = document.getElementById('lens-view');
+  var vw = v.videoWidth || 720, vh = v.videoHeight || 1280;
+  var scale = Math.min(1, 1280 / Math.max(vw, vh));
+  _lensCanvas = document.createElement('canvas');
+  _lensCanvas.width = Math.round(vw * scale / 2) * 2;
+  _lensCanvas.height = Math.round(vh * scale / 2) * 2;
+  _lensCtx = _lensCanvas.getContext('2d');
+  return v;
+}
+function _lensDraw(v) {
+  var c = _lensCanvas, ctx = _lensCtx;
+  var css = PHOTO_FILTERS[_lensFilter].css;
+  if (css !== 'none') ctx.filter = css;
+  if (_lensFacing === 'user') { ctx.save(); ctx.translate(c.width, 0); ctx.scale(-1, 1); ctx.drawImage(v, 0, 0, c.width, c.height); ctx.restore(); }
+  else ctx.drawImage(v, 0, 0, c.width, c.height);
+  ctx.filter = 'none';
+}
+
+function _lensShutterDown(e) {
+  e.preventDefault();
+  _lensT0 = Date.now();
+  _lensHold = setTimeout(_lensStartRec, 350);   // held past 350ms = video
+}
+function _lensShutterUp(e) {
+  e.preventDefault();
+  clearTimeout(_lensHold);
+  if (_lensRec && _lensRec.state === 'recording') _lensStopRec();
+  else if (Date.now() - _lensT0 < 350) _lensPhoto();
+}
+function _lensPhoto() {
+  if (!_lensStream) return;
+  var v = _lensDrawSetup();
+  _lensDraw(v);
+  _lensCanvas.toBlob(function(b) {
+    if (!b) { showToast('Could not capture — try again'); return; }
+    _lensAttach(new File([b], 'lens-' + Date.now() + '.jpg', { type: 'image/jpeg' }));
+  }, 'image/jpeg', 0.9);
+}
+function _lensStartRec() {
+  if (!_lensStream || (_lensRec && _lensRec.state === 'recording')) return;
+  var v = _lensDrawSetup();
+  var stream = _lensCanvas.captureStream(30);
+  var at = _lensStream.getAudioTracks()[0];
+  if (at) stream.addTrack(at);
+  var mime = ['video/mp4', 'video/webm;codecs=vp9', 'video/webm'].filter(function(t) {
+    return MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t);
+  })[0];
+  _lensRec = new MediaRecorder(stream, mime ? { mimeType: mime, videoBitsPerSecond: 4000000 } : undefined);
+  _lensChunks = [];
+  _lensRec.ondataavailable = function(ev) { if (ev.data && ev.data.size) _lensChunks.push(ev.data); };
+  _lensRec.onstop = function() {
+    clearInterval(_lensTick);
+    var badge = document.getElementById('lens-rec-badge'); if (badge) badge.style.display = 'none';
+    var sh = document.getElementById('lens-shutter'); if (sh) { sh.style.background = 'rgba(255,255,255,.25)'; sh.style.transform = ''; }
+    var type = (_lensRec.mimeType || mime || 'video/webm').split(';')[0];
+    var ext = type.indexOf('mp4') !== -1 ? 'mp4' : 'webm';
+    var blob = new Blob(_lensChunks, { type: type });
+    _lensRec = null;
+    if (blob.size) _lensAttach(new File([blob], 'lens-' + Date.now() + '.' + ext, { type: type }));
+  };
+  var t0 = Date.now();
+  var badge = document.getElementById('lens-rec-badge'); if (badge) badge.style.display = 'block';
+  var sh = document.getElementById('lens-shutter'); if (sh) { sh.style.background = 'rgba(220,38,38,.85)'; sh.style.transform = 'scale(1.12)'; }
+  _lensTick = setInterval(function() {
+    _lensDraw(v);
+    var el = Math.floor((Date.now() - t0) / 1000);
+    _setText('lens-rec-time', Math.floor(el / 60) + ':' + ('0' + (el % 60)).slice(-2));
+    if (el >= 90) _lensStopRec();   // Clips cap
+  }, 33);
+  _lensRec.start(500);
+}
+function _lensStopRec() { if (_lensRec && _lensRec.state === 'recording') { try { _lensRec.stop(); } catch (e) {} } }
+function _lensAttach(file) {
+  closePhxLens();
+  _composerMediaFile = file;
+  _composerFilter = 'none';   // the look is baked into the capture itself
+  _composerStamp = false; _composerPosterTime = null; _composerAudioMode = 'original';
+  var nameEl = document.getElementById('composer-media-name');
+  if (nameEl) { nameEl.textContent = '✓ Captured with PHX Lens (' + (file.size / 1048576).toFixed(1) + ' MB)'; nameEl.style.color = 'var(--green)'; nameEl.style.display = 'block'; }
+  renderMediaPreview();
+  showToast(file.type.indexOf('video') === 0 ? '🎬 Clip captured' : '📸 Shot captured');
+}
+
 // ── Song picker: searchable sheet with cover art (the IG music-sticker feel) ──
 async function openTrackSheet() {
   await populateComposerTracks();
@@ -5566,6 +5813,7 @@ function pickComposerTrack(id) {
   }
   var sheet = document.getElementById('track-sheet');
   if (sheet) sheet.style.display = 'none';
+  if (typeof _refreshAudioOpts === 'function') _refreshAudioOpts();
 }
 
 async function populateComposerTracks() {
@@ -6026,10 +6274,20 @@ async function submitFeedPost() {
     var uploadFile = _composerMediaFile;
     if (_composerMediaFile.type.indexOf('image/') === 0) {
       uploadFile = await applyFilterToImage(_composerMediaFile, PHOTO_FILTERS[_composerFilter].css);
-    } else if (/^video\//.test(_composerMediaFile.type) && (_composerFilter !== 'none' || _composerStamp)) {
-      if (postBtn) postBtn.textContent = 'Styling…';
-      uploadFile = await _bakeVideo(_composerMediaFile, PHOTO_FILTERS[_composerFilter].css, _composerStamp, postBtn);
-      if (postBtn) postBtn.textContent = 'Uploading…';
+    } else if (/^video\//.test(_composerMediaFile.type)) {
+      var wantsSong = _composerAudioMode !== 'original' && trackSel && trackSel.value;
+      if (_composerFilter !== 'none' || _composerStamp || wantsSong) {
+        var audioOpts = { mode: 'original' };
+        if (wantsSong) {
+          if (postBtn) postBtn.textContent = 'Fetching song…';
+          var songUrl = await getPlayableUrl(trackSel.value);
+          if (songUrl) audioOpts = { mode: _composerAudioMode, songUrl: songUrl, songVol: _composerSongVol };
+          else showToast('⚠️ Could not load the song audio — posting with video sound.');
+        }
+        if (postBtn) postBtn.textContent = 'Styling…';
+        uploadFile = await _bakeVideo(_composerMediaFile, PHOTO_FILTERS[_composerFilter].css, _composerStamp, postBtn, audioOpts);
+        if (postBtn) postBtn.textContent = 'Uploading…';
+      }
     }
     if (uploadFile.size > 52428800) {
       if (postBtn) { postBtn.textContent = 'Post'; postBtn.disabled = false; }
@@ -6093,6 +6351,7 @@ async function submitFeedPost() {
   _composerFilter = 'none';
   _composerStamp = false;
   _composerPosterTime = null;
+  _composerAudioMode = 'original';
   if (typeof pickComposerTrack === 'function') pickComposerTrack('');
   var pv = document.getElementById('composer-media-preview'); if (pv) { pv.style.display = 'none'; pv.innerHTML = ''; }
   if (textEl) textEl.value = '';
@@ -8607,6 +8866,22 @@ function _hasStoredSession() {
   return false;
 }
 var _authGraceTries = 0;
+// ── Boot veil control: reveal once, when the app knows who it's drawing for ──
+var _bootRevealed = false, _bootStart = Date.now();
+function _revealApp() {
+  if (_bootRevealed) return;
+  _bootRevealed = true;
+  var v = document.getElementById('boot-veil');
+  if (!v) return;
+  // Vanity routing settles ~250ms in; never reveal before 350ms so the first
+  // paint the person sees is the final layout, not a mid-swap frame.
+  var wait = Math.max(0, 380 - (Date.now() - _bootStart));
+  setTimeout(function() {
+    v.style.opacity = '0';
+    setTimeout(function(){ v.remove(); }, 350);
+  }, wait);
+}
+setTimeout(_revealApp, 4500);   // failsafe: never trap anyone behind the veil
 function applyAuthLanding() {
   var landing = document.getElementById('auth-landing');
   var card = document.getElementById('auth-card');
@@ -8622,6 +8897,7 @@ function applyAuthLanding() {
     return;
   }
   landing.style.display = show ? 'block' : 'none';
+  if (show) _revealApp();
   var close = document.getElementById('auth-close');
   if (close) close.style.display = show ? 'none' : '';
   // The landing already says PHX in lights — the card's mini-header is
@@ -10263,6 +10539,7 @@ async function applyAccountRole() {
   if (!_authUser) {
     _accountRole = 'explorer';
     _roleResolved = true;
+  if (typeof _revealApp === "function") setTimeout(_revealApp, 60);
     _whenDomReady(function(){ setRole('explorer'); });
     return;
   }
@@ -10315,6 +10592,7 @@ async function applyAccountRole() {
   if (needsAdminDom || needsArtistDom) { window.location.reload(); return; }
   _accountRole = role;   // the one place this is ever assigned
   _roleResolved = true;
+  if (typeof _revealApp === "function") setTimeout(_revealApp, 60);
   // Surface split: /studio is the ops surface, /app is the member app.
   // A staff account at /app gets the regular member experience (their
   // pages/artist tools live in Profile → My Pages); at /studio they get
