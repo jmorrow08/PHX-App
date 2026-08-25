@@ -545,6 +545,11 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
 .composer-voice-caret{position:absolute;right:-5px;bottom:-3px;width:17px;height:17px;border-radius:50%;background:var(--bg2);border:1px solid var(--border);color:var(--muted);font-size:.62rem;display:flex;align-items:center;justify-content:center;pointer-events:none}
 /* Drawer: on phones the bottom tabs own these five — no doubles in the menu */
 @media(max-width:768px){.sb-nav .nav-dup{display:none}}
+.ld-card .sh{cursor:pointer;user-select:none}
+.ld-card .ld-chev{margin-left:.4rem;color:var(--faint);font-size:.7rem;transition:transform .18s}
+.ld-card.open .ld-chev{transform:rotate(90deg)}
+.ld-card .ld-body{display:none}
+.ld-card.open .ld-body{display:block}
 .pm-mode.on,.pm-range.on,.pm-cat.on{color:var(--orange);border-color:rgba(249,115,22,.45)}
 .pm-card{display:flex;gap:14px;align-items:flex-start;background:var(--bg3);border-radius:var(--r-m);padding:.9rem 1rem;margin-bottom:.6rem}
 .pm-kind{font:600 .58rem var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--orange-l);border:1px solid rgba(249,115,22,.35);border-radius:999px;padding:.12rem .5rem;white-space:nowrap}
@@ -1077,14 +1082,6 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
          capabilities — future scoped logins (Bryce, staff) are a config row
          in STUDIO_ROLE_CAPS, not a markup rebuild. -->
     <div id="studio-nav"></div>
-    <div class="sb-section">My Pages</div>
-    <button class="nav-item" onclick="openMyPage()"><span class="icon">⭐</span>My Page</button>
-    <button class="nav-item" onclick="openMyFollowers()"><span class="icon">👥</span>Followers</button>
-    <button class="nav-item" onclick="openMyFollowers(\'following\')"><span class="icon">➕</span>Following</button>
-    <div class="sb-section">My Artist</div>
-    <button class="nav-item" onclick="showView('artist-tracks')"><span class="icon">🎼</span>My Tracks</button>
-    <button class="nav-item" onclick="showView('artist-submit')"><span class="icon">⬆️</span>Submit Track</button>
-    <button class="nav-item" onclick="showView('artist-earnings')"><span class="icon">💵</span>My Earnings</button>
   </nav>
 
   <!-- Member bottom row -->
@@ -2123,51 +2120,58 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
         <div class="admin-kpi"><div class="admin-kpi-val" style="color:var(--teal)" id="ld-signups">—</div><div class="admin-kpi-label">Signups today</div><div class="admin-kpi-change" style="color:var(--muted)" id="ld-redemptions"></div></div>
         <div class="admin-kpi"><div class="admin-kpi-val" style="color:var(--green)" id="ld-email">—</div><div class="admin-kpi-label">Emails sent today</div><div class="admin-kpi-change" id="ld-email-sub" style="color:var(--muted)"></div></div>
       </div>
-      <div class="card" style="margin-bottom:1rem">
-        <div class="sh" style="margin-bottom:.6rem"><h3>Email queue</h3>
+      <div class="card ld-card" id="ld-card-email" style="margin-bottom:1rem">
+        <div class="sh" onclick="ldToggle(event, this)" style="margin-bottom:.6rem"><h3>Email queue</h3><span class="ld-chev">▶</span>
           <span class="badge badge-orange" id="ld-email-badge">…</span>
           <button class="tb-btn" style="margin-left:auto;font-size:.74rem;padding:.28rem .6rem" onclick="runEmailDrainer(this)">Send queued now</button></div>
+        <div class="ld-body">
         <div style="font-size:.78rem;color:var(--muted);margin-bottom:.7rem">Delivers automatically every 5 minutes. The button retries failures and pushes everything queued immediately.</div>
         <div id="ld-email-list"><div class="pf-empty">Loading…</div></div>
       </div>
-      <div class="card" style="margin-bottom:1rem">
-        <div class="sh" style="margin-bottom:.6rem"><h3>Access requests</h3>
+      <div class="card ld-card" id="ld-card-access" style="margin-bottom:1rem">
+        <div class="sh" onclick="ldToggle(event, this)" style="margin-bottom:.6rem"><h3>Access requests</h3><span class="ld-chev">▶</span>
           <span class="badge badge-orange" id="access-req-count">…</span>
           <button class="tb-btn" style="margin-left:auto;font-size:.74rem;padding:.28rem .6rem" onclick="loadAccessRequests()">↻</button></div>
+        <div class="ld-body">
         <div style="font-size:.78rem;color:var(--muted);margin-bottom:.7rem">Approving mints a single-use code and queues the email. Waitlisting keeps them for later.</div>
         <div id="access-requests-list"><div class="pf-empty">Loading…</div></div>
       </div>
-      <div class="card" style="margin-bottom:1rem">
-        <div class="sh" style="margin-bottom:.6rem"><h3>Claim codes</h3>
+      <div class="card ld-card" id="ld-card-claims" style="margin-bottom:1rem">
+        <div class="sh" onclick="ldToggle(event, this)" style="margin-bottom:.6rem"><h3>Claim codes</h3><span class="ld-chev">▶</span>
           <button class="tb-btn" style="margin-left:auto;font-size:.74rem;padding:.28rem .6rem" onclick="loadAdminRoster()">↻ Refresh</button></div>
+        <div class="ld-body">
         <div style="font-size:.78rem;color:var(--muted);margin-bottom:.7rem">Hand these to the person they belong to. Signing up with the code transfers ownership instantly.</div>
         <div id="admin-claim-codes"><div class="pf-empty">Loading…</div></div>
       </div>
-      <div class="card" style="margin-bottom:1rem">
-        <div class="sh" style="margin-bottom:.6rem"><h3>Invites &amp; referrals</h3>
+      <div class="card ld-card" id="ld-card-invites" style="margin-bottom:1rem">
+        <div class="sh" onclick="ldToggle(event, this)" style="margin-bottom:.6rem"><h3>Invites &amp; referrals</h3><span class="ld-chev">▶</span>
           <button class="tb-btn" style="margin-left:auto;font-size:.74rem;padding:.28rem .6rem" onclick="openCodeGen()">+ Generate code</button></div>
+        <div class="ld-body">
         <div style="font-size:.78rem;color:var(--muted);margin-bottom:.7rem">Who invited whom. Every signup must redeem a code — there is no open sign-up. Codes are typed: an <strong>Artist</strong> code lands the person in the artist lane, a <strong>Member</strong> code in the member lane.</div>
         <div id="admin-invites"><div class="pf-empty">Loading…</div></div>
       </div>
-      <div class="card" style="margin-bottom:1rem">
-        <div class="sh" style="margin-bottom:.6rem"><h3>Event queue</h3>
+      <div class="card ld-card open" id="ld-card-events" style="margin-bottom:1rem">
+        <div class="sh" onclick="ldToggle(event, this)" style="margin-bottom:.6rem"><h3>Event queue</h3><span class="ld-chev">▶</span>
           <span class="badge badge-orange" id="eq-badge">…</span>
           <button class="tb-btn" style="margin-left:auto;font-size:.74rem;padding:.28rem .6rem" onclick="loadEventQueue()">↻</button></div>
+        <div class="ld-body">
         <div style="font-size:.78rem;color:var(--muted);margin-bottom:.7rem">Low-trust ingested events wait here for a 1-tap approve before they hit the Plug Map. Trusted feeds (Ticketmaster, venue-direct) publish automatically.</div>
         <div id="event-queue-list"><div class="pf-empty">Loading…</div></div>
       </div>
-      <div class="card" style="margin-bottom:1rem">
-        <div class="sh" style="margin-bottom:.6rem"><h3>Shows &amp; RSVPs</h3>
+      <div class="card ld-card" id="ld-card-rsvps" style="margin-bottom:1rem">
+        <div class="sh" onclick="ldToggle(event, this)" style="margin-bottom:.6rem"><h3>Shows &amp; RSVPs</h3><span class="ld-chev">▶</span>
           <span class="badge badge-teal" id="ld-rsvp-badge">…</span>
           <button class="tb-btn" style="margin-left:auto;font-size:.74rem;padding:.28rem .6rem" onclick="loadShowRsvps()">↻</button></div>
+        <div class="ld-body">
         <div style="font-size:.78rem;color:var(--muted);margin-bottom:.7rem">Who tapped "I'm going." Everyone on the list gets an automatic reminder the day before.</div>
         <div id="ld-rsvp-list"><div class="pf-empty">Loading…</div></div>
       </div>
-      <div class="card">
-        <div class="sh" style="margin-bottom:.6rem"><h3>Everyone on PHX</h3><span class="badge badge-orange" id="roster-count">…</span></div>
+      <div class="card ld-card" id="ld-card-roster">
+        <div class="sh" onclick="ldToggle(event, this)" style="margin-bottom:.6rem"><h3>Everyone on PHX</h3><span class="ld-chev">▶</span><span class="badge badge-orange" id="roster-count">…</span></div>
+        <div class="ld-body">
         <div id="admin-roster-list"><div class="pf-empty">Loading…</div></div>
       </div>
-    </div>
+    </div></div></div></div></div></div></div></div>
 
     <!-- ADMIN — MERCH CONNECTIONS (stores are PHX-operated; artists never log in) -->
     <div class="view" id="v-admin-merch">
@@ -4947,7 +4951,8 @@ async function loadPlugMap() {
         '<div style="flex:1;min-width:0">' +
           '<div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap"><span class="pm-kind">' + (KIND[e.kind] || 'Event') + '</span>' +
             (e.artist_name ? artistLinkHtml(e.artist_name, e.artist_slug) : '') + '</div>' +
-          '<div style="font-family:var(--disp);font-size:.95rem;font-weight:700;margin-top:.25rem">' + escapeHtml(e.title) + '</div>' +
+          '<div style="font-family:var(--disp);font-size:.95rem;font-weight:700;margin-top:.25rem">' + escapeHtml(e.title) +
+            (e.status_note ? ' <span style="font:600 .58rem var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--gold);border:1px solid rgba(234,179,8,.4);border-radius:999px;padding:.1rem .45rem">' + escapeHtml(e.status_note) + '</span>' : '') + '</div>' +
           '<div style="font-size:.76rem;color:var(--muted);margin-top:2px;line-height:1.45">' + escapeHtml(tp.time) + ' · ' + escapeHtml(where) + (price ? '<br>' + escapeHtml(price) : '') + '</div>' +
           '<div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;margin-top:.55rem">' +
             (e.src === 'show' ? '<button class="tb-btn" id="rsvp-' + e.id + '" style="font-size:.7rem;padding:.3rem .6rem" onclick="toggleRsvpUI(\'' + e.id + '\', this)">🙋 I\'m going</button>' : '') +
@@ -7904,6 +7909,17 @@ async function loadLaunchDesk() {
     }).join('') : '<div class="pf-empty">No emails yet — approvals and code sends will show here.</div>';
   }
 }
+// Launch Desk accordion: tap a card header to fold/unfold; queues with work
+// waiting pop themselves open so nothing pending hides behind a fold.
+function ldToggle(ev, el) {
+  if (ev && ev.target && ev.target.closest('button, a, input, select')) return;
+  el.closest('.ld-card').classList.toggle('open');
+}
+function ldOpenIf(cardId, condition) {
+  var c = document.getElementById(cardId);
+  if (c && condition) c.classList.add('open');
+}
+
 // Feature claims queue: who says a credit is theirs, and on which tracks
 async function loadFeatureClaims() {
   var list = document.getElementById('feature-claims-list');
@@ -8006,17 +8022,55 @@ async function loadEventQueue() {
   if (res.error || !d.ok) { list.innerHTML = '<div class="pf-empty">Could not load the queue.</div>'; return; }
   var evs = d.events || [];
   _setText('eq-badge', evs.length + ' waiting');
-  list.innerHTML = evs.length ? evs.map(function(e) {
-    var when = new Date(e.starts_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    return '<div style="border-bottom:1px solid var(--border);padding:.55rem 0">' +
-      '<div style="font-size:.84rem"><span style="font:600 .66rem var(--mono);color:var(--orange);margin-right:.5rem">' + escapeHtml(when) + '</span><strong>' + escapeHtml(e.title) + '</strong>' +
-        (e.venue ? ' <span style="color:var(--muted)">@ ' + escapeHtml(e.venue) + '</span>' : '') + '</div>' +
-      '<div style="display:flex;gap:.5rem;margin-top:.35rem">' +
-        '<button class="tb-btn" style="font-size:.72rem;color:var(--green);border-color:rgba(34,197,94,.35)" onclick="decideEventQueue(\'' + e.id + '\', true, this)">✓ Publish</button>' +
-        '<button class="tb-btn" style="font-size:.72rem;color:var(--red)" onclick="decideEventQueue(\'' + e.id + '\', false, this)">✕ Reject</button>' +
-        (e.source_url ? '<a class="tb-btn" style="font-size:.72rem;text-decoration:none" target="_blank" rel="noopener" href="' + safeUrl(e.source_url) + '">Source ↗</a>' : '') +
+  ldOpenIf('ld-card-events', evs.length > 0);
+  var KINDL = { show:'Show', open_mic:'Open mic', community:'Community', family:'Family', food_drink:'Food & drink', nightlife:'Nightlife', art:'Art', sports:'Sports', market:'Market', other:'Event' };
+  list.innerHTML = (evs.length
+    ? '<div style="display:flex;justify-content:flex-end;margin-bottom:.5rem">' +
+        '<button class="tb-btn" style="font-size:.74rem;color:var(--orange);border-color:rgba(249,115,22,.4)" onclick="askAshEventQueue(this)">🐦‍🔥 Ash, review these</button></div>' +
+      '<div id="eq-ash-verdict" style="display:none;background:var(--bg4);border:1px solid rgba(249,115,22,.3);border-radius:12px;padding:.8rem 1rem;font-size:.8rem;line-height:1.6;margin-bottom:.7rem;white-space:pre-wrap"></div>'
+    : '') +
+  (evs.length ? evs.map(function(e) {
+    var d = new Date(e.starts_at);
+    var when = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) + ' · ' +
+               d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    var cover = safeUrl(e.cover_url);
+    return '<div style="display:flex;gap:.7rem;border-bottom:1px solid var(--border);padding:.65rem 0">' +
+      (cover ? '<img src="' + cover + '" alt="" loading="lazy" style="width:52px;height:52px;border-radius:9px;object-fit:cover;flex-shrink:0;cursor:pointer" onclick="window.open(\'' + cover + '\',\'_blank\')">'
+             : '<div style="width:52px;height:52px;border-radius:9px;background:var(--bg4);display:flex;align-items:center;justify-content:center;flex-shrink:0">🗺️</div>') +
+      '<div style="flex:1;min-width:0">' +
+        '<div style="font-size:.84rem"><strong>' + escapeHtml(e.title) + '</strong> <span class="pm-kind" style="font-size:.54rem">' + (KINDL[e.kind] || 'Event') + '</span></div>' +
+        '<div style="font-size:.74rem;color:var(--muted);margin-top:2px">' + escapeHtml(when) +
+          (e.venue ? ' · ' + escapeHtml(e.venue) + (e.venue_known ? ' ✓' : ' <span style="color:var(--gold)">(new venue)</span>') : ' · <span style="color:var(--gold)">no venue</span>') +
+          (e.price_text ? ' · ' + escapeHtml(e.price_text) : '') + '</div>' +
+        '<div style="font-size:.72rem;color:var(--faint);margin-top:2px">via ' + escapeHtml(e.source || '—') +
+          (e.submitter ? ' — ' + escapeHtml(e.submitter) : '') + '</div>' +
+        (e.description ? '<div style="font-size:.74rem;color:var(--muted);margin-top:.25rem">' + escapeHtml(e.description) + '</div>' : '') +
+        '<div style="display:flex;gap:.5rem;margin-top:.45rem;flex-wrap:wrap">' +
+          '<button class="tb-btn" style="font-size:.72rem;color:var(--green);border-color:rgba(34,197,94,.35)" onclick="decideEventQueue(\'' + e.id + '\', true, this)">✓ Publish</button>' +
+          '<button class="tb-btn" style="font-size:.72rem;color:var(--red)" onclick="decideEventQueue(\'' + e.id + '\', false, this)">✕ Reject</button>' +
+          (e.ticket_url ? '<a class="tb-btn" style="font-size:.72rem;text-decoration:none" target="_blank" rel="noopener" href="' + safeUrl(e.ticket_url) + '">Tickets ↗</a>' : '') +
+          (e.source_url ? '<a class="tb-btn" style="font-size:.72rem;text-decoration:none" target="_blank" rel="noopener" href="' + safeUrl(e.source_url) + '">Source ↗</a>' : '') +
+        '</div>' +
       '</div></div>';
-  }).join('') : '<div class="pf-empty">Queue is clear — trusted feeds publish straight to the map.</div>';
+  }).join('') : '<div class="pf-empty">Queue is clear — trusted feeds publish straight to the map.</div>');
+}
+
+// One tap: Ash reads the queue, verifies sources, and reports LEGIT/SUSPICIOUS
+// per event. If you then tell Ash "publish the legit ones," its proposal lands
+// in Configure → Ash for your one-tap approval — the covenant holds.
+async function askAshEventQueue(btn) {
+  if (btn) { btn.disabled = true; btn.textContent = '🐦‍🔥 Ash is checking…'; }
+  var out = document.getElementById('eq-ash-verdict');
+  if (out) { out.style.display = 'block'; out.textContent = 'Reviewing the queue — checking sources, venues, dates, and duplicates…'; }
+  try {
+    var res = await _sb.functions.invoke('ash', { body: { messages: [{ role: 'user', content:
+      'Review the pending event queue. For each draft give a verdict — LEGIT / LIKELY / SUSPICIOUS — with one short reason (verify against the source page where it matters). End with a one-line recommendation of which to publish and which to reject. Do not propose any action yet.' }] } });
+    var d = res.data || {};
+    if (out) out.textContent = d.text || d.error || 'Ash could not respond.';
+  } catch (e) {
+    if (out) out.textContent = 'Ash is unreachable right now.';
+  }
+  if (btn) { btn.disabled = false; btn.textContent = '🐦‍🔥 Ash, review these'; }
 }
 async function decideEventQueue(id, approve, btn) {
   if (btn) btn.disabled = true;
