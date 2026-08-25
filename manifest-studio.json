@@ -2,6 +2,8 @@
   "name": "PHX Studio — Operations",
   "short_name": "Studio",
   "description": "PHX operations: roster, codes, payouts, growth, activity. Admin accounts only.",
+  "id": "/studio",
+  "scope": "/studio",
   "start_url": "/studio",
   "display": "standalone",
   "background_color": "#07070F",

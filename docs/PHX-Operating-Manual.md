@@ -153,3 +153,14 @@ _Everything below is live in production. Recorded here so Ash, future hires, and
 - **Launch Desk**: accordion cards (pending queues auto-open), rich event-queue rows (art, date/time, venue-known ✓, source, submitter). Admin sidebar no longer carries My Pages/My Artist (those live at /app).
 - **Feed, FB-grade on mobile**: posts edge-to-edge with hairline separators, full-bleed media, brighter text, redundant Home title bar hidden; composer collapses to one calm line until touched; photo lightbox with swipe-down dismiss; Clips exits with a right-swipe or the ‹ chevron.
 - **Fixes**: /studio routing deterministic (transient signed-out resolution can't strand it on Home); artist genre inherits from first live track (DubsUpEnt backfilled Hip-Hop).
+
+---
+
+## Update — August 26, 2026 (the player learns to DJ)
+
+- **Tap-to-play lag fixed at the root**: the track-row fetch and the sign-audio signed-URL mint used to run in *series* — now they run in parallel (`playTrackById` warms the URL while the metadata loads), in-flight mints are deduped (`_signedAudioPending`), and `PHX_AUDIO` preloads `auto` instead of `metadata`.
+- **Song-to-song gap gone**: while a track plays, the *next* queue track's signed URL is minted and its bytes pre-buffered in a muted throwaway element (`_prefetchNextInQueue`, 1.5s after playback starts). The hop costs zero network.
+- **AutoMix crossfade** (Apple-Music-DJ style): last ~6 seconds, the outgoing tail keeps playing on a disposable "ghost" audio element fading down while the incoming song fades up on the real player. Stream counting, listen-time and lock-screen stay bound to PHX_AUDIO — rules identical to a manual skip. Toggle lives under the transport controls in the expanded player (`phx_automix` in localStorage, default ON). **iOS caveat, by design**: Safari ignores `.volume` on media elements, so iPhones get the instant gapless hop instead of the fade — feature-detected (`_canFade`), and we deliberately do NOT route through WebAudio (it would enable fades but break background/lock-screen playback). Skipped for tracks under 45s and under shuffle (next is unknowable).
+- **Ash digest is now a door**: tapping the morning-digest notification (type `system`, target `digest`) opens Studio → Ash for admins. `openNotification` now receives `target_type`; system rows read "sent a briefing".
+- **Profile hero revamp** (FB-inspired, PHX-toned): taller banner (220px / 158px mobile), bigger avatar with deeper overlap and an ember ring (108px / 88px mobile), full-bleed hero on mobile matching the feed, larger display name. Applies to artists, members and pages — one shared `profileHeroHtml`.
+- **PWA identity fix**: both manifests now declare explicit `id` + `scope` (`/app.html` + `/`, `/studio` + `/studio`). Without ids the two installs could collide as "the same app" in Chromium. iOS installs saved before the /studio routing fix should be deleted and re-added from thephx.app/studio.

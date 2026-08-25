@@ -2,6 +2,8 @@
   "name": "PHX App — Phoenix Culture Platform",
   "short_name": "PHX",
   "description": "602 Culture. One App. Music, events, eats, fashion, podcasts and more — built for Phoenix. Powered by Murkemz + Plug City Records.",
+  "id": "/app.html",
+  "scope": "/",
   "start_url": "/app.html",
   "display": "standalone",
   "background_color": "#07070F",

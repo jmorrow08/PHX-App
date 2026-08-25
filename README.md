@@ -198,3 +198,6 @@ Media pipeline (filters/Lens/soundtrack/posters), boot-render discipline (veil, 
 
 ## August 25, 2026
 Ash v5 (audit log, event-queue review, morning digest), cancellation watch, Launch Desk accordion, FB-grade mobile feed, lightbox + Clips swipe-exit. Detail: docs/PHX-Operating-Manual.md.
+
+## August 26, 2026
+Player: parallel URL minting + next-track prefetch (no tap lag, no gap), AutoMix crossfade (gapless fallback on iOS), digest notification opens Ash, profile hero revamp, PWA manifest ids. Detail: docs/PHX-Operating-Manual.md.

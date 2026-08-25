@@ -598,7 +598,7 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
    ═══════════════════════════════════════════════════════════════════════ */
 .pf{margin-bottom:1.1rem}
 .pf-hero{position:relative;border-radius:var(--r-m);overflow:hidden;background:var(--bg3)}
-.pf-banner{height:190px;background-size:cover;background-position:center;background-repeat:no-repeat;position:relative}
+.pf-banner{height:220px;background-size:cover;background-position:center;background-repeat:no-repeat;position:relative}
 /* No banner? A generated one — city-toned, never a gray box. */
 .pf-banner.pf-gen{background:
   radial-gradient(120% 140% at 12% 0%, rgba(249,115,22,.42) 0%, transparent 58%),
@@ -609,16 +609,16 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
 /* Scrim: keeps text legible over ANY uploaded photo */
 .pf-banner::after{content:'';position:absolute;inset:0;
   background:linear-gradient(180deg,rgba(7,7,15,.10) 0%,rgba(7,7,15,.45) 45%,rgba(19,19,37,.94) 88%,var(--bg3) 100%)}
-.pf-id{position:relative;margin-top:-46px;padding:0 1.2rem 1rem;display:flex;align-items:flex-end;gap:.9rem;z-index:2}
-.pf-ava{width:92px;height:92px;border-radius:20px;flex-shrink:0;overflow:hidden;
-  border:3px solid var(--bg3);box-shadow:0 10px 30px rgba(0,0,0,.55);
+.pf-id{position:relative;margin-top:-56px;padding:0 1.2rem 1rem;display:flex;align-items:flex-end;gap:.9rem;z-index:2}
+.pf-ava{width:108px;height:108px;border-radius:24px;flex-shrink:0;overflow:hidden;
+  border:4px solid var(--bg3);box-shadow:0 10px 30px rgba(0,0,0,.55),0 0 0 1px rgba(249,115,22,.18);
   background:linear-gradient(150deg,#EA580C,#7C3AED);
   display:flex;align-items:center;justify-content:center;
   font-family:var(--disp);font-size:2.3rem;font-weight:700;color:#fff;line-height:1}
 .pf-ava.round{border-radius:50%}
 .pf-ava img{width:100%;height:100%;object-fit:cover;display:block}
 .pf-idtext{flex:1;min-width:0;padding-bottom:.2rem}
-.pf-name{font-family:var(--disp);font-size:1.55rem;font-weight:700;letter-spacing:-.025em;line-height:1.15;
+.pf-name{font-family:var(--disp);font-size:1.7rem;font-weight:700;letter-spacing:-.025em;line-height:1.15;
   display:flex;align-items:center;gap:.45rem;flex-wrap:wrap}
 .pf-meta{font-size:.78rem;color:var(--muted);margin-top:.15rem}
 .pf-body{padding:0 1.2rem 1.2rem}
@@ -669,10 +669,11 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
 .pf-post-meta{font-size:.72rem;color:var(--faint);margin-top:.35rem}
 .pf-empty{color:var(--faint);font-size:.83rem;padding:1rem 0}
 @media(max-width:640px){
-  .pf-banner{height:140px}
-  .pf-id{margin-top:-38px;gap:.7rem;padding:0 .9rem .8rem}
-  .pf-ava{width:74px;height:74px;border-radius:16px;font-size:1.85rem}
-  .pf-name{font-size:1.25rem}
+  .pf-hero{margin:0 -0.85rem;border-radius:0}
+  .pf-banner{height:158px}
+  .pf-id{margin-top:-46px;gap:.75rem;padding:0 .95rem .85rem}
+  .pf-ava{width:88px;height:88px;border-radius:20px;font-size:2rem;border-width:3px}
+  .pf-name{font-size:1.35rem}
   .pf-body{padding:0 .9rem 1rem}
   .pf-merch{grid-template-columns:repeat(2,1fr);gap:.6rem}
 }
@@ -2458,6 +2459,7 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
       <button class="ps-ctrl" title="Next" data-picon="next" onclick="nextTrack()"></button>
       <button class="ps-ctrl ghost" id="ctrl-repeat" aria-pressed="false" title="Repeat" onclick="toggleRepeat()"></button>
     </div>
+    <div style="text-align:center;margin:.55rem 0 0"><button class="pf-btn" id="automix-toggle" style="font-size:.7rem;padding:.32rem .85rem" onclick="toggleAutoMix()">∿ AutoMix</button></div>
     <div class="sh" style="margin:1rem 0 .4rem"><h3 style="font-size:.82rem">Up Next</h3><span style="font-size:.7rem;color:var(--muted);margin-left:auto" id="queue-count">—</span></div>
     <div class="track-list queue-list" id="queue-list"><div class="pf-empty">Play something and the queue builds itself.</div></div>
     <div class="sh" style="margin:1rem 0 .4rem"><h3 style="font-size:.82rem">Recently Played</h3></div>
@@ -3310,22 +3312,31 @@ function trackEvent(eventType, entityType, entityId, metadata) {
 // Signed audio URLs — the private bucket's only read path. Cached until
 // shortly before the server-side expiry.
 var _signedAudio = {};
+var _signedAudioPending = {};
 async function getPlayableUrl(trackUuid) {
   var c = _signedAudio[trackUuid];
   if (c && c.exp > Date.now()) return c.url;
-  try {
-    var res = await _sb.functions.invoke('sign-audio', { body: { track_id: trackUuid } });
-    if (res.error || !res.data || !res.data.url) return null;
-    _signedAudio[trackUuid] = { url: res.data.url, exp: Date.now() + 50 * 60 * 1000 };
-    return res.data.url;
-  } catch (e) { return null; }
+  // Two callers racing for the same track (tap + prefetch) share one mint —
+  // without this the parallel warm-up would double every sign-audio call.
+  if (_signedAudioPending[trackUuid]) return _signedAudioPending[trackUuid];
+  var p = (async function() {
+    try {
+      var res = await _sb.functions.invoke('sign-audio', { body: { track_id: trackUuid } });
+      if (res.error || !res.data || !res.data.url) return null;
+      _signedAudio[trackUuid] = { url: res.data.url, exp: Date.now() + 50 * 60 * 1000 };
+      return res.data.url;
+    } catch (e) { return null; }
+    finally { delete _signedAudioPending[trackUuid]; }
+  }());
+  _signedAudioPending[trackUuid] = p;
+  return p;
 }
 
 // Hidden audio element for real playback
 var PHX_AUDIO = (function() {
   var a = document.createElement('audio');
   a.id = 'phx-audio';
-  a.preload = 'metadata';
+  a.preload = 'auto';
   document.body.appendChild(a);
   // Album-style auto-advance: when a track finishes, close out its
   // listen-time and roll to the next one (keeps lock-screen sessions alive)
@@ -3513,6 +3524,7 @@ function pauseAudio() {
   _finalizeListen();
   clearStreamTimer();
   if (PHX_AUDIO) PHX_AUDIO.pause();
+  if (typeof _ghostKill === 'function') _ghostKill();
   if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';
 }
 
@@ -3860,13 +3872,25 @@ function playTrack(el, title, artist, feat, album, duration, trackId, streamCoun
   // by the sign-audio edge function, which enforces tier gates server-side.
   var uuid = TRACK_IDS[trackId] || trackId;
   var hasAudio = !!TRACK_AUDIO_URLS[uuid];
+  // AutoMix handshake: when this play is the fade-in half of a crossfade the
+  // ghost element is carrying the outgoing tail — leave it playing. Any other
+  // play (manual tap, cold start) kills a leftover ghost on the spot.
+  var wantFadeIn = (typeof _mixFadeIn !== 'undefined' && _mixFadeIn);
+  if (typeof _mixFadeIn !== 'undefined') _mixFadeIn = false;
+  if (!wantFadeIn && typeof _ghostKill === 'function') _ghostKill();
+  if (typeof _mixArmed !== 'undefined') _mixArmed = false;
   if (PHX_AUDIO) {
     PHX_AUDIO.src = '';
     if (hasAudio) {
       getPlayableUrl(uuid).then(function(url) {
         if (!url || streamData.currentTrack !== trackId) return;
         PHX_AUDIO.src = url;
+        if (wantFadeIn && typeof _mixFadeInStart === 'function') _mixFadeInStart();
+        else if (typeof _canFade === 'function' && _canFade()) { try { PHX_AUDIO.volume = 1; } catch (e) {} }
         if (streamData.playing) PHX_AUDIO.play().catch(function(){});
+        // With this track rolling, quietly line up the next one so the
+        // song-to-song hop (or crossfade) has zero network wait in it.
+        setTimeout(function(){ if (typeof _prefetchNextInQueue === 'function') _prefetchNextInQueue(); }, 1500);
       });
     }
   }
@@ -6764,12 +6788,12 @@ function renderNotifList(items) {
     list.innerHTML = '<div style="padding:1.2rem;text-align:center;color:var(--muted);font-size:.82rem">No notifications yet.<br>Likes, comments and reposts on your posts show up here.</div>';
     return;
   }
-  var verbs = { like: 'liked your post', comment: 'commented on your post', repost: 'reposted your post', follow: 'followed you', track_share: 'shared your track', system: '', report_update: 'update on your report' };
+  var verbs = { like: 'liked your post', comment: 'commented on your post', repost: 'reposted your post', follow: 'followed you', track_share: 'shared your track', system: 'sent a briefing', report_update: 'update on your report' };
   list.innerHTML = items.map(function(n) {
     var d = new Date(n.created_at);
     var diff = Math.floor((Date.now() - d.getTime()) / 60000);
     var when = diff < 1 ? 'now' : diff < 60 ? diff + 'm' : diff < 1440 ? Math.floor(diff/60) + 'h' : Math.floor(diff/1440) + 'd';
-    return '<div onclick="openNotification(\'' + n.id + '\',\'' + n.type + '\',\'' + (n.target_id||'') + '\')" ' +
+    return '<div onclick="openNotification(\'' + n.id + '\',\'' + n.type + '\',\'' + (n.target_id||'') + '\',\'' + (n.target_type||'') + '\')" ' +
       'style="display:flex;gap:.6rem;padding:.7rem 1rem;border-bottom:1px solid var(--border);cursor:pointer;' + (n.is_read ? 'opacity:.6' : 'background:rgba(249,115,22,.05)') + '">' +
       '<span style="font-size:1.1rem">' + (n.actor_avatar||'👤') + '</span>' +
       '<div style="flex:1;min-width:0">' +
@@ -6800,8 +6824,14 @@ async function toggleNotifPanel() {
 }
 
 // Deep link: notification → the exact post, comments open if it's a comment
-async function openNotification(notifId, type, targetId) {
+async function openNotification(notifId, type, targetId, targetType) {
   toggleNotifPanel();
+  // Ash briefings live in the Studio — the digest notification is a door,
+  // not just a banner. Admin-only view; everyone else just closes the panel.
+  if (targetType === 'digest' || (type === 'system' && !targetId)) {
+    if (targetType === 'digest' && (currentRole === 'super' || currentRole === 'admin')) showView('admin-ash');
+    return;
+  }
   if (!targetId) return;
   showView('home');
   if (!_cityFeedLoaded) await loadCityFeed();
@@ -10099,6 +10129,10 @@ function playStarterTrack(trackId, el) {
 // One place that knows how to start any track from its id. Everything that
 // only has an id (starter rail, trending, search, catalog) goes through here.
 async function playTrackById(trackId, el) {
+  // The two network hops (track row + signed URL) used to run in series —
+  // that serialization WAS the tap-to-play lag. Warm the URL now; the play
+  // path hits the cache. sign-audio still enforces tier gates server-side.
+  if (TRACK_AUDIO_URLS[trackId]) getPlayableUrl(trackId);
   var res = await _sb.from('tracks')
     .select('id,title,featuring,producer,duration_seconds,cover_url,audio_url,exclusive_tier,stream_count,artists(name,slug)')
     .eq('id', trackId).maybeSingle();
@@ -10108,6 +10142,9 @@ async function playTrackById(trackId, el) {
     showToast('🔒 This track needs ' + (t.exclusive_tier === 'insider' ? 'an Insider' : 'a Native') + ' Pass');
     return;
   }
+  // Track wasn't in the local map yet (deep link, fresh page) — register it
+  // and start minting so playTrack's lookup is already in flight.
+  if (t.audio_url && !TRACK_AUDIO_URLS[t.id]) { TRACK_AUDIO_URLS[t.id] = t.audio_url; getPlayableUrl(t.id); }
   var mins = Math.floor((t.duration_seconds || 0) / 60), secs = (t.duration_seconds || 0) % 60;
   var dur = t.duration_seconds ? (mins + ':' + (secs < 10 ? '0' : '') + secs) : '0:00';
   var artistName = t.artists ? t.artists.name : 'PHX Artist';
@@ -10225,6 +10262,123 @@ function queueAdvance(dir) {
     _queuePos = (_queuePos + dir + _playQueue.length) % _playQueue.length;
   }
   return _playQueue[_queuePos];
+}
+
+// ── AUTOMIX + GAPLESS PREFETCH ─────────────────────────────────────────
+// Two-part cure for the song-to-song gap. (1) While a track plays, the next
+// queue track's signed URL is minted and its bytes warmed in a muted
+// throwaway element, so the hop costs zero network. (2) Where the platform
+// allows volume control, the last seconds crossfade DJ-style: the outgoing
+// tail keeps playing on a disposable "ghost" element fading down while the
+// incoming song fades up on the real player. Stream tracking, listen-time
+// and the lock screen all stay bound to PHX_AUDIO, so counting rules are
+// identical to a manual skip. iOS Safari ignores .volume on media elements —
+// iPhones get the gapless hop instead of the fade (feature-detected, never
+// assumed; routing through WebAudio would fix fades but kills background
+// playback, which matters more).
+var _MIX_SECONDS = 6;
+var _fadeOK = null;
+function _canFade() {
+  if (_fadeOK !== null) return _fadeOK;
+  try { var t = document.createElement('audio'); t.volume = 0.5; _fadeOK = Math.abs(t.volume - 0.5) < 0.01; }
+  catch (e) { _fadeOK = false; }
+  return _fadeOK;
+}
+var _autoMixOn = (function(){ try { return localStorage.getItem('phx_automix') !== 'off'; } catch (e) { return true; } })();
+function toggleAutoMix() {
+  if (!_canFade()) { showToast('AutoMix crossfade needs volume control \u2014 this device gets gapless playback instead'); return; }
+  _autoMixOn = !_autoMixOn;
+  try { localStorage.setItem('phx_automix', _autoMixOn ? 'on' : 'off'); } catch (e) {}
+  _syncAutoMixBtn();
+  showToast(_autoMixOn ? '\u223F AutoMix on \u2014 songs blend into each other' : 'AutoMix off');
+}
+function _syncAutoMixBtn() {
+  var b = document.getElementById('automix-toggle');
+  if (!b) return;
+  if (!_canFade()) { b.textContent = '\u223F Gapless on \u2014 crossfade unavailable on iPhone'; b.style.opacity = '.55'; return; }
+  b.textContent = '\u223F AutoMix: ' + (_autoMixOn ? 'On' : 'Off');
+  b.classList.toggle('on', _autoMixOn);
+}
+_whenDomReady(_syncAutoMixBtn);
+
+// Peek without moving the queue (queueAdvance mutates; prefetch must not)
+function _queuePeek(dir) {
+  if (_playQueue.length < 2 || _queuePos < 0) return null;
+  if (typeof _shuffleOn !== 'undefined' && _shuffleOn) return null; // next is unknowable
+  return _playQueue[(_queuePos + dir + _playQueue.length) % _playQueue.length];
+}
+
+// Warm the next track: mint its signed URL AND let the browser start
+// buffering it (a muted throwaway element primes the HTTP cache).
+var _warmAudio = null;
+function _prefetchNextInQueue() {
+  var nx = _queuePeek(1);
+  if (!nx) return;
+  getPlayableUrl(nx.id).then(function(url) {
+    if (!url) return;
+    var still = _queuePeek(1);
+    if (!still || still.id !== nx.id) return; // queue changed while minting
+    try {
+      if (!_warmAudio) { _warmAudio = new Audio(); _warmAudio.preload = 'auto'; _warmAudio.muted = true; }
+      if (_warmAudio.src !== url) { _warmAudio.src = url; _warmAudio.load(); }
+    } catch (e) {}
+  });
+}
+
+// The crossfade itself
+var _mixArmed = false, _mixFadeIn = false, _ghostAudio = null;
+function _ghostKill() {
+  if (!_ghostAudio) return;
+  try { _ghostAudio.pause(); _ghostAudio.src = ''; } catch (e) {}
+  _ghostAudio = null;
+}
+function _mixFadeInStart() {
+  if (!_canFade()) return;
+  try { PHX_AUDIO.volume = 0; } catch (e) { return; }
+  var iv = setInterval(function() {
+    var nv = PHX_AUDIO.volume + (1 / (_MIX_SECONDS * 10));
+    if (nv >= 1) { try { PHX_AUDIO.volume = 1; } catch (e) {} clearInterval(iv); }
+    else { try { PHX_AUDIO.volume = nv; } catch (e) { clearInterval(iv); } }
+  }, 100);
+}
+function _autoMixTick() {
+  if (!_autoMixOn || _mixArmed || !_canFade()) return;
+  if (typeof _repeatOn !== 'undefined' && _repeatOn) return;
+  if (!PHX_AUDIO || !PHX_AUDIO.src || PHX_AUDIO.paused) return;
+  var d = PHX_AUDIO.duration;
+  if (!d || isNaN(d) || d < 45) return;            // short tracks don't blend
+  var remain = d - PHX_AUDIO.currentTime;
+  if (remain > _MIX_SECONDS || remain <= 0.35) return;
+  var nx = _queuePeek(1);
+  if (!nx) return;
+  var cached = _signedAudio[nx.id];
+  if (!cached || cached.exp <= Date.now()) { _prefetchNextInQueue(); return; } // not warm — let 'ended' do a plain hop
+  _mixArmed = true;
+  // Ghost carries the outgoing tail down to silence
+  try {
+    _ghostKill();
+    var g = new Audio();
+    g.src = PHX_AUDIO.src;
+    g.currentTime = PHX_AUDIO.currentTime;
+    g.volume = PHX_AUDIO.volume;
+    g.play().catch(function(){});
+    _ghostAudio = g;
+    var steps = Math.max(10, Math.round(remain * 10));
+    var iv = setInterval(function() {
+      if (!_ghostAudio) { clearInterval(iv); return; }
+      var nv = _ghostAudio.volume - (1 / steps);
+      if (nv <= 0.02) { clearInterval(iv); _ghostKill(); }
+      else { try { _ghostAudio.volume = nv; } catch (e) { clearInterval(iv); _ghostKill(); } }
+    }, 100);
+  } catch (e) { _ghostKill(); }
+  // Advance the real player onto the next song, fading up
+  _mixFadeIn = true;
+  var qn = queueAdvance(1);
+  if (qn) { playTrackById(qn.id); }
+  else { _mixFadeIn = false; _ghostKill(); }
+}
+if (typeof PHX_AUDIO !== 'undefined' && PHX_AUDIO) {
+  PHX_AUDIO.addEventListener('timeupdate', function() { try { _autoMixTick(); } catch (e) {} });
 }
 
 // The Up Next panel mirrors the live queue: what's actually coming after
