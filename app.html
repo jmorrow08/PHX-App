@@ -2120,57 +2120,65 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
         <div class="admin-kpi"><div class="admin-kpi-val" style="color:var(--teal)" id="ld-signups">—</div><div class="admin-kpi-label">Signups today</div><div class="admin-kpi-change" style="color:var(--muted)" id="ld-redemptions"></div></div>
         <div class="admin-kpi"><div class="admin-kpi-val" style="color:var(--green)" id="ld-email">—</div><div class="admin-kpi-label">Emails sent today</div><div class="admin-kpi-change" id="ld-email-sub" style="color:var(--muted)"></div></div>
       </div>
-      <div class="card ld-card" id="ld-card-email" style="margin-bottom:1rem">
-        <div class="sh" onclick="ldToggle(event, this)" style="margin-bottom:.6rem"><h3>Email queue</h3><span class="ld-chev">▶</span>
-          <span class="badge badge-orange" id="ld-email-badge">…</span>
-          <button class="tb-btn" style="margin-left:auto;font-size:.74rem;padding:.28rem .6rem" onclick="runEmailDrainer(this)">Send queued now</button></div>
+      <div class="card ld-card open" id="ld-card-events" style="margin-bottom:1rem">
+        <div class="sh" onclick="ldToggle(event, this)" style="margin-bottom:.6rem"><h3>Event queue</h3><span class="ld-chev">▶</span>
+          <span class="badge badge-orange" id="eq-badge">…</span>
+          <button class="tb-btn" style="margin-left:auto;font-size:.74rem;padding:.28rem .6rem" onclick="loadEventQueue()">↻</button></div>
         <div class="ld-body">
-        <div style="font-size:.78rem;color:var(--muted);margin-bottom:.7rem">Delivers automatically every 5 minutes. The button retries failures and pushes everything queued immediately.</div>
-        <div id="ld-email-list"><div class="pf-empty">Loading…</div></div>
+          <div style="font-size:.78rem;color:var(--muted);margin-bottom:.7rem">Ingested and member-submitted events wait here for a 1-tap publish. Trusted feeds (Ticketmaster) publish automatically.</div>
+          <div id="event-queue-list"><div class="pf-empty">Loading…</div></div>
+        </div>
       </div>
       <div class="card ld-card" id="ld-card-access" style="margin-bottom:1rem">
         <div class="sh" onclick="ldToggle(event, this)" style="margin-bottom:.6rem"><h3>Access requests</h3><span class="ld-chev">▶</span>
           <span class="badge badge-orange" id="access-req-count">…</span>
           <button class="tb-btn" style="margin-left:auto;font-size:.74rem;padding:.28rem .6rem" onclick="loadAccessRequests()">↻</button></div>
         <div class="ld-body">
-        <div style="font-size:.78rem;color:var(--muted);margin-bottom:.7rem">Approving mints a single-use code and queues the email. Waitlisting keeps them for later.</div>
-        <div id="access-requests-list"><div class="pf-empty">Loading…</div></div>
-      </div>
-      <div class="card ld-card" id="ld-card-claims" style="margin-bottom:1rem">
-        <div class="sh" onclick="ldToggle(event, this)" style="margin-bottom:.6rem"><h3>Claim codes</h3><span class="ld-chev">▶</span>
-          <button class="tb-btn" style="margin-left:auto;font-size:.74rem;padding:.28rem .6rem" onclick="loadAdminRoster()">↻ Refresh</button></div>
-        <div class="ld-body">
-        <div style="font-size:.78rem;color:var(--muted);margin-bottom:.7rem">Hand these to the person they belong to. Signing up with the code transfers ownership instantly.</div>
-        <div id="admin-claim-codes"><div class="pf-empty">Loading…</div></div>
-      </div>
-      <div class="card ld-card" id="ld-card-invites" style="margin-bottom:1rem">
-        <div class="sh" onclick="ldToggle(event, this)" style="margin-bottom:.6rem"><h3>Invites &amp; referrals</h3><span class="ld-chev">▶</span>
-          <button class="tb-btn" style="margin-left:auto;font-size:.74rem;padding:.28rem .6rem" onclick="openCodeGen()">+ Generate code</button></div>
-        <div class="ld-body">
-        <div style="font-size:.78rem;color:var(--muted);margin-bottom:.7rem">Who invited whom. Every signup must redeem a code — there is no open sign-up. Codes are typed: an <strong>Artist</strong> code lands the person in the artist lane, a <strong>Member</strong> code in the member lane.</div>
-        <div id="admin-invites"><div class="pf-empty">Loading…</div></div>
-      </div>
-      <div class="card ld-card open" id="ld-card-events" style="margin-bottom:1rem">
-        <div class="sh" onclick="ldToggle(event, this)" style="margin-bottom:.6rem"><h3>Event queue</h3><span class="ld-chev">▶</span>
-          <span class="badge badge-orange" id="eq-badge">…</span>
-          <button class="tb-btn" style="margin-left:auto;font-size:.74rem;padding:.28rem .6rem" onclick="loadEventQueue()">↻</button></div>
-        <div class="ld-body">
-        <div style="font-size:.78rem;color:var(--muted);margin-bottom:.7rem">Low-trust ingested events wait here for a 1-tap approve before they hit the Plug Map. Trusted feeds (Ticketmaster, venue-direct) publish automatically.</div>
-        <div id="event-queue-list"><div class="pf-empty">Loading…</div></div>
+          <div style="font-size:.78rem;color:var(--muted);margin-bottom:.7rem">Approving mints a single-use code and queues the email. Waitlisting keeps them for later.</div>
+          <div id="access-requests-list"><div class="pf-empty">Loading…</div></div>
+        </div>
       </div>
       <div class="card ld-card" id="ld-card-rsvps" style="margin-bottom:1rem">
         <div class="sh" onclick="ldToggle(event, this)" style="margin-bottom:.6rem"><h3>Shows &amp; RSVPs</h3><span class="ld-chev">▶</span>
           <span class="badge badge-teal" id="ld-rsvp-badge">…</span>
           <button class="tb-btn" style="margin-left:auto;font-size:.74rem;padding:.28rem .6rem" onclick="loadShowRsvps()">↻</button></div>
         <div class="ld-body">
-        <div style="font-size:.78rem;color:var(--muted);margin-bottom:.7rem">Who tapped "I'm going." Everyone on the list gets an automatic reminder the day before.</div>
-        <div id="ld-rsvp-list"><div class="pf-empty">Loading…</div></div>
+          <div style="font-size:.78rem;color:var(--muted);margin-bottom:.7rem">Who tapped "I'm going." Everyone on the list gets an automatic reminder the day before.</div>
+          <div id="ld-rsvp-list"><div class="pf-empty">Loading…</div></div>
+        </div>
+      </div>
+      <div class="card ld-card" id="ld-card-email" style="margin-bottom:1rem">
+        <div class="sh" onclick="ldToggle(event, this)" style="margin-bottom:.6rem"><h3>Email queue</h3><span class="ld-chev">▶</span>
+          <span class="badge badge-orange" id="ld-email-badge">…</span>
+          <button class="tb-btn" style="margin-left:auto;font-size:.74rem;padding:.28rem .6rem" onclick="runEmailDrainer(this)">Send queued now</button></div>
+        <div class="ld-body">
+          <div style="font-size:.78rem;color:var(--muted);margin-bottom:.7rem">Delivers automatically every 5 minutes. The button retries failures and pushes everything queued immediately.</div>
+          <div id="ld-email-list"><div class="pf-empty">Loading…</div></div>
+        </div>
+      </div>
+      <div class="card ld-card" id="ld-card-claims" style="margin-bottom:1rem">
+        <div class="sh" onclick="ldToggle(event, this)" style="margin-bottom:.6rem"><h3>Claim codes</h3><span class="ld-chev">▶</span>
+          <button class="tb-btn" style="margin-left:auto;font-size:.74rem;padding:.28rem .6rem" onclick="loadAdminRoster()">↻ Refresh</button></div>
+        <div class="ld-body">
+          <div style="font-size:.78rem;color:var(--muted);margin-bottom:.7rem">Hand these to the person they belong to. Signing up with the code transfers ownership instantly.</div>
+          <div id="admin-claim-codes"><div class="pf-empty">Loading…</div></div>
+        </div>
+      </div>
+      <div class="card ld-card" id="ld-card-invites" style="margin-bottom:1rem">
+        <div class="sh" onclick="ldToggle(event, this)" style="margin-bottom:.6rem"><h3>Invites &amp; referrals</h3><span class="ld-chev">▶</span>
+          <button class="tb-btn" style="margin-left:auto;font-size:.74rem;padding:.28rem .6rem" onclick="event.stopPropagation();openCodeGen()">+ Generate code</button></div>
+        <div class="ld-body">
+          <div style="font-size:.78rem;color:var(--muted);margin-bottom:.7rem">Who invited whom. Every signup must redeem a code — codes are typed: <strong>Artist</strong> codes land in the artist lane, <strong>Member</strong> codes in the member lane.</div>
+          <div id="admin-invites"><div class="pf-empty">Loading…</div></div>
+        </div>
       </div>
       <div class="card ld-card" id="ld-card-roster">
         <div class="sh" onclick="ldToggle(event, this)" style="margin-bottom:.6rem"><h3>Everyone on PHX</h3><span class="ld-chev">▶</span><span class="badge badge-orange" id="roster-count">…</span></div>
         <div class="ld-body">
-        <div id="admin-roster-list"><div class="pf-empty">Loading…</div></div>
+          <div id="admin-roster-list"><div class="pf-empty">Loading…</div></div>
+        </div>
       </div>
+    </div>
     </div></div></div></div></div></div></div></div>
 
     <!-- ADMIN — MERCH CONNECTIONS (stores are PHX-operated; artists never log in) -->
@@ -7848,6 +7856,12 @@ async function sendAsh() {
     var d = res.data || {};
     var think = document.getElementById('ash-thinking');
     if (think) think.remove();
+    if (res.error && !d.text) {
+      log.innerHTML += _ashBubble('assistant', '⚠️ Ash hit an error mid-thought (' + (res.error.message || 'server error') + '). Check Studio → Configure → Ash after a refresh — long reviews can also exceed the request window; try asking for a smaller batch.');
+      log.scrollTop = log.scrollHeight;
+      if (btn) btn.disabled = false;
+      return;
+    }
     if (d.error === 'no_api_key') {
       var note = document.getElementById('ash-key-note');
       if (note) note.style.display = 'block';
@@ -8063,10 +8077,10 @@ async function askAshEventQueue(btn) {
   var out = document.getElementById('eq-ash-verdict');
   if (out) { out.style.display = 'block'; out.textContent = 'Reviewing the queue — checking sources, venues, dates, and duplicates…'; }
   try {
-    var res = await _sb.functions.invoke('ash', { body: { messages: [{ role: 'user', content:
+    var res = await _sb.functions.invoke('ash', { body: { op: 'chat', messages: [{ role: 'user', content:
       'Review the pending event queue. For each draft give a verdict — LEGIT / LIKELY / SUSPICIOUS — with one short reason (verify against the source page where it matters). End with a one-line recommendation of which to publish and which to reject. Do not propose any action yet.' }] } });
     var d = res.data || {};
-    if (out) out.textContent = d.text || d.error || 'Ash could not respond.';
+    if (out) out.textContent = d.text || (d.error ? '⚠️ ' + d.error + (d.detail ? ' — ' + d.detail : '') : (res.error ? '⚠️ Ash errored: ' + (res.error.message || 'server error') : 'Ash could not respond.'));
   } catch (e) {
     if (out) out.textContent = 'Ash is unreachable right now.';
   }
