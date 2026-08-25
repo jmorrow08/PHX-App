@@ -142,3 +142,14 @@ _Everything below is live in production. Recorded here so Ash, future hires, and
 - Weekly artist listener-report email (Mon), personalized Friday digest, day-before show reminders to RSVPs — all cron.
 - Drops: First Listen (favorites early) / Favorites only / Open, track picker, auto-drop when a gated track goes live; favorites gates enforced server-side in sign-audio v3.
 - Long-press discipline (nothing selects except posts/comments/bios/inputs), horizontal overflow clipped app-wide, admin tables scroll inside cards.
+
+
+---
+
+## Update — August 25, 2026 (Ash grows up, the feed grows up)
+
+- **Ash v5**: key self-healing (env secret → internal_secrets fallback, malformed values rejected); full audit trail in `agent_tool_log` (every SQL read, page fetch, proposal — timestamped); event-queue duty (review_events + fetch_page tools, LEGIT/LIKELY/SUSPICIOUS verdicts, one-tap "Ash, review these" button in Launch Desk); **morning digest** cron 6:15am PHX (`phx-ash-morning-digest`) → agent_chat + push to supers. Auth: founder JWT enforced in code for chat/execute; digest op uses INGEST_SECRET (verify_jwt off at platform, gates in code).
+- **Cancellation watch**: Ticketmaster status codes → canceled events leave the map automatically; rescheduled/postponed get status_note chips.
+- **Launch Desk**: accordion cards (pending queues auto-open), rich event-queue rows (art, date/time, venue-known ✓, source, submitter). Admin sidebar no longer carries My Pages/My Artist (those live at /app).
+- **Feed, FB-grade on mobile**: posts edge-to-edge with hairline separators, full-bleed media, brighter text, redundant Home title bar hidden; composer collapses to one calm line until touched; photo lightbox with swipe-down dismiss; Clips exits with a right-swipe or the ‹ chevron.
+- **Fixes**: /studio routing deterministic (transient signed-out resolution can't strand it on Home); artist genre inherits from first live track (DubsUpEnt backfilled Hip-Hop).
