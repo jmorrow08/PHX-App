@@ -7141,6 +7141,109 @@ function shareCurrentTrackToFeed() {
   }, 200);
 }
 
+// ── IDENTITY SWITCHER ────────────────────────────────────────────────────
+// The Instagram move: long-press the "my" bottom tab and every voice this
+// account owns is one tap away — personal profile, artist page, other pages,
+// and (for staff) the PHX App page. Choosing one switches the ACTIVE voice
+// (posts, composer, feed chrome ride the same phx_persona_choice the
+// composer already uses) and lands you on that identity's own profile with
+// its followers and stats.
+var _idswLP = null, _idswFired = false;
+function _bindIdentityLongPress() {
+  document.querySelectorAll('.bt-item[data-view="mypass"], .bt-item[data-view="artist-tracks"]').forEach(function(btn) {
+    if (btn._idswBound) return;
+    btn._idswBound = true;
+    btn.addEventListener('pointerdown', function() {
+      _idswFired = false;
+      clearTimeout(_idswLP);
+      _idswLP = setTimeout(function() {
+        _idswFired = true;
+        // Silence the tab's own click for a beat so the long-press doesn't
+        // ALSO navigate — inline handlers can't be preempted any other way.
+        var old = btn.onclick;
+        btn.onclick = null;
+        setTimeout(function(){ btn.onclick = old; _idswFired = false; }, 450);
+        if (typeof haptic === 'function') haptic(14);
+        openIdentitySwitcher();
+      }, 550);
+    });
+    ['pointerup', 'pointerleave', 'pointercancel'].forEach(function(ev) {
+      btn.addEventListener(ev, function(){ clearTimeout(_idswLP); });
+    });
+    btn.addEventListener('contextmenu', function(e){ e.preventDefault(); });
+  });
+}
+_whenDomReady(_bindIdentityLongPress);
+
+function _identityAvatarHtml(id) {
+  var url = '';
+  var emoji = '👤';
+  if (id === 'official') { url = 'assets/phx-avatar.png'; emoji = '🏙️'; }
+  else if (id.indexOf('page:') === 0) {
+    var pg = _myPages.filter(function(p){ return p.id === id.slice(5); })[0];
+    if (pg) { url = pg.avatar_url || ''; emoji = pg.avatar || '⭐'; }
+  } else { url = (_myProfile && _myProfile.avatar_url) || ''; }
+  var u = safeUrl(url);
+  return '<div style="width:46px;height:46px;border-radius:50%;overflow:hidden;background:linear-gradient(135deg,var(--orange-d),var(--purple));display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0">' +
+    (u ? '<img src="' + u + '" alt="" style="width:100%;height:100%;object-fit:cover">' : emoji) + '</div>';
+}
+function openIdentitySwitcher() {
+  if (!_authUser) return;
+  var opts = personaOptions();
+  if (opts.length < 2) {
+    showToast('Just your personal profile here — pages you own will show up for switching.');
+    return;
+  }
+  var active = localStorage.getItem('phx_persona_choice') || opts[0].id;
+  var w = document.getElementById('identity-sheet');
+  if (!w) {
+    w = document.createElement('div');
+    w.id = 'identity-sheet';
+    w.setAttribute('role', 'dialog'); w.setAttribute('aria-modal', 'true'); w.setAttribute('aria-label', 'Switch profile');
+    w.style.cssText = 'position:fixed;inset:0;z-index:545;background:rgba(7,7,15,.8);backdrop-filter:blur(4px);display:flex;align-items:flex-end;justify-content:center';
+    w.addEventListener('click', function(e){ if (e.target === w) w.style.display = 'none'; });
+    document.body.appendChild(w);
+  }
+  w.style.display = 'flex';
+  w.innerHTML = '<div class="ps-card" style="max-height:70vh;border-radius:20px 20px 0 0;padding:1rem 1.2rem calc(1.3rem + env(safe-area-inset-bottom,0px))">' +
+    '<div style="width:44px;height:4px;border-radius:2px;background:var(--border);margin:0 auto .9rem"></div>' +
+    '<div style="font-family:var(--disp);font-weight:700;font-size:1rem;margin-bottom:.8rem">Switch profile</div>' +
+    opts.map(function(o) {
+      var on = o.id === active;
+      return '<div role="button" onclick="switchIdentity(\'' + o.id + '\')" ' +
+        'style="display:flex;align-items:center;gap:.8rem;padding:.6rem .3rem;border-bottom:1px solid var(--line);cursor:pointer">' +
+        _identityAvatarHtml(o.id) +
+        '<div style="flex:1;min-width:0;font-size:.9rem;font-weight:' + (on ? '800' : '600') + ';white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + escapeHtml(o.label) + '</div>' +
+        (on ? '<span style="color:var(--orange);font-weight:800">✓</span>' : '') +
+      '</div>';
+    }).join('') +
+    '<div style="font-size:.68rem;color:var(--faint);margin-top:.7rem;line-height:1.5">Switching changes who you post and act as, and opens that profile — followers, stats and all.</div>' +
+  '</div>';
+}
+function switchIdentity(id) {
+  var w = document.getElementById('identity-sheet');
+  if (w) w.style.display = 'none';
+  localStorage.setItem('phx_persona_choice', id);
+  if (typeof haptic === 'function') haptic(10);
+  if (_cityFeedLoaded) loadCityFeed(true);
+  var label = 'you';
+  if (id === 'official') {
+    label = 'PHX App';
+    showPageProfile('phxapp');
+  } else if (id.indexOf('page:') === 0) {
+    var pg = _myPages.filter(function(p){ return p.id === id.slice(5); })[0];
+    if (pg) {
+      label = pg.name;
+      if (pg.page_type === 'artist' && pg.slug) showArtistPage(pg.slug);
+      else showPageProfile(pg.slug || pg.id);
+    }
+  } else {
+    label = (_myProfile && _myProfile.username) ? '@' + _myProfile.username : 'your profile';
+    showMemberPage(getGuestId());
+  }
+  showToast('Now acting as ' + label);
+}
+
 // ── DIRECT MESSAGES ──────────────────────────────────────────────────────
 // 1:1 threads. Writes go through SECURITY DEFINER RPCs (moderation, blocks,
 // rate limits, notification+push all server-side); reads ride RLS. The
