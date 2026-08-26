@@ -5181,7 +5181,9 @@ async function showEventPage(src, id) {
   var cover = safeUrl(e.cover_url);
   var ticket = safeUrl(e.ticket_url);
   var price = e.price_text || (e.is_free ? 'Free' : '');
-  var where = [e.venue_name, e.address, e.city].filter(Boolean);
+  // City is usually already inside the geocoded address — don't say it twice
+  var cityBit = (e.city && !(e.address || '').toLowerCase().includes(String(e.city).toLowerCase())) ? e.city : null;
+  var where = [e.venue_name, e.address, cityBit].filter(Boolean);
   var gcalEnd = new Date(d.getTime() + 3 * 3600000);
   var fmtG = function(x) { return x.toISOString().replace(/[-:]|\.\d{3}/g, ''); };
   var gcal = 'https://calendar.google.com/calendar/render?action=TEMPLATE' +

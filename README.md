@@ -204,3 +204,6 @@ Player: parallel URL minting + next-track prefetch (no tap lag, no gap), AutoMix
 
 ## August 26, 2026 (second drop)
 Full-screen FB-style post flow with preview + drafts, PHX Lens v2 (zoom bug fixed, native-res capture, pinch zoom, grid), DM system (blocks/moderation/push), IG-style identity switcher, flare bundle (city-light theming, haptics, 602 Rotation, listening ember, city-now). Detail: docs/PHX-Operating-Manual.md.
+
+## August 26, 2026 (third drop)
+Post-sheet escape fix (z-stack + swipe-down + back-gesture), Studio DM monitoring (report review modal, freeze action, DM dashboard tile, Ash v6 privacy wall + report/DM aggregates), dedicated public event detail pages with tickets/RSVP/calendar/mini-map. Detail: docs/PHX-Operating-Manual.md.
