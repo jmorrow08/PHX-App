@@ -182,6 +182,15 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
 .ps-opt b{font-size:.86rem;font-weight:700}
 .ps-opt span{margin-left:auto;font-size:.68rem;color:var(--faint);text-align:right}
 .ps-opt.on{border-color:rgba(249,115,22,.5)}
+/* City light: the ember palette follows the Phoenix sky. Subtle by design —
+   dawn is soft gold, midday is the standard heat, sunset burns hotter,
+   late night settles into deep ember. Same layout, different light. */
+body[data-daypart="dawn"]{--orange:#FB923C;--orange-l:#FDBA74;--orange-d:#F97316;--gold:#FACC15}
+body[data-daypart="sunset"]{--orange:#FF6A00;--orange-l:#FB923C;--orange-d:#DC4E0A;--gold:#F59E0B}
+body[data-daypart="night"]{--orange:#F26312;--orange-l:#F98B4A;--orange-d:#C2410C;--gold:#D9A509}
+/* Player-sheet children sit above the ember canvas */
+.ps-card>*{position:relative;z-index:1}
+#ember-canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0;opacity:.55}
 .cp-post:active{transform:scale(.97)}
 .persona-chip{display:inline-flex;align-items:center;gap:.4rem;background:var(--bg3);border:1px solid var(--line);border-radius:999px;padding:.3rem .4rem .3rem .75rem;font-size:.74rem;color:var(--muted)}
 .persona-chip select{background:transparent;color:var(--white);border:none;font-size:.76rem;max-width:190px}
@@ -1282,6 +1291,9 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
 
       <!-- The player lives in the bottom-bar sheet now — tap the song bar.
            This page is the catalog; the sheet is the player. -->
+
+      <!-- Your 602 Rotation: personal weekly mixtape, rebuilt every Friday -->
+      <div id="rotation-card" style="display:none;margin-bottom:1.2rem"></div>
 
       <div>
           <!-- Artist Spotlight -->
@@ -2452,6 +2464,7 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
      badge, like state) keeps working untouched. -->
 <div id="player-sheet" role="dialog" aria-modal="true" aria-label="Player" style="display:none;position:fixed;inset:0;z-index:540;background:rgba(7,7,15,.92);backdrop-filter:blur(6px);align-items:flex-end;justify-content:center" onclick="if(event.target===this)closePlayerSheet()">
   <div class="ps-card">
+    <canvas id="ember-canvas" aria-hidden="true"></canvas>
     <div style="display:flex;align-items:center;margin-bottom:.9rem">
       <div style="width:44px;height:4px;border-radius:2px;background:var(--border);margin:0 auto;cursor:pointer" onclick="closePlayerSheet()"></div>
       <button onclick="closePlayerSheet()" aria-label="Close player" style="position:absolute;right:1rem;top:.8rem;width:34px;height:34px;border-radius:50%;background:var(--bg3);border:1px solid var(--border);color:var(--muted);cursor:pointer;font-size:.95rem">▾</button>
@@ -2720,6 +2733,20 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
 </div>
 
 <script>
+// ── CITY LIGHT + HAPTICS ───────────────────────────────────────────────
+// The palette follows the actual Phoenix sky; refreshed every 15 minutes.
+function applyCityLight() {
+  var h = new Date().getHours();
+  var part = (h >= 5 && h < 11) ? 'dawn' : (h < 17) ? 'day' : (h < 21) ? 'sunset' : 'night';
+  if (document.body) document.body.dataset.daypart = part;
+}
+applyCityLight();
+setInterval(applyCityLight, 15 * 60 * 1000);
+
+// One tiny tap where the platform supports it (Android). iOS Safari has no
+// vibration API — silently a no-op there, never a fake.
+function haptic(ms) { try { if (navigator.vibrate) navigator.vibrate(ms || 8); } catch (e) {} }
+
 // ── VIEW SWITCHING ─────────────────────────────────────────────────────
 function openFullPlayer() {
   // The bar opens the player as a sheet (Apple Music gesture) — Now
@@ -2728,6 +2755,63 @@ function openFullPlayer() {
   if (!m) return;
   if (typeof renderPlayerSheet === 'function') renderPlayerSheet();
   m.style.display = 'flex';
+  if (typeof startEmber === 'function') startEmber();
+}
+
+// ── LISTENING EMBER ────────────────────────────────────────────────────
+// Sparks rise behind the expanded player while music plays — frozen the
+// moment playback pauses, gone when the sheet closes. Pure canvas: no
+// WebAudio analyser on purpose (routing the element through WebAudio kills
+// iOS background playback, and that trade always loses).
+var _emberRAF = null, _emberParts = [];
+function startEmber() {
+  if (_emberRAF) return;
+  var cv = document.getElementById('ember-canvas');
+  if (!cv) return;
+  var ctx = cv.getContext('2d');
+  function frame() {
+    var sheet = document.getElementById('player-sheet');
+    if (!sheet || sheet.style.display !== 'flex') { _emberRAF = null; _emberParts = []; return; }
+    var card = cv.parentElement;
+    var w = card.clientWidth, h = card.clientHeight;
+    if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; }
+    ctx.clearRect(0, 0, w, h);
+    var playing = streamData.playing && PHX_AUDIO && !PHX_AUDIO.paused;
+    // Spawn while playing; a gentle idle shimmer while paused
+    var want = playing ? 3 : 0;
+    for (var n = 0; n < want; n++) {
+      if (_emberParts.length > 90) break;
+      _emberParts.push({
+        x: Math.random() * w, y: h + 6,
+        vx: (Math.random() - 0.5) * 0.35,
+        vy: -(0.4 + Math.random() * 1.1),
+        r: 0.8 + Math.random() * 2.2,
+        life: 1,
+        decay: 0.003 + Math.random() * 0.005,
+        hue: 18 + Math.random() * 26,   // ember orange → gold
+        sway: Math.random() * Math.PI * 2
+      });
+    }
+    for (var i = _emberParts.length - 1; i >= 0; i--) {
+      var p = _emberParts[i];
+      if (playing) {
+        p.sway += 0.03;
+        p.x += p.vx + Math.sin(p.sway) * 0.25;
+        p.y += p.vy;
+        p.life -= p.decay;
+      } else {
+        p.life -= p.decay * 2;  // paused: embers die down
+      }
+      if (p.life <= 0 || p.y < -8) { _emberParts.splice(i, 1); continue; }
+      var flicker = 0.75 + Math.random() * 0.25;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r * p.life, 0, Math.PI * 2);
+      ctx.fillStyle = 'hsla(' + p.hue + ',95%,' + Math.round(52 + p.life * 12) + '%,' + (p.life * 0.7 * flicker).toFixed(3) + ')';
+      ctx.fill();
+    }
+    _emberRAF = requestAnimationFrame(frame);
+  }
+  _emberRAF = requestAnimationFrame(frame);
 }
 
 var titles = {
@@ -2958,7 +3042,7 @@ function showView(id) {
   if (id === 'settings') loadSettings();
   if (id === 'admin-ash') loadAshPanel();
   if (id === 'admin-analytics') { loadAdminAnalytics(); loadAdminEngagement(); }
-  if (id === 'music') { loadMusicCatalog(); loadListeningWent(); }
+  if (id === 'music') { loadMusicCatalog(); loadListeningWent(); loadMyRotation(); }
   if (id === 'artist-submit') populateGenreSelect();
   if (id === 'reels') loadReels();
   else pauseAllReels();
@@ -3546,6 +3630,7 @@ function pauseAudio() {
 }
 
 function togglePlay() {
+  if (typeof haptic === 'function') haptic(8);
   if (streamData.playing) pauseAudio(); else playAudio();
 }
 
@@ -3609,6 +3694,7 @@ function toggleRepeat() {
 }
 
 function nextTrack() {
+  if (typeof haptic === 'function') haptic(8);
   if (_repeatOn && PHX_AUDIO && PHX_AUDIO.src) {
     PHX_AUDIO.currentTime = 0; prog = 0;
     PHX_AUDIO.play().catch(function(){});
@@ -6642,6 +6728,7 @@ function pickReaction(postId, reaction) {
 }
 
 async function togglePostLike(postId) {
+  if (typeof haptic === 'function') haptic(10);
   // A long-press that opened the picker shouldn't also fire the tap
   if (_reactHoldFired) { _reactHoldFired = false; return; }
   _sendReaction(postId, _myPostLikes[postId] || 'heat');
@@ -12980,6 +13067,7 @@ async function showArtistPage(slug) {
         loadArtistSupport(artist.id);
         _loadRsvpCounts();
         loadArtistDrops(artist);
+        loadCityNow(artist.id);
         return;
       }
       if (++tries < 40) setTimeout(put, 250);
@@ -13032,6 +13120,7 @@ async function showArtistPage(slug) {
               '<b>' + fmtK(artist.monthly_listeners || 0) + '</b><span>monthly listeners</span>' +
               '<span class="ap-trend">' + fmtK(artist.total_streams || 0) + ' plays</span>' +
               '<span class="ap-trend" id="ap-follow-stat" style="cursor:pointer" role="button" onclick="openFollowList(\'artist\',\'' + artist.id + '\',\'followers\')"></span>' +
+              '<span class="ap-trend" id="ap-citynow" style="display:none;color:var(--orange-l)"></span>' +
             '</div>' +
           '</div>' +
         '</div>' +
@@ -14189,10 +14278,75 @@ function renderPlayerSheet() {
   }
 }
 
+// ── YOUR 602 ROTATION ──────────────────────────────────────────────────
+// A personal weekly mixtape: the server ranks your most-played artists'
+// catalog first, then weekly-shuffles the rest (deterministic seed that
+// flips every Friday). No cron needed — the same week always builds the
+// same tape, and a new week builds a new one.
+var _rotationTracks = [];
+async function loadMyRotation() {
+  var card = document.getElementById('rotation-card');
+  if (!card || !_authUser) return;
+  if (_rotationTracks.length) { _renderRotationCard(); return; }
+  var res = await _sb.rpc('my_602_rotation');
+  var rows = res.data || [];
+  if (res.error || rows.length < 3) { card.style.display = 'none'; return; }
+  _rotationTracks = rows.map(function(t) {
+    if (t.cover_url) TRACK_ART[t.id] = t.cover_url;
+    return { id: t.id, title: t.title, cover_url: t.cover_url, audio_url: t.audio_url,
+             stream_count: t.stream_count || 0, artist_name: t.artist_name || '', artist_slug: t.artist_slug || '' };
+  });
+  _renderRotationCard();
+}
+function _renderRotationCard() {
+  var card = document.getElementById('rotation-card');
+  if (!card || !_rotationTracks.length) return;
+  var arts = _rotationTracks.slice(0, 4).map(function(t) {
+    var a = safeUrl(t.cover_url);
+    return '<div style="width:44px;height:44px;border-radius:8px;overflow:hidden;background:var(--bg4);margin-left:-10px;border:2px solid var(--bg2);display:flex;align-items:center;justify-content:center">' +
+      (a ? '<img src="' + a + '" alt="" style="width:100%;height:100%;object-fit:cover">' : '🎵') + '</div>';
+  }).join('');
+  card.style.display = 'block';
+  card.innerHTML = '<div class="card" style="background:linear-gradient(135deg,rgba(249,115,22,.14),rgba(124,58,237,.1));border-color:rgba(249,115,22,.25);padding:1rem 1.1rem">' +
+    '<div style="display:flex;align-items:center;gap:.9rem">' +
+      '<div style="display:flex;padding-left:10px;flex-shrink:0">' + arts + '</div>' +
+      '<div style="flex:1;min-width:0">' +
+        '<div style="font-family:var(--disp);font-weight:800;font-size:1rem">🌀 Your 602 Rotation</div>' +
+        '<div style="font-size:.72rem;color:var(--muted)">' + _rotationTracks.length + ' tracks from your listening · rebuilt every Friday</div>' +
+      '</div>' +
+      '<button class="cp-post" style="margin:0;padding:.5rem 1.1rem;flex-shrink:0" onclick="playMyRotation()">▶ Play</button>' +
+    '</div></div>';
+}
+function playMyRotation() {
+  if (!_rotationTracks.length) return;
+  if (typeof haptic === 'function') haptic(8);
+  trackEvent('rotation_play', null, null, { n: _rotationTracks.length });
+  playListAsQueue(_rotationTracks);
+}
+
 // Navigate to the artist page with a specific release open
 function openAlbumFromMusic(slug, albumId) {
   _apAlbumOpen = albumId;
   showArtistPage(slug);
+}
+
+// "In the city right now" — the live pulse under an artist's name.
+// Distinct listeners in the last hour, falling back to today's count.
+async function loadCityNow(artistId) {
+  var el = document.getElementById('ap-citynow');
+  if (!el || !_authUser) return;
+  try {
+    var res = await _sb.rpc('artist_city_now', { p_artist_id: artistId });
+    var d = res.data || {};
+    if (res.error || !d.ok) return;
+    if ((d.now || 0) >= 2) {
+      el.textContent = '🔥 ' + d.now + ' in the city listening right now';
+      el.style.display = 'inline';
+    } else if ((d.today || 0) >= 1) {
+      el.textContent = '🎧 ' + d.today + ' listening in the city today';
+      el.style.display = 'inline';
+    }
+  } catch (e) {}
 }
 
 function setCatalogGenre(g) { _catalogGenre = g || ''; loadMusicCatalog(); }
