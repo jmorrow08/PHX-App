@@ -3314,7 +3314,7 @@ function setRole(role) {
   // async, so without this check it landed AFTER deep-link routing and yanked
   // people off the page they were sent to, straight into the join sheet.
   var pathname = (window.location.pathname || '').replace(/\/$/, '');
-  var onPublicDeepLink = /^#(artist|page)\//.test(window.location.hash || '') ||
+  var onPublicDeepLink = /^#(artist|page|event)\//.test(window.location.hash || '') ||
     (/^\/[a-z0-9][a-z0-9._-]{1,40}$/i.test(pathname) &&
      ['/app', '/index', '/legal', '/app.html', '/index.html'].indexOf(pathname.toLowerCase()) === -1);
   // Navigate only when the role genuinely changed or this is the boot nav —
@@ -4261,7 +4261,7 @@ _whenDomReady(function() {
   // Arriving with an invite link (?ref=CODE) does the same automatically —
   // nobody who came to sign up should have to hunt for the Log In button.
   var wantsJoin = window.location.hash === '#join' ||
-    (!!localStorage.getItem('phx_pending_invite') && window.location.hash.indexOf('#artist/') !== 0);
+    (!!localStorage.getItem('phx_pending_invite') && !/^#(artist|event)\//.test(window.location.hash || ''));
   if (wantsJoin) {
     setTimeout(function() {
       if (_authUser) return;
@@ -8142,7 +8142,7 @@ function playForYouTrack(idx, el) {
   var params = new URLSearchParams(window.location.search);
   var slug = params.get('artist');
   if (!slug) return;
-  if (/^#(artist|page)\//.test(window.location.hash || '')) return;  // hash takes precedence
+  if (/^#(artist|page|event)\//.test(window.location.hash || '')) return;  // hash takes precedence
   setTimeout(function() {
     if (typeof showArtistPage === 'function') showArtistPage(slug);
   }, 600);
@@ -10192,6 +10192,7 @@ function _isPublicProfileRoute() {
   var slug = m ? m[1].toLowerCase() : '';
   if (slug && ['app','index','legal','admin','artist','tour','studio'].indexOf(slug) === -1) return true;
   if ((window.location.hash || '').indexOf('#artist/') === 0) return true;
+  if ((window.location.hash || '').indexOf('#event/') === 0) return true;   // shared event links are public city info
   if (/[?&]artist=/.test(window.location.search || '')) return true;
   return false;
 }
