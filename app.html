@@ -182,6 +182,13 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
 .ps-opt b{font-size:.86rem;font-weight:700}
 .ps-opt span{margin-left:auto;font-size:.68rem;color:var(--faint);text-align:right}
 .ps-opt.on{border-color:rgba(249,115,22,.5)}
+/* DM chat bubbles */
+.dm-bubble{max-width:78%;padding:.55rem .85rem;border-radius:16px;font-size:.92rem;line-height:1.45;margin:.2rem 0;width:fit-content;word-break:break-word;white-space:pre-wrap}
+.dm-bubble.mine{margin-left:auto;background:linear-gradient(135deg,var(--orange-d),#B34A0C);color:#fff;border-bottom-right-radius:5px}
+.dm-bubble.theirs{background:var(--bg3);border:1px solid var(--line);border-bottom-left-radius:5px}
+.dm-when{font-size:.62rem;color:var(--faint);margin:.4rem 0 .1rem;text-align:center}
+.dm-row{display:flex;align-items:center;gap:.7rem;padding:.7rem .4rem;border-bottom:1px solid var(--line);cursor:pointer}
+.dm-row:hover{background:rgba(241,241,248,.02)}
 /* City light: the ember palette follows the Phoenix sky. Subtle by design —
    dawn is soft gold, midday is the standard heat, sunset burns hotter,
    late night settles into deep ember. Same layout, different light. */
@@ -1163,6 +1170,7 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
         <option value="admin">Admin (limited)</option>
       </select>
       <button class="tb-btn" id="auth-btn" onclick="openAuthModal()">Log In</button>
+      <button class="tb-btn" id="dm-btn" onclick="openMessages()" title="Messages" style="position:relative">✉️<span id="dm-badge" style="display:none;position:absolute;top:-4px;right:-4px;background:var(--red);color:#fff;font-size:.62rem;font-weight:800;min-width:16px;height:16px;border-radius:100px;padding:0 4px;line-height:16px;text-align:center">0</span></button>
       <button class="tb-btn" id="notif-bell" onclick="toggleNotifPanel()" style="position:relative">🔔<span id="notif-badge" style="display:none;position:absolute;top:-4px;right:-4px;background:var(--red);color:#fff;font-size:.62rem;font-weight:800;min-width:16px;height:16px;border-radius:100px;padding:0 4px;line-height:16px;text-align:center">0</span></button>
       <button class="tb-btn primary" id="topbar-cta" onclick="showView('mypass')">💳 Native Pass</button>
     </div>
@@ -1912,6 +1920,12 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
     <!-- PUBLIC MEMBER PAGE — every account has one -->
     <div class="view" id="v-member-page">
       <div id="member-page-content"><div style="color:var(--muted);font-size:.85rem;padding:1rem 0">Loading…</div></div>
+    </div>
+
+    <!-- MESSAGES — 1:1 DMs (inbox + chat share the view) -->
+    <div class="view" id="v-messages">
+      <div id="dm-inbox"><div class="pf-empty">Loading…</div></div>
+      <div id="dm-chat" style="display:none"></div>
     </div>
 
     <!-- PUBLIC PAGE PROFILE — creators, brands, venues, promoters (#page/slug) -->
@@ -2815,7 +2829,7 @@ function startEmber() {
 }
 
 var titles = {
-  home:'City Feed', discover:'Discover PHX', music:'PHX Music', reels:'Clips',
+  home:'City Feed', discover:'Discover PHX', music:'PHX Music', reels:'Clips', messages:'Messages',
   events:'Plug Map', eats:'PHX Eats', audio:'PHX Audio',
   drops:'PHX Drops', cuts:'PHX Cuts', mypass:'My PHX Pass', profile:'My Profile', settings:'Settings',
   'member-page':'Profile', 'artist-page':'Artist', 'artist-directory':'Browse PHX', 'page-profile':'Page',
@@ -3043,6 +3057,7 @@ function showView(id) {
   if (id === 'admin-ash') loadAshPanel();
   if (id === 'admin-analytics') { loadAdminAnalytics(); loadAdminEngagement(); }
   if (id === 'music') { loadMusicCatalog(); loadListeningWent(); loadMyRotation(); }
+  if (id === 'messages') { if (!_dmThreadId) dmShowInbox(); }
   if (id === 'artist-submit') populateGenreSelect();
   if (id === 'reels') loadReels();
   else pauseAllReels();
@@ -7126,6 +7141,206 @@ function shareCurrentTrackToFeed() {
   }, 200);
 }
 
+// ── DIRECT MESSAGES ──────────────────────────────────────────────────────
+// 1:1 threads. Writes go through SECURITY DEFINER RPCs (moderation, blocks,
+// rate limits, notification+push all server-side); reads ride RLS. The
+// notification pipeline throttles DM pushes to one per thread per 10 min.
+var _dmThreadId = null, _dmOther = null, _dmPollT = null, _dmLastIso = null;
+
+function openMessages() {
+  if (!requireAuthAction('Messages')) return;
+  showView('messages');
+  dmShowInbox();
+}
+function dmShowInbox() {
+  if (_dmPollT) { clearInterval(_dmPollT); _dmPollT = null; }
+  _dmThreadId = null; _dmOther = null; _dmLastIso = null;
+  var c = document.getElementById('dm-chat'); if (c) c.style.display = 'none';
+  var i = document.getElementById('dm-inbox'); if (i) i.style.display = 'block';
+  loadDmInbox();
+}
+async function loadDmInbox() {
+  var el = document.getElementById('dm-inbox');
+  if (!el) return;
+  var res = await _sb.rpc('my_dm_threads');
+  var rows = res.data || [];
+  var head = '<div class="sh" style="margin-bottom:.4rem"><h3>✉️ Messages</h3></div>';
+  if (res.error || !rows.length) {
+    el.innerHTML = head + '<div class="pf-empty">No conversations yet.<br>Open any profile and tap <b>✉️ Message</b> to start one.</div>';
+    return;
+  }
+  el.innerHTML = head + rows.map(function(t) {
+    var ava = safeUrl(t.other_avatar);
+    var d = t.last_msg_at ? new Date(t.last_msg_at) : null;
+    var diff = d ? Math.floor((Date.now() - d.getTime()) / 60000) : 0;
+    var when = !d ? '' : diff < 1 ? 'now' : diff < 60 ? diff + 'm' : diff < 1440 ? Math.floor(diff/60) + 'h' : Math.floor(diff/1440) + 'd';
+    var otherJson = escapeHtml(JSON.stringify({ id: t.other_id, name: t.other_name, avatar_url: t.other_avatar }));
+    return '<div class="dm-row" onclick=\'openDmChat("' + t.thread_id + '",' + otherJson + ')\'>' +
+      '<div style="width:44px;height:44px;border-radius:50%;overflow:hidden;background:linear-gradient(135deg,var(--orange-d),var(--purple));display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1.05rem;flex-shrink:0">' +
+        (ava ? '<img src="' + ava + '" alt="" style="width:100%;height:100%;object-fit:cover">' : escapeHtml((t.other_name || '?').charAt(0).toUpperCase())) + '</div>' +
+      '<div style="flex:1;min-width:0">' +
+        '<div style="font-size:.88rem;font-weight:' + (t.unread ? '800' : '600') + '">' + escapeHtml(t.other_name || 'PHX Member') + '</div>' +
+        '<div style="font-size:.76rem;color:' + (t.unread ? 'var(--white)' : 'var(--muted)') + ';white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' +
+          (t.mine ? 'You: ' : '') + escapeHtml(t.last_preview || '') + '</div>' +
+      '</div>' +
+      '<div style="text-align:right;flex-shrink:0"><div style="font-size:.66rem;color:var(--faint)">' + when + '</div>' +
+        (t.unread ? '<div style="width:9px;height:9px;border-radius:50%;background:var(--orange);margin:.25rem 0 0 auto"></div>' : '') + '</div>' +
+    '</div>';
+  }).join('');
+}
+async function dmStart(otherId) {
+  if (!requireAuthAction('Messaging')) return;
+  if (!otherId) { showToast('This profile can\'t receive messages yet.'); return; }
+  var res = await _sb.rpc('dm_open_thread', { p_other: otherId });
+  var d = res.data || {};
+  if (res.error || !d.ok) {
+    showToast(d.reason === 'blocked' ? 'You can\'t message this member.' :
+              d.reason === 'access_pending' ? 'Your access is still pending approval.' :
+              d.reason === 'no_such_user' ? 'This profile can\'t receive messages yet.' :
+              'Could not open the conversation.');
+    return;
+  }
+  showView('messages');
+  openDmChat(d.thread_id, d.other);
+}
+function openDmChat(threadId, other) {
+  _dmThreadId = threadId;
+  _dmOther = other || {};
+  _dmLastIso = null;
+  var i = document.getElementById('dm-inbox'); if (i) i.style.display = 'none';
+  var c = document.getElementById('dm-chat');
+  if (!c) return;
+  c.style.display = 'block';
+  var ava = safeUrl(_dmOther.avatar_url);
+  c.innerHTML =
+    '<div style="display:flex;align-items:center;gap:.65rem;padding-bottom:.7rem;border-bottom:1px solid var(--border);margin-bottom:.6rem">' +
+      '<button class="psh-btn" style="width:32px;height:32px;font-size:.9rem" onclick="dmShowInbox()">‹</button>' +
+      '<div style="display:flex;align-items:center;gap:.55rem;cursor:pointer;min-width:0;flex:1" onclick="showMemberPage(\'' + (_dmOther.id || '') + '\')">' +
+        '<div style="width:36px;height:36px;border-radius:50%;overflow:hidden;background:linear-gradient(135deg,var(--orange-d),var(--purple));display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0">' +
+          (ava ? '<img src="' + ava + '" alt="" style="width:100%;height:100%;object-fit:cover">' : escapeHtml((_dmOther.name || '?').charAt(0).toUpperCase())) + '</div>' +
+        '<div style="font-size:.92rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + escapeHtml(_dmOther.name || 'PHX Member') + '</div>' +
+      '</div>' +
+      '<button class="psh-btn" style="width:32px;height:32px;font-size:1rem" onclick="dmMenu()">⋯</button>' +
+    '</div>' +
+    '<div id="dm-msgs" style="min-height:38vh;max-height:56vh;overflow-y:auto;padding:.3rem .1rem;display:flex;flex-direction:column"></div>' +
+    '<div style="display:flex;gap:.5rem;align-items:flex-end;margin-top:.7rem">' +
+      '<textarea id="dm-input" rows="1" maxlength="2000" placeholder="Message…" ' +
+        'style="flex:1;background:var(--bg3);border:1px solid var(--line);border-radius:18px;padding:.6rem .9rem;color:var(--white);font-family:inherit;font-size:16px;line-height:1.4;resize:none;min-height:42px;max-height:120px" ' +
+        'oninput="this.style.height=\'auto\';this.style.height=Math.min(this.scrollHeight,120)+\'px\'"></textarea>' +
+      '<button class="cp-post" style="margin:0;padding:.6rem 1.1rem" onclick="dmSend()">➤</button>' +
+    '</div>' +
+    '<div id="dm-error" style="display:none;color:var(--red);font-size:.76rem;margin-top:.35rem"></div>';
+  _dmFetch();
+  if (_dmPollT) clearInterval(_dmPollT);
+  _dmPollT = setInterval(_dmFetch, 5000);
+}
+async function _dmFetch() {
+  // Self-cleaning poll: navigating anywhere else kills the timer
+  var view = document.getElementById('v-messages');
+  if (!_dmThreadId || !view || !view.classList.contains('active')) {
+    if (_dmPollT) { clearInterval(_dmPollT); _dmPollT = null; }
+    return;
+  }
+  var q = _sb.from('dm_messages').select('id,sender_id,body,created_at')
+    .eq('thread_id', _dmThreadId).order('created_at', { ascending: true }).limit(300);
+  if (_dmLastIso) q = q.gt('created_at', _dmLastIso);
+  var res = await q;
+  var rows = res.data || [];
+  if (!rows.length) return;
+  var box = document.getElementById('dm-msgs');
+  if (!box) return;
+  var me = getGuestId();
+  var lastDay = box.dataset.lastDay || '';
+  rows.forEach(function(m) {
+    var d = new Date(m.created_at);
+    var day = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    if (day !== lastDay) {
+      lastDay = day;
+      var w = document.createElement('div');
+      w.className = 'dm-when'; w.textContent = day;
+      box.appendChild(w);
+    }
+    var b = document.createElement('div');
+    b.className = 'dm-bubble ' + (m.sender_id === me ? 'mine' : 'theirs');
+    b.textContent = m.body;
+    b.title = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    box.appendChild(b);
+  });
+  box.dataset.lastDay = lastDay;
+  _dmLastIso = rows[rows.length - 1].created_at;
+  box.scrollTop = box.scrollHeight;
+  _sb.rpc('dm_mark_read', { p_thread: _dmThreadId }).then(_refreshDmBadge);
+}
+async function dmSend() {
+  var input = document.getElementById('dm-input');
+  var errEl = document.getElementById('dm-error');
+  var body = (input ? input.value : '').trim();
+  if (!body || !_dmThreadId) return;
+  if (input) { input.value = ''; input.style.height = 'auto'; }
+  if (errEl) errEl.style.display = 'none';
+  if (typeof haptic === 'function') haptic(8);
+  var res = await _sb.rpc('dm_send', { p_thread: _dmThreadId, p_body: body });
+  var d = res.data || {};
+  if (res.error || !d.ok) {
+    if (input) input.value = body;   // give their words back
+    if (errEl) {
+      errEl.textContent = d.reason === 'blocked' ? 'You can\'t message this member.' :
+        d.reason === 'rate_limited' ? 'Slow down — too many messages at once.' :
+        d.reason === 'content_blocked' ? '🚫 That message violates PHX community guidelines.' :
+        'Could not send — try again.';
+      errEl.style.display = 'block';
+    }
+    return;
+  }
+  _dmFetch();
+}
+function dmMenu() {
+  var name = escapeHtml((_dmOther && _dmOther.name) || 'this member');
+  var w = document.getElementById('dm-menu-sheet');
+  if (!w) {
+    w = document.createElement('div');
+    w.id = 'dm-menu-sheet';
+    w.style.cssText = 'position:fixed;inset:0;z-index:545;background:rgba(7,7,15,.8);backdrop-filter:blur(4px);display:flex;align-items:flex-end;justify-content:center';
+    w.addEventListener('click', function(e){ if (e.target === w) w.style.display = 'none'; });
+    document.body.appendChild(w);
+  }
+  w.style.display = 'flex';
+  w.innerHTML = '<div class="ps-card" style="max-height:none;border-radius:20px 20px 0 0;padding:1.1rem 1.2rem calc(1.3rem + env(safe-area-inset-bottom,0px))">' +
+    '<div style="font-weight:700;font-size:.95rem;margin-bottom:.8rem">' + name + '</div>' +
+    '<div style="display:flex;flex-direction:column;gap:.5rem">' +
+      '<button class="pf-btn" style="justify-content:flex-start" onclick="document.getElementById(\'dm-menu-sheet\').style.display=\'none\';showMemberPage(\'' + (_dmOther.id || '') + '\')">👤 View profile</button>' +
+      '<button class="pf-btn" style="justify-content:flex-start" onclick="dmBlockConfirm()">🚫 Block ' + name + '</button>' +
+      '<button class="pf-btn" style="justify-content:flex-start" onclick="document.getElementById(\'dm-menu-sheet\').style.display=\'none\';openReportModal(\'dm_thread\',\'' + _dmThreadId + '\')">⚠️ Report conversation</button>' +
+      '<button class="pf-btn" style="justify-content:center;border-color:transparent" onclick="document.getElementById(\'dm-menu-sheet\').style.display=\'none\'">Cancel</button>' +
+    '</div></div>';
+}
+function dmBlockConfirm() {
+  var sheet = document.getElementById('dm-menu-sheet');
+  if (sheet) sheet.style.display = 'none';
+  if (!confirm('Block ' + ((_dmOther && _dmOther.name) || 'this member') + '? Neither of you will be able to message the other.')) return;
+  _sb.rpc('dm_set_block', { p_other: _dmOther.id, p_on: true }).then(function() {
+    showToast('🚫 Blocked — they can no longer message you.');
+    dmShowInbox();
+  });
+}
+async function _refreshDmBadge() {
+  if (!_authUser) return;
+  try {
+    var res = await _sb.rpc('dm_unread_count');
+    var n = res.data || 0;
+    var b = document.getElementById('dm-badge');
+    if (b) { b.style.display = n > 0 ? 'block' : 'none'; b.textContent = n > 9 ? '9+' : n; }
+  } catch (e) {}
+}
+// A DM notification lands you in the exact thread
+async function dmOpenFromNotif(threadId) {
+  showView('messages');
+  var res = await _sb.rpc('my_dm_threads');
+  var row = (res.data || []).filter(function(t){ return t.thread_id === threadId; })[0];
+  if (row) openDmChat(threadId, { id: row.other_id, name: row.other_name, avatar_url: row.other_avatar });
+  else dmShowInbox();
+}
+
 // ── NOTIFICATIONS ────────────────────────────────────────────────────────
 var _notifPanelOpen = false;
 
@@ -7143,6 +7358,7 @@ async function loadNotifications() {
     badge.textContent = unread > 9 ? '9+' : unread;
   }
   if (_notifPanelOpen) renderNotifList(items);
+  if (typeof _refreshDmBadge === 'function') _refreshDmBadge();
   return items;
 }
 
@@ -7153,7 +7369,7 @@ function renderNotifList(items) {
     list.innerHTML = '<div style="padding:1.2rem;text-align:center;color:var(--muted);font-size:.82rem">No notifications yet.<br>Likes, comments and reposts on your posts show up here.</div>';
     return;
   }
-  var verbs = { like: 'liked your post', comment: 'commented on your post', repost: 'reposted your post', follow: 'followed you', track_share: 'shared your track', system: 'sent a briefing', report_update: 'update on your report' };
+  var verbs = { like: 'liked your post', comment: 'commented on your post', repost: 'reposted your post', follow: 'followed you', track_share: 'shared your track', system: 'sent a briefing', report_update: 'update on your report', dm: 'sent you a message' };
   list.innerHTML = items.map(function(n) {
     var d = new Date(n.created_at);
     var diff = Math.floor((Date.now() - d.getTime()) / 60000);
@@ -7191,6 +7407,7 @@ async function toggleNotifPanel() {
 // Deep link: notification → the exact post, comments open if it's a comment
 async function openNotification(notifId, type, targetId, targetType) {
   toggleNotifPanel();
+  if (type === 'dm' && targetId) { dmOpenFromNotif(targetId); return; }
   // Ash briefings live in the Studio — the digest notification is a door,
   // not just a banner. Admin-only view; everyone else just closes the panel.
   if (targetType === 'digest' || (type === 'system' && !targetId)) {
@@ -10365,6 +10582,7 @@ async function showMemberPage(userId) {
             : '<div class="pf-actions">' +
                 '<button class="pf-btn' + (following ? ' on' : '') + '" onclick="toggleFollowUI(\'user\',\'' + userId + '\',this)">' +
                   (following ? '✓ Following' : '+ Follow') + '</button>' +
+                '<button class="pf-btn" onclick="dmStart(\'' + userId + '\')">✉️ Message</button>' +
               '</div>') +
           '<div class="pf-stats">' + statBits.join('<span class="dot">·</span>') + '</div>' +
           (p.bio ? '<div class="pf-bio">' + escapeHtml(p.bio) + '</div>' : '') +
@@ -12836,7 +13054,8 @@ async function showPageProfile(slugOrId) {
           (isOwner
             ? '<button class="pf-btn" onclick="openPageEditor(\'' + pg.id + '\')">✎ Edit page</button>'
             : '<button class="pf-btn' + (following ? ' on' : '') + '" onclick="toggleFollowUI(\'page\',\'' + pg.id + '\',this)">' +
-                (following ? '✓ Following' : '+ Follow') + '</button>') +
+                (following ? '✓ Following' : '+ Follow') + '</button>' +
+              (pg.owner_id ? '<button class="pf-btn" onclick="dmStart(\'' + pg.owner_id + '\')">✉️ Message</button>' : '')) +
           '<button class="pf-btn" onclick="sharePageProfile(\'' + escapeHtml(pg.slug || pg.id) + '\',\'' + escapeHtml(pg.name).replace(/'/g,'') + '\')">↗ Share</button>' +
         '</div>' +
         '<div class="pf-stats">' + statBits.join('<span class="dot">·</span>') + '</div>' +
@@ -13134,6 +13353,8 @@ async function showArtistPage(slug) {
       '<button class="ap-follow' + (_myFavorites[artist.id] ? ' on' : '') + '" id="fav-btn-' + artist.id + '" ' +
         'title="Favorites get first access to this artist\'s drops" ' +
         'onclick="toggleFavoriteUI(\'' + artist.id + '\', this)">' + (_myFavorites[artist.id] ? '★ Favorite' : '☆ Favorite') + '</button>' +
+      (artist.user_id && (!_authUser || _authUser.id !== artist.user_id)
+        ? '<button class="ap-follow" onclick="dmStart(\'' + artist.user_id + '\')">✉️ Message</button>' : '') +
       (artistPageCanEdit() ? '<button class="ap-follow" onclick="openArtistEditor()">✎ Edit page</button>' : '') +
     '</div>' +
     '<div id="ap-support-row" style="padding:0 22px .4rem;min-height:1px"></div>' +
