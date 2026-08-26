@@ -2523,7 +2523,7 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
 </div>
 
 <!-- Watermark export progress -->
-<div id="wm-modal" role="dialog" aria-modal="true" aria-label="Saving clip" style="display:none;position:fixed;inset:0;z-index:560;background:rgba(7,7,15,.92);backdrop-filter:blur(5px);align-items:center;justify-content:center;padding:1rem">
+<div id="wm-modal" role="dialog" aria-modal="true" aria-label="Saving clip" style="display:none;position:fixed;inset:0;z-index:1170;background:rgba(7,7,15,.92);backdrop-filter:blur(5px);align-items:center;justify-content:center;padding:1rem">
   <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;max-width:320px;width:100%;padding:1.4rem;text-align:center">
     <div style="font-size:1.6rem;margin-bottom:.5rem">🐦‍🔥</div>
     <div style="font-weight:800;margin-bottom:.3rem">Stamping your clip…</div>
@@ -2568,7 +2568,7 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
 </div>
 
 <!-- Trim sheet: videos over 90s get a start/end selector instead of a rejection -->
-<div id="trim-modal" role="dialog" aria-modal="true" aria-label="Trim your clip" style="display:none;position:fixed;inset:0;z-index:540;background:rgba(7,7,15,.92);backdrop-filter:blur(5px);align-items:center;justify-content:center;padding:1rem">
+<div id="trim-modal" role="dialog" aria-modal="true" aria-label="Trim your clip" style="display:none;position:fixed;inset:0;z-index:1160;background:rgba(7,7,15,.92);backdrop-filter:blur(5px);align-items:center;justify-content:center;padding:1rem">
   <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;max-width:480px;width:100%;padding:1.3rem">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.8rem">
       <div style="font-size:1rem;font-weight:800">Pick your 90 seconds</div>
@@ -5451,6 +5451,35 @@ function _refreshPostSheetVoice() {
 // progress asks to keep it as a draft. Element ids are IDENTICAL to the old
 // inline composer, so the entire media/track/submit pipeline is unchanged.
 var _postStep = 1;
+// Single exit path: hides the sheet AND consumes the history entry the
+// open pushed, so the phone's back-gesture state stays consistent.
+function _postSheetHide(wipe) {
+  var w = document.getElementById('post-sheet');
+  if (!w) return;
+  w.style.display = 'none';
+  if (wipe) w.innerHTML = '';
+  _postStep = 1;
+  if (w._histArmed) { w._histArmed = false; try { history.back(); } catch (e) {} }
+}
+// Back-gesture / back-button closes the sheet like a native screen. If
+// there's work in progress the draft popup intercepts and the history
+// entry is re-armed so the next back still lands here, not out of the app.
+window.addEventListener('popstate', function() {
+  var w = document.getElementById('post-sheet');
+  if (!w || w.style.display !== 'flex') return;
+  w._histArmed = false;
+  closePostSheet();
+  if (w.style.display === 'flex') {
+    try { history.pushState({ phxSheet: 'post' }, ''); w._histArmed = true; } catch (e) {}
+  }
+});
+var _pshY0 = 0;
+function _postHeadTS(e) { var t = e.touches && e.touches[0]; if (t) _pshY0 = t.clientY; }
+function _postHeadTE(e) {
+  var t = e.changedTouches && e.changedTouches[0];
+  if (t && _pshY0 && t.clientY - _pshY0 > 65) closePostSheet();
+  _pshY0 = 0;
+}
 function openPostSheet(shortcut) {
   if (!requireAuthAction('Posting')) return;
   var w = document.getElementById('post-sheet');
@@ -5458,7 +5487,7 @@ function openPostSheet(shortcut) {
     w = document.createElement('div');
     w.id = 'post-sheet';
     w.setAttribute('role', 'dialog'); w.setAttribute('aria-modal', 'true'); w.setAttribute('aria-label', 'New post');
-    w.style.cssText = 'display:none;position:fixed;inset:0;z-index:535;background:var(--bg);flex-direction:column';
+    w.style.cssText = 'display:none;position:fixed;inset:0;z-index:1150;background:var(--bg);flex-direction:column';
     document.body.appendChild(w);
   }
   // Rebuild only when the sheet isn't holding work — reopening mid-thought
@@ -5466,7 +5495,7 @@ function openPostSheet(shortcut) {
   var keep = w.style.display === 'flex' || (document.getElementById('composer-text') && (document.getElementById('composer-text').value.trim() || _composerMediaFile));
   if (!keep) {
     w.innerHTML =
-      '<div class="post-sheet-head">' +
+      '<div class="post-sheet-head" ontouchstart="_postHeadTS(event)" ontouchend="_postHeadTE(event)">' +
         '<button id="post-sheet-left" class="psh-btn" aria-label="Close" onclick="postSheetLeft()">✕</button>' +
         '<div id="post-sheet-title" style="font-family:var(--disp);font-weight:700;font-size:1rem">New post</div>' +
         '<div style="margin-left:auto;display:flex;gap:.5rem">' +
@@ -5512,7 +5541,11 @@ function openPostSheet(shortcut) {
     _restorePostDraft();
     populateComposerTracks();
   }
+  var wasOpen = w.style.display === 'flex';
   w.style.display = 'flex';
+  if (!wasOpen && !w._histArmed) {
+    try { history.pushState({ phxSheet: 'post' }, ''); w._histArmed = true; } catch (e) {}
+  }
   _postSheetShowStep(_postStep);
   if (shortcut === 'lens') setTimeout(openPhxLens, 60);
   else if (shortcut === 'media') setTimeout(function(){ var m = document.getElementById('composer-media'); if (m) m.click(); }, 60);
@@ -5595,14 +5628,12 @@ function closePostSheet(force) {
     if (ask) ask.style.display = 'flex';
     return;
   }
-  w.style.display = 'none';
-  _postStep = 1;
+  _postSheetHide(false);
 }
 function postDraftKeep() {
   _savePostDraft();
   document.getElementById('post-draft-ask').style.display = 'none';
-  var w = document.getElementById('post-sheet'); if (w) w.style.display = 'none';
-  _postStep = 1;
+  _postSheetHide(false);
   showToast('📝 Draft saved');
   _refreshComposerTrigger();
 }
@@ -5612,9 +5643,7 @@ function postDraftDiscard() {
   clearComposerMedia();
   if (typeof pickComposerTrack === 'function') pickComposerTrack('');
   document.getElementById('post-draft-ask').style.display = 'none';
-  var w = document.getElementById('post-sheet');
-  if (w) { w.style.display = 'none'; w.innerHTML = ''; }
-  _postStep = 1;
+  _postSheetHide(true);
   _refreshComposerTrigger();
 }
 function _savePostDraft() {
@@ -6100,7 +6129,7 @@ async function openPhxLens() {
   if (!wrap) {
     wrap = document.createElement('div');
     wrap.id = 'phx-lens';
-    wrap.style.cssText = 'position:fixed;inset:0;z-index:600;background:#000;display:flex;flex-direction:column';
+    wrap.style.cssText = 'position:fixed;inset:0;z-index:1180;background:#000;display:flex;flex-direction:column';
     document.body.appendChild(wrap);
   }
   wrap.style.display = 'flex';
@@ -6347,7 +6376,7 @@ async function openTrackSheet() {
   if (!wrap) {
     wrap = document.createElement('div');
     wrap.id = 'track-sheet';
-    wrap.style.cssText = 'position:fixed;inset:0;z-index:545;background:rgba(7,7,15,.85);backdrop-filter:blur(5px);display:flex;align-items:flex-end;justify-content:center';
+    wrap.style.cssText = 'position:fixed;inset:0;z-index:1160;background:rgba(7,7,15,.85);backdrop-filter:blur(5px);display:flex;align-items:flex-end;justify-content:center';
     wrap.addEventListener('click', function(e){ if (e.target === wrap) wrap.style.display = 'none'; });
     document.body.appendChild(wrap);
   }
@@ -6984,9 +7013,7 @@ async function submitFeedPost() {
   var pv = document.getElementById('composer-media-preview'); if (pv) { pv.style.display = 'none'; pv.innerHTML = ''; }
   if (textEl) { textEl.value = ''; textEl.blur(); }
   _clearPostDraft();
-  var psheet = document.getElementById('post-sheet');
-  if (psheet) { psheet.style.display = 'none'; psheet.innerHTML = ''; }
-  _postStep = 1;
+  _postSheetHide(true);
   _refreshComposerTrigger();
   showToast('🏙️ Posted to the City Feed');
   loadCityFeed(true).then(populateComposerTracks);
