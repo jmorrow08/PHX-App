@@ -165,6 +165,23 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
 .cp-chip.on{color:var(--orange);border-color:rgba(249,115,22,.45)}
 .cp-track{background:var(--bg3);border:1px solid var(--line);border-radius:999px;color:var(--muted);font-size:.76rem;padding:.45rem .8rem;max-width:180px}
 .cp-post{margin-left:auto;background:linear-gradient(135deg,var(--orange),#EA8C08);border:none;border-radius:999px;color:#fff;font-weight:700;font-size:.86rem;padding:.55rem 1.5rem;cursor:pointer;font-family:var(--disp);letter-spacing:.01em}
+/* Feed trigger card (FB "What's on your mind?" pattern) + the post sheet */
+.ct-pill{flex:1;background:var(--bg3);border:1px solid var(--line);border-radius:999px;padding:.62rem 1rem;font-size:.88rem;color:var(--muted);cursor:pointer;transition:border-color var(--t) var(--ease);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ct-pill:hover{border-color:rgba(249,115,22,.45)}
+.ct-row{display:flex;border-top:1px solid var(--line)}
+.ct-opt{flex:1;background:transparent;border:none;color:var(--muted);font-size:.78rem;font-weight:600;padding:.55rem .2rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:.35rem;font-family:inherit}
+.ct-opt:active{color:var(--orange)}
+#post-sheet{animation:sheet-up .22s var(--ease)}
+@keyframes sheet-up{from{transform:translateY(24px);opacity:0}to{transform:none;opacity:1}}
+.post-sheet-head{display:flex;align-items:center;gap:.7rem;padding:calc(.7rem + env(safe-area-inset-top,0px)) .9rem .7rem;border-bottom:1px solid var(--border)}
+.psh-btn{width:36px;height:36px;border-radius:50%;background:var(--bg3);border:1px solid var(--line);color:var(--white);font-size:1rem;cursor:pointer;flex-shrink:0}
+.ps-write{width:100%;background:transparent;border:none;outline:none;color:var(--white);font-family:inherit;font-size:1.08rem;line-height:1.55;resize:none;min-height:96px;padding:.2rem 0}
+.ps-opts{display:flex;flex-direction:column;gap:.45rem;margin-top:.9rem}
+.ps-opt{display:flex;align-items:center;gap:.6rem;background:var(--bg2);border:1px solid var(--line);border-radius:14px;padding:.75rem .9rem;color:var(--white);font-size:1rem;cursor:pointer;font-family:inherit;text-align:left;transition:border-color var(--t) var(--ease)}
+.ps-opt:hover{border-color:rgba(249,115,22,.4)}
+.ps-opt b{font-size:.86rem;font-weight:700}
+.ps-opt span{margin-left:auto;font-size:.68rem;color:var(--faint);text-align:right}
+.ps-opt.on{border-color:rgba(249,115,22,.5)}
 .cp-post:active{transform:scale(.97)}
 .persona-chip{display:inline-flex;align-items:center;gap:.4rem;background:var(--bg3);border:1px solid var(--line);border-radius:999px;padding:.3rem .4rem .3rem .75rem;font-size:.74rem;color:var(--muted)}
 .persona-chip select{background:transparent;color:var(--white);border:none;font-size:.76rem;max-width:190px}
@@ -4691,8 +4708,11 @@ async function loadFeedPrompt() {
     '<button class="tb-btn" style="font-size:.76rem;flex-shrink:0" onclick="answerPrompt()">Answer</button></div>';
 }
 function answerPrompt() {
-  var ta = document.getElementById('composer-text');
-  if (ta) { ta.focus(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+  openPostSheet();
+  setTimeout(function() {
+    var ta = document.getElementById('composer-text');
+    if (ta) ta.focus();
+  }, 150);
 }
 
 // ── Your Week: the pass keeps score of you ──
@@ -5133,50 +5153,19 @@ function renderComposer() {
       '</div></div>';
   }
   var persona = currentPersona();
-  var opts = personaOptions();
   var myAva = (_myProfile && _myProfile.avatar_url) || '';
-  var identityChip;
-  // No @tag chip in the composer — the avatar IS the identity. With more than
-  // one voice (pages), the avatar carries a ▾ and opens the voice picker.
-  identityChip = '';
-  var avaBlock;
-  if (opts.length > 1) {
-    var choice = localStorage.getItem('phx_persona_choice') || opts[0].id;
-    var curPage = null;
-    if (choice.indexOf('page:') === 0) { curPage = _myPages.filter(function(pg){ return pg.id === choice.slice(5); })[0] || null; }
-    var avaUrl = curPage ? (curPage.avatar_url || '') : (choice === 'official' ? 'assets/phx-avatar.png' : myAva);
-    avaBlock = '<div class="composer-voice" title="Posting as ' + escapeHtml(persona.name) + '">' +
-      avatarHtml(avaUrl, persona.avatar || '👤', 'ava-sm', persona.name, 'style="width:40px;height:40px;font-size:1.05rem"') +
-      '<span class="composer-voice-caret">▾</span>' +
-      '<select onchange="setPersonaChoice(this.value)" aria-label="Post as">' +
-        opts.map(function(o) {
-          return '<option value="' + o.id + '"' + (o.id === choice ? ' selected' : '') + '>' + escapeHtml(o.label) + '</option>';
-        }).join('') +
-      '</select>' +
-    '</div>';
-  } else {
-    avaBlock = avatarHtml(myAva, persona.avatar || '👤', 'ava-sm', persona.name, 'style="width:40px;height:40px;font-size:1.05rem"');
-  }
-  return '<div class="composer' + (window._composerOpen ? '' : ' collapsed') + '" id="composer-box">' +
-    '<div class="composer-top">' +
-      avaBlock +
-      '<textarea id="composer-text" class="composer-input" rows="1" maxlength="1000" placeholder="What\'s happening in the city?" onfocus="composerExpand()"></textarea>' +
+  var hasDraft = !!localStorage.getItem('phx_post_draft');
+  return '<div class="composer" id="composer-trigger" style="padding:.85rem 1rem .55rem">' +
+    '<div style="display:flex;align-items:center;gap:.65rem;margin-bottom:.6rem">' +
+      avatarHtml(myAva, persona.avatar || '👤', 'ava-sm', persona.name, 'style="width:40px;height:40px;font-size:1.05rem;flex-shrink:0"') +
+      '<div class="ct-pill" role="button" tabindex="0" onclick="openPostSheet()">' +
+        (hasDraft ? '📝 Draft saved — tap to continue' : 'What\'s happening in the city?') + '</div>' +
     '</div>' +
-    '<div class="composer-bar">' +
-      identityChip +
-      '<select id="composer-track" class="cp-track" title="Attach a track" style="display:none">' +
-        '<option value="">🎵 Add track</option>' +
-      '</select>' +
-      '<input type="file" id="composer-media" accept="video/mp4,video/webm,video/quicktime,image/jpeg,image/png,image/webp,image/gif" style="display:none" onchange="handleComposerMedia(this)">' +
-      '<input type="file" id="composer-camera" accept="image/*,video/*" capture="environment" style="display:none" onchange="handleComposerMedia(this)">' +
-      '<button class="cp-chip" title="Open PHX Lens" onclick="openPhxLens()">📸 PHX Lens</button>' +
-      '<button class="cp-chip" id="composer-media-btn" title="Add a photo or video" onclick="document.getElementById(\'composer-media\').click()">🖼️ Photo · Video</button>' +
-      '<button class="cp-chip" id="composer-track-btn" onclick="openTrackSheet()">🎵 Add a song</button>' +
-      '<button class="cp-post" id="composer-post-btn" onclick="submitFeedPost()">Post</button>' +
+    '<div class="ct-row">' +
+      '<button class="ct-opt" onclick="openPostSheet(\'lens\')">📸 <span>PHX Lens</span></button>' +
+      '<button class="ct-opt" onclick="openPostSheet(\'media\')">🖼️ <span>Photo · Video</span></button>' +
+      '<button class="ct-opt" onclick="openPostSheet(\'song\')">🎵 <span>Song</span></button>' +
     '</div>' +
-    '<div id="composer-media-name" style="display:none;font-size:.74rem;color:var(--green);margin-top:.4rem"></div>' +
-    '<div id="composer-media-preview" style="display:none;margin-top:.6rem"></div>' +
-    '<div id="composer-error" style="display:none;color:var(--red);font-size:.78rem;margin-top:.4rem"></div>' +
   '</div>' +
   '<div style="display:flex;gap:.5rem;margin-bottom:.9rem;flex-wrap:wrap">' +
     ['top:🔥 Popular', 'latest:🕐 Latest', 'following:⭐ Following', 'tracks:🎵 Music'].map(function(v) {
@@ -5322,10 +5311,236 @@ function _refreshAudioOpts() {
       : '');
 }
 
-function composerExpand() {
-  window._composerOpen = true;
-  var box = document.getElementById('composer-box');
-  if (box) box.classList.remove('collapsed');
+// The composer voice selector (personal / page / platform), reused by the sheet
+function _composerVoiceHtml() {
+  var persona = currentPersona();
+  var opts = personaOptions();
+  var myAva = (_myProfile && _myProfile.avatar_url) || '';
+  var inner;
+  if (opts.length > 1) {
+    var choice = localStorage.getItem('phx_persona_choice') || opts[0].id;
+    var curPage = null;
+    if (choice.indexOf('page:') === 0) { curPage = _myPages.filter(function(pg){ return pg.id === choice.slice(5); })[0] || null; }
+    var avaUrl = curPage ? (curPage.avatar_url || '') : (choice === 'official' ? 'assets/phx-avatar.png' : myAva);
+    inner = '<div class="composer-voice" title="Posting as ' + escapeHtml(persona.name) + '">' +
+      avatarHtml(avaUrl, persona.avatar || '👤', 'ava-sm', persona.name, 'style="width:42px;height:42px;font-size:1.05rem"') +
+      '<span class="composer-voice-caret">▾</span>' +
+      '<select onchange="setPersonaChoice(this.value);_refreshPostSheetVoice()" aria-label="Post as">' +
+        opts.map(function(o) {
+          return '<option value="' + o.id + '"' + (o.id === choice ? ' selected' : '') + '>' + escapeHtml(o.label) + '</option>';
+        }).join('') +
+      '</select>' +
+    '</div>';
+  } else {
+    inner = avatarHtml(myAva, persona.avatar || '👤', 'ava-sm', persona.name, 'style="width:42px;height:42px;font-size:1.05rem"');
+  }
+  return '<div style="display:flex;align-items:center;gap:.65rem">' + inner +
+    '<div style="min-width:0"><div style="font-size:.9rem;font-weight:700">' + escapeHtml(persona.name) + '</div>' +
+    '<div style="font-size:.68rem;color:var(--muted)">' + (opts.length > 1 ? 'tap the avatar to switch voice' : 'posting to the City Feed') + '</div></div></div>';
+}
+function _refreshPostSheetVoice() {
+  var v = document.getElementById('post-sheet-voice');
+  if (v) v.innerHTML = _composerVoiceHtml();
+}
+
+// ── FULL-SCREEN POST FLOW (the FB pattern Jaye asked for) ──────────────
+// Tapping the feed trigger opens a dedicated New Post page: write + attach
+// on step 1, Next → a true preview with last-minute tweaks (filters, stamp,
+// cover frame, soundtrack mix) on step 2, then Post. Leaving with work in
+// progress asks to keep it as a draft. Element ids are IDENTICAL to the old
+// inline composer, so the entire media/track/submit pipeline is unchanged.
+var _postStep = 1;
+function openPostSheet(shortcut) {
+  if (!requireAuthAction('Posting')) return;
+  var w = document.getElementById('post-sheet');
+  if (!w) {
+    w = document.createElement('div');
+    w.id = 'post-sheet';
+    w.setAttribute('role', 'dialog'); w.setAttribute('aria-modal', 'true'); w.setAttribute('aria-label', 'New post');
+    w.style.cssText = 'display:none;position:fixed;inset:0;z-index:535;background:var(--bg);flex-direction:column';
+    document.body.appendChild(w);
+  }
+  // Rebuild only when the sheet isn't holding work — reopening mid-thought
+  // (e.g. after the Lens) must not wipe the textarea or attachment.
+  var keep = w.style.display === 'flex' || (document.getElementById('composer-text') && (document.getElementById('composer-text').value.trim() || _composerMediaFile));
+  if (!keep) {
+    w.innerHTML =
+      '<div class="post-sheet-head">' +
+        '<button id="post-sheet-left" class="psh-btn" aria-label="Close" onclick="postSheetLeft()">✕</button>' +
+        '<div id="post-sheet-title" style="font-family:var(--disp);font-weight:700;font-size:1rem">New post</div>' +
+        '<div style="margin-left:auto;display:flex;gap:.5rem">' +
+          '<button class="cp-post" id="post-next-btn" onclick="postSheetNext()">Next</button>' +
+          '<button class="cp-post" id="composer-post-btn" style="display:none" onclick="submitFeedPost()">Post</button>' +
+        '</div>' +
+      '</div>' +
+      '<div id="post-step1" style="flex:1;overflow-y:auto;padding:1rem 1.1rem calc(1.2rem + env(safe-area-inset-bottom,0px))">' +
+        '<div id="post-sheet-voice" style="margin-bottom:.8rem">' + _composerVoiceHtml() + '</div>' +
+        '<textarea id="composer-text" class="ps-write" maxlength="1000" placeholder="What\'s happening in the city?" oninput="_postTextGrow(this)"></textarea>' +
+        '<div id="composer-media-name" style="display:none;font-size:.76rem;color:var(--green);margin:.3rem 0 .1rem"></div>' +
+        '<div id="composer-error" style="display:none;color:var(--red);font-size:.78rem;margin:.3rem 0 .1rem"></div>' +
+        '<div class="ps-opts">' +
+          '<button class="ps-opt" onclick="openPhxLens()">📸 <b>PHX Lens</b><span>shoot it right here — filters live</span></button>' +
+          '<button class="ps-opt" id="composer-media-btn" onclick="document.getElementById(\'composer-media\').click()">🖼️ <b>Photo or video</b><span>from your camera roll</span></button>' +
+          '<button class="ps-opt" id="composer-track-btn" onclick="openTrackSheet()">🎵 <b>Add a song</b><span>soundtrack your post</span></button>' +
+        '</div>' +
+        '<select id="composer-track" class="cp-track" style="display:none"><option value="">🎵 Add track</option></select>' +
+        '<input type="file" id="composer-media" accept="video/mp4,video/webm,video/quicktime,image/jpeg,image/png,image/webp,image/gif" style="display:none" onchange="handleComposerMedia(this)">' +
+        '<input type="file" id="composer-camera" accept="image/*,video/*" capture="environment" style="display:none" onchange="handleComposerMedia(this)">' +
+      '</div>' +
+      '<div id="post-step2" style="display:none;flex:1;overflow-y:auto;padding:1rem 1.1rem calc(1.2rem + env(safe-area-inset-bottom,0px))">' +
+        '<div style="font-size:.72rem;color:var(--muted);margin-bottom:.6rem">This is how it lands on the feed — last tweaks here.</div>' +
+        '<div class="feed-post" style="margin:0 0 1rem">' +
+          '<div id="post-preview-head" style="display:flex;align-items:center;gap:.6rem;margin-bottom:.5rem"></div>' +
+          '<div id="post-preview-text" style="font-size:.95rem;line-height:1.55;white-space:pre-wrap;cursor:pointer" onclick="postSheetBack();setTimeout(function(){var t=document.getElementById(\'composer-text\');if(t)t.focus()},80)"></div>' +
+          '<div id="composer-media-preview" style="display:none;margin-top:.6rem"></div>' +
+          '<div id="post-preview-track" style="display:none;margin-top:.55rem"></div>' +
+        '</div>' +
+      '</div>' +
+      '<div id="post-draft-ask" style="display:none;position:absolute;inset:0;z-index:2;background:rgba(7,7,15,.78);backdrop-filter:blur(5px);align-items:center;justify-content:center;padding:1.2rem">' +
+        '<div class="card" style="max-width:340px;width:100%;padding:1.2rem">' +
+          '<div style="font-weight:700;font-size:1rem;margin-bottom:.35rem">Keep this post?</div>' +
+          '<div id="post-draft-note" style="font-size:.8rem;color:var(--muted);line-height:1.5;margin-bottom:1rem">Save it as a draft and it\'ll be waiting next time you tap the box.</div>' +
+          '<div style="display:flex;flex-direction:column;gap:.5rem">' +
+            '<button class="cp-post" style="width:100%" onclick="postDraftKeep()">💾 Save draft</button>' +
+            '<button class="pf-btn" style="width:100%;justify-content:center" onclick="postDraftDiscard()">🗑️ Discard</button>' +
+            '<button class="pf-btn" style="width:100%;justify-content:center;border-color:transparent" onclick="document.getElementById(\'post-draft-ask\').style.display=\'none\'">Keep editing</button>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+    _postStep = 1;
+    _restorePostDraft();
+    populateComposerTracks();
+  }
+  w.style.display = 'flex';
+  _postSheetShowStep(_postStep);
+  if (shortcut === 'lens') setTimeout(openPhxLens, 60);
+  else if (shortcut === 'media') setTimeout(function(){ var m = document.getElementById('composer-media'); if (m) m.click(); }, 60);
+  else if (shortcut === 'song') setTimeout(openTrackSheet, 60);
+  else if (!keep) setTimeout(function(){ var t = document.getElementById('composer-text'); if (t) t.focus(); }, 120);
+}
+function _postTextGrow(t) { t.style.height = 'auto'; t.style.height = Math.min(t.scrollHeight, window.innerHeight * 0.4) + 'px'; }
+function _postSheetShowStep(n) {
+  _postStep = n;
+  var s1 = document.getElementById('post-step1'), s2 = document.getElementById('post-step2');
+  var nx = document.getElementById('post-next-btn'), pb = document.getElementById('composer-post-btn');
+  var left = document.getElementById('post-sheet-left'), title = document.getElementById('post-sheet-title');
+  if (s1) s1.style.display = n === 1 ? 'block' : 'none';
+  if (s2) s2.style.display = n === 2 ? 'block' : 'none';
+  if (nx) nx.style.display = n === 1 ? 'inline-block' : 'none';
+  if (pb) pb.style.display = n === 2 ? 'inline-block' : 'none';
+  if (left) left.textContent = n === 1 ? '✕' : '‹';
+  if (title) title.textContent = n === 1 ? 'New post' : 'Preview & tweaks';
+}
+function postSheetLeft() { if (_postStep === 2) postSheetBack(); else closePostSheet(); }
+function postSheetBack() { _postSheetShowStep(1); }
+function postSheetNext() {
+  var t = document.getElementById('composer-text');
+  var content = (t ? t.value : '').trim();
+  var errEl = document.getElementById('composer-error');
+  if (!content && !_composerMediaFile) {
+    if (errEl) { errEl.textContent = 'Write something — or attach a photo or video.'; errEl.style.display = 'block'; }
+    return;
+  }
+  if (errEl) errEl.style.display = 'none';
+  _renderPostPreview();
+  _postSheetShowStep(2);
+}
+function _renderPostPreview() {
+  var persona = currentPersona();
+  var t = document.getElementById('composer-text');
+  var head = document.getElementById('post-preview-head');
+  if (head) {
+    var opts = personaOptions();
+    var choice = localStorage.getItem('phx_persona_choice') || (opts[0] && opts[0].id) || 'personal';
+    var curPage = choice.indexOf('page:') === 0 ? (_myPages.filter(function(pg){ return pg.id === choice.slice(5); })[0] || null) : null;
+    var avaUrl = curPage ? (curPage.avatar_url || '') : (choice === 'official' ? 'assets/phx-avatar.png' : ((_myProfile && _myProfile.avatar_url) || ''));
+    head.innerHTML = avatarHtml(avaUrl, persona.avatar || '👤', 'ava-sm', persona.name, 'style="width:38px;height:38px;font-size:1rem;flex-shrink:0"') +
+      '<div><div style="font-size:.86rem;font-weight:700">' + escapeHtml(persona.name) + '</div>' +
+      '<div style="font-size:.66rem;color:var(--faint)">Just now · 🏙️ City Feed</div></div>';
+  }
+  var txt = document.getElementById('post-preview-text');
+  if (txt) {
+    var content = (t ? t.value : '').trim();
+    txt.textContent = content;
+    txt.style.display = content ? 'block' : 'none';
+  }
+  renderMediaPreview();
+  var tk = document.getElementById('post-preview-track');
+  var sel = document.getElementById('composer-track');
+  if (tk) {
+    if (sel && sel.value) {
+      var label = (sel.options[sel.selectedIndex] || {}).textContent || 'Song';
+      tk.innerHTML = '<div class="track-row" style="background:var(--bg4);border:1px solid var(--border)">' +
+        '<div class="track-art">🎵</div><div class="track-info"><div class="track-title">' + escapeHtml(label) + '</div></div>' +
+        '<button class="pf-btn" style="font-size:.68rem;padding:.25rem .6rem" onclick="pickComposerTrack(\'\');_renderPostPreview()">✕</button></div>';
+      tk.style.display = 'block';
+    } else tk.style.display = 'none';
+  }
+}
+function _postSheetHasWork() {
+  var t = document.getElementById('composer-text');
+  var sel = document.getElementById('composer-track');
+  return !!((t && t.value.trim()) || _composerMediaFile || (sel && sel.value));
+}
+function closePostSheet(force) {
+  var w = document.getElementById('post-sheet');
+  if (!w) return;
+  if (!force && _postSheetHasWork()) {
+    var note = document.getElementById('post-draft-note');
+    if (note) note.textContent = _composerMediaFile
+      ? 'Your words and song save as a draft. The attached ' + (/^video\//.test(_composerMediaFile.type) ? 'video' : 'photo') + ' stays only until the app is closed — re-attach it if you come back later.'
+      : 'Save it as a draft and it\'ll be waiting next time you tap the box.';
+    var ask = document.getElementById('post-draft-ask');
+    if (ask) ask.style.display = 'flex';
+    return;
+  }
+  w.style.display = 'none';
+  _postStep = 1;
+}
+function postDraftKeep() {
+  _savePostDraft();
+  document.getElementById('post-draft-ask').style.display = 'none';
+  var w = document.getElementById('post-sheet'); if (w) w.style.display = 'none';
+  _postStep = 1;
+  showToast('📝 Draft saved');
+  _refreshComposerTrigger();
+}
+function postDraftDiscard() {
+  _clearPostDraft();
+  var t = document.getElementById('composer-text'); if (t) t.value = '';
+  clearComposerMedia();
+  if (typeof pickComposerTrack === 'function') pickComposerTrack('');
+  document.getElementById('post-draft-ask').style.display = 'none';
+  var w = document.getElementById('post-sheet');
+  if (w) { w.style.display = 'none'; w.innerHTML = ''; }
+  _postStep = 1;
+  _refreshComposerTrigger();
+}
+function _savePostDraft() {
+  var t = document.getElementById('composer-text');
+  var sel = document.getElementById('composer-track');
+  try {
+    localStorage.setItem('phx_post_draft', JSON.stringify({
+      text: (t ? t.value : ''), track: (sel && sel.value) || '', ts: Date.now()
+    }));
+  } catch (e) {}
+}
+function _clearPostDraft() { try { localStorage.removeItem('phx_post_draft'); } catch (e) {} }
+function _restorePostDraft() {
+  var raw = null;
+  try { raw = localStorage.getItem('phx_post_draft'); } catch (e) {}
+  if (!raw) return;
+  try {
+    var d = JSON.parse(raw);
+    var t = document.getElementById('composer-text');
+    if (t && d.text) { t.value = d.text; _postTextGrow(t); }
+    if (d.track) { populateComposerTracks().then(function(){ pickComposerTrack(d.track); }); }
+    showToast('📝 Draft restored');
+  } catch (e) { _clearPostDraft(); }
+}
+function _refreshComposerTrigger() {
+  var pill = document.querySelector('#composer-trigger .ct-pill');
+  if (pill) pill.textContent = localStorage.getItem('phx_post_draft') ? '📝 Draft saved — tap to continue' : 'What\'s happening in the city?';
 }
 function clearComposerMedia() {
   _composerMediaFile = null; _composerFilter = 'none'; _composerStamp = false; _composerPosterTime = null; _composerAudioMode = 'original'; _composerTrustedClip = false;
@@ -5791,9 +6006,12 @@ async function openPhxLens() {
   wrap.innerHTML =
     '<div style="position:relative;flex:1;overflow:hidden" ontouchstart="_lensTS(event)" ontouchend="_lensTE(event)">' +
       '<video id="lens-view" autoplay playsinline muted style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"></video>' +
+      '<div id="lens-grid" style="display:' + (_lensGridOn ? 'block' : 'none') + ';position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(rgba(255,255,255,.16) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.16) 1px,transparent 1px);background-size:33.34% 33.34%"></div>' +
+      '<div id="lens-zoom-badge" style="display:none;position:absolute;bottom:calc(196px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);background:rgba(7,7,15,.6);border-radius:999px;padding:.22rem .65rem;font-weight:700;font-size:.74rem;color:#fff;pointer-events:none">1×</div>' +
       '<div id="lens-filter-name" style="position:absolute;top:calc(18px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);background:rgba(7,7,15,.72);border-radius:999px;padding:.32rem .95rem;font-weight:800;font-size:.9rem;color:#fff;opacity:0;transition:opacity .25s;pointer-events:none;white-space:nowrap"></div>' +
       '<div id="lens-rec-badge" style="display:none;position:absolute;top:calc(18px + env(safe-area-inset-top,0px));left:16px;background:rgba(220,38,38,.9);border-radius:999px;padding:.28rem .7rem;font-weight:800;font-size:.78rem;color:#fff">● <span id="lens-rec-time">0:00</span></div>' +
       '<button onclick="closePhxLens()" aria-label="Close" style="position:absolute;top:calc(14px + env(safe-area-inset-top,0px));right:14px;width:36px;height:36px;border-radius:50%;background:rgba(7,7,15,.6);border:none;color:#fff;font-size:1rem;cursor:pointer">✕</button>' +
+      '<button id="lens-grid-btn" onclick="toggleLensGrid()" aria-label="Grid" style="position:absolute;top:calc(60px + env(safe-area-inset-top,0px));right:14px;width:36px;height:36px;border-radius:50%;background:rgba(7,7,15,.6);border:none;color:' + (_lensGridOn ? 'var(--orange)' : '#fff') + ';font-size:.95rem;cursor:pointer">▦</button>' +
       '<div style="position:absolute;left:0;right:0;bottom:0;padding:0 0 calc(26px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;align-items:center;gap:14px;background:linear-gradient(transparent,rgba(0,0,0,.55))">' +
         '<div id="lens-chips" style="display:flex;gap:.4rem;overflow-x:auto;max-width:92%;padding:.2rem;scrollbar-width:none">' +
           Object.keys(PHOTO_FILTERS).map(function(k) {
@@ -5819,9 +6037,13 @@ async function _lensStart() {
   _lensStop();
   try {
     _lensStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: _lensFacing, width: { ideal: 1280 }, height: { ideal: 1920 } },
+      // Sensor-shaped request (landscape, high res) — asking for portrait
+      // dimensions made the browser center-crop the sensor, which is what
+      // read as "zoomed in". Phones rotate the frames themselves.
+      video: { facingMode: _lensFacing, width: { ideal: 1920 }, height: { ideal: 1080 }, frameRate: { ideal: 30 } },
       audio: true
     });
+    _lensInitZoom();
   } catch (e) {
     closePhxLens();
     showToast('📷 Camera unavailable — using the phone camera instead.');
@@ -5851,6 +6073,40 @@ async function flipPhxLens() {
   await _lensStart();
 }
 
+// Pinch-to-zoom rides the camera's own optical/sensor zoom when the track
+// exposes it (Android Chrome, some iOS 17+). No capability, no gesture —
+// never a fake CSS blow-up.
+var _lensZoomCaps = null, _lensZoom = 1, _lensPinchD0 = 0, _lensPinchZ0 = 1;
+function _lensInitZoom() {
+  _lensZoomCaps = null; _lensZoom = 1;
+  try {
+    var track = _lensStream && _lensStream.getVideoTracks()[0];
+    var caps = track && track.getCapabilities && track.getCapabilities();
+    if (caps && caps.zoom && caps.zoom.max > caps.zoom.min) {
+      _lensZoomCaps = { track: track, min: caps.zoom.min || 1, max: Math.min(caps.zoom.max, 8) };
+      _lensZoom = caps.zoom.min || 1;
+    }
+  } catch (e) {}
+  var z = document.getElementById('lens-zoom-badge');
+  if (z) z.style.display = _lensZoomCaps ? 'block' : 'none';
+}
+function _lensApplyZoom(val) {
+  if (!_lensZoomCaps) return;
+  _lensZoom = Math.max(_lensZoomCaps.min, Math.min(_lensZoomCaps.max, val));
+  try { _lensZoomCaps.track.applyConstraints({ advanced: [{ zoom: _lensZoom }] }); } catch (e) {}
+  var z = document.getElementById('lens-zoom-badge');
+  if (z) z.textContent = (Math.round(_lensZoom * 10) / 10) + '×';
+}
+var _lensGridOn = (function(){ try { return localStorage.getItem('phx_lens_grid') === 'on'; } catch (e) { return false; } })();
+function toggleLensGrid() {
+  _lensGridOn = !_lensGridOn;
+  try { localStorage.setItem('phx_lens_grid', _lensGridOn ? 'on' : 'off'); } catch (e) {}
+  var g = document.getElementById('lens-grid');
+  if (g) g.style.display = _lensGridOn ? 'block' : 'none';
+  var b = document.getElementById('lens-grid-btn');
+  if (b) b.style.color = _lensGridOn ? 'var(--orange)' : '#fff';
+}
+
 var _lensFilter = 'none', _lensSwX = 0, _lensSwY = 0;
 function _lensSetFilter(k) {
   _lensFilter = k;
@@ -5864,8 +6120,30 @@ function _lensSetFilter(k) {
   var el = document.getElementById('lens-filter-name');
   if (el) { el.textContent = PHOTO_FILTERS[k].label; el.style.opacity = '1'; clearTimeout(el._t); el._t = setTimeout(function(){ el.style.opacity = '0'; }, 900); }
 }
-function _lensTS(e) { var t = e.touches && e.touches[0]; if (t) { _lensSwX = t.clientX; _lensSwY = t.clientY; } }
+function _lensTS(e) {
+  if (e.touches && e.touches.length === 2 && _lensZoomCaps) {
+    var a = e.touches[0], b = e.touches[1];
+    _lensPinchD0 = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+    _lensPinchZ0 = _lensZoom;
+    var view = document.getElementById('lens-view');
+    if (view && !view._pinchBound) {
+      view._pinchBound = true;
+      view.parentElement.addEventListener('touchmove', function(ev) {
+        if (ev.touches.length === 2 && _lensPinchD0) {
+          var p = ev.touches[0], q = ev.touches[1];
+          var d = Math.hypot(p.clientX - q.clientX, p.clientY - q.clientY);
+          _lensApplyZoom(_lensPinchZ0 * (d / _lensPinchD0));
+          ev.preventDefault();
+        }
+      }, { passive: false });
+    }
+    return;
+  }
+  _lensPinchD0 = 0;
+  var t = e.touches && e.touches[0]; if (t) { _lensSwX = t.clientX; _lensSwY = t.clientY; }
+}
 function _lensTE(e) {
+  if (_lensPinchD0) { _lensPinchD0 = 0; return; }
   var t = e.changedTouches && e.changedTouches[0]; if (!t) return;
   var dx = t.clientX - _lensSwX, dy = t.clientY - _lensSwY;
   if (Math.abs(dx) < 48 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
@@ -5874,10 +6152,10 @@ function _lensTE(e) {
   _lensSetFilter(keys[(i + (dx < 0 ? 1 : keys.length - 1)) % keys.length]);
 }
 
-function _lensDrawSetup() {
+function _lensDrawSetup(maxDim) {
   var v = document.getElementById('lens-view');
   var vw = v.videoWidth || 720, vh = v.videoHeight || 1280;
-  var scale = Math.min(1, 1280 / Math.max(vw, vh));
+  var scale = Math.min(1, (maxDim || 1920) / Math.max(vw, vh));
   _lensCanvas = document.createElement('canvas');
   _lensCanvas.width = Math.round(vw * scale / 2) * 2;
   _lensCanvas.height = Math.round(vh * scale / 2) * 2;
@@ -5906,16 +6184,16 @@ function _lensShutterUp(e) {
 }
 function _lensPhoto() {
   if (!_lensStream) return;
-  var v = _lensDrawSetup();
+  var v = _lensDrawSetup(2560);   // photos keep native sharpness
   _lensDraw(v);
   _lensCanvas.toBlob(function(b) {
     if (!b) { showToast('Could not capture — try again'); return; }
     _lensAttach(new File([b], 'lens-' + Date.now() + '.jpg', { type: 'image/jpeg' }));
-  }, 'image/jpeg', 0.9);
+  }, 'image/jpeg', 0.95);
 }
 function _lensStartRec() {
   if (!_lensStream || (_lensRec && _lensRec.state === 'recording')) return;
-  var v = _lensDrawSetup();
+  var v = _lensDrawSetup(1920);
   var stream = _lensCanvas.captureStream(30);
   var at = _lensStream.getAudioTracks()[0];
   if (at) stream.addTrack(at);
@@ -6603,8 +6881,12 @@ async function submitFeedPost() {
   if (typeof pickComposerTrack === 'function') pickComposerTrack('');
   var pv = document.getElementById('composer-media-preview'); if (pv) { pv.style.display = 'none'; pv.innerHTML = ''; }
   if (textEl) { textEl.value = ''; textEl.blur(); }
-  window._composerOpen = false;
-  var cbox = document.getElementById('composer-box'); if (cbox) cbox.classList.add('collapsed');
+  _clearPostDraft();
+  var psheet = document.getElementById('post-sheet');
+  if (psheet) { psheet.style.display = 'none'; psheet.innerHTML = ''; }
+  _postStep = 1;
+  _refreshComposerTrigger();
+  showToast('🏙️ Posted to the City Feed');
   loadCityFeed(true).then(populateComposerTracks);
 }
 
@@ -6747,18 +7029,14 @@ function shareCurrentTrackToFeed() {
   var uuid = currentTrackUuid();
   if (!uuid) return;
   showView('home');
+  openPostSheet();
   setTimeout(function() {
-    var sel = document.getElementById('composer-track');
-    var txt = document.getElementById('composer-text');
-    if (sel) {
-      for (var i = 0; i < sel.options.length; i++) {
-        if (sel.options[i].value === uuid) { sel.selectedIndex = i; break; }
-      }
-    }
-    if (txt) { txt.focus(); txt.placeholder = 'Say something about this track…'; }
-    var composer = document.getElementById('composer-text');
-    if (composer) composer.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  }, 300);
+    populateComposerTracks().then(function() {
+      pickComposerTrack(uuid);
+      var txt = document.getElementById('composer-text');
+      if (txt) { txt.placeholder = 'Say something about this track…'; txt.focus(); }
+    });
+  }, 200);
 }
 
 // ── NOTIFICATIONS ────────────────────────────────────────────────────────
