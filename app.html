@@ -1922,6 +1922,11 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
       <div id="member-page-content"><div style="color:var(--muted);font-size:.85rem;padding:1rem 0">Loading…</div></div>
     </div>
 
+    <!-- EVENT DETAIL — every Plug Map card opens here -->
+    <div class="view" id="v-event-page">
+      <div id="event-page-content"><div class="pf-empty">Loading event…</div></div>
+    </div>
+
     <!-- MESSAGES — 1:1 DMs (inbox + chat share the view) -->
     <div class="view" id="v-messages">
       <div id="dm-inbox"><div class="pf-empty">Loading…</div></div>
@@ -2830,7 +2835,7 @@ function startEmber() {
 }
 
 var titles = {
-  home:'City Feed', discover:'Discover PHX', music:'PHX Music', reels:'Clips', messages:'Messages',
+  home:'City Feed', discover:'Discover PHX', music:'PHX Music', reels:'Clips', messages:'Messages', 'event-page':'Event',
   events:'Plug Map', eats:'PHX Eats', audio:'PHX Audio',
   drops:'PHX Drops', cuts:'PHX Cuts', mypass:'My PHX Pass', profile:'My Profile', settings:'Settings',
   'member-page':'Profile', 'artist-page':'Artist', 'artist-directory':'Browse PHX', 'page-profile':'Page',
@@ -5115,7 +5120,7 @@ async function loadPlugMap() {
       var where = [e.venue_name, e.city].filter(Boolean).join(' · ');
       var price = e.price_text || (e.is_free ? 'Free' : '');
       var cover = safeUrl(e.cover_url);
-      return '<div class="pm-card">' +
+      return '<div class="pm-card" role="button" style="cursor:pointer" onclick="showEventPage(\'' + e.src + '\',\'' + e.id + '\')">' +
         '<div class="ap-date"><div class="m">' + tp.mon + '</div><div class="d">' + tp.day + '</div></div>' +
         '<div style="flex:1;min-width:0">' +
           '<div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap"><span class="pm-kind">' + (KIND[e.kind] || 'Event') + '</span>' +
@@ -5124,9 +5129,10 @@ async function loadPlugMap() {
             (e.status_note ? ' <span style="font:600 .58rem var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--gold);border:1px solid rgba(234,179,8,.4);border-radius:999px;padding:.1rem .45rem">' + escapeHtml(e.status_note) + '</span>' : '') + '</div>' +
           '<div style="font-size:.76rem;color:var(--muted);margin-top:2px;line-height:1.45">' + escapeHtml(tp.time) + ' · ' + escapeHtml(where) + (price ? '<br>' + escapeHtml(price) : '') + '</div>' +
           '<div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;margin-top:.55rem">' +
-            (e.src === 'show' ? '<button class="tb-btn" id="rsvp-' + e.id + '" style="font-size:.7rem;padding:.3rem .6rem" onclick="toggleRsvpUI(\'' + e.id + '\', this)">🙋 I\'m going</button>' : '') +
-            (ticket ? '<a class="pf-btn" style="padding:.32rem .8rem;font-size:.72rem" href="' + ticket + '" target="_blank" rel="noopener">Tickets ↗</a>' : '') +
-            (e.lat && e.lng ? '<a class="pf-btn" style="padding:.32rem .8rem;font-size:.72rem" href="https://maps.apple.com/?q=' + encodeURIComponent(e.venue_name || e.title) + '&ll=' + e.lat + ',' + e.lng + '" target="_blank" rel="noopener">Directions</a>' : '') +
+            (e.src === 'show' ? '<button class="tb-btn" id="rsvp-' + e.id + '" style="font-size:.7rem;padding:.3rem .6rem" onclick="event.stopPropagation();toggleRsvpUI(\'' + e.id + '\', this)">🙋 I\'m going</button>' : '') +
+            (ticket ? '<a class="pf-btn" style="padding:.32rem .8rem;font-size:.72rem" href="' + ticket + '" target="_blank" rel="noopener" onclick="event.stopPropagation()">Tickets ↗</a>' : '') +
+            (e.lat && e.lng ? '<a class="pf-btn" style="padding:.32rem .8rem;font-size:.72rem" href="https://maps.apple.com/?q=' + encodeURIComponent(e.venue_name || e.title) + '&ll=' + e.lat + ',' + e.lng + '" target="_blank" rel="noopener" onclick="event.stopPropagation()">Directions</a>' : '') +
+            '<span class="pf-btn" style="padding:.32rem .8rem;font-size:.72rem;border-color:rgba(249,115,22,.35);color:var(--orange-l)">Details ›</span>' +
           '</div>' +
         '</div>' +
         (cover ? '<img src="' + cover + '" alt="" loading="lazy" style="width:58px;height:58px;border-radius:10px;object-fit:cover;flex-shrink:0">' : '') +
@@ -5148,6 +5154,114 @@ async function loadPlugMap() {
   }
   if (_pmMode === 'map') renderPlugMapMap();
 }
+// ── EVENT DETAIL PAGE ──────────────────────────────────────────────────
+// Every Plug Map card (artist shows AND ingested city events) opens a real
+// page: full date/venue/price, tickets, RSVP, share, calendar, mini-map.
+// Deep-linkable at #event/<src>/<id> so events travel as links.
+async function showEventPage(src, id) {
+  if (typeof _navPush === 'function') _navPush('event', src + '/' + id);
+  showView('event-page');
+  try { window.location.hash = 'event/' + src + '/' + id; } catch (e) {}
+  var el = document.getElementById('event-page-content');
+  if (!el) return;
+  el.innerHTML = '<div class="pf-empty">Loading event…</div>';
+  var res = await _sb.from('city_events').select('*').eq('src', src).eq('id', id).maybeSingle();
+  var e = res.data;
+  if (!e) {
+    el.innerHTML = '<div class="pf-empty">This event isn\'t on the map anymore — it may have passed or been taken down.<br><br>' +
+      '<a href="#" style="color:var(--orange)" onclick="showView(\'events\');return false">← Back to the Plug Map</a></div>';
+    return;
+  }
+  var KIND = { show: 'Show', shoot: 'Video shoot', listening_party: 'Listening party', open_mic: 'Open mic', drop: 'Drop', ticketed: 'Ticketed', perk: 'Perk', other: 'Event', community: 'Community', family: 'Family & kids', food_drink: 'Food & drink', nightlife: 'Nightlife', art: 'Art', sports: 'Sports', market: 'Market' };
+  var KEMOJI = { show: '🎤', shoot: '🎬', listening_party: '🎧', open_mic: '🎙️', drop: '🔥', nightlife: '🌙', food_drink: '🍽️', art: '🎨', sports: '🏀', market: '🛍️', family: '🎡', community: '🏙️' };
+  var d = new Date(e.starts_at);
+  var dateLong = d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+  var timeStr = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  var doors = e.doors_at ? new Date(e.doors_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : null;
+  var cover = safeUrl(e.cover_url);
+  var ticket = safeUrl(e.ticket_url);
+  var price = e.price_text || (e.is_free ? 'Free' : '');
+  var where = [e.venue_name, e.address, e.city].filter(Boolean);
+  var gcalEnd = new Date(d.getTime() + 3 * 3600000);
+  var fmtG = function(x) { return x.toISOString().replace(/[-:]|\.\d{3}/g, ''); };
+  var gcal = 'https://calendar.google.com/calendar/render?action=TEMPLATE' +
+    '&text=' + encodeURIComponent(e.title) +
+    '&dates=' + fmtG(d) + '/' + fmtG(gcalEnd) +
+    '&location=' + encodeURIComponent(where.join(', ')) +
+    '&details=' + encodeURIComponent(((e.description || '') + (e.ticket_url ? '\nTickets: ' + e.ticket_url : '') + '\nvia thephx.app').trim());
+  var chip = function(txt, color) {
+    return '<span style="font:600 .6rem var(--mono);letter-spacing:.12em;text-transform:uppercase;color:' + color + ';border:1px solid currentColor;border-radius:999px;padding:.16rem .55rem;opacity:.9">' + escapeHtml(txt) + '</span>';
+  };
+  el.innerHTML =
+    '<div style="margin-bottom:.8rem"><a href="#" style="color:var(--muted);font-size:.78rem" onclick="showView(\'events\');return false">← Plug Map</a></div>' +
+    '<div class="pf" style="background:var(--bg3);border-radius:var(--r-m);overflow:hidden">' +
+      (cover
+        ? '<div style="max-height:340px;overflow:hidden;background:#000"><img src="' + cover + '" alt="" style="width:100%;max-height:340px;object-fit:cover;display:block"></div>'
+        : '<div style="height:130px;display:flex;align-items:center;justify-content:center;font-size:3rem;background:radial-gradient(120% 140% at 12% 0%, rgba(249,115,22,.4) 0%, transparent 58%),radial-gradient(130% 150% at 88% 12%, rgba(124,58,237,.35) 0%, transparent 62%),linear-gradient(165deg,#2A1206 0%,#160B18 60%,#0B0B14 100%)">' + (KEMOJI[e.kind] || '📍') + '</div>') +
+      '<div style="padding:1.1rem 1.2rem 1.3rem">' +
+        '<div style="display:flex;gap:.45rem;flex-wrap:wrap;margin-bottom:.55rem">' +
+          chip(KIND[e.kind] || 'Event', 'var(--orange-l)') +
+          (e.status_note ? chip(e.status_note, 'var(--gold)') : '') +
+          (e.members_only ? chip('Members only', 'var(--purple-l)') : '') +
+        '</div>' +
+        '<div style="font-family:var(--disp);font-size:1.45rem;font-weight:800;letter-spacing:-.02em;line-height:1.2">' + escapeHtml(e.title) + '</div>' +
+        (e.artist_name
+          ? '<div style="margin-top:.35rem;font-size:.85rem;color:var(--muted)">' +
+              (e.artist_slug
+                ? '<a href="#" style="color:var(--orange-l);font-weight:700" onclick="showArtistPage(\'' + escapeHtml(e.artist_slug) + '\');return false">' + escapeHtml(e.artist_name) + '</a>'
+                : escapeHtml(e.artist_name)) + '</div>'
+          : '') +
+        '<div style="display:flex;flex-direction:column;gap:.55rem;margin:1rem 0;font-size:.88rem;line-height:1.5">' +
+          '<div>📅 <b>' + escapeHtml(dateLong) + '</b><br><span style="color:var(--muted);margin-left:1.35rem">' + escapeHtml(timeStr) + (doors ? ' · Doors ' + escapeHtml(doors) : '') + '</span></div>' +
+          (where.length ? '<div>📍 <b>' + escapeHtml(where[0]) + '</b>' + (where.length > 1 ? '<br><span style="color:var(--muted);margin-left:1.35rem">' + escapeHtml(where.slice(1).join(' · ')) + '</span>' : '') + '</div>' : '') +
+          (price ? '<div>💵 <b>' + escapeHtml(price) + '</b></div>' : '') +
+        '</div>' +
+        '<div style="display:flex;gap:.55rem;flex-wrap:wrap;margin-bottom:1rem">' +
+          (ticket ? '<a class="cp-post" style="margin:0;text-decoration:none;display:inline-flex;align-items:center" href="' + ticket + '" target="_blank" rel="noopener">🎟️ Get tickets</a>' : '') +
+          (e.src === 'show' ? '<button class="pf-btn" id="rsvp-' + e.id + '" onclick="toggleRsvpUI(\'' + e.id + '\', this)">🙋 I\'m going</button>' : '') +
+          '<a class="pf-btn" href="' + gcal + '" target="_blank" rel="noopener">📅 Calendar</a>' +
+          (e.lat && e.lng ? '<a class="pf-btn" href="https://maps.apple.com/?q=' + encodeURIComponent(e.venue_name || e.title) + '&ll=' + e.lat + ',' + e.lng + '" target="_blank" rel="noopener">🧭 Directions</a>' : '') +
+          '<button class="pf-btn" onclick="shareEvent(\'' + e.src + '\',\'' + e.id + '\',\'' + escapeHtml(e.title).replace(/'/g, '') + '\')">↗ Share</button>' +
+        '</div>' +
+        (e.description ? '<div style="font-size:.88rem;color:var(--muted);line-height:1.65;white-space:pre-wrap;max-width:62ch;margin-bottom:1rem">' + escapeHtml(e.description) + '</div>' : '') +
+        (e.lat && e.lng ? '<div id="ev-mini-map" style="height:190px;border-radius:12px;overflow:hidden;border:1px solid var(--border)"></div>' : '') +
+      '</div>' +
+    '</div>';
+  // RSVP state for shows
+  if (e.src === 'show') {
+    var rr = await _sb.from('show_rsvps').select('user_id').eq('show_id', e.id);
+    var rows = rr.data || [];
+    var btn = document.getElementById('rsvp-' + e.id);
+    if (btn) {
+      var mine = _authUser && rows.some(function(r){ return r.user_id === _authUser.id; });
+      btn.textContent = (mine ? '✓ Going' : '🙋 I\'m going') + (rows.length ? ' · ' + rows.length : '');
+      btn.classList.toggle('on', !!mine);
+    }
+  }
+  // Mini-map: one ember pin on the venue
+  if (e.lat && e.lng) {
+    _loadLeaflet(function() {
+      var box = document.getElementById('ev-mini-map');
+      if (!box || box._map) return;
+      var mm = L.map(box, { zoomControl: false, attributionControl: false, dragging: false, scrollWheelZoom: false, doubleClickZoom: false, touchZoom: false }).setView([e.lat, e.lng], 14);
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(mm);
+      L.circleMarker([e.lat, e.lng], { radius: 10, color: '#F97316', fillColor: '#F97316', fillOpacity: .9, weight: 2 }).addTo(mm);
+      box._map = mm;
+      setTimeout(function(){ mm.invalidateSize(); }, 120);
+    });
+  }
+  trackEvent('event_view', 'event', e.id, { src: e.src, kind: e.kind });
+}
+function shareEvent(src, id, title) {
+  var url = SITE_URL + '/app#event/' + src + '/' + id;
+  if (navigator.share) {
+    navigator.share({ title: title + ' — PHX Plug Map', text: title + ' · on the PHX Plug Map', url: url }).catch(function(){});
+  } else if (navigator.clipboard) {
+    navigator.clipboard.writeText(url);
+    showToast('Link copied');
+  }
+}
+
 function _loadLeaflet(cb) {
   if (window.L) { cb(); return; }
   var css = document.createElement('link'); css.rel = 'stylesheet'; css.href = 'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css'; document.head.appendChild(css);
@@ -5170,7 +5284,7 @@ function renderPlugMapMap() {
       if (!e.lat || !e.lng) return;
       var tp = showTimeParts(e);
       var mk = L.circleMarker([e.lat, e.lng], { radius: 9, color: '#F97316', fillColor: '#F97316', fillOpacity: .85, weight: 2 }).addTo(_pmLayer);
-      mk.bindPopup('<div style="font-family:inherit;min-width:180px"><b>' + escapeHtml(e.title) + '</b><br><span style="font-size:.78rem;opacity:.8">' + escapeHtml(tp.mon + ' ' + tp.day + ' · ' + tp.time) + '<br>' + escapeHtml(e.venue_name || '') + '</span></div>', { className: 'pm-popup' });
+      mk.bindPopup('<div style="font-family:inherit;min-width:180px"><b>' + escapeHtml(e.title) + '</b><br><span style="font-size:.78rem;opacity:.8">' + escapeHtml(tp.mon + ' ' + tp.day + ' · ' + tp.time) + '<br>' + escapeHtml(e.venue_name || '') + '</span><br><a href="#" style="color:#F97316;font-size:.78rem;font-weight:700" onclick="showEventPage(\'' + e.src + '\',\'' + e.id + '\');return false">View event →</a></div>', { className: 'pm-popup' });
       pts.push([e.lat, e.lng]);
     });
     setTimeout(function() { _pmMap.invalidateSize(); if (pts.length) _pmMap.fitBounds(pts, { padding: [40, 40], maxZoom: 14 }); }, 80);
@@ -15060,12 +15174,14 @@ function shareArtistPage(slug, name) {
   }
 }
 
-// Deep links: #artist/slug and #page/slug open public profiles
+// Deep links: #artist/slug, #page/slug and #event/src/id open public pages
 function _routeProfileHash(delay) {
   var a = window.location.hash.match(/^#artist\/([a-z0-9-]+)$/);
   if (a) { setTimeout(function(){ showArtistPage(a[1]); }, delay || 0); return true; }
   var p = window.location.hash.match(/^#page\/([a-z0-9-]+)$/);
   if (p) { setTimeout(function(){ showPageProfile(p[1]); }, delay || 0); return true; }
+  var ev = window.location.hash.match(/^#event\/(show|event)\/([0-9a-f-]{36})$/);
+  if (ev) { setTimeout(function(){ showEventPage(ev[1], ev[2]); }, delay || 0); return true; }
   return false;
 }
 _whenDomReady(function(){ _routeProfileHash(300); });
