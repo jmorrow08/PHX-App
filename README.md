@@ -201,3 +201,6 @@ Ash v5 (audit log, event-queue review, morning digest), cancellation watch, Laun
 
 ## August 26, 2026
 Player: parallel URL minting + next-track prefetch (no tap lag, no gap), AutoMix crossfade (gapless fallback on iOS), digest notification opens Ash, profile hero revamp, PWA manifest ids. Detail: docs/PHX-Operating-Manual.md.
+
+## August 26, 2026 (second drop)
+Full-screen FB-style post flow with preview + drafts, PHX Lens v2 (zoom bug fixed, native-res capture, pinch zoom, grid), DM system (blocks/moderation/push), IG-style identity switcher, flare bundle (city-light theming, haptics, 602 Rotation, listening ember, city-now). Detail: docs/PHX-Operating-Manual.md.
