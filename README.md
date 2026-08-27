@@ -210,3 +210,6 @@ Post-sheet escape fix (z-stack + swipe-down + back-gesture), Studio DM monitorin
 
 ## August 26, 2026 (fourth drop)
 Messages in the app bar, heads-up notification banners, event descriptions (TM backfill) + swipe-out, simplified feed trigger, split camera/mic prompts, Plug Map Near Me, premium artist video headers, Clips full immersion + music auto-pause, viewport-fit=cover + perf pass, legal v1.2. Detail: docs/PHX-Operating-Manual.md.
+
+## August 26, 2026 (fifth drop)
+True edge-to-edge feed (view-clip bug), follow off feed cards, hero-video trimmer (silent, 15s), Plug Map redesign (venue-clustered colored pins, Near me up front, locate button, legend). Detail: docs/PHX-Operating-Manual.md.

@@ -599,6 +599,10 @@ body[data-daypart="night"]{--orange:#F26312;--orange-l:#F98B4A;--orange-d:#C2410
 .ld-card .ld-body{display:none}
 .ld-card.open .ld-body{display:block}
 .pm-mode.on,.pm-range.on,.pm-cat.on{color:var(--orange);border-color:rgba(249,115,22,.45)}
+.pm-range,.pm-cat{font-size:.72rem!important;padding:.38rem .72rem!important;border-radius:999px!important}
+/* Venue pins: colored by what's happening there, count badge when stacked */
+.pm-pin{width:20px;height:20px;border-radius:50%;border:2.5px solid rgba(7,7,15,.9);box-shadow:0 3px 10px rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;font:800 .68rem var(--disp);color:#0B0B14}
+.pm-pin.multi{width:27px;height:27px}
 .pm-card{display:flex;gap:14px;align-items:flex-start;background:var(--bg3);border-radius:var(--r-m);padding:.9rem 1rem;margin-bottom:.6rem}
 .pm-kind{font:600 .58rem var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--orange-l);border:1px solid rgba(249,115,22,.35);border-radius:999px;padding:.12rem .5rem;white-space:nowrap}
 .leaflet-container{background:#0B0B14;font-family:inherit}
@@ -1040,6 +1044,7 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
      goes, posts run edge-to-edge with hairline separators, media is
      full-bleed, text is brighter. The card look stays on desktop. */
   body[data-view="home"] .topbar{display:none}
+  .view{margin-left:-0.85rem;margin-right:-0.85rem;padding-left:.85rem;padding-right:.85rem}
   .feed-post{border-radius:0;border-left:0;border-right:0;margin:0 -0.85rem .5rem;padding:.85rem .95rem .35rem;border-top:0;border-bottom:6px solid #050509}
   .fp-media{margin:.55rem -0.95rem 0}
   .fp-media img,.fp-media video{border-radius:0!important}
@@ -1514,13 +1519,13 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
         </div>
       </div>
       <div style="display:flex;gap:.4rem;overflow-x:auto;padding-bottom:.5rem;margin-bottom:.6rem;scrollbar-width:none">
+        <button class="tb-btn pm-range" id="pm-nearme" onclick="plugMapNearMe()" style="border-color:rgba(249,115,22,.35)">📍 Near me</button>
         <button class="tb-btn pm-range" data-range="today" onclick="plugMapRange('today')">Today</button>
         <button class="tb-btn pm-range" data-range="tomorrow" onclick="plugMapRange('tomorrow')">Tomorrow</button>
         <button class="tb-btn pm-range" data-range="weekend" onclick="plugMapRange('weekend')">Weekend</button>
         <button class="tb-btn pm-range on" data-range="week" onclick="plugMapRange('week')">This week</button>
         <button class="tb-btn pm-range" data-range="month" onclick="plugMapRange('month')">30 days</button>
         <button class="tb-btn pm-range" data-range="all" onclick="plugMapRange('all')">All</button>
-        <button class="tb-btn pm-range" id="pm-nearme" onclick="plugMapNearMe()">📍 Near me</button>
       </div>
       <div style="display:flex;gap:.4rem;overflow-x:auto;padding-bottom:.5rem;margin-bottom:.6rem;scrollbar-width:none">
         <button class="tb-btn pm-cat on" data-cat="all" onclick="plugMapCat('all')">Everything</button>
@@ -1531,7 +1536,10 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
         <button class="tb-btn pm-cat" data-cat="community" onclick="plugMapCat('community')">🤝 Community</button>
         <button class="tb-btn pm-cat" data-cat="art" onclick="plugMapCat('art')">🎨 Art</button>
       </div>
-      <div id="plug-map-canvas" style="display:block;height:340px;border-radius:var(--r-m);overflow:hidden;background:var(--bg3);margin-bottom:.9rem"></div>
+      <div id="plug-map-canvas" style="display:block;position:relative;height:clamp(320px,46vh,480px);border-radius:var(--r-m);overflow:hidden;background:var(--bg3);margin-bottom:.35rem"></div>
+      <div id="pm-legend" style="display:flex;gap:.8rem;flex-wrap:wrap;font-size:.66rem;color:var(--muted);margin-bottom:.9rem;padding:0 .2rem">
+        <span><span style="color:#F97316">●</span> Music</span><span><span style="color:#A78BFA">●</span> Nightlife</span><span><span style="color:#22C55E">●</span> Food</span><span><span style="color:#EC4899">●</span> Art</span><span><span style="color:#38BDF8">●</span> Community</span><span style="margin-left:auto">a number on a pin = that many events there</span>
+      </div>
       <div id="plug-map-list"><div class="pf-empty">Loading the city…</div></div>
       <div style="margin-top:1.2rem;text-align:center;padding:1.1rem;background:var(--bg3);border-radius:var(--r-m)">
         <div style="font-weight:800;font-size:.95rem;margin-bottom:.25rem">Know something the map doesn't?</div>
@@ -2591,7 +2599,7 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
 <div id="trim-modal" role="dialog" aria-modal="true" aria-label="Trim your clip" style="display:none;position:fixed;inset:0;z-index:1160;background:rgba(7,7,15,.92);backdrop-filter:blur(5px);align-items:center;justify-content:center;padding:1rem">
   <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;max-width:480px;width:100%;padding:1.3rem">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.8rem">
-      <div style="font-size:1rem;font-weight:800">Pick your 90 seconds</div>
+      <div style="font-size:1rem;font-weight:800" id="trim-title">Pick your 90 seconds</div>
       <button onclick="closeTrimSheet(true)" aria-label="Cancel" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem">✕</button>
     </div>
     <video id="trim-video" playsinline style="width:100%;max-height:320px;border-radius:10px;background:#000;display:block"></video>
@@ -5351,18 +5359,53 @@ function renderPlugMapMap() {
     }
     if (_pmLayer) _pmLayer.remove();
     _pmLayer = L.layerGroup().addTo(_pmMap);
+    // Floating locate control on the map itself — Near me is never buried
+    if (!document.getElementById('pm-locate')) {
+      var lb = document.createElement('button');
+      lb.id = 'pm-locate';
+      lb.title = 'Near me';
+      lb.setAttribute('aria-label', 'Near me');
+      lb.textContent = '📍';
+      lb.style.cssText = 'position:absolute;right:10px;bottom:10px;z-index:1000;width:42px;height:42px;border-radius:50%;background:rgba(10,10,18,.94);border:1px solid rgba(249,115,22,.45);font-size:1.1rem;cursor:pointer;box-shadow:0 5px 16px rgba(0,0,0,.55)';
+      lb.onclick = plugMapNearMe;
+      el.appendChild(lb);
+    }
     var pts = [];
     if (_pmUserLoc) {
       L.circleMarker([_pmUserLoc.lat, _pmUserLoc.lng], { radius: 8, color: '#22C55E', fillColor: '#22C55E', fillOpacity: .9, weight: 3 })
         .addTo(_pmLayer).bindPopup('<b>You are here</b>');
       pts.push([_pmUserLoc.lat, _pmUserLoc.lng]);
     }
+    // ONE PIN PER VENUE (a venue with 6 shows was 6 stacked bubbles before).
+    // Color = what's happening there; a count badge when events stack up;
+    // the popup lists that venue's next events, each a door to its page.
+    var KIND_COLOR = { show:'#F97316', ticketed:'#F97316', open_mic:'#FB923C', drop:'#EF4444', shoot:'#F97316', listening_party:'#A78BFA', nightlife:'#A78BFA', food_drink:'#22C55E', art:'#EC4899', market:'#EAB308', family:'#38BDF8', community:'#38BDF8', sports:'#34D399', perk:'#EAB308', other:'#9A9AA6' };
+    var byVenue = {};
     _pmRows.forEach(function(e) {
       if (!e.lat || !e.lng) return;
-      var tp = showTimeParts(e);
-      var mk = L.circleMarker([e.lat, e.lng], { radius: 9, color: '#F97316', fillColor: '#F97316', fillOpacity: .85, weight: 2 }).addTo(_pmLayer);
-      mk.bindPopup('<div style="font-family:inherit;min-width:180px"><b>' + escapeHtml(e.title) + '</b><br><span style="font-size:.78rem;opacity:.8">' + escapeHtml(tp.mon + ' ' + tp.day + ' · ' + tp.time) + '<br>' + escapeHtml(e.venue_name || '') + '</span><br><a href="#" style="color:#F97316;font-size:.78rem;font-weight:700" onclick="showEventPage(\'' + e.src + '\',\'' + e.id + '\');return false">View event →</a></div>', { className: 'pm-popup' });
-      pts.push([e.lat, e.lng]);
+      var key = (e.venue_name || '').toLowerCase() + '|' + Number(e.lat).toFixed(3) + ',' + Number(e.lng).toFixed(3);
+      (byVenue[key] = byVenue[key] || { lat: e.lat, lng: e.lng, name: e.venue_name || e.title, events: [] }).events.push(e);
+    });
+    Object.keys(byVenue).forEach(function(key) {
+      var g = byVenue[key];
+      g.events.sort(function(a, b) { return new Date(a.starts_at) - new Date(b.starts_at); });
+      var color = KIND_COLOR[g.events[0].kind] || '#F97316';
+      var n = g.events.length;
+      var icon = L.divIcon({
+        className: '',
+        html: '<div class="pm-pin' + (n > 1 ? ' multi' : '') + '" style="background:' + color + '">' + (n > 1 ? n : '') + '</div>',
+        iconSize: [n > 1 ? 27 : 20, n > 1 ? 27 : 20],
+        iconAnchor: [n > 1 ? 13 : 10, n > 1 ? 13 : 10]
+      });
+      var mk = L.marker([g.lat, g.lng], { icon: icon }).addTo(_pmLayer);
+      var listHtml = g.events.slice(0, 4).map(function(ev) {
+        var tp = showTimeParts(ev);
+        return '<div style="margin:.4rem 0 0"><a href="#" style="color:#F97316;font-weight:700;text-decoration:none" onclick="showEventPage(\'' + ev.src + '\',\'' + ev.id + '\');return false">' + escapeHtml(ev.title) + '</a>' +
+          '<div style="font-size:.72rem;opacity:.75">' + escapeHtml(tp.mon + ' ' + tp.day + ' · ' + tp.time) + '</div></div>';
+      }).join('');
+      mk.bindPopup('<div style="font-family:inherit;min-width:190px;max-width:240px"><b style="font-size:.88rem">📍 ' + escapeHtml(g.name) + '</b>' + listHtml +
+        (n > 4 ? '<div style="font-size:.72rem;opacity:.7;margin-top:.35rem">+' + (n - 4) + ' more at this spot</div>' : '') + '</div>', { className: 'pm-popup' });
+      pts.push([g.lat, g.lng]);
     });
     setTimeout(function() { _pmMap.invalidateSize(); if (pts.length) _pmMap.fitBounds(pts, { padding: [40, 40], maxZoom: 14 }); }, 80);
   });
@@ -6160,12 +6203,23 @@ function _captureVideoPoster(file, t) {
 // browser (canvas.captureStream + WebAudio + MediaRecorder — same machinery
 // the future watermark export will use) and attaches the result.
 var _trimObjUrl = null, _trimDur = 0, _trimS = 0, _trimE = 90, _trimBusy = false, _trimTick = null;
+// Two callers share this engine: the composer (90s cap, audio kept) and the
+// artist hero video (15s cap, exported SILENT — headers never carry sound).
+var _trimMode = 'post', _trimCap = 90, _trimDone = null;
 
-function openTrimSheet(file, duration) {
+function openTrimSheet(file, duration, opts) {
   var m = document.getElementById('trim-modal');
   var v = document.getElementById('trim-video');
   if (!m || !v) return;
-  _trimDur = duration; _trimS = 0; _trimE = Math.min(90, duration); _trimBusy = false;
+  opts = opts || {};
+  _trimMode = opts.mode || 'post';
+  _trimCap = opts.cap || 90;
+  _trimDone = opts.onDone || null;
+  var title = document.getElementById('trim-title');
+  if (title) title.textContent = _trimMode === 'hero'
+    ? 'Pick your ' + _trimCap + ' seconds — exports silent'
+    : 'Pick your 90 seconds';
+  _trimDur = duration; _trimS = 0; _trimE = Math.min(_trimCap, duration); _trimBusy = false;
   if (_trimObjUrl) URL.revokeObjectURL(_trimObjUrl);
   _trimObjUrl = URL.createObjectURL(file);
   v.src = _trimObjUrl;
@@ -6195,6 +6249,10 @@ function closeTrimSheet(cancelled) {
   if (cancelled) {
     var nameEl = document.getElementById('composer-media-name');
     if (nameEl) nameEl.style.display = 'none';
+    if (_trimMode === 'hero') {
+      var cb = _trimDone; _trimDone = null;
+      if (cb) cb(null);
+    }
   }
 }
 function trimClamp(which) {
@@ -6205,10 +6263,10 @@ function trimClamp(which) {
   // Handles can't cross, span can't exceed 90s — the handle being dragged wins
   if (which === 'start') {
     if (sv > ev - 1) { ev = Math.min(sv + 1, _trimDur); e.value = ev; }
-    if (ev - sv > 90) { ev = sv + 90; e.value = ev; }
+    if (ev - sv > _trimCap) { ev = sv + _trimCap; e.value = ev; }
   } else {
     if (ev < sv + 1) { sv = Math.max(ev - 1, 0); s.value = sv; }
-    if (ev - sv > 90) { sv = ev - 90; s.value = sv; }
+    if (ev - sv > _trimCap) { sv = ev - _trimCap; s.value = sv; }
   }
   _trimS = sv; _trimE = ev;
   if (v && !_trimBusy) v.currentTime = (which === 'end') ? Math.max(ev - 0.4, sv) : sv;
@@ -6238,15 +6296,18 @@ async function startTrimExport() {
   canvas.height = Math.round(vh * scale / 2) * 2;
   var ctx = canvas.getContext('2d');
   var stream = canvas.captureStream(30);
-  try {
-    var actx = new (window.AudioContext || window.webkitAudioContext)();
-    if (actx.state === 'suspended') await actx.resume();
-    if (!_trimAudioSrc) _trimAudioSrc = actx.createMediaElementSource(v);
-    var dest = actx.createMediaStreamDestination();
-    _trimAudioSrc.connect(dest);
-    var at = dest.stream.getAudioTracks()[0];
-    if (at) stream.addTrack(at);
-  } catch (err) { reportFailure('trimAudio', err); /* export continues silent */ }
+  // Hero exports are silent BY DESIGN — no audio track ever attached
+  if (_trimMode !== 'hero') {
+    try {
+      var actx = new (window.AudioContext || window.webkitAudioContext)();
+      if (actx.state === 'suspended') await actx.resume();
+      if (!_trimAudioSrc) _trimAudioSrc = actx.createMediaElementSource(v);
+      var dest = actx.createMediaStreamDestination();
+      _trimAudioSrc.connect(dest);
+      var at = dest.stream.getAudioTracks()[0];
+      if (at) stream.addTrack(at);
+    } catch (err) { reportFailure('trimAudio', err); /* export continues silent */ }
+  }
 
   var mime = ['video/mp4', 'video/webm;codecs=vp9', 'video/webm'].filter(function(t) {
     return MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t);
@@ -6269,7 +6330,15 @@ async function startTrimExport() {
     var blob = new Blob(chunks, { type: type });
     if (!blob.size) {
       if (nameEl) { nameEl.textContent = '⚠️ Trim failed on this device — try a shorter source video.'; nameEl.style.color = 'var(--red)'; nameEl.style.display = 'block'; }
+      if (_trimMode === 'hero') { var fcb = _trimDone; _trimDone = null; if (fcb) fcb(null); }
       closeTrimSheet(false);
+      return;
+    }
+    if (_trimMode === 'hero') {
+      var heroOut = new File([blob], 'hero-' + Math.round(e0 - s0) + 's.' + ext, { type: type });
+      var cb = _trimDone; _trimDone = null;
+      closeTrimSheet(false);
+      if (cb) cb(heroOut);
       return;
     }
     _composerMediaFile = new File([blob], 'clip-' + Math.round(e0 - s0) + 's.' + ext, { type: type });
@@ -6870,10 +6939,9 @@ function renderFeedPost(p) {
                  'style="background:' + bg + ';cursor:pointer" onclick="' + authorClick + '"') +
       // The name routes exactly like the avatar — it used to drop author_name,
       // so clicking a seeded artist's name silently did nothing.
+      // No follow button on feed cards — tap the name/avatar, follow from
+      // their page (the IG/FB pattern; the inline button read as clutter)
       '<div class="fp-meta"><h4><span style="cursor:pointer" onclick="' + authorClick + '">' + escapeHtml(p.author_name) + '</span>' + authorChrome(p.user_id) + ' ' + badge +
-        // Follow the author: pages > users; skip self + official PHX
-        (p.page_id ? followBtnHtml('page', p.page_id) :
-         (p.user_id && p.user_id !== getGuestId() && p.author_role !== 'admin') ? followBtnHtml('user', p.user_id) : '') +
       '</h4><span>' + when + (p.shared_post_id ? ' · 🔁 reposted' : '') + '</span></div>' +
       '<span style="position:relative;margin-left:auto">' +
         '<button class="fp-act fp-menu-btn" aria-label="Post options" onclick="togglePostMenu(\'' + p.id + '\', event, ' + (isAdminRole ? 'true' : 'false') + ')">⋯</button>' +
@@ -14385,7 +14453,40 @@ function _apModal(id, inner) {
   return wrap;
 }
 
+// Hero video pick: EVERY upload routes through the trim engine — that's
+// what guarantees the loop is ≤15s, silent, and re-encoded to a sane size
+// no matter what file was chosen. The trimmed result waits for Save.
+var _heroVideoFile = null;
+function handleHeroVideoPick(input) {
+  var f = input.files && input.files[0];
+  _heroVideoFile = null;
+  var note = document.getElementById('ae-hero-note');
+  if (!f) { if (note) note.textContent = ''; return; }
+  var probe = document.createElement('video');
+  probe.preload = 'metadata';
+  probe.onloadedmetadata = function() {
+    URL.revokeObjectURL(probe.src);
+    var dur = isFinite(probe.duration) && probe.duration > 0 ? probe.duration : 16;
+    openTrimSheet(f, dur, { mode: 'hero', cap: 15, onDone: function(out) {
+      if (!out) {
+        input.value = '';
+        if (note) { note.style.color = 'var(--muted)'; note.textContent = ''; }
+        return;
+      }
+      _heroVideoFile = out;
+      if (note) { note.style.color = 'var(--green)'; note.textContent = '✓ Silent loop ready (' + (out.size / 1048576).toFixed(1) + ' MB) — hit Save to publish it.'; }
+    }});
+  };
+  probe.onerror = function() {
+    URL.revokeObjectURL(probe.src);
+    input.value = '';
+    if (note) { note.style.color = 'var(--red)'; note.textContent = 'Could not read that video — try an MP4 or MOV.'; }
+  };
+  probe.src = URL.createObjectURL(f);
+}
+
 function openArtistEditor() {
+  _heroVideoFile = null;
   var a = _artistPage || {};
   _apModal('artist-editor',
     '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">' +
@@ -14397,9 +14498,10 @@ function openArtistEditor() {
     '<input type="file" id="ae-banner" accept="image/*" class="form-input" style="margin-bottom:.6rem">' +
     ((a.tier === 'full' || a.tier === 'headline' || currentRole === 'super')
       ? '<label class="form-label">🎬 Header video <span style="color:var(--gold);font-size:.66rem;font-weight:700">PREMIUM</span></label>' +
-        '<div style="font-size:.7rem;color:var(--muted);margin-bottom:.35rem;line-height:1.5">A short silent loop behind your name — 5–15 seconds works best, 40MB max. Your banner photo stays as the poster while it loads.' +
+        '<div style="font-size:.7rem;color:var(--muted);margin-bottom:.35rem;line-height:1.5">Pick any video — the trimmer opens so you choose the exact 15 seconds, and it exports silent (headers never carry sound). Your banner photo stays as the poster while it loads.' +
         (a.banner_video_url ? ' <a href="#" style="color:var(--red)" onclick="removeArtistHeroVideo();return false">Remove current video</a>' : '') + '</div>' +
-        '<input type="file" id="ae-hero-video" accept="video/mp4,video/webm,video/quicktime" class="form-input" style="margin-bottom:.6rem">'
+        '<input type="file" id="ae-hero-video" accept="video/mp4,video/webm,video/quicktime" class="form-input" style="margin-bottom:.25rem" onchange="handleHeroVideoPick(this)">' +
+        '<div id="ae-hero-note" style="font-size:.72rem;color:var(--muted);margin-bottom:.6rem;min-height:1em"></div>'
       : '<div style="background:rgba(234,179,8,.07);border:1px solid rgba(234,179,8,.3);border-radius:10px;padding:.6rem .8rem;font-size:.74rem;color:var(--muted);margin-bottom:.6rem">🎬 <b>Video header</b> — a moving banner behind your name. Included with the Full artist tier.</div>') +
     '<label class="form-label">About</label>' +
     '<textarea class="form-input" id="ae-bio" rows="8" maxlength="4000" style="margin-bottom:.8rem;resize:vertical">' + escapeHtml(a.bio || '') + '</textarea>' +
@@ -14426,13 +14528,13 @@ async function saveArtistEditor() {
     var banUrl = await _uploadArtistImage('ae-banner', 'banner');
     if (avaUrl) patch.avatar_url = avaUrl;
     if (banUrl) patch.banner_url = banUrl;
-    var hvInput = document.getElementById('ae-hero-video');
-    var hvFile = hvInput && hvInput.files && hvInput.files[0];
-    if (hvFile) {
-      if (hvFile.size > 41943040) throw new Error('header video is over 40MB — trim or compress it first');
+    if (_heroVideoFile) {
       if (msg) msg.textContent = 'Uploading header video…';
-      var hvUrl = await _uploadArtistImage('ae-hero-video', 'herovideo');
-      if (hvUrl) patch.banner_video_url = hvUrl;
+      var hvPath = _artistPage.id + '/herovideo_' + Date.now() + '.' + (_heroVideoFile.name.split('.').pop() || 'webm');
+      var hvUp = await _sb.storage.from('post-media').upload(hvPath, _heroVideoFile, { contentType: _heroVideoFile.type, upsert: true });
+      if (hvUp.error) throw new Error(hvUp.error.message);
+      patch.banner_video_url = _sb.storage.from('post-media').getPublicUrl(hvPath).data.publicUrl;
+      _heroVideoFile = null;
     }
     var res = await _sb.from('artists').update(patch).eq('id', _artistPage.id).select('id');
     if (res.error || !(res.data || []).length) throw new Error(res.error ? res.error.message : 'not permitted');

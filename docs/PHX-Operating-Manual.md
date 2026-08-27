@@ -200,3 +200,12 @@ _Everything below is live in production. Recorded here so Ash, future hires, and
 - **Clips full immersion**: in Clips, EVERYTHING else disappears — app bar, logo, bottom tabs, mini player. Full-viewport player; portrait clips fill the screen (cover), landscape letterboxes (contain). Exit = swipe right or ‹. **Music auto-pauses** whenever a clip plays or a feed video is unmuted.
 - **Screen usage + perf**: `viewport-fit=cover` (content extends under the notch/home bar like FB), Supabase preconnect, `content-visibility:auto` on feed posts (offscreen posts skip layout/paint).
 - **Legal v1.2**: Direct Messages privacy section (participants-only, automated check at send only, human review ONLY on report + audit-logged, blocks/freeze), community rules extended to DMs, optional location spelled out (used on-device, never stored), camera/mic split-prompt language.
+
+---
+
+## Update — August 26, 2026 (fifth drop: edges, pins, silent heroes)
+
+- **The edge-to-edge bug, actually found**: `.view{overflow-x:clip}` had been silently clipping every negative-margin full-bleed element (feed posts, media, profile heroes) at the view boundary — nothing ever truly touched the screen edge. Mobile views now span the viewport themselves (margin cancels the content gutter, view padding restores it), so full-bleed children reach real edges while sideways-scroll protection stays.
+- **Follow button removed from feed cards** — tap the name/avatar, follow from their page (IG/FB pattern).
+- **Hero videos route through the trimmer, always**: picking any file opens the trim sheet in hero mode (15s cap, "exports silent" in the title) — output is guaranteed ≤15s, audio-free by construction (no audio track attached at encode), and normalized to ≤1280p/4Mbps. Trimmed loop uploads on Save.
+- **Plug Map redesign**: 📍 Near me now LEADS the filter row + a floating locate button lives on the map itself; **one pin per venue** (a venue with 6 shows was 6 stacked bubbles) with a count badge and a popup listing that venue's next events, each linking to its event page; pins colored by kind (music ember, nightlife purple, food green, art pink, community blue) with a legend; taller map (46vh); tighter chips.
