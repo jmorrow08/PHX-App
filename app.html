@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover">
 <title>PHX App — Member Dashboard</title>
 <meta name="description" content="PHX — the Phoenix scene membership. Stream local artists, and your pass pays the artists you actually play.">
 <meta property="og:title" content="PHX — the city's music, backed by your plays">
@@ -168,9 +168,8 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
 /* Feed trigger card (FB "What's on your mind?" pattern) + the post sheet */
 .ct-pill{flex:1;background:var(--bg3);border:1px solid var(--line);border-radius:999px;padding:.62rem 1rem;font-size:.88rem;color:var(--muted);cursor:pointer;transition:border-color var(--t) var(--ease);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ct-pill:hover{border-color:rgba(249,115,22,.45)}
-.ct-row{display:flex;border-top:1px solid var(--line)}
-.ct-opt{flex:1;background:transparent;border:none;color:var(--muted);font-size:.78rem;font-weight:600;padding:.55rem .2rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:.35rem;font-family:inherit}
-.ct-opt:active{color:var(--orange)}
+.ct-cam{width:42px;height:42px;border-radius:50%;background:var(--bg3);border:1px solid var(--line);font-size:1.15rem;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:border-color var(--t) var(--ease)}
+.ct-cam:hover{border-color:rgba(249,115,22,.5)}
 #post-sheet{animation:sheet-up .22s var(--ease)}
 @keyframes sheet-up{from{transform:translateY(24px);opacity:0}to{transform:none;opacity:1}}
 .post-sheet-head{display:flex;align-items:center;gap:.7rem;padding:calc(.7rem + env(safe-area-inset-top,0px)) .9rem .7rem;border-bottom:1px solid var(--border)}
@@ -189,6 +188,17 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
 .dm-when{font-size:.62rem;color:var(--faint);margin:.4rem 0 .1rem;text-align:center}
 .dm-row{display:flex;align-items:center;gap:.7rem;padding:.7rem .4rem;border-bottom:1px solid var(--line);cursor:pointer}
 .dm-row:hover{background:rgba(241,241,248,.02)}
+/* Clips immersion: in the Clips view NOTHING but the video — no app bar,
+   no logo, no tabs, no music bar. Exit = swipe right or the ‹ button. */
+body[data-view="reels"] #mob-appbar,
+body[data-view="reels"] .bottom-tabs,
+body[data-view="reels"] .mini-player,
+body[data-view="reels"] .topbar{display:none!important}
+body[data-view="reels"] .content{padding:0!important}
+body[data-view="reels"] .reels-wrap{position:fixed;inset:0;height:100dvh;min-height:100dvh;border-radius:0;z-index:80}
+@keyframes headsup-in{from{transform:translateY(-16px);opacity:0}to{transform:none;opacity:1}}
+/* Feed scroll perf: offscreen posts skip layout+paint entirely */
+.feed-post{content-visibility:auto;contain-intrinsic-size:auto 420px}
 /* City light: the ember palette follows the Phoenix sky. Subtle by design —
    dawn is soft gold, midday is the standard heat, sunset burns hotter,
    late night settles into deep ember. Same layout, different light. */
@@ -433,6 +443,8 @@ body[data-daypart="night"]{--orange:#F26312;--orange-l:#F98B4A;--orange-d:#C2410
 .ap-navbtn{width:34px;height:34px;border-radius:50%;background:rgba(7,7,15,.45);backdrop-filter:blur(10px);
   border:none;color:var(--white);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center}
 .ap-herotext{position:absolute;left:22px;right:22px;bottom:18px;z-index:3}
+.ap-hero-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0}
+@media (prefers-reduced-motion: reduce){.ap-hero-video{display:none}}
 .ap-kicker{display:flex;align-items:center;gap:7px;flex-wrap:wrap;
   font:600 9px var(--mono);letter-spacing:.2em;color:var(--orange-l);text-transform:uppercase}
 .ap-kicker .sep{width:3px;height:3px;border-radius:50%;background:var(--muted)}
@@ -1048,6 +1060,7 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
   .bt-item.active .bt-icon{filter:drop-shadow(0 2px 10px rgba(249,115,22,.55))}
 }
 </style>
+  <link rel="preconnect" href="https://dnzvtathfpjelffjnqrc.supabase.co" crossorigin>
   <link rel="stylesheet" href="shared.css?v=10">
 </head>
 <body>
@@ -1507,6 +1520,7 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
         <button class="tb-btn pm-range on" data-range="week" onclick="plugMapRange('week')">This week</button>
         <button class="tb-btn pm-range" data-range="month" onclick="plugMapRange('month')">30 days</button>
         <button class="tb-btn pm-range" data-range="all" onclick="plugMapRange('all')">All</button>
+        <button class="tb-btn pm-range" id="pm-nearme" onclick="plugMapNearMe()">📍 Near me</button>
       </div>
       <div style="display:flex;gap:.4rem;overflow-x:auto;padding-bottom:.5rem;margin-bottom:.6rem;scrollbar-width:none">
         <button class="tb-btn pm-cat on" data-cat="all" onclick="plugMapCat('all')">Everything</button>
@@ -3029,6 +3043,9 @@ function showView(id) {
   if (['artist-page', 'member-page', 'page-profile'].indexOf(id) === -1) _navPush('view', id);
   window._curView = id;
   document.body.dataset.view = id;
+  // Premium hero loops only run while their page is on screen
+  var hv = document.querySelector('.ap-hero-video');
+  if (hv) { if (id === 'artist-page') hv.play().catch(function(){}); else hv.pause(); }
   document.querySelectorAll('.view').forEach(function(v){ v.classList.remove('active'); });
   document.querySelectorAll('.nav-item').forEach(function(n){ n.classList.remove('active'); });
   var view = document.getElementById('v-'+id);
@@ -5081,6 +5098,37 @@ function _pmCatMatch(e) {
   if (_pmCat === 'music') return !!_PM_MUSIC_KINDS[e.kind];
   return e.kind === _pmCat;
 }
+// "Near me": location is requested ONLY when this chip is tapped (never at
+// boot), sorts the list by real distance and drops a you-are-here dot on
+// the map. Tapping again turns it off.
+var _pmUserLoc = null;
+function plugMapNearMe() {
+  var btn = document.getElementById('pm-nearme');
+  if (_pmUserLoc) {
+    _pmUserLoc = null;
+    if (btn) { btn.classList.remove('on'); btn.textContent = '📍 Near me'; }
+    loadPlugMap();
+    return;
+  }
+  if (!navigator.geolocation) { showToast('Location isn\'t available in this browser.'); return; }
+  if (btn) btn.textContent = '📍 Locating…';
+  navigator.geolocation.getCurrentPosition(function(pos) {
+    _pmUserLoc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+    if (btn) { btn.classList.add('on'); btn.textContent = '📍 Near me ✓'; }
+    trackEvent('nearme_on', null, null, {});
+    loadPlugMap();
+  }, function() {
+    if (btn) btn.textContent = '📍 Near me';
+    showToast('Could not get your location — check the permission in your browser settings.');
+  }, { enableHighAccuracy: false, timeout: 9000, maximumAge: 300000 });
+}
+function _pmMiles(lat1, lng1, lat2, lng2) {
+  var rad = Math.PI / 180, R = 3958.8;
+  var dLat = (lat2 - lat1) * rad, dLng = (lng2 - lng1) * rad;
+  var a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1*rad) * Math.cos(lat2*rad) * Math.sin(dLng/2) * Math.sin(dLng/2);
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
 async function loadPlugMap() {
   var list = document.getElementById('plug-map-list');
   if (!list) return;
@@ -5089,6 +5137,17 @@ async function loadPlugMap() {
     .gte('starts_at', w.from.toISOString()).lte('starts_at', w.to.toISOString())
     .order('starts_at', { ascending: true }).limit(80);
   _pmRows = (res.data || []).filter(_pmCatMatch);
+  if (_pmUserLoc) {
+    _pmRows.forEach(function(e) {
+      e._mi = (e.lat && e.lng) ? _pmMiles(_pmUserLoc.lat, _pmUserLoc.lng, e.lat, e.lng) : null;
+    });
+    _pmRows.sort(function(a, b) {
+      if (a._mi == null && b._mi == null) return new Date(a.starts_at) - new Date(b.starts_at);
+      if (a._mi == null) return 1;
+      if (b._mi == null) return -1;
+      return a._mi - b._mi;
+    });
+  }
   var KIND = { show: 'Show', shoot: 'Video shoot', listening_party: 'Listening party', open_mic: 'Open mic', drop: 'Drop', ticketed: 'Ticketed', perk: 'Perk', other: 'Event', community: 'Community', family: 'Family & kids', food_drink: 'Food & drink', nightlife: 'Nightlife', art: 'Art', sports: 'Sports', market: 'Market' };
   var cnt = document.getElementById('pm-count');
   if (cnt) cnt.textContent = _pmRows.length
@@ -5109,7 +5168,7 @@ async function loadPlugMap() {
     };
     var lastDay = null;
     list.innerHTML = _pmRows.map(function(e) {
-      var dk = _dayKey(e);
+      var dk = _pmUserLoc ? lastDay : _dayKey(e);   // distance sort: no day headers
       var head = dk !== lastDay
         ? '<div style="font:700 .66rem var(--mono);letter-spacing:.16em;color:' + (dk === 'TONIGHT' ? 'var(--orange)' : 'var(--muted)') + ';margin:1rem 0 .5rem">' + dk + '</div>'
         : '';
@@ -5118,6 +5177,7 @@ async function loadPlugMap() {
       var tp = showTimeParts(e);
       var ticket = safeUrl(e.ticket_url);
       var where = [e.venue_name, e.city].filter(Boolean).join(' · ');
+      if (_pmUserLoc && e._mi != null) where = (e._mi < 0.2 ? 'right here' : e._mi.toFixed(1) + ' mi') + ' · ' + where;
       var price = e.price_text || (e.is_free ? 'Free' : '');
       var cover = safeUrl(e.cover_url);
       return '<div class="pm-card" role="button" style="cursor:pointer" onclick="showEventPage(\'' + e.src + '\',\'' + e.id + '\')">' +
@@ -5240,6 +5300,16 @@ async function showEventPage(src, id) {
       btn.classList.toggle('on', !!mine);
     }
   }
+  // Swipe right anywhere on the page = back to the map (same gesture as Clips)
+  if (!el._swipeBound) {
+    el._swipeBound = true;
+    el.addEventListener('touchstart', function(ev){ var t = ev.touches[0]; if (t) { el._sx = t.clientX; el._sy = t.clientY; } }, { passive: true });
+    el.addEventListener('touchend', function(ev){
+      var t = ev.changedTouches[0]; if (!t || el._sx == null) return;
+      var dx = t.clientX - el._sx, dy = t.clientY - el._sy;
+      if (dx > 70 && Math.abs(dx) > Math.abs(dy) * 1.6) showView('events');
+    }, { passive: true });
+  }
   // Mini-map: one ember pin on the venue
   if (e.lat && e.lng) {
     _loadLeaflet(function() {
@@ -5282,6 +5352,11 @@ function renderPlugMapMap() {
     if (_pmLayer) _pmLayer.remove();
     _pmLayer = L.layerGroup().addTo(_pmMap);
     var pts = [];
+    if (_pmUserLoc) {
+      L.circleMarker([_pmUserLoc.lat, _pmUserLoc.lng], { radius: 8, color: '#22C55E', fillColor: '#22C55E', fillOpacity: .9, weight: 3 })
+        .addTo(_pmLayer).bindPopup('<b>You are here</b>');
+      pts.push([_pmUserLoc.lat, _pmUserLoc.lng]);
+    }
     _pmRows.forEach(function(e) {
       if (!e.lat || !e.lng) return;
       var tp = showTimeParts(e);
@@ -5373,16 +5448,12 @@ function renderComposer() {
   var persona = currentPersona();
   var myAva = (_myProfile && _myProfile.avatar_url) || '';
   var hasDraft = !!localStorage.getItem('phx_post_draft');
-  return '<div class="composer" id="composer-trigger" style="padding:.85rem 1rem .55rem">' +
-    '<div style="display:flex;align-items:center;gap:.65rem;margin-bottom:.6rem">' +
+  return '<div class="composer" id="composer-trigger" style="padding:.8rem 1rem">' +
+    '<div style="display:flex;align-items:center;gap:.65rem">' +
       avatarHtml(myAva, persona.avatar || '👤', 'ava-sm', persona.name, 'style="width:40px;height:40px;font-size:1.05rem;flex-shrink:0"') +
       '<div class="ct-pill" role="button" tabindex="0" onclick="openPostSheet()">' +
         (hasDraft ? '📝 Draft saved — tap to continue' : 'What\'s happening in the city?') + '</div>' +
-    '</div>' +
-    '<div class="ct-row">' +
-      '<button class="ct-opt" onclick="openPostSheet(\'lens\')">📸 <span>PHX Lens</span></button>' +
-      '<button class="ct-opt" onclick="openPostSheet(\'media\')">🖼️ <span>Photo · Video</span></button>' +
-      '<button class="ct-opt" onclick="openPostSheet(\'song\')">🎵 <span>Song</span></button>' +
+      '<button class="ct-cam" title="Open PHX Lens" aria-label="Open PHX Lens" onclick="openPostSheet(\'lens\')">📸</button>' +
     '</div>' +
   '</div>' +
   '<div style="display:flex;gap:.5rem;margin-bottom:.9rem;flex-wrap:wrap">' +
@@ -6287,8 +6358,10 @@ async function _lensStart() {
       // Sensor-shaped request (landscape, high res) — asking for portrait
       // dimensions made the browser center-crop the sensor, which is what
       // read as "zoomed in". Phones rotate the frames themselves.
-      video: { facingMode: _lensFacing, width: { ideal: 1920 }, height: { ideal: 1080 }, frameRate: { ideal: 30 } },
-      audio: true
+      // CAMERA ONLY here — the mic prompt waits until the first video
+      // recording, so photos never ask for a microphone (the pattern users
+      // trust from every major camera app).
+      video: { facingMode: _lensFacing, width: { ideal: 1920 }, height: { ideal: 1080 }, frameRate: { ideal: 30 } }
     });
     _lensInitZoom();
   } catch (e) {
@@ -6304,8 +6377,10 @@ async function _lensStart() {
     v.style.filter = PHOTO_FILTERS[_lensFilter] ? PHOTO_FILTERS[_lensFilter].css : 'none';
   }
 }
+var _lensAudioStream = null;
 function _lensStop() {
   if (_lensStream) { _lensStream.getTracks().forEach(function(t){ t.stop(); }); _lensStream = null; }
+  if (_lensAudioStream) { _lensAudioStream.getTracks().forEach(function(t){ t.stop(); }); _lensAudioStream = null; }
 }
 function closePhxLens() {
   clearTimeout(_lensHold); clearInterval(_lensTick);
@@ -6438,11 +6513,18 @@ function _lensPhoto() {
     _lensAttach(new File([b], 'lens-' + Date.now() + '.jpg', { type: 'image/jpeg' }));
   }, 'image/jpeg', 0.95);
 }
-function _lensStartRec() {
+async function _lensStartRec() {
   if (!_lensStream || (_lensRec && _lensRec.state === 'recording')) return;
+  // Mic is requested here, on the first hold-to-record — its own prompt,
+  // separate from the camera's. Denied mic = silent clip, not a dead Lens.
+  if (!_lensAudioStream) {
+    try { _lensAudioStream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
+    catch (e) { showToast('🎙️ No mic access — recording without sound'); }
+  }
+  if (!_lensStream) return;   // Lens closed while the mic prompt was up
   var v = _lensDrawSetup(1920);
   var stream = _lensCanvas.captureStream(30);
-  var at = _lensStream.getAudioTracks()[0];
+  var at = _lensAudioStream && _lensAudioStream.getAudioTracks()[0];
   if (at) stream.addTrack(at);
   var mime = ['video/mp4', 'video/webm;codecs=vp9', 'video/webm'].filter(function(t) {
     return MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t);
@@ -6633,6 +6715,8 @@ function toggleFeedMute(btn) {
   var v = btn.parentElement.querySelector('video');
   if (!v) return;
   v.muted = !v.muted;
+  // Unmuting a feed video takes the stage — pause the music player
+  if (!v.muted && typeof pauseAudio === 'function' && streamData.playing) pauseAudio();
   if (!v.muted && v.paused) v.play().catch(function(){});
   btn.textContent = v.muted ? '🔇' : '🔊';
   btn.setAttribute('aria-label', v.muted ? 'Unmute' : 'Mute');
@@ -7606,7 +7690,62 @@ async function loadNotifications() {
   }
   if (_notifPanelOpen) renderNotifList(items);
   if (typeof _refreshDmBadge === 'function') _refreshDmBadge();
+  _headsUpCheck(items);
   return items;
+}
+
+// ── HEADS-UP BANNER ─────────────────────────────────────────────────────
+// A new notification lands as a tappable banner wherever you are in the app
+// — Ash digests, DMs, likes, all of it. The 45s notification poll feeds it;
+// the first poll only baselines so old news never re-announces itself.
+var _seenNotifIds = null;
+function _headsUpCheck(items) {
+  if (!Array.isArray(items)) return;
+  if (_seenNotifIds === null) {
+    _seenNotifIds = {};
+    items.forEach(function(n){ _seenNotifIds[n.id] = 1; });
+    return;
+  }
+  var fresh = items.filter(function(n){ return !n.is_read && !_seenNotifIds[n.id]; });
+  items.forEach(function(n){ _seenNotifIds[n.id] = 1; });
+  if (fresh.length) _showHeadsUp(fresh[0], fresh.length);
+}
+var _headsUpTimer = null;
+function _showHeadsUp(n, count) {
+  var w = document.getElementById('phx-headsup');
+  if (!w) {
+    w = document.createElement('div');
+    w.id = 'phx-headsup';
+    w.setAttribute('role', 'status');
+    w.style.cssText = 'position:fixed;top:calc(8px + env(safe-area-inset-top,0px));left:10px;right:10px;z-index:1130;display:none;justify-content:center;pointer-events:none';
+    document.body.appendChild(w);
+  }
+  var verbs = { like: 'liked your post', comment: 'commented on your post', repost: 'reposted your post', follow: 'followed you', track_share: 'shared your track', system: 'sent a briefing', report_update: 'update on your report', dm: 'sent you a message' };
+  w.innerHTML = '<div onclick="_headsUpOpen()" style="pointer-events:auto;display:flex;align-items:center;gap:.6rem;max-width:440px;width:100%;background:rgba(12,12,22,.97);border:1px solid rgba(249,115,22,.35);border-radius:16px;padding:.65rem .85rem;box-shadow:0 14px 44px rgba(0,0,0,.6);cursor:pointer;animation:headsup-in .28s var(--ease)">' +
+    '<span style="font-size:1.25rem;flex-shrink:0">' + (n.actor_avatar || '🔔') + '</span>' +
+    '<div style="flex:1;min-width:0">' +
+      '<div style="font-size:.82rem"><strong>' + escapeHtml(n.actor_name || 'PHX') + '</strong> ' + (verbs[n.type] || '') +
+        (count > 1 ? ' <span style="color:var(--muted)">+' + (count - 1) + ' more</span>' : '') + '</div>' +
+      (n.preview ? '<div style="font-size:.72rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + escapeHtml(n.preview) + '</div>' : '') +
+    '</div>' +
+    '<button onclick="event.stopPropagation();_headsUpHide()" aria-label="Dismiss" style="background:none;border:none;color:var(--faint);font-size:.85rem;cursor:pointer;flex-shrink:0;padding:.2rem">✕</button>' +
+  '</div>';
+  w.style.display = 'flex';
+  w._notif = n;
+  if (typeof haptic === 'function') haptic(10);
+  clearTimeout(_headsUpTimer);
+  _headsUpTimer = setTimeout(_headsUpHide, 6500);
+}
+function _headsUpHide() {
+  var w = document.getElementById('phx-headsup');
+  if (w) w.style.display = 'none';
+}
+function _headsUpOpen() {
+  var w = document.getElementById('phx-headsup');
+  if (!w || !w._notif) return;
+  var n = w._notif;
+  _headsUpHide();
+  openNotification(n.id, n.type, n.target_id || '', n.target_type || '');
 }
 
 function renderNotifList(items) {
@@ -7653,7 +7792,7 @@ async function toggleNotifPanel() {
 
 // Deep link: notification → the exact post, comments open if it's a comment
 async function openNotification(notifId, type, targetId, targetType) {
-  toggleNotifPanel();
+  if (_notifPanelOpen) toggleNotifPanel();   // heads-up banner path arrives with the panel closed
   if (type === 'dm' && targetId) { dmOpenFromNotif(targetId); return; }
   // Ash briefings live in the Studio — the digest notification is a door,
   // not just a banner. Admin-only view; everyone else just closes the panel.
@@ -12574,7 +12713,9 @@ async function loadReels(scrollToPost) {
   container.innerHTML = videos.map(function(p) {
     var liked = !!_myPostLikes[p.id];
     return '<div class="reel" data-post="' + p.id + '">' +
-      '<video src="' + p.media_url + '" loop playsinline preload="metadata" onclick="this.paused?this.play():this.pause()"></video>' +
+      '<video src="' + p.media_url + '" loop playsinline preload="metadata" ' +
+        'onloadedmetadata="this.style.objectFit=(this.videoWidth&&this.videoWidth<this.videoHeight)?\'cover\':\'contain\'" ' +
+        'onclick="this.paused?this.play():this.pause()"></video>' +
       '<div class="reel-overlay">' +
         '<div class="reel-info">' +
           '<div class="reel-author">' +
@@ -12610,6 +12751,8 @@ async function loadReels(scrollToPost) {
       if (!vid) return;
       var pid = entry.target.dataset.post;
       if (entry.isIntersecting && entry.intersectionRatio > 0.6) {
+        // Clips have their own sound — music never plays underneath them
+        if (typeof pauseAudio === 'function' && streamData.playing) pauseAudio();
         vid.play().catch(function(){});
         if (!_clipViewed[pid]) {
           _clipViewed[pid] = true;
@@ -13635,10 +13778,18 @@ async function showArtistPage(slug) {
   var following = !!_myFollows['artist:' + artist.id];
   var shopUrl = safeUrl(artist.merch_external_url || artist.fourthwall_shop_url || '');
   var hero = safeUrl(artist.banner_url) || safeUrl(artist.avatar_url);
+  // Premium hero: full/headline artists can run a silent video loop behind
+  // their name (the Apple Music artist-header move). Photo stays as the
+  // poster + fallback; reduced-motion users get the photo only.
+  var heroVideo = (artist.tier === 'full' || artist.tier === 'headline') ? safeUrl(artist.banner_video_url || '') : '';
 
   el.innerHTML =
     '<div class="ap-hero' + (hero ? '' : ' ap-gen') + '"' +
         (hero ? ' style="background-image:url(\'' + hero + '\')"' : '') + '>' +
+      (heroVideo
+        ? '<video class="ap-hero-video" src="' + heroVideo + '" autoplay muted loop playsinline preload="metadata"' +
+          (hero ? ' poster="' + hero + '"' : '') + '></video>'
+        : '') +
       '<div class="ap-scrim"></div>' +
       '<div class="ap-navbtns">' +
         '<button class="ap-navbtn" title="Back" onclick="goBack(\'artist-directory\')">←</button>' +
@@ -14243,6 +14394,12 @@ function openArtistEditor() {
     '<input type="file" id="ae-avatar" accept="image/*" class="form-input" style="margin-bottom:.6rem">' +
     '<label class="form-label">Banner / poster photo</label>' +
     '<input type="file" id="ae-banner" accept="image/*" class="form-input" style="margin-bottom:.6rem">' +
+    ((a.tier === 'full' || a.tier === 'headline' || currentRole === 'super')
+      ? '<label class="form-label">🎬 Header video <span style="color:var(--gold);font-size:.66rem;font-weight:700">PREMIUM</span></label>' +
+        '<div style="font-size:.7rem;color:var(--muted);margin-bottom:.35rem;line-height:1.5">A short silent loop behind your name — 5–15 seconds works best, 40MB max. Your banner photo stays as the poster while it loads.' +
+        (a.banner_video_url ? ' <a href="#" style="color:var(--red)" onclick="removeArtistHeroVideo();return false">Remove current video</a>' : '') + '</div>' +
+        '<input type="file" id="ae-hero-video" accept="video/mp4,video/webm,video/quicktime" class="form-input" style="margin-bottom:.6rem">'
+      : '<div style="background:rgba(234,179,8,.07);border:1px solid rgba(234,179,8,.3);border-radius:10px;padding:.6rem .8rem;font-size:.74rem;color:var(--muted);margin-bottom:.6rem">🎬 <b>Video header</b> — a moving banner behind your name. Included with the Full artist tier.</div>') +
     '<label class="form-label">About</label>' +
     '<textarea class="form-input" id="ae-bio" rows="8" maxlength="4000" style="margin-bottom:.8rem;resize:vertical">' + escapeHtml(a.bio || '') + '</textarea>' +
     '<button class="upgrade-btn" style="width:100%;margin:0" onclick="saveArtistEditor()">Save</button>' +
@@ -14268,6 +14425,14 @@ async function saveArtistEditor() {
     var banUrl = await _uploadArtistImage('ae-banner', 'banner');
     if (avaUrl) patch.avatar_url = avaUrl;
     if (banUrl) patch.banner_url = banUrl;
+    var hvInput = document.getElementById('ae-hero-video');
+    var hvFile = hvInput && hvInput.files && hvInput.files[0];
+    if (hvFile) {
+      if (hvFile.size > 41943040) throw new Error('header video is over 40MB — trim or compress it first');
+      if (msg) msg.textContent = 'Uploading header video…';
+      var hvUrl = await _uploadArtistImage('ae-hero-video', 'herovideo');
+      if (hvUrl) patch.banner_video_url = hvUrl;
+    }
     var res = await _sb.from('artists').update(patch).eq('id', _artistPage.id).select('id');
     if (res.error || !(res.data || []).length) throw new Error(res.error ? res.error.message : 'not permitted');
     document.getElementById('artist-editor').style.display = 'none';
@@ -14276,6 +14441,16 @@ async function saveArtistEditor() {
   } catch (e) {
     if (msg) { msg.style.color = 'var(--red)'; msg.textContent = 'Could not save: ' + e.message; }
   }
+}
+
+async function removeArtistHeroVideo() {
+  if (!_artistPage || !confirm('Remove the header video? The banner photo takes over.')) return;
+  var res = await _sb.from('artists').update({ banner_video_url: null }).eq('id', _artistPage.id).select('id');
+  if (res.error || !(res.data || []).length) { showToast('Could not remove the video.'); return; }
+  var ed = document.getElementById('artist-editor');
+  if (ed) ed.style.display = 'none';
+  showToast('✓ Header video removed');
+  showArtistPage(_artistPage.slug);
 }
 
 function openTrackEditor(trackId) {
@@ -15574,6 +15749,6 @@ document.querySelectorAll('.cs-notify-btn').forEach(function(btn) {
   });
 });
 </script>
-<script src="shared.js?v=11"></script>
+<script src="shared.js?v=12"></script>
 </body>
 </html>

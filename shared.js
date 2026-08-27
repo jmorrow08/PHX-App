@@ -51,6 +51,17 @@
   });
   bar.appendChild(search);
 
+  // Messages — straight into the DM inbox, unread badge mirrored live
+  var dm = document.createElement('button');
+  dm.className = 'appbar-btn';
+  dm.setAttribute('aria-label', 'Messages');
+  dm.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3.5 7l8.5 6 8.5-6"/></svg>' +
+    '<span class="appbar-badge" id="appbar-dm-badge" style="display:none">0</span>';
+  dm.addEventListener('click', function () {
+    if (typeof window.openMessages === 'function') window.openMessages();
+  });
+  bar.appendChild(dm);
+
   // Bell — proxies the app's notification panel, badge mirrored live
   var bell = document.createElement('button');
   bell.className = 'appbar-btn';
@@ -62,18 +73,22 @@
   });
   bar.appendChild(bell);
 
-  function syncBadge() {
-    var real = document.getElementById('notif-badge');
-    var mine = document.getElementById('appbar-notif-badge');
-    if (!real || !mine) return;
-    mine.textContent = real.textContent;
-    mine.style.display = real.style.display === 'none' ? 'none' : '';
+  function mirrorBadge(realId, mineId) {
+    function sync() {
+      var real = document.getElementById(realId);
+      var mine = document.getElementById(mineId);
+      if (!real || !mine) return;
+      mine.textContent = real.textContent;
+      mine.style.display = real.style.display === 'none' ? 'none' : '';
+    }
+    var real = document.getElementById(realId);
+    if (real && 'MutationObserver' in window) {
+      new MutationObserver(sync).observe(real, { childList: true, attributes: true, characterData: true, subtree: true });
+    }
+    setTimeout(sync, 2500);
   }
-  var realBadge = document.getElementById('notif-badge');
-  if (realBadge && 'MutationObserver' in window) {
-    new MutationObserver(syncBadge).observe(realBadge, { childList: true, attributes: true, characterData: true, subtree: true });
-  }
-  setTimeout(syncBadge, 2500);
+  mirrorBadge('notif-badge', 'appbar-notif-badge');
+  mirrorBadge('dm-badge', 'appbar-dm-badge');
 
   // ── Hide on scroll down, return on any scroll up ───────────────
   var lastY = 0, ticking = false;

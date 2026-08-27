@@ -24,7 +24,7 @@ a{color:#F97316}
 <body>
 <div class="wrap">
   <div class="logo">PHX</div>
-  <div class="updated">Legal Center · Version 1.1 · Last updated August 9, 2026</div>
+  <div class="updated">Legal Center · Version 1.2 · Last updated August 26, 2026</div>
 
   <div class="note">⚠️ These documents are working drafts prepared for launch and should be reviewed by a licensed Arizona attorney before PHX processes real payments or executes artist payouts.</div>
 
@@ -48,6 +48,7 @@ a{color:#F97316}
   <p>Members receive a monthly summary naming the artists their listening supported, ranked by share of their own listening. Receipts show which artists you supported, not per-artist dollar amounts. PHX does not publish individual artist earnings, and artists' earnings are visible only to that artist and PHX administrators.</p>
   <h2>4. Community Rules</h2>
   <p>You may not post content that: threatens or incites violence; constitutes hate speech or harassment; sexually exploits anyone (especially minors — zero tolerance, reported to NCMEC); doxxes private information; is spam or fraud. Content may be removed and accounts suspended or terminated for violations. Automated filters plus human review enforce these rules; you may report any content from the ⋯ menu on any post. Photos and videos you post (including anything captured with your device's camera through the app) are shared publicly on the Platform — only post what you intend to share. Video clips are limited to 90 seconds.</p>
+  <p><strong>These rules apply to Direct Messages too.</strong> Harassment, threats, spam, or exploitation in a private message is treated exactly like it would be in public — and can result in a frozen conversation, a suspended account, or a report to authorities where the law requires it. You can block any member (blocking stops all messages in both directions) and report any conversation from the ⋯ menu inside the chat.</p>
   <h2>5. Streaming Integrity</h2>
   <p>Artificially inflating streams (bots, scripts, coordinated repeat plays, paying for plays) is prohibited. PHX employs technical countermeasures and may withhold payouts derived from artificial streaming, remove content, and terminate accounts involved. Determinations rest with PHX in its reasonable discretion.</p>
   <h2>6. Intellectual Property</h2>
@@ -63,9 +64,19 @@ a{color:#F97316}
   <h2>What we collect</h2>
   <ul>
     <li><strong>Account data:</strong> email, username, display name, profile info you add.</li>
-    <li><strong>Content you post:</strong> posts, comments, photos and video clips you choose to upload, playlists, liked songs, favorites, and follows. Capturing media happens two ways, both under your control: your device's own camera flow, or the optional in-app <strong>PHX Lens</strong> camera. PHX Lens uses your camera and microphone <em>only while it is open on screen</em>, only after you grant your browser's permission prompt, and stops the instant you close it. The live camera feed is processed on your device and is never transmitted, recorded, or stored unless you press the shutter — and what you capture is attached to your draft post for you to review before anything is shared.</li>
+    <li><strong>Content you post:</strong> posts, comments, photos and video clips you choose to upload, playlists, liked songs, favorites, and follows. Capturing media happens two ways, both under your control: your device's own camera flow, or the optional in-app <strong>PHX Lens</strong> camera. PHX Lens asks for camera and microphone access <em>separately</em>: the camera prompt appears when you open the Lens, and the microphone prompt appears only the first time you record a video (photos never involve the microphone). Both run <em>only while the Lens is open on screen</em> and stop the instant you close it. The live camera feed is processed on your device and is never transmitted, recorded, or stored unless you press the shutter — and what you capture is attached to your draft post for you to review before anything is shared.</li>
     <li><strong>Usage data:</strong> streams (which tracks, when, 30-second qualification), likes, comments, follows, session and device identifiers, approximate device characteristics (screen size, timezone, language), and how you arrived (referral code, link source) — used to credit whoever invited you.</li>
+    <li><strong>Direct Messages:</strong> the messages you send and receive, stored so your conversations work across devices. See "Direct Messages" below for exactly who can see them.</li>
+    <li><strong>Location (optional):</strong> only if you tap "Near me" on the Plug Map, your device asks for permission and your coordinates are used <em>on your device</em> to sort nearby events. PHX does not store your location, build a location history, or share coordinates with anyone.</li>
     <li><strong>Payment data:</strong> handled by Stripe; PHX never stores full card numbers.</li>
+  </ul>
+  <h2>Direct Messages</h2>
+  <p>DMs are private. We built the boundaries in from day one, learning from where other platforms got this wrong:</p>
+  <ul>
+    <li><strong>Only the two participants can read a conversation.</strong> Messages are never shown to other members, never used for advertising, never fed into recommendations, and never used to train AI systems.</li>
+    <li><strong>Automated safety check at send time only:</strong> the same community-guidelines filter that screens public posts screens messages as they're sent. It blocks the message or lets it through — it does not build a profile of you.</li>
+    <li><strong>Human review happens in exactly one case:</strong> a participant reports the conversation. A PHX administrator can then view recent messages in that conversation to act on the report — and every such review is itself permanently logged and auditable. No report, no human eyes. Our internal operations tooling is technically walled off from message content.</li>
+    <li><strong>Your controls:</strong> block any member (stops messages both ways, instantly, no notification to them) and report any conversation. Moderators can freeze a conversation that violates the rules.</li>
   </ul>
   <h2>Service providers &amp; embeds</h2>
   <p>Your data is processed by the providers that run PHX: <strong>Supabase</strong> (database, authentication, and file storage), <strong>Vercel</strong> (hosting), <strong>Resend</strong> (transactional email such as confirmations and invite codes), and <strong>Stripe</strong> (payments, once billing is live). Music videos on artist pages are embedded from <strong>YouTube</strong> in privacy-enhanced mode — playing one is subject to YouTube's own terms and privacy policy. We use our own first-party analytics; no third-party advertising trackers run in the app.</p>
