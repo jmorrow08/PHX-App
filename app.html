@@ -1440,6 +1440,7 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
           <div class="set-head"><span class="set-ico">🔐</span><div><div class="set-title">Account</div><div class="set-sub">Signed in as <b id="set-email" style="color:var(--white)">—</b></div></div></div>
           <div class="set-row" onclick="showView('mypass')"><span>💳 My Pass — membership &amp; invite code</span><span class="set-arrow">›</span></div>
           <div class="set-row" onclick="openSavedPosts()"><span>🔖 Saved posts</span><span class="set-arrow">›</span></div>
+          <div class="set-row" onclick="openChangeEmail()"><span>✉️ Change email address</span><span class="set-arrow">›</span></div>
           <div class="set-row" onclick="openDeleteAccount()"><span style="color:var(--red)">🗑️ Delete my account</span><span class="set-arrow">›</span></div>
           <div class="set-row" onclick="openMyPage()"><span>⭐ View my public page</span><span class="set-arrow">›</span></div>
           <div class="set-row" onclick="signOut()" style="color:var(--red)"><span>Log out</span><span class="set-arrow">›</span></div>
@@ -2742,6 +2743,11 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
     <!-- Explicit, affirmative consent on account creation. A passive "by
          continuing" line is weaker than a checkbox the user actually ticks,
          and we record the timestamp + version server-side. -->
+    <div id="auth-dob-wrap" style="display:none;margin-top:.7rem">
+      <label class="form-label" style="font-size:.72rem">Date of birth <span style="color:var(--faint)">— PHX is 13+</span></label>
+      <input class="form-input" type="date" id="auth-dob" max="2020-12-31" style="font-size:16px">
+    </div>
+    <div id="auth-turnstile" style="display:none;margin-top:.8rem;min-height:0"></div>
     <label id="auth-terms-wrap" style="display:none;align-items:flex-start;gap:.55rem;margin-top:.9rem;cursor:pointer">
       <input type="checkbox" id="auth-terms" style="margin-top:.15rem;accent-color:var(--orange);flex-shrink:0">
       <span style="font-size:.74rem;color:var(--muted);line-height:1.55">I agree to the
@@ -8807,6 +8813,36 @@ function togglePostMenu(postId, ev, isAdmin, isMine) {
   setTimeout(function() { document.addEventListener('click', closePostMenus, { once: true }); }, 50);
 }
 // ── ACCOUNT DELETION (self-serve, permanent) ────────────────────────────
+// ── EMAIL CHANGE ────────────────────────────────────────────────────────
+function openChangeEmail() {
+  if (!requireAuthAction('Account settings')) return;
+  _apModal('change-email-modal',
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.8rem">' +
+      '<div style="font-weight:800;font-size:1.05rem">Change email</div>' +
+      '<button onclick="document.getElementById(\'change-email-modal\').style.display=\'none\'" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem">✕</button></div>' +
+    '<div style="font-size:.8rem;color:var(--muted);line-height:1.55;margin-bottom:.8rem">Signed in as <b>' + escapeHtml((_authUser && _authUser.email) || '') + '</b>.<br>Confirmation links go to BOTH addresses — the change completes after you click both.</div>' +
+    '<label class="form-label">New email</label>' +
+    '<input class="form-input" type="email" id="ce-email" placeholder="new@email.com" style="margin-bottom:.7rem;font-size:16px">' +
+    '<button class="upgrade-btn" style="width:100%;margin:0" onclick="submitChangeEmail(this)">Send confirmation links</button>' +
+    '<div id="ce-msg" style="font-size:.78rem;color:var(--muted);margin-top:.55rem;min-height:1em"></div>');
+}
+async function submitChangeEmail(btn) {
+  var v = ((document.getElementById('ce-email') || {}).value || '').trim();
+  var msg = document.getElementById('ce-msg');
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v)) {
+    if (msg) { msg.style.color = 'var(--red)'; msg.textContent = 'That doesn\'t look like an email address.'; }
+    return;
+  }
+  btn.disabled = true; btn.textContent = 'Sending…';
+  var res = await _sb.auth.updateUser({ email: v });
+  btn.disabled = false; btn.textContent = 'Send confirmation links';
+  if (res.error) {
+    if (msg) { msg.style.color = 'var(--red)'; msg.textContent = res.error.message; }
+    return;
+  }
+  if (msg) { msg.style.color = 'var(--green)'; msg.textContent = '✓ Check both inboxes — click the link in each to finish.'; }
+}
+
 function openDeleteAccount() {
   if (!requireAuthAction('Account settings')) return;
   _apModal('delete-account-modal',
@@ -11610,6 +11646,9 @@ function setAuthTab(tab) {
   if (iw) iw.style.display = (tab === 'signup' && _requiresInvite) ? 'block' : 'none';
   var tw = document.getElementById('auth-terms-wrap');
   if (tw) tw.style.display = (tab === 'signup') ? 'flex' : 'none';
+  var dw = document.getElementById('auth-dob-wrap');
+  if (dw) dw.style.display = (tab === 'signup') ? 'block' : 'none';
+  if (tab === 'signup') _mountTurnstile();
   var st = document.getElementById('auth-signin-terms');
   if (st) st.style.display = (tab === 'signup') ? 'none' : 'block';
   // Sign-in accepts @username too; signup needs a real email address
@@ -11758,12 +11797,35 @@ async function submitAuth() {
       btn.disabled = false;
       return;
     }
+    // Age gate: the ToS says 13+ — now the form actually asks (COPPA)
+    var dobEl = document.getElementById('auth-dob');
+    var dob = dobEl ? dobEl.value : '';
+    if (!dob) {
+      errEl.textContent = 'Enter your date of birth — PHX is for ages 13 and up.';
+      errEl.style.display = 'block';
+      btn.disabled = false;
+      return;
+    }
+    var ageMs = Date.now() - new Date(dob + 'T00:00:00').getTime();
+    if (ageMs < 13 * 365.25 * 86400000) {
+      errEl.textContent = 'PHX is for ages 13 and up. See you in a few years. 🐦‍🔥';
+      errEl.style.display = 'block';
+      btn.disabled = false;
+      return;
+    }
+    if (window._turnstileKey && !_turnstileToken) {
+      errEl.textContent = 'Complete the security check above first.';
+      errEl.style.display = 'block';
+      btn.disabled = false;
+      return;
+    }
     if (inviteCode) { try { localStorage.setItem('phx_pending_invite', inviteCode); } catch (e) { reportFailure('submitAuth', e); } }
     try {
       res = await _sb.auth.signUp({ email: email, password: password,
         options: {
           emailRedirectTo: window.location.origin + '/app.html',
-          data: { terms_accepted: 'true', terms_version: PHX_TERMS_VERSION }
+          captchaToken: _turnstileToken || undefined,
+          data: { terms_accepted: 'true', terms_version: PHX_TERMS_VERSION, birthdate: dob }
         } });
     } catch (netErr) { res = { error: { message: 'phx_network' } }; }
     if (!res.error && res.data.user && !res.data.session) {
@@ -12968,6 +13030,37 @@ var _googleEnabled = false;
 var _billingLive = false;   // until true, signed-in members hear everything
 var _platformSettings = null;
 
+// ── TURNSTILE (bot protection) ──────────────────────────────────────────
+// Fully wired, dormant until platform_settings.turnstile_site_key is set.
+// To activate: (1) get site+secret keys at dash.cloudflare.com → Turnstile,
+// (2) Supabase Dashboard → Auth → Bot protection → Turnstile + secret key,
+// (3) UPDATE platform_settings SET turnstile_site_key='<site key>'.
+// Supabase then verifies the captchaToken on every signup/sign-in itself.
+var _turnstileToken = null;
+function _mountTurnstile() {
+  var key = window._turnstileKey;
+  var slot = document.getElementById('auth-turnstile');
+  if (!key || !slot || slot.dataset.mounted) return;
+  slot.dataset.mounted = '1';
+  slot.style.display = 'block';
+  var render = function() {
+    try {
+      window.turnstile.render('#auth-turnstile', {
+        sitekey: key,
+        theme: 'dark',
+        callback: function(token) { _turnstileToken = token; },
+        'expired-callback': function() { _turnstileToken = null; }
+      });
+    } catch (e) { reportFailure('turnstile', e); }
+  };
+  if (window.turnstile) { render(); return; }
+  var sc = document.createElement('script');
+  sc.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+  sc.async = true;
+  sc.onload = render;
+  document.head.appendChild(sc);
+}
+
 async function loadPlatformSettings() {
   try {
     var res = await _sb.from('platform_public_settings').select('*').single();
@@ -12976,6 +13069,7 @@ async function loadPlatformSettings() {
       _requiresInvite = !!res.data.signup_requires_invite;
       _googleEnabled = !!res.data.google_signin_enabled;
       _billingLive = !!res.data.billing_live;
+      window._turnstileKey = res.data.turnstile_site_key || null;
       applyAuthProviderVisibility();
       // The invite field is computed once when a tab opens; re-run it now
       // that the real settings have arrived (QA finding 38).
@@ -13402,6 +13496,14 @@ async function applyAccountRole() {
   }
   await redeemPendingInvite();
   checkAccessAndOnboarding();
+  // Copy the signup birthdate into the profile row once (age-gate record)
+  try {
+    var bmd = _authUser.user_metadata && _authUser.user_metadata.birthdate;
+    if (bmd && !window._dobSynced) {
+      window._dobSynced = true;
+      _sb.from('profiles').update({ birthdate: bmd }).eq('id', _authUser.id).is('birthdate', null).then(function(){});
+    }
+  } catch (e) {}
   var res = await _sb.from('profiles').select('role,tier,display_name,username,allow_multi_page,signup_attrib,can_mint_codes').eq('id', _authUser.id).maybeSingle();
   var p = res.data || {};
   _allowMultiPage = !!p.allow_multi_page;
@@ -15702,6 +15804,13 @@ function openArtistEditor() {
         '<input type="file" id="ae-hero-video" accept="video/mp4,video/webm,video/quicktime" class="form-input" style="margin-bottom:.25rem" onchange="handleHeroVideoPick(this)">' +
         '<div id="ae-hero-note" style="font-size:.72rem;color:var(--muted);margin-bottom:.6rem;min-height:1em"></div>'
       : '<div style="background:rgba(234,179,8,.07);border:1px solid rgba(234,179,8,.3);border-radius:10px;padding:.6rem .8rem;font-size:.74rem;color:var(--muted);margin-bottom:.6rem">🎬 <b>Video header</b> — a moving banner behind your name. Included with the Full artist tier.</div>') +
+    '<div style="display:flex;gap:.6rem"><div style="flex:1">' +
+      '<label class="form-label">Genre</label>' +
+      '<input class="form-input" id="ae-genre" maxlength="40" value="' + escapeHtml(a.genre || '') + '" placeholder="Hip-Hop, R&B…" style="margin-bottom:.6rem">' +
+    '</div><div style="flex:1">' +
+      '<label class="form-label">City</label>' +
+      '<input class="form-input" id="ae-city" maxlength="60" value="' + escapeHtml(a.city || '') + '" placeholder="Phoenix, AZ" style="margin-bottom:.6rem">' +
+    '</div></div>' +
     '<label class="form-label">About</label>' +
     '<textarea class="form-input" id="ae-bio" rows="8" maxlength="4000" style="margin-bottom:.8rem;resize:vertical">' + escapeHtml(a.bio || '') + '</textarea>' +
     '<button class="upgrade-btn" style="width:100%;margin:0" onclick="saveArtistEditor()">Save</button>' +
@@ -15722,7 +15831,11 @@ async function saveArtistEditor() {
   var msg = document.getElementById('ae-msg');
   if (msg) { msg.style.color = 'var(--muted)'; msg.textContent = 'Saving…'; }
   try {
-    var patch = { bio: (document.getElementById('ae-bio') || {}).value || null };
+    var patch = {
+      bio: (document.getElementById('ae-bio') || {}).value || null,
+      genre: ((document.getElementById('ae-genre') || {}).value || '').trim() || null,
+      city: ((document.getElementById('ae-city') || {}).value || '').trim() || null
+    };
     var avaUrl = await _uploadArtistImage('ae-avatar', 'avatar');
     var banUrl = await _uploadArtistImage('ae-banner', 'banner');
     if (avaUrl) patch.avatar_url = avaUrl;
