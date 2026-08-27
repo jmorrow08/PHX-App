@@ -209,3 +209,29 @@ _Everything below is live in production. Recorded here so Ash, future hires, and
 - **Follow button removed from feed cards** — tap the name/avatar, follow from their page (IG/FB pattern).
 - **Hero videos route through the trimmer, always**: picking any file opens the trim sheet in hero mode (15s cap, "exports silent" in the title) — output is guaranteed ≤15s, audio-free by construction (no audio track attached at encode), and normalized to ≤1280p/4Mbps. Trimmed loop uploads on Save.
 - **Plug Map redesign**: 📍 Near me now LEADS the filter row + a floating locate button lives on the map itself; **one pin per venue** (a venue with 6 shows was 6 stacked bubbles) with a count badge and a popup listing that venue's next events, each linking to its event page; pins colored by kind (music ember, nightlife purple, food green, art pink, community blue) with a legend; taller map (46vh); tighter chips.
+
+---
+
+## Update — August 27, 2026 (the parity drop)
+
+**Plug Map v3**: Near me sits WITH List/Map at the top (plus the floating 📍 on the map); activating it zooms to a ~10-mile radius around you and the list follows the map viewport — zoom out, more appears. You-are-here dot is now white-with-ember-ring (was clashing with the Food key color). Kind color dots on list cards match the pins. Single title (topbar only). Cards + event pages show "🎟️ Tickets from $X" (parsed lowest price), Free events carry an organizer info ↗ link (city_events gained source_url), event pages add "Event page & contact ↗" for no-ticket events. Right-side blank space on all pages fixed (the widened mobile view was max-width-capped — stretched left, not right).
+
+**Social parity batch (all live)**:
+- **@mentions** — linkified everywhere, tapping opens the profile; the mentioned member gets a notification (server-side in create_feed_post + add_post_comment)
+- **#hashtags** — tapping filters the feed to that tag with a clear-chip
+- **Comment likes** — hearts with counts, notification to the comment author (throttled)
+- **Saved posts** — ⋯ menu Save/Unsave; viewer in Settings → Saved posts
+- **Interested vs Going** — both buttons on every event page (shows AND city events, new event_rsvps table + set_rsvp RPC); cards count "going" only; **friends-going** line ("⭐ X, Y + 2 more going — people you follow")
+- **Sleep timer** (Off/15/30/60, pauses playback) + **Add to queue** beside Play next
+- **Lyrics** — artists paste them in the track editor; 📜 button in the player
+- **Shareable playlists** — Share makes it public + hands out `#playlist/<id>`; recipients get a playable sheet; delete-playlist added
+- **DM v2** — 📨 message-requests folder (stranger threads quarantined until Accept/Delete/Block; dm_decline only works before you've replied), **long-press reactions** (six emoji, one per person, realtime repaint), **realtime delivery** (Supabase channel per thread, 15s poll fallback)
+- **Clips** — 💬 opens comments in an overlay sheet (never leaves the scroll), **♫ sound attribution** line on clips with a track → "this sound" filtered view
+
+**Safety (the two ⚠️ items)**:
+- **moderate-media edge fn**: every image (and every video's poster frame) passes a Claude-vision safety classifier before upload — sexual content, minor-safety (block on any doubt), gore, hate symbols. Verdicts audit-logged to user_events. Fails OPEN during invite-only beta but every skip is logged; flip to fail-closed at open signup.
+- **delete-account edge fn + Settings row**: permanent self-serve deletion (type DELETE), erases identity + content + DMs, keeps anonymized stream aggregates for payout integrity, refuses staff/artist/page-owner accounts with clear next steps. Legal updated.
+
+**2FA — deliberately paused** per Jaye: Google OAuth bypassed the invite-code gate. Options researched, waiting on his call (see chat).
+
+**Still queued from the green-lit list**: venue pages + follow-venue, on-sale/price-drop alerts, realtime notifications (DMs have it; bell still polls), PHX Wrapped (December feature), native ticketing (needs Stripe live), voice notes/photos in DMs, clip captions editor.

@@ -213,3 +213,6 @@ Messages in the app bar, heads-up notification banners, event descriptions (TM b
 
 ## August 26, 2026 (fifth drop)
 True edge-to-edge feed (view-clip bug), follow off feed cards, hero-video trimmer (silent, 15s), Plug Map redesign (venue-clustered colored pins, Near me up front, locate button, legend). Detail: docs/PHX-Operating-Manual.md.
+
+## August 27, 2026
+Plug Map v3 (near-me radius + viewport list, tickets-from pricing), parity batch (mentions, hashtags, comment likes, saved posts, Interested/Going + friends-going, sleep timer, queue, lyrics, shareable playlists, DM requests/reactions/realtime, clip comments + sound pages), vision media moderation, in-app account deletion. Detail: docs/PHX-Operating-Manual.md.
