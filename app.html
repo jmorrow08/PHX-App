@@ -1421,6 +1421,7 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
           <div class="set-head"><span class="set-ico">🔐</span><div><div class="set-title">Account</div><div class="set-sub">Signed in as <b id="set-email" style="color:var(--white)">—</b></div></div></div>
           <div class="set-row" onclick="showView('mypass')"><span>💳 My Pass — membership &amp; invite code</span><span class="set-arrow">›</span></div>
           <div class="set-row" onclick="openSavedPosts()"><span>🔖 Saved posts</span><span class="set-arrow">›</span></div>
+          <div class="set-row" onclick="openDeleteAccount()"><span style="color:var(--red)">🗑️ Delete my account</span><span class="set-arrow">›</span></div>
           <div class="set-row" onclick="openMyPage()"><span>⭐ View my public page</span><span class="set-arrow">›</span></div>
           <div class="set-row" onclick="signOut()" style="color:var(--red)"><span>Log out</span><span class="set-arrow">›</span></div>
         </div>
@@ -7344,6 +7345,42 @@ async function submitComment(postId) {
 }
 
 // ── Posting ──
+// ── MEDIA SAFETY (vision) ──────────────────────────────────────────────
+// Downscale to 512px, ship to the moderate-media edge function. On any
+// infrastructure failure this FAILS OPEN (beta is invite-only) — but every
+// skip is server-logged, never silent.
+function _downscaleToB64(blob, maxDim) {
+  return new Promise(function(resolve) {
+    var img = new Image();
+    var url = URL.createObjectURL(blob);
+    img.onload = function() {
+      URL.revokeObjectURL(url);
+      try {
+        var sc = Math.min(1, maxDim / Math.max(img.naturalWidth || 1, img.naturalHeight || 1));
+        var c = document.createElement('canvas');
+        c.width = Math.max(1, Math.round((img.naturalWidth || 1) * sc));
+        c.height = Math.max(1, Math.round((img.naturalHeight || 1) * sc));
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        var dataUrl = c.toDataURL('image/jpeg', 0.8);
+        resolve({ data: dataUrl.split(',')[1], type: 'image/jpeg' });
+      } catch (e) { resolve(null); }
+    };
+    img.onerror = function() { URL.revokeObjectURL(url); resolve(null); };
+    img.src = url;
+  });
+}
+async function _moderateMediaFile(file) {
+  try {
+    var frame = /^video\//.test(file.type) ? await _captureVideoPoster(file, null) : file;
+    if (!frame) return { ok: true };
+    var b64 = await _downscaleToB64(frame, 512);
+    if (!b64) return { ok: true };
+    var res = await _sb.functions.invoke('moderate-media', { body: { image_base64: b64.data, media_type: b64.type } });
+    if (res.error || !res.data || !res.data.ok) return { ok: true };
+    return res.data.verdict === 'block' ? { ok: false, category: res.data.category } : { ok: true };
+  } catch (e) { return { ok: true }; }
+}
+
 async function submitFeedPost() {
   if (!requireAuthAction('Posting')) return;
   var textEl = document.getElementById('composer-text');
@@ -7402,6 +7439,16 @@ async function submitFeedPost() {
       if (errEl) { errEl.textContent = 'File too large — re-attach and it will compress.'; errEl.style.display = 'block'; }
       return;
     }
+    // Vision safety check — the text filter can't see pictures, this can.
+    // Images send themselves; videos send their poster frame.
+    if (postBtn) postBtn.textContent = 'Checking…';
+    var modv = await _moderateMediaFile(uploadFile);
+    if (!modv.ok) {
+      if (postBtn) { postBtn.textContent = 'Post'; postBtn.disabled = false; }
+      if (errEl) { errEl.textContent = '🚫 This ' + (/^video\//.test(uploadFile.type) ? 'video' : 'image') + ' violates PHX community guidelines and can\'t be posted.'; errEl.style.display = 'block'; }
+      return;
+    }
+    if (postBtn) postBtn.textContent = 'Uploading…';
     var ext = uploadFile.name.split('.').pop().toLowerCase();
     var stem = getGuestId().slice(0,8) + '/' + Date.now();
     var path = stem + '.' + ext;
@@ -8240,6 +8287,42 @@ function togglePostMenu(postId, ev, isAdmin) {
   '</div>';
   setTimeout(function() { document.addEventListener('click', closePostMenus, { once: true }); }, 50);
 }
+// ── ACCOUNT DELETION (self-serve, permanent) ────────────────────────────
+function openDeleteAccount() {
+  if (!requireAuthAction('Account settings')) return;
+  _apModal('delete-account-modal',
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.8rem">' +
+      '<div style="font-weight:800;font-size:1.05rem;color:var(--red)">Delete your account</div>' +
+      '<button onclick="document.getElementById(\'delete-account-modal\').style.display=\'none\'" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem">✕</button></div>' +
+    '<div style="font-size:.84rem;color:var(--muted);line-height:1.6;margin-bottom:.9rem">This is permanent. Your profile, posts, comments, likes, playlists, follows and messages are erased. Anonymous listening totals stay (they fund the artists you already backed, and stop pointing at you the moment your profile is gone).<br><br>Artist accounts and Page owners: close or transfer those first — their catalogs carry signed agreements.</div>' +
+    '<label class="form-label">Type <b>DELETE</b> to confirm</label>' +
+    '<input class="form-input" id="da-confirm" autocomplete="off" style="margin-bottom:.7rem">' +
+    '<button class="upgrade-btn" style="width:100%;margin:0;background:var(--red)" onclick="confirmDeleteAccount(this)">Delete my account forever</button>' +
+    '<div id="da-msg" style="font-size:.78rem;color:var(--muted);margin-top:.55rem;min-height:1em"></div>');
+}
+async function confirmDeleteAccount(btn) {
+  var v = ((document.getElementById('da-confirm') || {}).value || '').trim();
+  var msg = document.getElementById('da-msg');
+  if (v !== 'DELETE') { if (msg) { msg.style.color = 'var(--red)'; msg.textContent = 'Type DELETE exactly (all caps) to confirm.'; } return; }
+  btn.disabled = true; btn.textContent = 'Deleting…';
+  var res = await _sb.functions.invoke('delete-account', { body: { confirm: 'DELETE' } });
+  var d = res.data || {};
+  if (res.error || !d.ok) {
+    btn.disabled = false; btn.textContent = 'Delete my account forever';
+    if (msg) {
+      msg.style.color = 'var(--red)';
+      msg.textContent = d.reason === 'staff_account' ? 'Staff accounts can\'t self-delete — remove the role first.'
+        : d.reason === 'artist_account' ? 'This account owns an artist page with a signed distribution agreement — email support@thephx.app to close it out properly.'
+        : d.reason === 'owns_pages' ? 'This account owns Pages — delete or transfer them first, then come back.'
+        : 'Could not delete — try again or email privacy@thephx.app.';
+    }
+    return;
+  }
+  try { await _sb.auth.signOut(); } catch (e) {}
+  try { localStorage.clear(); } catch (e) {}
+  document.body.innerHTML = '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;text-align:center;padding:2rem;background:#07070F;color:#F1F1F8;font-family:sans-serif"><div><div style="font-size:2rem;margin-bottom:.6rem">👋</div><div style="font-size:1.1rem;font-weight:700;margin-bottom:.4rem">Your account is gone.</div><div style="font-size:.85rem;opacity:.7">Thanks for being part of the city. The door\'s open if you ever come back.</div></div></div>';
+}
+
 // ── SAVED POSTS (bookmarks) ─────────────────────────────────────────────
 var _mySavedPosts = {};
 async function toggleSavePost(postId) {
