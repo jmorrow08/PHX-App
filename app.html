@@ -186,6 +186,11 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
 .dm-bubble.mine{margin-left:auto;background:linear-gradient(135deg,var(--orange-d),#B34A0C);color:#fff;border-bottom-right-radius:5px}
 .dm-bubble.theirs{background:var(--bg3);border:1px solid var(--line);border-bottom-left-radius:5px}
 .dm-when{font-size:.62rem;color:var(--faint);margin:.4rem 0 .1rem;text-align:center}
+.dm-wrap{display:flex;flex-direction:column;max-width:78%}
+.dm-wrap.mine{margin-left:auto;align-items:flex-end}
+.dm-wrap.theirs{align-items:flex-start}
+.dm-wrap .dm-bubble{max-width:100%;margin-left:0}
+.dm-react-chip{display:none;background:var(--bg4);border:1px solid var(--line);border-radius:999px;padding:.05rem .4rem;font-size:.72rem;margin-top:-4px;z-index:1}
 .dm-row{display:flex;align-items:center;gap:.7rem;padding:.7rem .4rem;border-bottom:1px solid var(--line);cursor:pointer}
 .dm-row:hover{background:rgba(241,241,248,.02)}
 .rt-link{color:var(--orange-l);font-weight:600;text-decoration:none}
@@ -7724,12 +7729,14 @@ function openMessages() {
   dmShowInbox();
 }
 function dmShowInbox() {
+  if (typeof _dmUnsub === 'function') _dmUnsub();
   if (_dmPollT) { clearInterval(_dmPollT); _dmPollT = null; }
   _dmThreadId = null; _dmOther = null; _dmLastIso = null;
   var c = document.getElementById('dm-chat'); if (c) c.style.display = 'none';
   var i = document.getElementById('dm-inbox'); if (i) i.style.display = 'block';
   loadDmInbox();
 }
+var _dmRequestsOpen = false;
 async function loadDmInbox() {
   var el = document.getElementById('dm-inbox');
   if (!el) return;
@@ -7740,7 +7747,23 @@ async function loadDmInbox() {
     el.innerHTML = head + '<div class="pf-empty">No conversations yet.<br>Open any profile and tap <b>✉️ Message</b> to start one.</div>';
     return;
   }
-  el.innerHTML = head + rows.map(function(t) {
+  // Strangers land in Requests, not next to your people (the IG safety split)
+  var requests = rows.filter(function(t){ return t.is_request; });
+  var normal = rows.filter(function(t){ return !t.is_request; });
+  var reqHtml = '';
+  if (requests.length) {
+    reqHtml = '<div class="dm-row" style="border-bottom:1px solid var(--border)" onclick="_dmRequestsOpen=!_dmRequestsOpen;loadDmInbox()">' +
+      '<span style="font-size:1.2rem;width:44px;text-align:center">📨</span>' +
+      '<div style="flex:1"><div style="font-size:.88rem;font-weight:800">Message requests</div>' +
+        '<div style="font-size:.74rem;color:var(--muted)">' + requests.length + ' from people you don\'t follow</div></div>' +
+      '<span style="color:var(--muted)">' + (_dmRequestsOpen ? '▾' : '›') + '</span></div>' +
+      (_dmRequestsOpen ? requests.map(function(t){ return _dmRowHtml(t, true); }).join('') : '');
+  }
+  if (!normal.length && !requests.length) {
+    el.innerHTML = head + '<div class="pf-empty">No conversations yet.</div>';
+    return;
+  }
+  el.innerHTML = head + reqHtml + normal.map(function(t) {
     var ava = safeUrl(t.other_avatar);
     var d = t.last_msg_at ? new Date(t.last_msg_at) : null;
     var diff = d ? Math.floor((Date.now() - d.getTime()) / 60000) : 0;
@@ -7759,6 +7782,22 @@ async function loadDmInbox() {
     '</div>';
   }).join('');
 }
+function _dmRowHtml(t, isReq) {
+  var ava = safeUrl(t.other_avatar);
+  var d = t.last_msg_at ? new Date(t.last_msg_at) : null;
+  var diff = d ? Math.floor((Date.now() - d.getTime()) / 60000) : 0;
+  var when = !d ? '' : diff < 1 ? 'now' : diff < 60 ? diff + 'm' : diff < 1440 ? Math.floor(diff/60) + 'h' : Math.floor(diff/1440) + 'd';
+  var otherJson = escapeHtml(JSON.stringify({ id: t.other_id, name: t.other_name, avatar_url: t.other_avatar, is_request: !!isReq }));
+  return '<div class="dm-row" style="padding-left:1rem" onclick=\'openDmChat("' + t.thread_id + '",' + otherJson + ')\'>' +
+    '<div style="width:40px;height:40px;border-radius:50%;overflow:hidden;background:linear-gradient(135deg,var(--orange-d),var(--purple));display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1rem;flex-shrink:0">' +
+      (ava ? '<img src="' + ava + '" alt="" style="width:100%;height:100%;object-fit:cover">' : escapeHtml((t.other_name || '?').charAt(0).toUpperCase())) + '</div>' +
+    '<div style="flex:1;min-width:0">' +
+      '<div style="font-size:.86rem;font-weight:700">' + escapeHtml(t.other_name || 'PHX Member') + '</div>' +
+      '<div style="font-size:.74rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + escapeHtml(t.last_preview || '') + '</div>' +
+    '</div>' +
+    '<div style="font-size:.66rem;color:var(--faint)">' + when + '</div>' +
+  '</div>';
+}
 async function dmStart(otherId) {
   if (!requireAuthAction('Messaging')) return;
   if (!otherId) { showToast('This profile can\'t receive messages yet.'); return; }
@@ -7774,10 +7813,15 @@ async function dmStart(otherId) {
   showView('messages');
   openDmChat(d.thread_id, d.other);
 }
+var _dmChannel = null;
+function _dmUnsub() {
+  if (_dmChannel) { try { _sb.removeChannel(_dmChannel); } catch (e) {} _dmChannel = null; }
+}
 function openDmChat(threadId, other) {
   _dmThreadId = threadId;
   _dmOther = other || {};
   _dmLastIso = null;
+  _dmUnsub();
   var i = document.getElementById('dm-inbox'); if (i) i.style.display = 'none';
   var c = document.getElementById('dm-chat');
   if (!c) return;
@@ -7793,6 +7837,15 @@ function openDmChat(threadId, other) {
       '</div>' +
       '<button class="psh-btn" style="width:32px;height:32px;font-size:1rem" onclick="dmMenu()">⋯</button>' +
     '</div>' +
+    (_dmOther.is_request
+      ? '<div id="dm-request-bar" style="background:rgba(249,115,22,.08);border:1px solid rgba(249,115,22,.3);border-radius:12px;padding:.6rem .8rem;margin-bottom:.6rem">' +
+          '<div style="font-size:.78rem;color:var(--muted);line-height:1.5;margin-bottom:.5rem">' + escapeHtml(_dmOther.name || 'This member') + ' wants to message you. They won\'t know you\'ve seen it until you accept or reply.</div>' +
+          '<div style="display:flex;gap:.5rem;flex-wrap:wrap">' +
+            '<button class="cp-post" style="margin:0;padding:.4rem 1rem;font-size:.76rem" onclick="dmAcceptRequest()">✓ Accept</button>' +
+            '<button class="pf-btn" style="font-size:.76rem" onclick="dmDeclineRequest()">🗑️ Delete</button>' +
+            '<button class="pf-btn" style="font-size:.76rem;color:var(--red);border-color:rgba(239,68,68,.4)" onclick="dmBlockConfirm()">🚫 Block</button>' +
+          '</div></div>'
+      : '') +
     '<div id="dm-msgs" style="min-height:38vh;max-height:56vh;overflow-y:auto;padding:.3rem .1rem;display:flex;flex-direction:column"></div>' +
     '<div style="display:flex;gap:.5rem;align-items:flex-end;margin-top:.7rem">' +
       '<textarea id="dm-input" rows="1" maxlength="2000" placeholder="Message…" ' +
@@ -7802,8 +7855,30 @@ function openDmChat(threadId, other) {
     '</div>' +
     '<div id="dm-error" style="display:none;color:var(--red);font-size:.76rem;margin-top:.35rem"></div>';
   _dmFetch();
+  // Realtime is the primary wire; the poll is a 15s safety net
+  try {
+    _dmChannel = _sb.channel('dm-' + threadId)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'dm_messages', filter: 'thread_id=eq.' + threadId }, function() { _dmFetch(); })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'dm_messages', filter: 'thread_id=eq.' + threadId }, function(payload) { _dmApplyReactions(payload.new); })
+      .subscribe();
+  } catch (e) { reportFailure('dmRealtime', e); }
   if (_dmPollT) clearInterval(_dmPollT);
-  _dmPollT = setInterval(_dmFetch, 5000);
+  _dmPollT = setInterval(_dmFetch, 15000);
+}
+async function dmAcceptRequest() {
+  await _sb.rpc('dm_accept', { p_thread: _dmThreadId });
+  var bar = document.getElementById('dm-request-bar');
+  if (bar) bar.style.display = 'none';
+  _dmOther.is_request = false;
+  showToast('✓ Accepted — they\'re in your inbox now');
+}
+async function dmDeclineRequest() {
+  if (!confirm('Delete this request? The conversation disappears for both of you.')) return;
+  var res = await _sb.rpc('dm_decline', { p_thread: _dmThreadId });
+  var d = res.data || {};
+  if (res.error || !d.ok) { showToast('Could not delete this request.'); return; }
+  showToast('Request deleted');
+  dmShowInbox();
 }
 async function _dmFetch() {
   // Self-cleaning poll: navigating anywhere else kills the timer
@@ -7831,17 +7906,84 @@ async function _dmFetch() {
       w.className = 'dm-when'; w.textContent = day;
       box.appendChild(w);
     }
+    var wrap = document.createElement('div');
+    wrap.className = 'dm-wrap ' + (m.sender_id === me ? 'mine' : 'theirs');
+    wrap.dataset.msg = m.id;
     var b = document.createElement('div');
     b.className = 'dm-bubble ' + (m.sender_id === me ? 'mine' : 'theirs');
     b.textContent = m.body;
     b.title = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-    box.appendChild(b);
+    _dmBindReactPress(b, m.id);
+    var chip = document.createElement('div');
+    chip.className = 'dm-react-chip';
+    wrap.appendChild(b);
+    wrap.appendChild(chip);
+    box.appendChild(wrap);
+    _dmApplyReactions(m);
   });
   box.dataset.lastDay = lastDay;
   _dmLastIso = rows[rows.length - 1].created_at;
   box.scrollTop = box.scrollHeight;
   _sb.rpc('dm_mark_read', { p_thread: _dmThreadId }).then(_refreshDmBadge);
 }
+// ── DM REACTIONS ────────────────────────────────────────────────────────
+// Long-press a bubble → pick one of six. One reaction per person; tapping
+// the same one clears it. Realtime UPDATE events repaint the other side.
+var _DM_EMOJI = ['❤️', '🔥', '😂', '😮', '👍', '🙏'];
+var _dmPressT = null;
+function _dmBindReactPress(el, msgId) {
+  el.addEventListener('pointerdown', function() {
+    clearTimeout(_dmPressT);
+    _dmPressT = setTimeout(function() {
+      if (typeof haptic === 'function') haptic(10);
+      _dmShowReactPicker(el, msgId);
+    }, 450);
+  });
+  ['pointerup', 'pointerleave', 'pointercancel'].forEach(function(ev) {
+    el.addEventListener(ev, function(){ clearTimeout(_dmPressT); });
+  });
+  el.addEventListener('contextmenu', function(e){ e.preventDefault(); });
+}
+function _dmShowReactPicker(el, msgId) {
+  var old = document.getElementById('dm-react-picker');
+  if (old) old.remove();
+  var r = el.getBoundingClientRect();
+  var p = document.createElement('div');
+  p.id = 'dm-react-picker';
+  p.style.cssText = 'position:fixed;z-index:1195;background:rgba(14,14,24,.98);border:1px solid var(--border);border-radius:999px;padding:.3rem .5rem;display:flex;gap:.35rem;box-shadow:0 10px 30px rgba(0,0,0,.6);top:' + Math.max(8, r.top - 46) + 'px;left:' + Math.min(Math.max(8, r.left), window.innerWidth - 260) + 'px';
+  p.innerHTML = _DM_EMOJI.map(function(em) {
+    return '<button style="background:none;border:none;font-size:1.25rem;cursor:pointer;padding:.1rem" onclick="dmReact(\'' + msgId + '\',\'' + em + '\')">' + em + '</button>';
+  }).join('');
+  document.body.appendChild(p);
+  setTimeout(function() {
+    document.addEventListener('click', function h() { var x = document.getElementById('dm-react-picker'); if (x) x.remove(); }, { once: true });
+  }, 60);
+}
+async function dmReact(msgId, emoji) {
+  var x = document.getElementById('dm-react-picker');
+  if (x) x.remove();
+  // Same emoji again = clear mine
+  var wrap = document.querySelector('.dm-wrap[data-msg="' + msgId + '"]');
+  var mineNow = wrap && wrap.dataset.myReaction === emoji;
+  var res = await _sb.rpc('dm_react', { p_message: msgId, p_emoji: mineNow ? null : emoji });
+  var d = res.data || {};
+  if (res.error || !d.ok) return;
+  _dmApplyReactions({ id: msgId, reactions: d.reactions });
+}
+function _dmApplyReactions(m) {
+  if (!m || !m.id) return;
+  var wrap = document.querySelector('.dm-wrap[data-msg="' + m.id + '"]');
+  if (!wrap) return;
+  var chip = wrap.querySelector('.dm-react-chip');
+  if (!chip) return;
+  var re = m.reactions || {};
+  var me = getGuestId();
+  wrap.dataset.myReaction = re[me] || '';
+  var emojis = Object.keys(re).map(function(k){ return re[k]; });
+  chip.textContent = emojis.join('');
+  chip.style.display = emojis.length ? 'inline-flex' : 'none';
+}
+
 async function dmSend() {
   var input = document.getElementById('dm-input');
   var errEl = document.getElementById('dm-error');
