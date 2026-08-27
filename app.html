@@ -191,6 +191,15 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
 .dm-wrap.theirs{align-items:flex-start}
 .dm-wrap .dm-bubble{max-width:100%;margin-left:0}
 .dm-react-chip{display:none;background:var(--bg4);border:1px solid var(--line);border-radius:999px;padding:.05rem .4rem;font-size:.72rem;margin-top:-4px;z-index:1}
+.dm-bubble.media{background:transparent;border:none;padding:0}
+/* Caption overlays in the composer preview */
+.ct-ov{position:absolute;left:50%;transform:translate(-50%,-50%);display:flex;align-items:center;gap:.3rem;pointer-events:auto;z-index:6;max-width:94%}
+.ct-ov-drag{cursor:grab;color:#fff;background:rgba(7,7,15,.6);border-radius:8px;padding:.15rem .3rem;font-size:.8rem;touch-action:none;user-select:none}
+.ct-ov-text{font-weight:800;font-size:1.15rem;color:#fff;outline:none;min-width:40px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:70vw}
+.ct-ov-shadow{text-shadow:0 2px 8px rgba(0,0,0,.85)}
+.ct-ov-pill{background:rgba(7,7,15,.78);border-radius:999px;padding:.25rem .8rem}
+.ct-ov-ember{background:rgba(249,115,22,.96);color:#0B0B14;border-radius:999px;padding:.25rem .8rem}
+.ct-ov-btn{background:rgba(7,7,15,.6);border:none;color:#fff;border-radius:8px;font-size:.68rem;padding:.2rem .4rem;cursor:pointer}
 .dm-row{display:flex;align-items:center;gap:.7rem;padding:.7rem .4rem;border-bottom:1px solid var(--line);cursor:pointer}
 .dm-row:hover{background:rgba(241,241,248,.02)}
 .rt-link{color:var(--orange-l);font-weight:600;text-decoration:none}
@@ -1339,6 +1348,8 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
 
       <!-- Your 602 Rotation: personal weekly mixtape, rebuilt every Friday -->
       <div id="rotation-card" style="display:none;margin-bottom:1.2rem"></div>
+      <!-- 602 Recap: the December moment (founder preview off-season) -->
+      <div id="recap-entry" style="display:none;margin-bottom:1.2rem"></div>
 
       <div>
           <!-- Artist Spotlight -->
@@ -1965,6 +1976,16 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
     <!-- EVENT DETAIL — every Plug Map card opens here -->
     <div class="view" id="v-event-page">
       <div id="event-page-content"><div class="pf-empty">Loading event…</div></div>
+    </div>
+
+    <!-- VENUE PAGE — auto-built from public listings, followable -->
+    <div class="view" id="v-venue-page">
+      <div id="venue-page-content"><div class="pf-empty">Loading venue…</div></div>
+    </div>
+
+    <!-- 602 RECAP — the December moment -->
+    <div class="view" id="v-recap">
+      <div id="recap-content"><div class="pf-empty">Loading your year…</div></div>
     </div>
 
     <!-- MESSAGES — 1:1 DMs (inbox + chat share the view) -->
@@ -2880,7 +2901,7 @@ function startEmber() {
 }
 
 var titles = {
-  home:'City Feed', discover:'Discover PHX', music:'PHX Music', reels:'Clips', messages:'Messages', 'event-page':'Event',
+  home:'City Feed', discover:'Discover PHX', music:'PHX Music', reels:'Clips', messages:'Messages', 'event-page':'Event', 'venue-page':'Venue', 'recap':'602 Recap',
   events:'Plug Map', eats:'PHX Eats', audio:'PHX Audio',
   drops:'PHX Drops', cuts:'PHX Cuts', mypass:'My PHX Pass', profile:'My Profile', settings:'Settings',
   'member-page':'Profile', 'artist-page':'Artist', 'artist-directory':'Browse PHX', 'page-profile':'Page',
@@ -3110,7 +3131,7 @@ function showView(id) {
   if (id === 'settings') loadSettings();
   if (id === 'admin-ash') loadAshPanel();
   if (id === 'admin-analytics') { loadAdminAnalytics(); loadAdminEngagement(); }
-  if (id === 'music') { loadMusicCatalog(); loadListeningWent(); loadMyRotation(); }
+  if (id === 'music') { loadMusicCatalog(); loadListeningWent(); loadMyRotation(); _mountRecapEntry(); }
   if (id === 'messages') { if (!_dmThreadId) dmShowInbox(); }
   if (id === 'artist-submit') populateGenreSelect();
   if (id === 'reels') loadReels();
@@ -5359,7 +5380,7 @@ async function showEventPage(src, id) {
           : '') +
         '<div style="display:flex;flex-direction:column;gap:.55rem;margin:1rem 0;font-size:.88rem;line-height:1.5">' +
           '<div>📅 <b>' + escapeHtml(dateLong) + '</b><br><span style="color:var(--muted);margin-left:1.35rem">' + escapeHtml(timeStr) + (doors ? ' · Doors ' + escapeHtml(doors) : '') + '</span></div>' +
-          (where.length ? '<div>📍 <b>' + escapeHtml(where[0]) + '</b>' + (where.length > 1 ? '<br><span style="color:var(--muted);margin-left:1.35rem">' + escapeHtml(where.slice(1).join(' · ')) + '</span>' : '') + '</div>' : '') +
+          (where.length ? '<div>📍 <b' + (e.venue_id ? ' style="cursor:pointer;text-decoration:underline;text-decoration-color:rgba(249,115,22,.4)" onclick="showVenuePage(\'' + e.venue_id + '\')"' : '') + '>' + escapeHtml(where[0]) + '</b>' + (where.length > 1 ? '<br><span style="color:var(--muted);margin-left:1.35rem">' + escapeHtml(where.slice(1).join(' · ')) + '</span>' : '') + '</div>' : '') +
           (price ? '<div>💵 <b>' + escapeHtml(price) + '</b></div>' : '') +
           (infoUrl && !ticket ? '<div>ℹ️ <a href="' + infoUrl + '" target="_blank" rel="noopener" style="color:var(--orange-l)">Event page & contact ↗</a><br><span style="color:var(--faint);font-size:.72rem;margin-left:1.35rem">details straight from the organizer</span></div>' : '') +
         '</div>' +
@@ -5393,7 +5414,7 @@ async function showEventPage(src, id) {
       var box = document.getElementById('ev-mini-map');
       if (!box || box._map) return;
       var mm = L.map(box, { zoomControl: false, attributionControl: false, dragging: false, scrollWheelZoom: false, doubleClickZoom: false, touchZoom: false }).setView([e.lat, e.lng], 14);
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(mm);
+      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', { maxNativeZoom: 16, maxZoom: 19 }).addTo(mm);
       L.circleMarker([e.lat, e.lng], { radius: 10, color: '#F97316', fillColor: '#F97316', fillOpacity: .9, weight: 2 }).addTo(mm);
       box._map = mm;
       setTimeout(function(){ mm.invalidateSize(); }, 120);
@@ -5448,6 +5469,65 @@ async function evRsvp(src, id, status) {
   showToast(d.status === 'going' ? '🙋 You\'re on the list — see you there'
           : d.status === 'interested' ? '⭐ Marked interested — we\'ll keep you posted'
           : 'Taken off the list');
+}
+
+// ── VENUE PAGE ─────────────────────────────────────────────────────────
+// Auto-built from public listings (the Yelp/Bandsintown unclaimed-page
+// playbook): facts, calendar, follow. Clearly labeled unclaimed, with a
+// claim path — the pitch to the venue comes AFTER the followers exist.
+async function showVenuePage(venueId) {
+  if (typeof _navPush === 'function') _navPush('venue', venueId);
+  showView('venue-page');
+  try { window.location.hash = 'venue/' + venueId; } catch (e) {}
+  var el = document.getElementById('venue-page-content');
+  if (!el) return;
+  el.innerHTML = '<div class="pf-empty">Loading venue…</div>';
+  var res = await _sb.from('venues').select('*').eq('id', venueId).maybeSingle();
+  var v = res.data;
+  if (!v) {
+    el.innerHTML = '<div class="pf-empty">Venue not found.<br><br><a href="#" style="color:var(--orange)" onclick="showView(\'events\');return false">← Back to the Plug Map</a></div>';
+    return;
+  }
+  var evRes = await _sb.from('city_events').select('*').eq('venue_id', venueId)
+    .gte('starts_at', new Date(Date.now() - 6 * 3600000).toISOString())
+    .order('starts_at', { ascending: true }).limit(40);
+  var evs = evRes.data || [];
+  var fc = await _sb.from('follows').select('id', { count: 'exact', head: true })
+    .eq('followee_type', 'venue').eq('followee_id', venueId);
+  var followers = fc.count || 0;
+  var following = !!_myFollows['venue:' + venueId];
+  el.innerHTML =
+    '<div style="margin-bottom:.8rem"><a href="#" style="color:var(--muted);font-size:.78rem" onclick="showView(\'events\');return false">← Plug Map</a></div>' +
+    '<div class="pf" style="background:var(--bg3);border-radius:var(--r-m);overflow:hidden">' +
+      '<div style="height:110px;display:flex;align-items:flex-end;padding:1rem 1.2rem;background:radial-gradient(120% 140% at 12% 0%, rgba(249,115,22,.4) 0%, transparent 58%),radial-gradient(130% 150% at 88% 12%, rgba(124,58,237,.35) 0%, transparent 62%),linear-gradient(165deg,#2A1206 0%,#160B18 60%,#0B0B14 100%)">' +
+        '<div style="font-size:1.9rem;margin-right:.6rem">📍</div>' +
+        '<div style="font-family:var(--disp);font-size:1.4rem;font-weight:800;letter-spacing:-.02em;line-height:1.15">' + escapeHtml(v.name) + '</div>' +
+      '</div>' +
+      '<div style="padding:1rem 1.2rem 1.3rem">' +
+        '<div style="font-size:.82rem;color:var(--muted);line-height:1.5;margin-bottom:.8rem">' +
+          escapeHtml([v.address, v.city].filter(Boolean).join(' · ') || 'Phoenix, AZ') + '</div>' +
+        '<div style="display:flex;gap:.55rem;flex-wrap:wrap;margin-bottom:.6rem">' +
+          '<button class="pf-btn' + (following ? ' on' : '') + '" onclick="toggleFollowUI(\'venue\',\'' + venueId + '\',this)">' + (following ? '✓ Following' : '+ Follow venue') + '</button>' +
+          (v.lat && v.lng ? '<a class="pf-btn" href="https://maps.apple.com/?q=' + encodeURIComponent(v.name) + '&ll=' + v.lat + ',' + v.lng + '" target="_blank" rel="noopener">🧭 Directions</a>' : '') +
+        '</div>' +
+        '<div style="font-size:.76rem;color:var(--muted);margin-bottom:.9rem"><b style="color:var(--white)">' + followers + '</b> follower' + (followers === 1 ? '' : 's') + ' · followers get pinged when new events land here</div>' +
+        '<div style="background:rgba(249,115,22,.06);border:1px solid rgba(249,115,22,.22);border-radius:10px;padding:.6rem .8rem;font-size:.72rem;color:var(--muted);margin-bottom:1rem">This page is auto-built from public listings. Run ' + escapeHtml(v.name) + '? Claim it free — <b>hello@thephx.app</b></div>' +
+        '<div class="pf-sec"><h3>Coming up here</h3></div>' +
+        (evs.length ? evs.map(function(e) {
+          var tp = showTimeParts(e);
+          var priceLine = _pmPriceLabel(e, true);
+          return '<div class="pm-card" role="button" style="cursor:pointer" onclick="showEventPage(\'' + e.src + '\',\'' + e.id + '\')">' +
+            '<div class="ap-date"><div class="m">' + tp.mon + '</div><div class="d">' + tp.day + '</div></div>' +
+            '<div style="flex:1;min-width:0">' +
+              '<div style="font-family:var(--disp);font-size:.92rem;font-weight:700">' + escapeHtml(e.title) + '</div>' +
+              '<div style="font-size:.74rem;color:var(--muted);margin-top:2px">' + escapeHtml(tp.time) + (priceLine ? ' · ' + priceLine : '') + '</div>' +
+            '</div>' +
+            (safeUrl(e.cover_url) ? '<img src="' + safeUrl(e.cover_url) + '" alt="" loading="lazy" style="width:50px;height:50px;border-radius:8px;object-fit:cover;flex-shrink:0">' : '') +
+          '</div>';
+        }).join('') : '<div class="pf-empty">Nothing on the calendar here yet.</div>') +
+      '</div>' +
+    '</div>';
+  trackEvent('venue_view', 'venue', venueId, {});
 }
 
 function shareEvent(src, id, title) {
@@ -5507,7 +5587,9 @@ function _pmDrawPins() {
   _pmRows.forEach(function(e) {
     if (!e.lat || !e.lng) return;
     var key = (e.venue_name || '').toLowerCase() + '|' + Number(e.lat).toFixed(3) + ',' + Number(e.lng).toFixed(3);
-    (byVenue[key] = byVenue[key] || { lat: e.lat, lng: e.lng, name: e.venue_name || e.title, events: [] }).events.push(e);
+    var grp = (byVenue[key] = byVenue[key] || { lat: e.lat, lng: e.lng, name: e.venue_name || e.title, venueId: null, events: [] });
+    if (!grp.venueId && e.venue_id) grp.venueId = e.venue_id;
+    grp.events.push(e);
   });
   var venues = Object.keys(byVenue).map(function(k){ return byVenue[k]; });
   var zoom = _pmMap.getZoom();
@@ -5546,7 +5628,10 @@ function _pmDrawPins() {
       return '<div style="margin:.4rem 0 0"><a href="#" style="color:#F97316;font-weight:700;text-decoration:none" onclick="showEventPage(\'' + ev.src + '\',\'' + ev.id + '\');return false">' + escapeHtml(ev.title) + '</a>' +
         '<div style="font-size:.72rem;opacity:.75">' + escapeHtml(tp.mon + ' ' + tp.day + ' · ' + tp.time) + '</div></div>';
     }).join('');
-    mk.bindPopup('<div style="font-family:inherit;min-width:190px;max-width:240px"><b style="font-size:.88rem">📍 ' + escapeHtml(g.name) + '</b>' + listHtml +
+    mk.bindPopup('<div style="font-family:inherit;min-width:190px;max-width:240px">' +
+      (g.venueId
+        ? '<a href="#" style="color:#fff;text-decoration:none" onclick="showVenuePage(\'' + g.venueId + '\');return false"><b style="font-size:.88rem">📍 ' + escapeHtml(g.name) + ' ›</b></a>'
+        : '<b style="font-size:.88rem">📍 ' + escapeHtml(g.name) + '</b>') + listHtml +
       (n > 4 ? '<div style="font-size:.72rem;opacity:.7;margin-top:.35rem">+' + (n - 4) + ' more at this spot</div>' : '') + '</div>', { className: 'pm-popup' });
     pts.push([g.lat, g.lng]);
   });
@@ -5562,8 +5647,8 @@ function renderPlugMapMap() {
       // hijacking every sideways thumb) — pinch-zoom still works, and the
       // ⤢ fullscreen mode turns real panning on.
       _pmMap = L.map(el, { zoomControl: true, attributionControl: true, dragging: !_pmTouch, tap: true }).setView([33.4484, -112.0740], 11);
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; OpenStreetMap &copy; CARTO', maxZoom: 19
+      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+        attribution: 'Esri &copy; OpenStreetMap contributors', maxNativeZoom: 16, maxZoom: 19
       }).addTo(_pmMap);
     }
     // Floating controls: locate + fullscreen explore
@@ -5753,6 +5838,7 @@ var PHOTO_FILTERS = {
   fade:    { label: 'Fade', css: 'contrast(.88) brightness(1.12) saturate(.75)' }
 };
 var _composerStamp = false;        // 🐦‍🔥 PHX wordmark baked into the corner
+var _composerTexts = [];           // caption overlays: {text, yPct, style} — baked at export
 var _composerTrustedClip = false;  // set when WE produced the file (trim/bake/Lens) — skip the re-probe
 var _composerAudioMode = 'original';  // original | replace | mix (video + song)
 var _composerSongVol = 0.6;           // song gain when mixing
@@ -5777,6 +5863,95 @@ function _drawStamp(ctx, w, h) {
 }
 function toggleComposerStamp() { _composerStamp = !_composerStamp; _refreshFilterChips(); _flashFilterName(_composerStamp ? '🐦‍🔥 Stamp on' : 'Stamp off'); }
 
+// ── CAPTIONS EDITOR ────────────────────────────────────────────────────
+// Up to 3 text overlays on a photo or clip: type in place, drag up/down,
+// tap Aa to cycle the look. Baked into the exported media pixel-for-pixel
+// by _drawTextOverlays — what you place is what posts.
+var _CT_STYLES = ['shadow', 'pill', 'ember'];
+function addComposerText() {
+  if (!_composerMediaFile) { showToast('Attach a photo or video first.'); return; }
+  if (_composerTexts.length >= 3) { showToast('Three text lines max — keep it readable.'); return; }
+  _composerTexts.push({ text: 'Say it', yPct: 0.28 + _composerTexts.length * 0.18, style: 'shadow' });
+  _renderTextLayer();
+  setTimeout(function() {
+    var spans = document.querySelectorAll('#composer-text-layer .ct-ov-text');
+    var last = spans[spans.length - 1];
+    if (last) { last.focus(); try { document.execCommand('selectAll', false, null); } catch (e) {} }
+  }, 60);
+}
+function _renderTextLayer() {
+  var layer = document.getElementById('composer-text-layer');
+  if (!layer) return;
+  layer.innerHTML = _composerTexts.map(function(t, i) {
+    return '<div class="ct-ov" data-i="' + i + '" style="top:' + (t.yPct * 100) + '%">' +
+      '<span class="ct-ov-drag" title="Drag up/down">⇕</span>' +
+      '<span class="ct-ov-text ct-ov-' + t.style + '" contenteditable="true" oninput="_composerTexts[' + i + '].text=this.textContent.slice(0,80)">' + escapeHtml(t.text) + '</span>' +
+      '<button class="ct-ov-btn" title="Change look" onclick="_ctCycleStyle(' + i + ')">Aa</button>' +
+      '<button class="ct-ov-btn" title="Remove" onclick="_ctRemove(' + i + ')">✕</button>' +
+    '</div>';
+  }).join('');
+  layer.querySelectorAll('.ct-ov').forEach(function(ov) {
+    var handle = ov.querySelector('.ct-ov-drag');
+    handle.addEventListener('pointerdown', function(e) {
+      e.preventDefault();
+      var stage = document.getElementById('composer-preview-stage');
+      if (!stage) return;
+      var rect = stage.getBoundingClientRect();
+      var i = parseInt(ov.dataset.i, 10);
+      var move = function(me) {
+        var y = Math.max(0.06, Math.min(0.94, (me.clientY - rect.top) / rect.height));
+        _composerTexts[i].yPct = y;
+        ov.style.top = (y * 100) + '%';
+      };
+      var up = function() {
+        document.removeEventListener('pointermove', move);
+        document.removeEventListener('pointerup', up);
+      };
+      document.addEventListener('pointermove', move);
+      document.addEventListener('pointerup', up);
+    });
+  });
+}
+function _ctCycleStyle(i) {
+  var t = _composerTexts[i];
+  if (!t) return;
+  t.style = _CT_STYLES[(_CT_STYLES.indexOf(t.style) + 1) % _CT_STYLES.length];
+  _renderTextLayer();
+}
+function _ctRemove(i) {
+  _composerTexts.splice(i, 1);
+  _renderTextLayer();
+}
+// The bake: same math for photos and every video frame
+function _drawTextOverlays(ctx, w, h, texts) {
+  (texts || []).forEach(function(t) {
+    var txt = (t.text || '').trim();
+    if (!txt) return;
+    var fs = Math.round(w * 0.062);
+    ctx.font = '800 ' + fs + 'px -apple-system, "Segoe UI", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    var x = w / 2;
+    var y = Math.round(h * (t.yPct == null ? 0.5 : t.yPct));
+    var tw = Math.min(ctx.measureText(txt).width, w * 0.92);
+    if (t.style === 'pill' || t.style === 'ember') {
+      var padX = fs * 0.55, padY = fs * 0.34;
+      var rx = x - tw / 2 - padX, ry = y - fs / 2 - padY, rw = tw + padX * 2, rh = fs + padY * 2;
+      ctx.fillStyle = t.style === 'ember' ? 'rgba(249,115,22,.96)' : 'rgba(7,7,15,.78)';
+      if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(rx, ry, rw, rh, rh / 2); ctx.fill(); }
+      else ctx.fillRect(rx, ry, rw, rh);
+      ctx.fillStyle = t.style === 'ember' ? '#0B0B14' : '#FFFFFF';
+    } else {
+      ctx.fillStyle = '#FFFFFF';
+      ctx.shadowColor = 'rgba(0,0,0,.8)';
+      ctx.shadowBlur = fs * 0.2;
+      ctx.shadowOffsetY = 2;
+    }
+    ctx.fillText(txt, x, y, w * 0.92);
+    ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+  });
+}
+
 function renderMediaPreview() {
   var box = document.getElementById('composer-media-preview');
   if (!box || !_composerMediaFile) { if (box) { box.style.display = 'none'; box.innerHTML = ''; } return; }
@@ -5794,11 +5969,13 @@ function renderMediaPreview() {
         return '<button class="tb-btn" data-fk="' + k + '" style="font-size:.7rem;padding:.25rem .6rem;white-space:nowrap;flex-shrink:0" onclick="setComposerFilter(\'' + k + '\')">' + PHOTO_FILTERS[k].label + '</button>';
       }).join('') +
       '<button class="tb-btn" id="composer-stamp-chip" style="font-size:.7rem;padding:.25rem .6rem;white-space:nowrap;flex-shrink:0" onclick="toggleComposerStamp()">🐦‍🔥 PHX stamp</button>' +
+      '<button class="tb-btn" style="font-size:.7rem;padding:.25rem .6rem;white-space:nowrap;flex-shrink:0" onclick="addComposerText()">Aa Text</button>' +
     '</div>';
   box.innerHTML =
     '<div id="composer-preview-stage" style="position:relative;border-radius:14px" ontouchstart="_fltTS(event)" ontouchend="_fltTE(event)">' +
       media +
       '<img id="composer-stamp-overlay" src="assets/logo-wordmark.png" alt="" style="display:none;position:absolute;right:12px;bottom:' + (isImage ? '12px' : '48px') + ';width:22%;opacity:.85;pointer-events:none">' +
+      '<div id="composer-text-layer" style="position:absolute;inset:0;pointer-events:none;overflow:hidden"></div>' +
       '<div id="composer-filter-name" style="position:absolute;top:12px;left:50%;transform:translateX(-50%);background:rgba(7,7,15,.72);backdrop-filter:blur(6px);border-radius:999px;padding:.32rem .95rem;font-weight:800;font-size:.85rem;color:var(--white);opacity:0;transition:opacity .25s;pointer-events:none;white-space:nowrap"></div>' +
       '<button onclick="clearComposerMedia()" aria-label="Remove media" style="position:absolute;top:10px;right:10px;width:30px;height:30px;border-radius:50%;background:rgba(7,7,15,.7);border:none;color:#fff;cursor:pointer;font-size:.85rem">✕</button>' +
     '</div>' +
@@ -6011,6 +6188,7 @@ function postSheetNext() {
   _postSheetShowStep(2);
 }
 function _renderPostPreview() {
+  setTimeout(_renderTextLayer, 80);   // overlays ride the freshly-painted stage
   var persona = currentPersona();
   var t = document.getElementById('composer-text');
   var head = document.getElementById('post-preview-head');
@@ -6105,6 +6283,7 @@ function _refreshComposerTrigger() {
 }
 function clearComposerMedia() {
   _composerMediaFile = null; _composerFilter = 'none'; _composerStamp = false; _composerPosterTime = null; _composerAudioMode = 'original'; _composerTrustedClip = false;
+  _composerTexts = [];
   var m1 = document.getElementById('composer-media'); if (m1) m1.value = '';
   var m2 = document.getElementById('composer-camera'); if (m2) m2.value = '';
   var nameEl = document.getElementById('composer-media-name'); if (nameEl) nameEl.style.display = 'none';
@@ -6201,7 +6380,7 @@ function setComposerFilter(key) {
 
 // Re-encode a photo through canvas with the chosen filter baked in
 async function applyFilterToImage(file, filterCss) {
-  if (filterCss === 'none' && !_composerStamp) return file;
+  if (filterCss === 'none' && !_composerStamp && !_composerTexts.length) return file;
   if (_composerStamp) await _getStampImg();
   return new Promise(function(resolve) {
     var img = new Image();
@@ -6216,6 +6395,7 @@ async function applyFilterToImage(file, filterCss) {
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
       ctx.filter = 'none';
       if (_composerStamp) _drawStamp(ctx, canvas.width, canvas.height);
+      _drawTextOverlays(ctx, canvas.width, canvas.height, _composerTexts);
       canvas.toBlob(function(blob) {
         resolve(blob ? new File([blob], 'filtered.jpg', { type: 'image/jpeg' }) : file);
       }, 'image/jpeg', 0.9);
@@ -6230,7 +6410,7 @@ async function applyFilterToImage(file, filterCss) {
 async function _bakeVideo(file, filterCss, stamp, progressBtn, audioOpts) {
   audioOpts = audioOpts || {};
   var wantsSong = audioOpts.mode === 'replace' || audioOpts.mode === 'mix';
-  if ((filterCss === 'none' || !filterCss) && !stamp && !wantsSong) return file;
+  if ((filterCss === 'none' || !filterCss) && !stamp && !wantsSong && !_composerTexts.length) return file;
   if (!window.MediaRecorder) return file;   // preview-only filter is better than a dead post
   if (stamp) await _getStampImg();
   return new Promise(function(resolve) {
@@ -6288,6 +6468,7 @@ async function _bakeVideo(file, filterCss, stamp, progressBtn, audioOpts) {
         ctx.drawImage(v, 0, 0, canvas.width, canvas.height);
         ctx.filter = 'none';
         if (stamp) _drawStamp(ctx, canvas.width, canvas.height);
+        _drawTextOverlays(ctx, canvas.width, canvas.height, _composerTexts);
         if (progressBtn && v.duration) progressBtn.textContent = 'Styling… ' + Math.min(99, Math.round(v.currentTime / v.duration * 100)) + '%';
       }, 33);
       v.onended = function() {
@@ -7492,7 +7673,7 @@ async function submitFeedPost() {
       uploadFile = await applyFilterToImage(_composerMediaFile, PHOTO_FILTERS[_composerFilter].css);
     } else if (/^video\//.test(_composerMediaFile.type)) {
       var wantsSong = _composerAudioMode !== 'original' && trackSel && trackSel.value;
-      if (_composerFilter !== 'none' || _composerStamp || wantsSong) {
+      if (_composerFilter !== 'none' || _composerStamp || wantsSong || _composerTexts.length) {
         var audioOpts = { mode: 'original' };
         if (wantsSong) {
           if (postBtn) postBtn.textContent = 'Fetching song…';
@@ -7576,6 +7757,7 @@ async function submitFeedPost() {
   _composerMediaFile = null;
   _composerFilter = 'none';
   _composerStamp = false;
+  _composerTexts = [];
   _composerPosterTime = null;
   _composerAudioMode = 'original';
   if (typeof pickComposerTrack === 'function') pickComposerTrack('');
@@ -7853,6 +8035,7 @@ function openMessages() {
 }
 function dmShowInbox() {
   if (typeof _dmUnsub === 'function') _dmUnsub();
+  if (_dmMicStream) { try { _dmMicStream.getTracks().forEach(function(t){ t.stop(); }); } catch (e) {} _dmMicStream = null; }
   if (_dmPollT) { clearInterval(_dmPollT); _dmPollT = null; }
   _dmThreadId = null; _dmOther = null; _dmLastIso = null;
   var c = document.getElementById('dm-chat'); if (c) c.style.display = 'none';
@@ -7970,13 +8153,17 @@ function openDmChat(threadId, other) {
           '</div></div>'
       : '') +
     '<div id="dm-msgs" style="min-height:38vh;max-height:56vh;overflow-y:auto;padding:.3rem .1rem;display:flex;flex-direction:column"></div>' +
-    '<div style="display:flex;gap:.5rem;align-items:flex-end;margin-top:.7rem">' +
+    '<div style="display:flex;gap:.45rem;align-items:flex-end;margin-top:.7rem">' +
+      '<input type="file" id="dm-photo-input" accept="image/jpeg,image/png,image/webp,image/gif" style="display:none" onchange="dmSendPhoto(this)">' +
+      '<button class="psh-btn" style="width:38px;height:38px;font-size:1rem" title="Send a photo" onclick="document.getElementById(\'dm-photo-input\').click()">📎</button>' +
+      '<button class="psh-btn" id="dm-mic-btn" style="width:38px;height:38px;font-size:1rem;touch-action:none" title="Hold to record a voice note">🎙️</button>' +
       '<textarea id="dm-input" rows="1" maxlength="2000" placeholder="Message…" ' +
         'style="flex:1;background:var(--bg3);border:1px solid var(--line);border-radius:18px;padding:.6rem .9rem;color:var(--white);font-family:inherit;font-size:16px;line-height:1.4;resize:none;min-height:42px;max-height:120px" ' +
         'oninput="this.style.height=\'auto\';this.style.height=Math.min(this.scrollHeight,120)+\'px\'"></textarea>' +
       '<button class="cp-post" style="margin:0;padding:.6rem 1.1rem" onclick="dmSend()">➤</button>' +
     '</div>' +
     '<div id="dm-error" style="display:none;color:var(--red);font-size:.76rem;margin-top:.35rem"></div>';
+  _dmBindMic();
   _dmFetch();
   // Realtime is the primary wire; the poll is a 15s safety net
   try {
@@ -8010,7 +8197,7 @@ async function _dmFetch() {
     if (_dmPollT) { clearInterval(_dmPollT); _dmPollT = null; }
     return;
   }
-  var q = _sb.from('dm_messages').select('id,sender_id,body,created_at')
+  var q = _sb.from('dm_messages').select('id,sender_id,body,created_at,kind,media_path,reactions')
     .eq('thread_id', _dmThreadId).order('created_at', { ascending: true }).limit(300);
   if (_dmLastIso) q = q.gt('created_at', _dmLastIso);
   var res = await q;
@@ -8034,7 +8221,27 @@ async function _dmFetch() {
     wrap.dataset.msg = m.id;
     var b = document.createElement('div');
     b.className = 'dm-bubble ' + (m.sender_id === me ? 'mine' : 'theirs');
-    b.textContent = m.body;
+    if (m.kind === 'image' && m.media_path) {
+      b.classList.add('media');
+      var im = document.createElement('img');
+      im.alt = 'Photo';
+      im.style.cssText = 'max-width:220px;max-height:280px;border-radius:14px;display:block';
+      b.appendChild(im);
+      _dmMediaUrl(m.media_path).then(function(u) {
+        if (!u) { b.textContent = '📷 Photo unavailable'; return; }
+        im.src = u;
+        im.onclick = function() { openLightbox(u); };
+      });
+    } else if (m.kind === 'audio' && m.media_path) {
+      b.classList.add('media');
+      var au = document.createElement('audio');
+      au.controls = true; au.preload = 'metadata';
+      au.style.cssText = 'width:215px;height:40px';
+      b.appendChild(au);
+      _dmMediaUrl(m.media_path).then(function(u) { if (u) au.src = u; });
+    } else {
+      b.textContent = m.body;
+    }
     b.title = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
     _dmBindReactPress(b, m.id);
     var chip = document.createElement('div');
@@ -8105,6 +8312,95 @@ function _dmApplyReactions(m) {
   var emojis = Object.keys(re).map(function(k){ return re[k]; });
   chip.textContent = emojis.join('');
   chip.style.display = emojis.length ? 'inline-flex' : 'none';
+}
+
+// ── DM MEDIA: photos + voice notes ─────────────────────────────────────
+// Private bucket, per-thread folder, storage RLS = participants only.
+// Photos pass the same vision safety check as feed media before sending.
+var _dmMediaUrls = {};
+async function _dmMediaUrl(path) {
+  var c = _dmMediaUrls[path];
+  if (c && c.exp > Date.now()) return c.url;
+  try {
+    var r = await _sb.storage.from('dm-media').createSignedUrl(path, 3600);
+    if (r.data && r.data.signedUrl) {
+      _dmMediaUrls[path] = { url: r.data.signedUrl, exp: Date.now() + 50 * 60000 };
+      return r.data.signedUrl;
+    }
+  } catch (e) {}
+  return null;
+}
+async function _dmUploadMedia(file, ext) {
+  var path = _dmThreadId + '/' + Date.now() + '.' + ext;
+  var up = await _sb.storage.from('dm-media').upload(path, file, { contentType: file.type });
+  if (up.error) throw new Error(up.error.message);
+  return path;
+}
+async function dmSendPhoto(input) {
+  var f = input.files && input.files[0];
+  input.value = '';
+  if (!f || !_dmThreadId) return;
+  if (f.size > 15728640) { showToast('Photos cap at 15MB in messages.'); return; }
+  showToast('Sending photo…');
+  try {
+    var modv = await _moderateMediaFile(f);
+    if (!modv.ok) { showToast('🚫 That image violates PHX community guidelines.'); return; }
+    var path = await _dmUploadMedia(f, (f.name.split('.').pop() || 'jpg').toLowerCase());
+    var res = await _sb.rpc('dm_send', { p_thread: _dmThreadId, p_body: '', p_kind: 'image', p_media_path: path });
+    if (res.error || !(res.data || {}).ok) { showToast('Could not send the photo.'); return; }
+    if (typeof haptic === 'function') haptic(8);
+    _dmFetch();
+  } catch (e) { showToast('Could not send the photo.'); }
+}
+// Voice notes: hold the mic, talk (60s cap), let go to send
+var _dmRec = null, _dmRecChunks = [], _dmRecTimer = null, _dmMicStream = null;
+function _dmBindMic() {
+  var btn = document.getElementById('dm-mic-btn');
+  if (!btn || btn._bound) return;
+  btn._bound = true;
+  btn.addEventListener('pointerdown', function(e) { e.preventDefault(); _dmRecStart(btn); });
+  ['pointerup', 'pointerleave', 'pointercancel'].forEach(function(ev) {
+    btn.addEventListener(ev, function() { _dmRecStop(); });
+  });
+  btn.addEventListener('contextmenu', function(e){ e.preventDefault(); });
+}
+async function _dmRecStart(btn) {
+  if (_dmRec || !window.MediaRecorder) return;
+  try {
+    if (!_dmMicStream) _dmMicStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  } catch (e) { showToast('🎙️ Mic access needed for voice notes.'); return; }
+  var mime = ['audio/mp4', 'audio/webm;codecs=opus', 'audio/webm'].filter(function(t) {
+    return MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t);
+  })[0];
+  _dmRecChunks = [];
+  _dmRec = new MediaRecorder(_dmMicStream, mime ? { mimeType: mime } : undefined);
+  _dmRec._t0 = Date.now();
+  _dmRec.ondataavailable = function(ev) { if (ev.data && ev.data.size) _dmRecChunks.push(ev.data); };
+  _dmRec.onstop = async function() {
+    var rec = _dmRec; _dmRec = null;
+    if (btn) { btn.style.background = ''; btn.textContent = '🎙️'; }
+    clearTimeout(_dmRecTimer);
+    var ms = Date.now() - rec._t0;
+    var type = (rec.mimeType || 'audio/webm').split(';')[0];
+    var blob = new Blob(_dmRecChunks, { type: type });
+    if (ms < 600 || !blob.size) { if (ms >= 200) showToast('Hold the mic to record'); return; }
+    showToast('Sending voice note…');
+    try {
+      var ext = type.indexOf('mp4') !== -1 ? 'm4a' : 'webm';
+      var path = await _dmUploadMedia(new File([blob], 'voice.' + ext, { type: type }), ext);
+      var res = await _sb.rpc('dm_send', { p_thread: _dmThreadId, p_body: '', p_kind: 'audio', p_media_path: path });
+      if (res.error || !(res.data || {}).ok) { showToast('Could not send the voice note.'); return; }
+      if (typeof haptic === 'function') haptic(8);
+      _dmFetch();
+    } catch (e) { showToast('Could not send the voice note.'); }
+  };
+  if (btn) { btn.style.background = 'rgba(239,68,68,.35)'; btn.textContent = '⏺'; }
+  if (typeof haptic === 'function') haptic(12);
+  _dmRec.start(250);
+  _dmRecTimer = setTimeout(_dmRecStop, 60000);   // 60s cap
+}
+function _dmRecStop() {
+  if (_dmRec && _dmRec.state === 'recording') { try { _dmRec.stop(); } catch (e) {} }
 }
 
 async function dmSend() {
@@ -8197,7 +8493,21 @@ async function loadNotifications() {
   if (_notifPanelOpen) renderNotifList(items);
   if (typeof _refreshDmBadge === 'function') _refreshDmBadge();
   _headsUpCheck(items);
+  _notifRealtime();
   return items;
+}
+
+// Realtime bell: a notification insert streams straight to its recipient —
+// the heads-up banner fires the second it lands. The 45s poll stays as the
+// safety net.
+function _notifRealtime() {
+  if (!_authUser || window._notifChan) return;
+  try {
+    window._notifChan = _sb.channel('notif-' + _authUser.id)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: 'recipient_id=eq.' + _authUser.id },
+        function() { loadNotifications(); })
+      .subscribe();
+  } catch (e) { reportFailure('notifRealtime', e); }
 }
 
 // ── HEADS-UP BANNER ─────────────────────────────────────────────────────
@@ -15806,6 +16116,74 @@ function _renderRotationCard() {
       '<button class="cp-post" style="margin:0;padding:.5rem 1.1rem;flex-shrink:0" onclick="playMyRotation()">▶ Play</button>' +
     '</div></div>';
 }
+// ── 602 RECAP (Wrapped, but for the city) ──────────────────────────────
+// Built and wired NOW; the door opens for everyone in December. Supers see
+// it year-round to test. Data comes from my_602_recap() — real listening.
+function _mountRecapEntry() {
+  var el = document.getElementById('recap-entry');
+  if (!el || !_authUser) return;
+  var dec = new Date().getMonth() === 11;
+  if (!dec && currentRole !== 'super') { el.style.display = 'none'; return; }
+  var year = new Date().getFullYear();
+  el.style.display = 'block';
+  el.innerHTML = '<div class="card" style="background:linear-gradient(135deg,rgba(249,115,22,.2),rgba(124,58,237,.16));border-color:rgba(249,115,22,.35);padding:1rem 1.1rem;cursor:pointer" onclick="showRecap()">' +
+    '<div style="display:flex;align-items:center;gap:.8rem">' +
+      '<div style="font-size:1.8rem">🎁</div>' +
+      '<div style="flex:1"><div style="font-family:var(--disp);font-weight:800;font-size:1.05rem">Your ' + year + ' 602 Recap' + (dec ? '' : ' <span style="font-size:.6rem;color:var(--gold)">FOUNDER PREVIEW</span>') + '</div>' +
+      '<div style="font-size:.72rem;color:var(--muted)">Your year in Phoenix music — minutes, artists, receipts</div></div>' +
+      '<span style="color:var(--orange);font-weight:800">›</span>' +
+    '</div></div>';
+}
+async function showRecap() {
+  showView('recap');
+  var el = document.getElementById('recap-content');
+  if (!el) return;
+  el.innerHTML = '<div class="pf-empty">Adding up your year…</div>';
+  var year = new Date().getFullYear();
+  var res = await _sb.rpc('my_602_recap', { p_year: year });
+  var d = res.data || {};
+  if (res.error || !d.ok) { el.innerHTML = '<div class="pf-empty">Could not load your recap.</div>'; return; }
+  var big = function(emoji, num, label) {
+    return '<div class="card" style="text-align:center;padding:1.6rem 1rem;margin-bottom:.8rem">' +
+      '<div style="font-size:1.6rem;margin-bottom:.3rem">' + emoji + '</div>' +
+      '<div style="font-family:var(--disp);font-size:2.4rem;font-weight:800;letter-spacing:-.03em;color:var(--orange)">' + num + '</div>' +
+      '<div style="font-size:.8rem;color:var(--muted);margin-top:.2rem">' + label + '</div></div>';
+  };
+  var topA = (d.top_artists || []);
+  var topT = (d.top_tracks || []);
+  el.innerHTML =
+    '<div style="text-align:center;margin:1rem 0 1.4rem">' +
+      '<div style="font-family:var(--disp);font-size:1.7rem;font-weight:800;letter-spacing:-.02em">🎁 Your ' + year + ' <span style="color:var(--orange)">602 Recap</span></div>' +
+      '<div style="font-size:.78rem;color:var(--muted)">Backed by your plays — every one of them counted.</div></div>' +
+    big('⏱️', fmtK(d.minutes || 0), 'minutes of Phoenix music') +
+    big('▶️', fmtK(d.streams || 0), 'streams — each one paid an artist') +
+    big('🗓️', d.days_active || 0, 'days you showed up for the city') +
+    (topA.length ? '<div class="card" style="padding:1.1rem;margin-bottom:.8rem"><div class="card-title">Your top artists</div>' +
+      topA.map(function(a, i) {
+        return '<div style="display:flex;align-items:center;gap:.6rem;padding:.45rem 0;' + (i < topA.length - 1 ? 'border-bottom:1px solid var(--line)' : '') + '">' +
+          '<span style="font-family:var(--disp);font-weight:800;color:var(--orange);width:22px">' + (i + 1) + '</span>' +
+          '<span style="flex:1;font-weight:700;font-size:.9rem;cursor:pointer" onclick="showArtistPage(\'' + escapeHtml(a.slug || '') + '\')">' + escapeHtml(a.name) + '</span>' +
+          '<span style="font-size:.74rem;color:var(--muted)">' + a.plays + ' plays</span></div>';
+      }).join('') + '</div>' : '') +
+    (topT.length ? '<div class="card" style="padding:1.1rem;margin-bottom:.8rem"><div class="card-title">Your top songs</div>' +
+      topT.map(function(t, i) {
+        return '<div style="display:flex;align-items:center;gap:.6rem;padding:.45rem 0;' + (i < topT.length - 1 ? 'border-bottom:1px solid var(--line)' : '') + '">' +
+          '<span style="font-family:var(--disp);font-weight:800;color:var(--purple-l);width:22px">' + (i + 1) + '</span>' +
+          '<span style="flex:1;font-weight:700;font-size:.9rem">' + escapeHtml(t.title) + '</span>' +
+          '<span style="font-size:.74rem;color:var(--muted)">' + escapeHtml(t.artist || '') + '</span></div>';
+      }).join('') + '</div>' : '') +
+    '<div class="card" style="padding:1.1rem;margin-bottom:1rem;background:linear-gradient(135deg,rgba(249,115,22,.1),transparent)">' +
+      '<div class="card-title">The city\'s year</div>' +
+      '<div style="font-size:.86rem;color:var(--muted);line-height:1.7">Phoenix streamed <b style="color:var(--white)">' + fmtK(d.city_streams || 0) + '</b> local plays in ' + year + '.' +
+      (d.city_top_artist ? ' The city\'s most-played artist: <b style="color:var(--orange)">' + escapeHtml(d.city_top_artist) + '</b>.' : '') + '</div></div>' +
+    '<button class="cp-post" style="width:100%;margin:0 0 2rem" onclick="shareRecap(' + year + ',\'' + fmtK(d.minutes || 0) + '\',\'' + escapeHtml((topA[0] || {}).name || '').replace(/'/g, '') + '\')">↗ Share my Recap</button>';
+}
+function shareRecap(year, minutes, topArtist) {
+  var text = 'My ' + year + ' 602 Recap: ' + minutes + ' minutes of Phoenix music' + (topArtist ? ', riding with ' + topArtist : '') + '. Backed by my plays on PHX.';
+  if (navigator.share) navigator.share({ title: '602 Recap', text: text, url: SITE_URL + '/app' }).catch(function(){});
+  else if (navigator.clipboard) { navigator.clipboard.writeText(text + ' ' + SITE_URL + '/app'); showToast('Copied — paste it anywhere'); }
+}
+
 function playMyRotation() {
   if (!_rotationTracks.length) return;
   if (typeof haptic === 'function') haptic(8);
@@ -16136,6 +16514,8 @@ function _routeProfileHash(delay) {
   if (ev) { setTimeout(function(){ showEventPage(ev[1], ev[2]); }, delay || 0); return true; }
   var pl = window.location.hash.match(/^#playlist\/([0-9a-f-]{36})$/);
   if (pl) { setTimeout(function(){ showSharedPlaylist(pl[1]); }, delay || 0); return true; }
+  var vn = window.location.hash.match(/^#venue\/([0-9a-f-]{36})$/);
+  if (vn) { setTimeout(function(){ showVenuePage(vn[1]); }, delay || 0); return true; }
   return false;
 }
 _whenDomReady(function(){ _routeProfileHash(300); });
