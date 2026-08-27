@@ -1564,6 +1564,16 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
         <button class="pm-cat" data-cat="family" onclick="plugMapCat('family')"><span style="color:#38BDF8">●</span>Family</button>
         <button class="pm-cat" data-cat="community" onclick="plugMapCat('community')"><span style="color:#38BDF8">●</span>Community</button>
         <button class="pm-cat" data-cat="art" onclick="plugMapCat('art')"><span style="color:#EC4899">●</span>Art</button>
+        <button class="pm-cat" data-cat="sports" onclick="plugMapCat('sports')"><span style="color:#34D399">●</span>Sports</button>
+        <button class="pm-cat" data-cat="market" onclick="plugMapCat('market')"><span style="color:#EAB308">●</span>Markets</button>
+        <button class="pm-cat" data-cat="open_mic" onclick="plugMapCat('open_mic')"><span style="color:#FB923C">●</span>Open mic</button>
+        <button class="pm-cat" data-cat="free" onclick="plugMapCat('free')"><span style="color:#22C55E">●</span>Free</button>
+      </div></div>
+      <div class="pm-rail"><span class="pm-rail-label">Time</span><div class="pm-seg">
+        <button class="pm-tod on" data-tod="any" onclick="plugMapTod('any')">Anytime</button>
+        <button class="pm-tod" data-tod="day" onclick="plugMapTod('day')">☀️ Daytime</button>
+        <button class="pm-tod" data-tod="night" onclick="plugMapTod('night')">🌆 Tonight 7+</button>
+        <button class="pm-tod" data-tod="late" onclick="plugMapTod('late')">🌙 Late 10+</button>
       </div></div>
       <div id="plug-map-canvas" style="display:block;position:relative;height:clamp(320px,46vh,480px);border-radius:var(--r-m);overflow:hidden;background:var(--bg3);margin-bottom:.35rem"></div>
       <div id="pm-legend" style="display:flex;gap:.8rem;flex-wrap:wrap;font-size:.66rem;color:var(--muted);margin-bottom:.9rem;padding:0 .2rem">
@@ -5165,9 +5175,25 @@ function plugMapCat(c) {
   document.querySelectorAll('.pm-cat').forEach(function(b){ b.classList.toggle('on', b.dataset.cat === c); });
   loadPlugMap();
 }
+// Time-of-day lens: the "what's on at 10pm" question, answered as a chip
+var _pmTod = 'any';
+function plugMapTod(t) {
+  _pmTod = t;
+  document.querySelectorAll('.pm-tod').forEach(function(b){ b.classList.toggle('on', b.dataset.tod === t); });
+  loadPlugMap();
+}
+function _pmTodMatch(e) {
+  if (_pmTod === 'any') return true;
+  var h = new Date(e.starts_at).getHours();
+  if (_pmTod === 'day') return h >= 6 && h < 17;
+  if (_pmTod === 'night') return h >= 19 || h < 2;
+  if (_pmTod === 'late') return h >= 22 || h < 3;
+  return true;
+}
 function _pmCatMatch(e) {
   if (_pmCat === 'all') return true;
   if (_pmCat === 'music') return !!_PM_MUSIC_KINDS[e.kind];
+  if (_pmCat === 'free') return !!e.is_free || /^free$/i.test(e.price_text || '');
   return e.kind === _pmCat;
 }
 // "Near me": location is requested ONLY when this chip is tapped (never at
@@ -5242,7 +5268,7 @@ async function loadPlugMap() {
   var res = await _sb.from('city_events').select('*')
     .gte('starts_at', w.from.toISOString()).lte('starts_at', w.to.toISOString())
     .order('starts_at', { ascending: true }).limit(80);
-  _pmRows = (res.data || []).filter(_pmCatMatch);
+  _pmRows = (res.data || []).filter(_pmCatMatch).filter(_pmTodMatch);
   if (_pmUserLoc) {
     _pmRows.forEach(function(e) {
       e._mi = (e.lat && e.lng) ? _pmMiles(_pmUserLoc.lat, _pmUserLoc.lng, e.lat, e.lng) : null;
@@ -5282,7 +5308,12 @@ function _pmRenderList(rows) {
   if (!rows.length) {
     list.innerHTML = '<div class="pf-empty">' + (_pmUserLoc
       ? 'Quiet right here. Zoom the map out — the whole city is on it.'
-      : 'Nothing on the calendar for this window yet. Know something? Put it on the map below.') + '</div>';
+      : 'Nothing matches this combo yet.' +
+        '<br><br><div style="display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap">' +
+        (_pmCat !== 'all' ? '<button class="pf-btn" style="font-size:.74rem" onclick="plugMapCat(\'all\')">Show everything</button>' : '') +
+        (_pmRange !== 'month' ? '<button class="pf-btn" style="font-size:.74rem" onclick="plugMapRange(\'month\')">Widen to 30 days</button>' : '') +
+        (_pmTod !== 'any' ? '<button class="pf-btn" style="font-size:.74rem" onclick="plugMapTod(\'any\')">Any time of day</button>' : '') +
+        '</div>') + '</div>';
     return;
   }
   var _dayKey = function(e) {
@@ -5522,10 +5553,15 @@ async function showVenuePage(venueId) {
     .eq('followee_type', 'venue').eq('followee_id', venueId);
   var followers = fc.count || 0;
   var following = !!_myFollows['venue:' + venueId];
+  var heroFlyer = '';
+  for (var hf = 0; hf < evs.length; hf++) { if (safeUrl(evs[hf].cover_url)) { heroFlyer = safeUrl(evs[hf].cover_url); break; } }
   el.innerHTML =
     '<div style="margin-bottom:.8rem"><a href="#" style="color:var(--muted);font-size:.78rem" onclick="showView(\'events\');return false">← Plug Map</a></div>' +
     '<div class="pf" style="background:var(--bg3);border-radius:var(--r-m);overflow:hidden">' +
-      '<div style="height:110px;display:flex;align-items:flex-end;padding:1rem 1.2rem;background:radial-gradient(120% 140% at 12% 0%, rgba(249,115,22,.4) 0%, transparent 58%),radial-gradient(130% 150% at 88% 12%, rgba(124,58,237,.35) 0%, transparent 62%),linear-gradient(165deg,#2A1206 0%,#160B18 60%,#0B0B14 100%)">' +
+      '<div style="height:' + (heroFlyer ? '150px' : '110px') + ';display:flex;align-items:flex-end;padding:1rem 1.2rem;position:relative;background:' +
+        (heroFlyer
+          ? 'linear-gradient(180deg,rgba(7,7,15,.25),rgba(7,7,15,.82)),url(\'' + heroFlyer + '\') center/cover'
+          : 'radial-gradient(120% 140% at 12% 0%, rgba(249,115,22,.4) 0%, transparent 58%),radial-gradient(130% 150% at 88% 12%, rgba(124,58,237,.35) 0%, transparent 62%),linear-gradient(165deg,#2A1206 0%,#160B18 60%,#0B0B14 100%)') + '">' +
         '<div style="font-size:1.9rem;margin-right:.6rem">📍</div>' +
         '<div style="font-family:var(--disp);font-size:1.4rem;font-weight:800;letter-spacing:-.02em;line-height:1.15">' + escapeHtml(v.name) + '</div>' +
       '</div>' +
