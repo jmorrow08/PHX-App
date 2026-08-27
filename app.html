@@ -4816,6 +4816,10 @@ async function loadCityFeed(force) {
   var data = results[0].data, error = results[0].error;
   if (error || !data) return;
 
+  if (window._feedTagFilter && data) {
+    var _tagRe = new RegExp('(^|\\W)' + window._feedTagFilter + '(\\W|$)', 'i');
+    data = data.filter(function(p){ return _tagRe.test(p.content || ''); });
+  }
   _myPostLikes = {};
   (results[1].data || []).forEach(function(l){ _myPostLikes[l.post_id] = l.reaction || 'heat'; });
   _feedPosts = {};
@@ -4886,13 +4890,53 @@ async function loadCityFeed(force) {
     }
   } catch (e) { reportFailure('authorMeta', e); }
 
+  // Reloads keep your place — a background refresh must never yank the page
+  var contentEl = document.querySelector('.content');
+  var keepScroll = _cityFeedLoaded && contentEl ? contentEl.scrollTop : 0;
+  _feedCursor = data.length ? data[data.length - 1].created_at : null;
   container.innerHTML = '<div id="feed-prompt"></div>' + renderComposer() +
     (sorted.map(renderFeedPost).join('') ||
-     '<div style="color:var(--muted);font-size:.84rem;padding:1rem 0">No posts yet — be the first.</div>');
+     '<div style="color:var(--muted);font-size:.84rem;padding:1rem 0">No posts yet — be the first.</div>') +
+    (data.length >= 30 ? '<div id="feed-more-wrap" style="text-align:center;padding:.6rem 0 1.4rem">' +
+      '<button class="pf-btn" onclick="loadMoreFeed(this)">↓ Older posts</button></div>' : '');
+  if (keepScroll && contentEl) contentEl.scrollTop = keepScroll;
   _cityFeedLoaded = true;
   populateComposerTracks();
   initFeedVideos();
   loadFeedPrompt();
+}
+
+// Cursor pagination: older pages append in time order (the ranked shuffle
+// only applies to the fresh page — the archive reads chronologically)
+var _feedCursor = null;
+async function loadMoreFeed(btn) {
+  if (!_feedCursor) return;
+  btn.disabled = true; btn.textContent = 'Loading…';
+  var q = _sb.from('feed_posts')
+    .select('*, tracks(id,title,cover_url,featuring,exclusive_tier,stream_count,duration_seconds,audio_url,artists(name,slug))')
+    .order('created_at', { ascending: false })
+    .lt('created_at', _feedCursor)
+    .limit(30);
+  if (window._feedTagFilter) q = q.ilike('content', '%' + window._feedTagFilter + '%');
+  var res = await q;
+  var rows = res.data || [];
+  if (window._feedTagFilter) {
+    var tagRe = new RegExp('(^|\\W)' + window._feedTagFilter.replace('#', '#') + '(\\W|$)', 'i');
+    rows = rows.filter(function(p){ return tagRe.test(p.content || ''); });
+  }
+  if (!rows.length) {
+    var w = document.getElementById('feed-more-wrap');
+    if (w) w.innerHTML = '<span style="color:var(--faint);font-size:.76rem">That\'s the whole archive.</span>';
+    return;
+  }
+  rows.forEach(function(p){ _feedPosts[p.id] = p; });
+  try { await resolveAuthorAvatars(rows); } catch (e) {}
+  _feedCursor = rows[rows.length - 1].created_at;
+  var wrap = document.getElementById('feed-more-wrap');
+  if (wrap) wrap.insertAdjacentHTML('beforebegin', rows.map(renderFeedPost).join(''));
+  btn.disabled = false; btn.textContent = '↓ Older posts';
+  if (rows.length < 30 && wrap) wrap.innerHTML = '<span style="color:var(--faint);font-size:.76rem">That\'s the whole archive.</span>';
+  initFeedVideos();
 }
 
 // ── The city question: a pinned prompt so nobody stares at a blank box ──
@@ -6026,7 +6070,10 @@ function renderMediaPreview() {
     : '<video id="composer-preview-vid" src="' + url + '" controls playsinline ' +
         'onloadedmetadata="_fitFeedVideo(this);var r=document.getElementById(\'composer-cover-range\');if(r)r.max=this.duration.toFixed(1)" ' +
         'style="width:100%;max-height:340px;border-radius:14px;background:var(--bg3);object-fit:cover;display:block;filter:' + css + '"></video>';
-  var chips =
+  var altField = isImage
+    ? '<input class="form-input" id="composer-alt" maxlength="200" placeholder="Describe this photo for screen readers (optional)" value="' + escapeHtml(window._composerAlt || '') + '" oninput="window._composerAlt=this.value" style="margin-top:.5rem;font-size:.78rem;padding:.45rem .7rem">'
+    : '';
+  var chips = altField +
     '<div id="composer-filter-chips" style="display:flex;gap:.4rem;margin-top:.55rem;overflow-x:auto;padding-bottom:.25rem;scrollbar-width:none">' +
       Object.keys(PHOTO_FILTERS).map(function(k) {
         return '<button class="tb-btn" data-fk="' + k + '" style="font-size:.7rem;padding:.25rem .6rem;white-space:nowrap;flex-shrink:0" onclick="setComposerFilter(\'' + k + '\')">' + PHOTO_FILTERS[k].label + '</button>';
@@ -6347,6 +6394,7 @@ function _refreshComposerTrigger() {
 function clearComposerMedia() {
   _composerMediaFile = null; _composerFilter = 'none'; _composerStamp = false; _composerPosterTime = null; _composerAudioMode = 'original'; _composerTrustedClip = false;
   _composerTexts = [];
+  window._composerAlt = '';
   var m1 = document.getElementById('composer-media'); if (m1) m1.value = '';
   var m2 = document.getElementById('composer-camera'); if (m2) m2.value = '';
   var nameEl = document.getElementById('composer-media-name'); if (nameEl) nameEl.style.display = 'none';
@@ -7341,6 +7389,7 @@ function renderFeedPost(p) {
               p.author_role === 'artist' ? '<span class="badge badge-orange" style="font-size:.65rem">Artist</span>' : '';
   var liked = !!_myPostLikes[p.id];
   var isAdminRole = (currentRole === 'admin' || currentRole === 'super');
+  var isMine = !!(_authUser && p.user_id === _authUser.id);
   var authorClick = 'openAuthorProfile(&quot;' + (p.user_id || '') + '&quot;,&quot;' + (p.page_id || '') +
                     '&quot;,&quot;' + escapeHtml(String(p.author_name || '').replace(/["'\\]/g, '')) + '&quot;)';
 
@@ -7403,7 +7452,7 @@ function renderFeedPost(p) {
     var isVideo = /\.(mp4|webm|mov)(\?|$)/i.test(p.media_url);
     mediaEmbed = '<div class="fp-media">' + (isVideo
       ? feedVideoEmbed(p.id, mediaUrl, 420, p.media_poster)
-      : '<img loading="lazy" alt="" style="width:100%;max-height:420px;object-fit:cover;border-radius:10px;display:block;cursor:pointer" onclick="openLightbox(\'' + mediaUrl + '\')" src="' + mediaUrl + '">') + '</div>';
+      : '<img loading="lazy" alt="' + escapeHtml(p.media_alt || '') + '" style="width:100%;max-height:420px;object-fit:cover;border-radius:10px;display:block;cursor:pointer" onclick="openLightbox(\'' + mediaUrl + '\')" src="' + imgx(mediaUrl, 900) + '" data-orig="' + mediaUrl + '" onerror="_imgxFail(this)">') + '</div>';
   }
 
   return '<div class="feed-post" id="post-' + p.id + '">' +
@@ -7415,9 +7464,9 @@ function renderFeedPost(p) {
       // No follow button on feed cards — tap the name/avatar, follow from
       // their page (the IG/FB pattern; the inline button read as clutter)
       '<div class="fp-meta"><h4><span style="cursor:pointer" onclick="' + authorClick + '">' + escapeHtml(p.author_name) + '</span>' + authorChrome(p.user_id) + ' ' + badge +
-      '</h4><span>' + when + (p.shared_post_id ? ' · 🔁 reposted' : '') + '</span></div>' +
+      '</h4><span>' + when + (p.edited_at ? ' · edited' : '') + (p.shared_post_id ? ' · 🔁 reposted' : '') + '</span></div>' +
       '<span style="position:relative;margin-left:auto">' +
-        '<button class="fp-act fp-menu-btn" aria-label="Post options" onclick="togglePostMenu(\'' + p.id + '\', event, ' + (isAdminRole ? 'true' : 'false') + ')">⋯</button>' +
+        '<button class="fp-act fp-menu-btn" aria-label="Post options" onclick="togglePostMenu(\'' + p.id + '\', event, ' + (isAdminRole ? 'true' : 'false') + ', ' + (isMine ? 'true' : 'false') + ')">⋯</button>' +
         '<span id="post-menu-' + p.id + '"></span></span>' +
     '</div>' +
     '<div class="fp-body">' + richText(p.content) + '</div>' +
@@ -7601,7 +7650,9 @@ async function loadComments(postId, boxOverride) {
   if (!box) return;
   var { data } = await _sb.from('post_comments')
     .select('*').eq('post_id', postId)
-    .order('created_at', { ascending: true }).limit(80);
+    .order('created_at', { ascending: false }).limit(40);
+  data = (data || []).reverse();
+  var hasEarlier = data.length >= 40;
   try { await resolveAuthorAvatars(data || []); } catch (e) { reportFailure('loadComments', e); }
   // Which of these have I hearted? (colors the hearts on first paint)
   if (_authUser && (data || []).length) {
@@ -7621,7 +7672,8 @@ async function loadComments(postId, boxOverride) {
     return _renderCommentRow(c, postId, false) +
       (replies[c.id] || []).map(function(r){ return _renderCommentRow(r, postId, true); }).join('');
   }).join('');
-  box.innerHTML = (listHtml || '<div style="color:var(--muted);font-size:.8rem;margin-bottom:.5rem">No comments yet.</div>') +
+  box.innerHTML = (hasEarlier ? '<a href="#" style="display:block;font-size:.74rem;color:var(--muted);margin-bottom:.5rem" onclick="loadEarlierComments(\'' + postId + '\', this, \'' + data[0].created_at + '\');return false">↑ View earlier comments</a>' : '') +
+    (listHtml || '<div style="color:var(--muted);font-size:.8rem;margin-bottom:.5rem">No comments yet.</div>') +
     '<div id="reply-hint-' + postId + '" style="display:none;font-size:.72rem;color:var(--muted);margin:.3rem 0"></div>' +
     '<div style="display:flex;gap:.5rem;margin-top:.5rem">' +
       '<input class="form-input" id="comment-input-' + postId + '" maxlength="500" placeholder="Add a comment…" ' +
@@ -7629,6 +7681,21 @@ async function loadComments(postId, boxOverride) {
         'onkeydown="if(event.key===\'Enter\')submitComment(\'' + postId + '\')">' +
       '<button class="tb-btn" style="font-size:.78rem" onclick="submitComment(\'' + postId + '\')">Send</button>' +
     '</div>';
+}
+
+async function loadEarlierComments(postId, link, beforeIso) {
+  link.textContent = 'Loading…';
+  var res = await _sb.from('post_comments').select('*').eq('post_id', postId)
+    .lt('created_at', beforeIso).order('created_at', { ascending: false }).limit(40);
+  var older = (res.data || []).reverse();
+  try { await resolveAuthorAvatars(older); } catch (e) {}
+  if (!older.length) { link.remove(); return; }
+  var html = older.map(function(c){ return _renderCommentRow(c, postId, !!c.parent_comment_id); }).join('');
+  link.insertAdjacentHTML('afterend', html);
+  if (older.length >= 40) {
+    link.textContent = '↑ View earlier comments';
+    link.setAttribute('onclick', "loadEarlierComments('" + postId + "', this, '" + older[0].created_at + "');return false");
+  } else link.remove();
 }
 
 async function submitComment(postId) {
@@ -7805,7 +7872,8 @@ async function submitFeedPost() {
     p_page_id: persona.page_id || null,
     p_shared_post_id: null,
     p_media_url: mediaUrl,
-    p_media_poster: mediaPoster
+    p_media_poster: mediaPoster,
+    p_media_alt: (window._composerAlt || '').trim() || null
   });
   if (error || !data || !data.ok) {
     var msg = (data && data.reason === 'rate_limited') ? 'Rate limited — max 5 posts per 10 minutes.' :
@@ -7821,6 +7889,7 @@ async function submitFeedPost() {
   _composerFilter = 'none';
   _composerStamp = false;
   _composerTexts = [];
+  window._composerAlt = '';
   _composerPosterTime = null;
   _composerAudioMode = 'original';
   if (typeof pickComposerTrack === 'function') pickComposerTrack('');
@@ -7926,6 +7995,9 @@ function showRepostBox(postId) {
 }
 
 async function repostToFeed(postId) {
+  // Twitter's lesson: reposts flatten to the ORIGINAL — chains of 🔁 die here
+  var srcPost = _feedPosts[postId];
+  if (srcPost && srcPost.shared_post_id) postId = srcPost.shared_post_id;
   var persona = currentPersona();
   var commentEl = document.getElementById('repost-comment-' + postId);
   var comment = (commentEl ? commentEl.value : '').trim();
@@ -8715,7 +8787,7 @@ var REPORT_CATEGORIES = [
 var _reportTarget = null;
 
 // ── Post ⋯ menu: quiet corner menu instead of a loud report triangle ──
-function togglePostMenu(postId, ev, isAdmin) {
+function togglePostMenu(postId, ev, isAdmin, isMine) {
   ev.stopPropagation();
   var slot = document.getElementById('post-menu-' + postId);
   var wasOpen = slot && slot.innerHTML !== '';
@@ -8726,9 +8798,11 @@ function togglePostMenu(postId, ev, isAdmin) {
   };
   slot.innerHTML = '<div class="post-menu">' +
     item(_mySavedPosts[postId] ? '🔖' : '📑', _mySavedPosts[postId] ? 'Unsave post' : 'Save post', 'toggleSavePost(\'' + postId + '\')') +
+    (isMine ? item('✏️', 'Edit post', 'startEditPost(\'' + postId + '\')') : '') +
     item('🔗', 'Copy link', 'copyPostLink(\'' + postId + '\', this)') +
-    item('🚩', 'Report post', 'openReportModal(\'post\',\'' + postId + '\')') +
-    (isAdmin ? item('🚫', 'Hide post (admin)', 'hideFeedPost(\'' + postId + '\')') : '') +
+    (isMine ? item('🗑️', 'Delete post', 'deleteOwnPost(\'' + postId + '\')') : '') +
+    (!isMine ? item('🚩', 'Report post', 'openReportModal(\'post\',\'' + postId + '\')') : '') +
+    (isAdmin && !isMine ? item('🚫', 'Hide post (admin)', 'hideFeedPost(\'' + postId + '\')') : '') +
   '</div>';
   setTimeout(function() { document.addEventListener('click', closePostMenus, { once: true }); }, 50);
 }
@@ -8803,6 +8877,54 @@ async function openSavedPosts() {
         (p.content ? '<div class="pf-post-txt">' + escapeHtml(String(p.content).slice(0, 160)) + '</div>' : '') +
       '</div>';
     }).join('') : '<div class="pf-empty">Nothing saved yet — the ⋯ menu on any post has a Save option.</div>'));
+}
+
+// ── EDIT / DELETE OWN POSTS ─────────────────────────────────────────────
+function startEditPost(postId) {
+  var post = _feedPosts[postId];
+  var card = document.getElementById('post-' + postId);
+  var bodyEl = card && card.querySelector('.fp-body');
+  if (!post || !bodyEl || bodyEl.querySelector('textarea')) return;
+  var current = post.content || '';
+  bodyEl.innerHTML = '<textarea class="form-input" id="edit-post-' + postId + '" maxlength="1000" rows="3" style="width:100%;resize:vertical;font-family:inherit;margin-bottom:.4rem">' + escapeHtml(current) + '</textarea>' +
+    '<div style="display:flex;gap:.5rem">' +
+      '<button class="cp-post" style="margin:0;padding:.4rem 1rem;font-size:.78rem" onclick="saveEditPost(\'' + postId + '\', this)">Save</button>' +
+      '<button class="pf-btn" style="font-size:.78rem" onclick="cancelEditPost(\'' + postId + '\')">Cancel</button>' +
+    '</div>';
+  var ta = document.getElementById('edit-post-' + postId);
+  if (ta) ta.focus();
+}
+function cancelEditPost(postId) {
+  var post = _feedPosts[postId];
+  var card = document.getElementById('post-' + postId);
+  var bodyEl = card && card.querySelector('.fp-body');
+  if (bodyEl) bodyEl.innerHTML = richText(post ? post.content : '');
+}
+async function saveEditPost(postId, btn) {
+  var ta = document.getElementById('edit-post-' + postId);
+  var content = (ta ? ta.value : '').trim();
+  if (!content) { showToast('A post needs words (or delete it instead).'); return; }
+  btn.disabled = true; btn.textContent = 'Saving…';
+  var res = await _sb.rpc('edit_feed_post', { p_post: postId, p_content: content });
+  var d = res.data || {};
+  if (res.error || !d.ok) {
+    btn.disabled = false; btn.textContent = 'Save';
+    showToast(d.reason === 'content_blocked' ? '🚫 That edit violates community guidelines.' : 'Could not save the edit.');
+    return;
+  }
+  if (_feedPosts[postId]) { _feedPosts[postId].content = content; _feedPosts[postId].edited_at = new Date().toISOString(); }
+  cancelEditPost(postId);
+  showToast('✏️ Post updated');
+}
+async function deleteOwnPost(postId) {
+  if (!confirm('Delete this post? Comments and likes go with it. This can\'t be undone.')) return;
+  var res = await _sb.rpc('delete_own_post', { p_post: postId });
+  var d = res.data || {};
+  if (res.error || !d.ok) { showToast('Could not delete this post.'); return; }
+  var card = document.getElementById('post-' + postId);
+  if (card) card.remove();
+  delete _feedPosts[postId];
+  showToast('🗑️ Post deleted');
 }
 
 function closePostMenus() {
@@ -11098,14 +11220,34 @@ function safeUrl(u) {
 // One avatar renderer for every surface. The emoji/initial is rendered first
 // and the photo layers on top of it, so a dead image URL degrades to the
 // fallback instead of leaving a blank circle.
+// ── IMAGE TRANSFORMS ───────────────────────────────────────────────────
+// Storage images get resized at the CDN edge (a 4MB photo stops downloading
+// into a 400px slot). If the render endpoint isn't available on this plan,
+// the first failure flips a persistent kill-switch and originals serve —
+// never a broken image either way.
+var _imgxOff = (function(){ try { return localStorage.getItem('phx_imgx_off') === '1'; } catch (e) { return false; } })();
+function imgx(url, w) {
+  if (!url || _imgxOff) return url;
+  var u = String(url);
+  if (u.indexOf('/storage/v1/object/public/') === -1) return u;
+  return u.replace('/storage/v1/object/public/', '/storage/v1/render/image/public/') +
+    (u.indexOf('?') > -1 ? '&' : '?') + 'width=' + (w || 800) + '&quality=75';
+}
+function _imgxFail(img) {
+  if (!_imgxOff) { _imgxOff = true; try { localStorage.setItem('phx_imgx_off', '1'); } catch (e) {} }
+  var orig = img.getAttribute('data-orig');
+  if (orig && img.src !== orig) img.src = orig;
+  else img.remove();
+}
+
 function avatarHtml(url, fallback, cls, name, attrs) {
   var src = safeUrl(url);
   // The fallback is a glyph, never a URL — a URL string here stretches the circle
   if (fallback && /^https?:\/\//i.test(fallback)) { if (!src) src = safeUrl(fallback); fallback = '?'; }
   return '<div class="' + (cls || 'ava-sm') + ' has-ava"' + (attrs ? ' ' + attrs : '') + '>' +
     escapeHtml(fallback || '?') +
-    (src ? '<img class="avatar-img" src="' + src + '" alt="' + escapeHtml(name || '') +
-           '" loading="lazy" onerror="this.remove()">' : '') +
+    (src ? '<img class="avatar-img" src="' + imgx(src, 128) + '" data-orig="' + src + '" alt="' + escapeHtml(name || '') +
+           '" loading="lazy" onerror="_imgxFail(this)">' : '') +
   '</div>';
 }
 
@@ -13749,38 +13891,19 @@ async function loadReels(scrollToPost) {
         '<button style="pointer-events:auto;background:rgba(7,7,15,.72);border:1px solid rgba(249,115,22,.45);border-radius:999px;color:#fff;font-size:.72rem;font-weight:700;padding:.35rem .8rem;cursor:pointer;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" onclick="clearSoundFilter()">♫ ' + escapeHtml(window._reelsTrackName || 'this sound') + ' · ✕</button></div>'
     : '';
 
-  container.innerHTML = soundChip + videos.map(function(p) {
-    var liked = !!_myPostLikes[p.id];
-    return '<div class="reel" data-post="' + p.id + '">' +
-      '<video src="' + p.media_url + '" loop playsinline preload="metadata" ' +
-        'onloadedmetadata="this.style.objectFit=(this.videoWidth&&this.videoWidth<this.videoHeight)?\'cover\':\'contain\'" ' +
-        'onclick="this.paused?this.play():this.pause()"></video>' +
-      '<div class="reel-overlay">' +
-        '<div class="reel-info">' +
-          '<div class="reel-author">' +
-            avatarHtml(authorAvatarUrl(p), p.author_avatar || '👤', 'ava-sm', p.author_name,
-                       'style="width:26px;height:26px;font-size:.75rem;cursor:pointer" onclick="' +
-                       'openAuthorProfile(&quot;' + (p.user_id||'') + '&quot;,&quot;' + (p.page_id||'') + '&quot;,&quot;' +
-                       escapeHtml(String(p.author_name||'').replace(/["\'\\]/g,'')) + '&quot;)"') +
-            '<span>' + escapeHtml(p.author_name) + '</span></div>' +
-          '<div class="reel-caption">' + escapeHtml(p.content||'') + '</div>' +
-          (p.tracks ? '<div class="reel-sound" onclick="event.stopPropagation();openSoundClips(\'' + p.track_id + '\',\'' + escapeHtml((p.tracks.title || '') + (p.tracks.artists ? ' — ' + p.tracks.artists.name : '')).replace(/'/g, '') + '\')">♫ ' + escapeHtml(p.tracks.title || '') + (p.tracks.artists ? ' — ' + escapeHtml(p.tracks.artists.name) : '') + '</div>' : '') +
-        '</div>' +
-        '<div class="reel-actions">' +
-          '<span class="react-slot" style="position:relative;display:inline-block">' +
-          '<button class="reel-act" id="reel-like-' + p.id + '" style="touch-action:none" onclick="reelLike(\'' + p.id + '\')" ' +
-            'onpointerdown="reactHoldStart(\'' + p.id + '\', event)" onpointerup="reactHoldEnd(event)" onpointerleave="reactHoldCancel()" ' +
-            'oncontextmenu="return false">' + (liked ? (REACTION_EMOJI[_myPostLikes[p.id]] || '🔥') : '🤍') + '<span id="reel-like-count-' + p.id + '">' + (p.likes_count||0) + '</span></button>' +
-          '<span class="react-bar-slot"></span></span>' +
-          '<button class="reel-act" onclick="openClipComments(\'' + p.id + '\')">💬<span>' + (p.comments_count||0) + '</span></button>' +
-          '<button class="reel-act" onclick="shareFeedPost(\'' + p.id + '\')">↗<span>Share</span></button>' +
-          '<button class="reel-act" onclick="exportClipWatermarked(\'' + p.id + '\', \'' + escapeHtml(p.media_url) + '\', \'' + escapeHtml(p.author_name || 'PHX').replace(/'/g, '') + '\')">⬇<span>Save</span></button>' +
-        '</div>' +
-      '</div>' +
-    '</div>';
-  }).join('') +
-  // The honest end of the road — no fake-infinite scroll
-  '<div class="reels-empty" style="height:40vh;min-height:220px">✅ You\'re all caught up.<br><br><span style="font-size:.8rem;color:var(--faint)">That\'s every clip on PHX right now — newest first, no algorithm games.</span></div>';
+  container.innerHTML = soundChip + videos.map(_reelHtml).join('') +
+  '<div class="reels-empty" id="reels-tail" style="height:40vh;min-height:220px">' + (videos.length >= 12
+    ? '<span style="font-size:.8rem;color:var(--faint)">Loading more…</span>'
+    : '✅ You\'re all caught up.<br><br><span style="font-size:.8rem;color:var(--faint)">That\'s every clip on PHX right now — newest first, no algorithm games.</span>') + '</div>';
+  window._reelsCursor = videos.length ? videos[videos.length - 1].created_at : null;
+  if (videos.length >= 12) {
+    var tail = document.getElementById('reels-tail');
+    if (tail && 'IntersectionObserver' in window) {
+      new IntersectionObserver(function(entries, obs) {
+        if (entries[0].isIntersecting) { obs.disconnect(); loadMoreReels(); }
+      }, { root: container, rootMargin: '600px' }).observe(tail);
+    }
+  }
 
   // Autoplay whichever clip fills the viewport; pause the rest.
   // Views dedupe per session; watch-seconds + 30s + completion all log.
@@ -13808,7 +13931,7 @@ async function loadReels(scrollToPost) {
       }
     });
   }, { root: container, threshold: [0, 0.6, 1] });
-  container.querySelectorAll('.reel').forEach(function(r){ _reelsObserver.observe(r); });
+  container.querySelectorAll('.reel').forEach(function(r){ r._observed = true; _reelsObserver.observe(r); });
 
   // Card-tap door: land on the exact clip that was tapped in the feed
   var jumpTo = scrollToPost || _pendingClipScroll;
@@ -13860,6 +13983,70 @@ function openClipComments(postId) {
       var t = e.changedTouches[0];
       if (t && w._sy != null && t.clientY - w._sy > 80 && w.scrollTop <= 0) w.style.display = 'none';
     }, { passive: true });
+  }
+}
+
+// One reel card — shared by the first page and every appended batch
+function _reelHtml(p) {
+    var liked = !!_myPostLikes[p.id];
+    return '<div class="reel" data-post="' + p.id + '">' +
+      '<video src="' + p.media_url + '" loop playsinline preload="metadata" ' +
+        'onloadedmetadata="this.style.objectFit=(this.videoWidth&&this.videoWidth<this.videoHeight)?\'cover\':\'contain\'" ' +
+        'onclick="this.paused?this.play():this.pause()"></video>' +
+      '<div class="reel-overlay">' +
+        '<div class="reel-info">' +
+          '<div class="reel-author">' +
+            avatarHtml(authorAvatarUrl(p), p.author_avatar || '👤', 'ava-sm', p.author_name,
+                       'style="width:26px;height:26px;font-size:.75rem;cursor:pointer" onclick="' +
+                       'openAuthorProfile(&quot;' + (p.user_id||'') + '&quot;,&quot;' + (p.page_id||'') + '&quot;,&quot;' +
+                       escapeHtml(String(p.author_name||'').replace(/["\'\\]/g,'')) + '&quot;)"') +
+            '<span>' + escapeHtml(p.author_name) + '</span></div>' +
+          '<div class="reel-caption">' + escapeHtml(p.content||'') + '</div>' +
+          (p.tracks ? '<div class="reel-sound" onclick="event.stopPropagation();openSoundClips(\'' + p.track_id + '\',\'' + escapeHtml((p.tracks.title || '') + (p.tracks.artists ? ' — ' + p.tracks.artists.name : '')).replace(/'/g, '') + '\')">♫ ' + escapeHtml(p.tracks.title || '') + (p.tracks.artists ? ' — ' + escapeHtml(p.tracks.artists.name) : '') + '</div>' : '') +
+        '</div>' +
+        '<div class="reel-actions">' +
+          '<span class="react-slot" style="position:relative;display:inline-block">' +
+          '<button class="reel-act" id="reel-like-' + p.id + '" style="touch-action:none" onclick="reelLike(\'' + p.id + '\')" ' +
+            'onpointerdown="reactHoldStart(\'' + p.id + '\', event)" onpointerup="reactHoldEnd(event)" onpointerleave="reactHoldCancel()" ' +
+            'oncontextmenu="return false">' + (liked ? (REACTION_EMOJI[_myPostLikes[p.id]] || '🔥') : '🤍') + '<span id="reel-like-count-' + p.id + '">' + (p.likes_count||0) + '</span></button>' +
+          '<span class="react-bar-slot"></span></span>' +
+          '<button class="reel-act" onclick="openClipComments(\'' + p.id + '\')">💬<span>' + (p.comments_count||0) + '</span></button>' +
+          '<button class="reel-act" onclick="shareFeedPost(\'' + p.id + '\')">↗<span>Share</span></button>' +
+          '<button class="reel-act" onclick="exportClipWatermarked(\'' + p.id + '\', \'' + escapeHtml(p.media_url) + '\', \'' + escapeHtml(p.author_name || 'PHX').replace(/'/g, '') + '\')">⬇<span>Save</span></button>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+}
+
+// Infinite clips: older batches append seamlessly; the honest end-card
+// only appears when the archive really ends.
+async function loadMoreReels() {
+  var container = document.getElementById('reels-container');
+  if (!container || !window._reelsCursor) return;
+  var q = _sb.from('feed_posts')
+    .select('id,user_id,page_id,author_name,author_avatar,content,likes_count,comments_count,media_url,created_at,track_id,tracks(id,title,artists(name))')
+    .not('media_url', 'is', null).eq('is_hidden', false)
+    .lt('created_at', window._reelsCursor)
+    .order('created_at', { ascending: false }).limit(30);
+  if (window._reelsTrackFilter) q = q.eq('track_id', window._reelsTrackFilter);
+  var res = await q;
+  var older = (res.data || []).filter(function(p){ return /\.(mp4|webm|mov)(\?|$)/i.test(p.media_url || ''); });
+  var tail = document.getElementById('reels-tail');
+  if (!older.length) {
+    if (tail) tail.innerHTML = '✅ You\'re all caught up.<br><br><span style="font-size:.8rem;color:var(--faint)">That\'s every clip on PHX — newest first, no algorithm games.</span>';
+    window._reelsCursor = null;
+    return;
+  }
+  try { await resolveAuthorAvatars(older); } catch (e) {}
+  window._reelsCursor = older[older.length - 1].created_at;
+  if (tail) tail.insertAdjacentHTML('beforebegin', older.map(_reelHtml).join(''));
+  container.querySelectorAll('.reel').forEach(function(r) {
+    if (!r._observed && _reelsObserver) { r._observed = true; _reelsObserver.observe(r); }
+  });
+  if (tail && 'IntersectionObserver' in window && window._reelsCursor) {
+    new IntersectionObserver(function(entries, obs) {
+      if (entries[0].isIntersecting) { obs.disconnect(); loadMoreReels(); }
+    }, { root: container, rootMargin: '600px' }).observe(tail);
   }
 }
 
