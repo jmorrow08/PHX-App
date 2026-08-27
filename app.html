@@ -2533,7 +2533,10 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
       <button class="ps-ctrl" title="Next" data-picon="next" onclick="nextTrack()"></button>
       <button class="ps-ctrl ghost" id="ctrl-repeat" aria-pressed="false" title="Repeat" onclick="toggleRepeat()"></button>
     </div>
-    <div style="text-align:center;margin:.55rem 0 0"><button class="pf-btn" id="automix-toggle" style="font-size:.7rem;padding:.32rem .85rem" onclick="toggleAutoMix()">∿ AutoMix</button></div>
+    <div style="display:flex;justify-content:center;gap:.5rem;margin:.55rem 0 0">
+      <button class="pf-btn" id="automix-toggle" style="font-size:.7rem;padding:.32rem .85rem" onclick="toggleAutoMix()">∿ AutoMix</button>
+      <button class="pf-btn" id="sleep-btn" style="font-size:.7rem;padding:.32rem .85rem" onclick="cycleSleepTimer()">🌙 Sleep: Off</button>
+    </div>
     <div class="sh" style="margin:1rem 0 .4rem"><h3 style="font-size:.82rem">Up Next</h3><span style="font-size:.7rem;color:var(--muted);margin-left:auto" id="queue-count">—</span></div>
     <div class="track-list queue-list" id="queue-list"><div class="pf-empty">Play something and the queue builds itself.</div></div>
     <div class="sh" style="margin:1rem 0 .4rem"><h3 style="font-size:.82rem">Recently Played</h3></div>
@@ -5261,7 +5264,7 @@ function _pmRenderList(rows) {
   // RSVP counts for the show rows
   var ids = rows.filter(function(e){ return e.src === 'show'; }).map(function(e){ return e.id; });
   if (ids.length) {
-    _sb.from('show_rsvps').select('show_id,user_id').in('show_id', ids).then(function(rr) {
+    _sb.from('show_rsvps').select('show_id,user_id').eq('status', 'going').in('show_id', ids).then(function(rr) {
       var by = {}; (rr.data || []).forEach(function(r){ (by[r.show_id] = by[r.show_id] || []).push(r.user_id); });
       ids.forEach(function(id) {
         var btn = document.getElementById('rsvp-' + id); if (!btn) return;
@@ -5342,26 +5345,18 @@ async function showEventPage(src, id) {
         '</div>' +
         '<div style="display:flex;gap:.55rem;flex-wrap:wrap;margin-bottom:1rem">' +
           (ticket ? '<a class="cp-post" style="margin:0;text-decoration:none;display:inline-flex;align-items:center" href="' + ticket + '" target="_blank" rel="noopener">🎟️ Get tickets</a>' : '') +
-          (e.src === 'show' ? '<button class="pf-btn" id="rsvp-' + e.id + '" onclick="toggleRsvpUI(\'' + e.id + '\', this)">🙋 I\'m going</button>' : '') +
+          '<button class="pf-btn" id="ev-going" onclick="evRsvp(\'' + e.src + '\',\'' + e.id + '\',\'going\')">🙋 Going</button>' +
+          '<button class="pf-btn" id="ev-interested" onclick="evRsvp(\'' + e.src + '\',\'' + e.id + '\',\'interested\')">⭐ Interested</button>' +
           '<a class="pf-btn" href="' + gcal + '" target="_blank" rel="noopener">📅 Calendar</a>' +
           (e.lat && e.lng ? '<a class="pf-btn" href="https://maps.apple.com/?q=' + encodeURIComponent(e.venue_name || e.title) + '&ll=' + e.lat + ',' + e.lng + '" target="_blank" rel="noopener">🧭 Directions</a>' : '') +
           '<button class="pf-btn" onclick="shareEvent(\'' + e.src + '\',\'' + e.id + '\',\'' + escapeHtml(e.title).replace(/'/g, '') + '\')">↗ Share</button>' +
         '</div>' +
+        '<div id="ev-friends" style="display:none;font-size:.8rem;color:var(--orange-l);margin:-.35rem 0 .9rem"></div>' +
         (e.description ? '<div style="font-size:.88rem;color:var(--muted);line-height:1.65;white-space:pre-wrap;max-width:62ch;margin-bottom:1rem">' + escapeHtml(e.description) + '</div>' : '') +
         (e.lat && e.lng ? '<div id="ev-mini-map" style="height:190px;border-radius:12px;overflow:hidden;border:1px solid var(--border)"></div>' : '') +
       '</div>' +
     '</div>';
-  // RSVP state for shows
-  if (e.src === 'show') {
-    var rr = await _sb.from('show_rsvps').select('user_id').eq('show_id', e.id);
-    var rows = rr.data || [];
-    var btn = document.getElementById('rsvp-' + e.id);
-    if (btn) {
-      var mine = _authUser && rows.some(function(r){ return r.user_id === _authUser.id; });
-      btn.textContent = (mine ? '✓ Going' : '🙋 I\'m going') + (rows.length ? ' · ' + rows.length : '');
-      btn.classList.toggle('on', !!mine);
-    }
-  }
+  _loadEventRsvpState(e);
   // Swipe right anywhere on the page = back to the map (same gesture as Clips)
   if (!el._swipeBound) {
     el._swipeBound = true;
@@ -5386,6 +5381,55 @@ async function showEventPage(src, id) {
   }
   trackEvent('event_view', 'event', e.id, { src: e.src, kind: e.kind });
 }
+// Interested/Going state + counts + the people-you-follow line.
+// "Interested" is the low-commitment tap that still feeds reminders.
+async function _loadEventRsvpState(e) {
+  var table = e.src === 'show' ? 'show_rsvps' : 'event_rsvps';
+  var key = e.src === 'show' ? 'show_id' : 'event_id';
+  var rr = await _sb.from(table).select('user_id,status').eq(key, e.id);
+  var rows = rr.data || [];
+  var going = rows.filter(function(r){ return r.status !== 'interested'; });
+  var interested = rows.filter(function(r){ return r.status === 'interested'; });
+  var mine = _authUser ? rows.filter(function(r){ return r.user_id === _authUser.id; })[0] : null;
+  _paintEvRsvp(mine ? mine.status : null, going.length, interested.length);
+  // Friends going: names you actually follow, not stranger counts
+  if (_authUser && going.length) {
+    var friendIds = going.map(function(r){ return r.user_id; })
+      .filter(function(id){ return id !== _authUser.id && _myFollows['user:' + id]; }).slice(0, 3);
+    if (friendIds.length) {
+      var pr = await _sb.from('public_profiles').select('id,username,display_name').in('id', friendIds);
+      var names = (pr.data || []).map(function(p){ return p.display_name || ('@' + p.username); }).filter(Boolean);
+      var el = document.getElementById('ev-friends');
+      if (el && names.length) {
+        el.textContent = '⭐ ' + names.join(', ') + (going.length > names.length ? ' + ' + (going.length - names.length) + ' more' : '') + ' going — people you follow';
+        el.style.display = 'block';
+      }
+    }
+  }
+}
+function _paintEvRsvp(myStatus, goingN, intN) {
+  var g = document.getElementById('ev-going'), i = document.getElementById('ev-interested');
+  if (g) {
+    g.textContent = (myStatus === 'going' ? '✓ Going' : '🙋 Going') + (goingN ? ' · ' + goingN : '');
+    g.classList.toggle('on', myStatus === 'going');
+  }
+  if (i) {
+    i.textContent = (myStatus === 'interested' ? '✓ Interested' : '⭐ Interested') + (intN ? ' · ' + intN : '');
+    i.classList.toggle('on', myStatus === 'interested');
+  }
+}
+async function evRsvp(src, id, status) {
+  if (!requireAuthAction('RSVPing')) return;
+  if (typeof haptic === 'function') haptic(8);
+  var res = await _sb.rpc('set_rsvp', { p_src: src, p_id: id, p_status: status });
+  var d = res.data || {};
+  if (res.error || !d.ok) { showToast('Could not save that — try again.'); return; }
+  _paintEvRsvp(d.status, d.going || 0, d.interested || 0);
+  showToast(d.status === 'going' ? '🙋 You\'re on the list — see you there'
+          : d.status === 'interested' ? '⭐ Marked interested — we\'ll keep you posted'
+          : 'Taken off the list');
+}
+
 function shareEvent(src, id, title) {
   var url = SITE_URL + '/app#event/' + src + '/' + id;
   if (navigator.share) {
@@ -5498,7 +5542,7 @@ async function loadArtistSupport(artistId) {
 async function _loadRsvpCounts() {
   var ids = (_artistShows || []).map(function(s){ return s.id; });
   if (!ids.length) return;
-  var res = await _sb.from('show_rsvps').select('show_id,user_id').in('show_id', ids);
+  var res = await _sb.from('show_rsvps').select('show_id,user_id').eq('status', 'going').in('show_id', ids);
   var rows = res.data || [];
   ids.forEach(function(id) {
     var btn = document.getElementById('rsvp-' + id);
@@ -11558,6 +11602,30 @@ function _syncAutoMixBtn() {
 }
 _whenDomReady(_syncAutoMixBtn);
 
+// ── SLEEP TIMER ────────────────────────────────────────────────────────
+// Tap to cycle Off → 15 → 30 → 60 minutes; when it fires the music pauses.
+var _sleepTimer = null, _SLEEP_STEPS = [0, 15, 30, 60], _sleepIdx = 0;
+function cycleSleepTimer() {
+  _sleepIdx = (_sleepIdx + 1) % _SLEEP_STEPS.length;
+  clearTimeout(_sleepTimer); _sleepTimer = null;
+  var min = _SLEEP_STEPS[_sleepIdx];
+  var b = document.getElementById('sleep-btn');
+  if (!min) {
+    if (b) { b.textContent = '🌙 Sleep: Off'; b.classList.remove('on'); }
+    showToast('Sleep timer off');
+    return;
+  }
+  if (b) { b.textContent = '🌙 Sleep: ' + min + 'm'; b.classList.add('on'); }
+  showToast('🌙 Music stops in ' + min + ' minutes');
+  _sleepTimer = setTimeout(function() {
+    _sleepIdx = 0;
+    var bb = document.getElementById('sleep-btn');
+    if (bb) { bb.textContent = '🌙 Sleep: Off'; bb.classList.remove('on'); }
+    if (streamData.playing) pauseAudio();
+    showToast('🌙 Sleep timer — paused. Goodnight.');
+  }, min * 60000);
+}
+
 // Peek without moving the queue (queueAdvance mutates; prefetch must not)
 function _queuePeek(dir) {
   if (_playQueue.length < 2 || _queuePos < 0) return null;
@@ -15085,12 +15153,30 @@ async function openAddToPlaylist(trackId) {
   var pls = res.data || [];
   list.innerHTML =
     '<button class="post-menu-item" style="font-size:.88rem;color:var(--orange-l)" onclick="playNextQueue(\'' + trackId + '\')">⏭ Play next</button>' +
+    '<button class="post-menu-item" style="font-size:.88rem" onclick="appendToQueue(\'' + trackId + '\')">⏬ Add to queue</button>' +
     '<div style="border-top:1px solid var(--border);margin:.3rem 0"></div>' +
     pls.map(function(p) {
       return '<button class="post-menu-item" style="font-size:.88rem" onclick="addTrackToPlaylist(\'' + p.id + '\',\'' + trackId + '\')">🎧 ' + escapeHtml(p.name) + '</button>';
     }).join('') +
     '<button class="post-menu-item" style="color:var(--orange-l)" onclick="closeAddToPlaylist();createPlaylistThenAdd(\'' + trackId + '\')">＋ New playlist…</button>';
 }
+// Append to the end of the queue (Play next slots it immediately after)
+async function appendToQueue(trackId) {
+  closeAddToPlaylist();
+  var res = await _sb.from('tracks').select('id,title,cover_url,audio_url,stream_count,artists(name,slug)').eq('id', trackId).maybeSingle();
+  var t = res.data;
+  if (!t) return;
+  if (!t.audio_url) { showToast('That song has no audio yet'); return; }
+  if (!_playQueue.length || _queuePos === -1) { playTrackById(trackId); return; }
+  for (var i = 0; i < _playQueue.length; i++) {
+    if (_playQueue[i].id === trackId) { showToast('Already in the queue'); return; }
+  }
+  _playQueue.push(_normalizeQueueTrack(t));
+  renderUpNext();
+  if (typeof haptic === 'function') haptic(8);
+  showToast('⏬ ' + t.title + ' added to the queue');
+}
+
 // Slot a song directly after whatever is playing now
 async function playNextQueue(trackId) {
   closeAddToPlaylist();
