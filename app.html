@@ -2255,6 +2255,18 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
           <div id="event-queue-list"><div class="pf-empty">Loading…</div></div>
         </div>
       </div>
+      <div class="card ld-card" id="ld-card-impact" style="margin-bottom:1rem">
+        <div class="sh" onclick="ldToggle(event, this)" style="margin-bottom:.6rem"><h3>📈 Venue impact</h3><span class="ld-chev">▶</span>
+          <span class="badge badge-teal" id="vi-days-badge">30d</span>
+          <button class="tb-btn" style="margin-left:auto;font-size:.74rem;padding:.28rem .6rem" onclick="loadVenueImpact()">↻</button></div>
+        <div class="ld-body">
+          <div style="font-size:.78rem;color:var(--muted);margin-bottom:.7rem">What PHX demonstrably sent each venue — views, ticket clicks, directions, RSVPs, followers. Outbound ticket links carry <code>utm_source=thephx.app</code>, so their own analytics confirm it. Screenshot-ready for the pitch.</div>
+          <div style="overflow-x:auto"><table class="data-table" style="min-width:640px"><thead><tr>
+            <th>Venue</th><th>👀 Views</th><th>🎟️ Clicks</th><th>🧭</th><th>🔖/↗</th><th>🙋 Going</th><th>⭐ Int.</th><th>➕ Followers</th>
+          </tr></thead><tbody id="venue-impact-tbody"><tr><td colspan="8" style="color:var(--muted)">Loading…</td></tr></tbody></table></div>
+        </div>
+      </div>
+
       <div class="card ld-card" id="ld-card-access" style="margin-bottom:1rem">
         <div class="sh" onclick="ldToggle(event, this)" style="margin-bottom:.6rem"><h3>Access requests</h3><span class="ld-chev">▶</span>
           <span class="badge badge-orange" id="access-req-count">…</span>
@@ -5196,6 +5208,20 @@ var PM_KIND_COLOR = { show:'#F97316', ticketed:'#F97316', open_mic:'#FB923C', dr
 // What a card says about money/access. Tickets → "from $X" (the number a
 // browser actually wants); free → Free + info link; nothing known → the
 // source page so nobody shows up blind.
+// Outbound links carry our name: utm_source=thephx.app shows up in the
+// venue's / Ticketmaster's own dashboards — receipts they can't argue with.
+function _utm(url) {
+  try {
+    var u = new URL(url);
+    if (!u.searchParams.has('utm_source')) {
+      u.searchParams.set('utm_source', 'thephx.app');
+      u.searchParams.set('utm_medium', 'referral');
+      u.searchParams.set('utm_campaign', 'plug_map');
+    }
+    return u.href;
+  } catch (e) { return url; }
+}
+
 function _pmPriceLabel(e, stop) {
   var ticket = safeUrl(e.ticket_url);
   var info = safeUrl(e.source_url);
@@ -5293,8 +5319,8 @@ function _pmRenderList(rows) {
         '<div style="font-size:.76rem;color:var(--muted);margin-top:2px;line-height:1.45">' + escapeHtml(tp.time) + ' · ' + escapeHtml(where) + (priceLine ? '<br>' + priceLine : '') + '</div>' +
         '<div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;margin-top:.55rem">' +
           (e.src === 'show' ? '<button class="tb-btn" id="rsvp-' + e.id + '" style="font-size:.7rem;padding:.3rem .6rem" onclick="event.stopPropagation();toggleRsvpUI(\'' + e.id + '\', this)">🙋 I\'m going</button>' : '') +
-          (ticket ? '<a class="pf-btn" style="padding:.32rem .8rem;font-size:.72rem" href="' + ticket + '" target="_blank" rel="noopener" onclick="event.stopPropagation()">Tickets ↗</a>' : '') +
-          (e.lat && e.lng ? '<a class="pf-btn" style="padding:.32rem .8rem;font-size:.72rem" href="https://maps.apple.com/?q=' + encodeURIComponent(e.venue_name || e.title) + '&ll=' + e.lat + ',' + e.lng + '" target="_blank" rel="noopener" onclick="event.stopPropagation()">Directions</a>' : '') +
+          (ticket ? '<a class="pf-btn" style="padding:.32rem .8rem;font-size:.72rem" href="' + _utm(ticket) + '" target="_blank" rel="noopener" onclick="event.stopPropagation();trackEvent(\'ticket_click\',\'event\',\'' + e.id + '\',{src:\'' + e.src + '\',venue_id:\'' + (e.venue_id || '') + '\'})">Tickets ↗</a>' : '') +
+          (e.lat && e.lng ? '<a class="pf-btn" style="padding:.32rem .8rem;font-size:.72rem" href="https://maps.apple.com/?q=' + encodeURIComponent(e.venue_name || e.title) + '&ll=' + e.lat + ',' + e.lng + '" target="_blank" rel="noopener" onclick="event.stopPropagation();trackEvent(\'directions_click\',\'event\',\'' + e.id + '\',{src:\'' + e.src + '\'})">Directions</a>' : '') +
           '<span class="pf-btn" style="padding:.32rem .8rem;font-size:.72rem;border-color:rgba(249,115,22,.35);color:var(--orange-l)">Details ›</span>' +
         '</div>' +
       '</div>' +
@@ -5385,11 +5411,11 @@ async function showEventPage(src, id) {
           (infoUrl && !ticket ? '<div>ℹ️ <a href="' + infoUrl + '" target="_blank" rel="noopener" style="color:var(--orange-l)">Event page & contact ↗</a><br><span style="color:var(--faint);font-size:.72rem;margin-left:1.35rem">details straight from the organizer</span></div>' : '') +
         '</div>' +
         '<div style="display:flex;gap:.55rem;flex-wrap:wrap;margin-bottom:1rem">' +
-          (ticket ? '<a class="cp-post" style="margin:0;text-decoration:none;display:inline-flex;align-items:center" href="' + ticket + '" target="_blank" rel="noopener">🎟️ Get tickets</a>' : '') +
+          (ticket ? '<a class="cp-post" style="margin:0;text-decoration:none;display:inline-flex;align-items:center" href="' + _utm(ticket) + '" target="_blank" rel="noopener" onclick="trackEvent(\'ticket_click\',\'event\',\'' + e.id + '\',{src:\'' + e.src + '\',venue_id:\'' + (e.venue_id || '') + '\',from:\'event_page\'})">🎟️ Get tickets</a>' : '') +
           '<button class="pf-btn" id="ev-going" onclick="evRsvp(\'' + e.src + '\',\'' + e.id + '\',\'going\')">🙋 Going</button>' +
           '<button class="pf-btn" id="ev-interested" onclick="evRsvp(\'' + e.src + '\',\'' + e.id + '\',\'interested\')">⭐ Interested</button>' +
-          '<a class="pf-btn" href="' + gcal + '" target="_blank" rel="noopener">📅 Calendar</a>' +
-          (e.lat && e.lng ? '<a class="pf-btn" href="https://maps.apple.com/?q=' + encodeURIComponent(e.venue_name || e.title) + '&ll=' + e.lat + ',' + e.lng + '" target="_blank" rel="noopener">🧭 Directions</a>' : '') +
+          '<a class="pf-btn" href="' + gcal + '" target="_blank" rel="noopener" onclick="trackEvent(\'calendar_add\',\'event\',\'' + e.id + '\',{src:\'' + e.src + '\'})">📅 Calendar</a>' +
+          (e.lat && e.lng ? '<a class="pf-btn" href="https://maps.apple.com/?q=' + encodeURIComponent(e.venue_name || e.title) + '&ll=' + e.lat + ',' + e.lng + '" target="_blank" rel="noopener" onclick="trackEvent(\'directions_click\',\'event\',\'' + e.id + '\',{src:\'' + e.src + '\'})">🧭 Directions</a>' : '') +
           '<button class="pf-btn" onclick="shareEvent(\'' + e.src + '\',\'' + e.id + '\',\'' + escapeHtml(e.title).replace(/'/g, '') + '\')">↗ Share</button>' +
         '</div>' +
         '<div id="ev-friends" style="display:none;font-size:.8rem;color:var(--orange-l);margin:-.35rem 0 .9rem"></div>' +
@@ -5420,7 +5446,7 @@ async function showEventPage(src, id) {
       setTimeout(function(){ mm.invalidateSize(); }, 120);
     });
   }
-  trackEvent('event_view', 'event', e.id, { src: e.src, kind: e.kind });
+  trackEvent('event_view', 'event', e.id, { src: e.src, kind: e.kind, venue_id: e.venue_id || null });
 }
 // Interested/Going state + counts + the people-you-follow line.
 // "Interested" is the low-commitment tap that still feeds reminders.
@@ -5531,6 +5557,7 @@ async function showVenuePage(venueId) {
 }
 
 function shareEvent(src, id, title) {
+  trackEvent('event_share', 'event', id, { src: src });
   var url = SITE_URL + '/app#event/' + src + '/' + id;
   if (navigator.share) {
     navigator.share({ title: title + ' — PHX Plug Map', text: title + ' · on the PHX Plug Map', url: url }).catch(function(){});
@@ -9907,7 +9934,35 @@ async function ashReject(id, btn) {
 }
 
 // ── Launch Desk: the handout-night strip + email queue health ──
+// The receipts table: per-venue proof for deals and negotiations
+async function loadVenueImpact() {
+  var tb = document.getElementById('venue-impact-tbody');
+  if (!tb) return;
+  tb.innerHTML = '<tr><td colspan="8" style="color:var(--muted)">Loading…</td></tr>';
+  var res = await _sb.rpc('admin_venue_impact', { p_days: 30 });
+  var rows = res.data || [];
+  if (res.error || !rows.length) {
+    tb.innerHTML = '<tr><td colspan="8" style="color:var(--muted)">No venue activity in this window yet — it accrues as members browse the map.</td></tr>';
+    return;
+  }
+  var tot = { views: 0, ticket_clicks: 0, directions: 0, saves_shares: 0, going: 0, interested: 0, followers: 0 };
+  tb.innerHTML = rows.map(function(r) {
+    tot.views += r.views; tot.ticket_clicks += r.ticket_clicks; tot.directions += r.directions;
+    tot.saves_shares += r.saves_shares; tot.going += r.going; tot.interested += r.interested; tot.followers += r.followers;
+    return '<tr>' +
+      '<td style="font-weight:700;cursor:pointer" onclick="showVenuePage(\'' + r.venue_id + '\')">' + escapeHtml(r.venue_name) + '</td>' +
+      '<td>' + r.views + '</td><td style="color:var(--orange-l);font-weight:700">' + r.ticket_clicks + '</td>' +
+      '<td>' + r.directions + '</td><td>' + r.saves_shares + '</td>' +
+      '<td>' + r.going + '</td><td>' + r.interested + '</td><td>' + r.followers + '</td></tr>';
+  }).join('') +
+  '<tr style="border-top:2px solid var(--border)"><td style="font-weight:800;color:var(--orange)">PHX total</td>' +
+    '<td style="font-weight:800">' + tot.views + '</td><td style="font-weight:800;color:var(--orange-l)">' + tot.ticket_clicks + '</td>' +
+    '<td style="font-weight:800">' + tot.directions + '</td><td style="font-weight:800">' + tot.saves_shares + '</td>' +
+    '<td style="font-weight:800">' + tot.going + '</td><td style="font-weight:800">' + tot.interested + '</td><td style="font-weight:800">' + tot.followers + '</td></tr>';
+}
+
 async function loadLaunchDesk() {
+  loadVenueImpact();
   loadShowRsvps();
   loadEventQueue();
   var res = await _sb.rpc('admin_launch_desk');
