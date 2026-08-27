@@ -1457,6 +1457,11 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
 
     <!-- ANALYTICS — the deep read: platform, content, artists, funnel, audience -->
     <div class="view" id="v-admin-analytics">
+      <div class="card" style="margin-bottom:1.2rem">
+        <div class="sh" style="margin-bottom:.7rem"><h3>📊 Platform pulse</h3>
+          <button class="tb-btn" style="margin-left:auto;font-size:.74rem;padding:.28rem .6rem" onclick="loadPlatformPulse()">↻</button></div>
+        <div id="platform-pulse"><div class="pf-empty">Loading…</div></div>
+      </div>
       <div style="display:flex;align-items:center;gap:.6rem;margin-bottom:1rem">
         <div style="font-size:.78rem;color:var(--muted)">Range:</div>
         <button class="tb-btn ana-range on" data-days="30" onclick="setAnaRange(30,this)">30d</button>
@@ -1549,6 +1554,7 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
       <div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;margin-bottom:.9rem">
         <div style="font-size:.8rem;color:var(--muted);min-width:0;flex:1" id="pm-count">Everything happening in Phoenix — one map.</div>
         <div style="display:flex;gap:.4rem;flex-shrink:0">
+          <button class="tb-btn pm-mode" onclick="subscribePlugMap()" title="Live calendar feed">📅</button>
           <button class="tb-btn pm-mode" id="pm-nearme" onclick="plugMapNearMe()" style="border-color:rgba(249,115,22,.35)">📍 Near me</button>
           <button class="tb-btn pm-mode" data-mode="list" onclick="plugMapMode('list')">List</button>
           <button class="tb-btn pm-mode on" data-mode="map" onclick="plugMapMode('map')">Map</button>
@@ -2280,7 +2286,12 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
       <div class="card ld-card" id="ld-card-impact" style="margin-bottom:1rem">
         <div class="sh" onclick="ldToggle(event, this)" style="margin-bottom:.6rem"><h3>📈 Venue impact</h3><span class="ld-chev">▶</span>
           <span class="badge badge-teal" id="vi-days-badge">30d</span>
-          <button class="tb-btn" style="margin-left:auto;font-size:.74rem;padding:.28rem .6rem" onclick="loadVenueImpact()">↻</button></div>
+          <span style="margin-left:auto;display:flex;gap:.35rem" onclick="event.stopPropagation()">
+            <button class="tb-btn" style="font-size:.68rem;padding:.24rem .5rem" onclick="loadVenueImpact(7)">7d</button>
+            <button class="tb-btn" style="font-size:.68rem;padding:.24rem .5rem" onclick="loadVenueImpact(30)">30d</button>
+            <button class="tb-btn" style="font-size:.68rem;padding:.24rem .5rem" onclick="loadVenueImpact(90)">90d</button>
+            <button class="tb-btn" style="font-size:.68rem;padding:.24rem .5rem" onclick="exportVenueImpactCSV()">⬇ CSV</button>
+          </span></div>
         <div class="ld-body">
           <div style="font-size:.78rem;color:var(--muted);margin-bottom:.7rem">What PHX demonstrably sent each venue — views, ticket clicks, directions, RSVPs, followers. Outbound ticket links carry <code>utm_source=thephx.app</code>, so their own analytics confirm it. Screenshot-ready for the pitch.</div>
           <div style="overflow-x:auto"><table class="data-table" style="min-width:640px"><thead><tr>
@@ -3217,6 +3228,7 @@ function showView(id) {
   if (id === 'music') { loadMusicCatalog(); loadListeningWent(); loadMyRotation(); _mountRecapEntry(); }
   if (id === 'messages') { if (!_dmThreadId) dmShowInbox(); }
   if (id === 'artist-analytics') loadClipStats();
+  if (id === 'admin-analytics') loadPlatformPulse();
   if (id === 'artist-submit') populateGenreSelect();
   if (id === 'reels') loadReels();
   else pauseAllReels();
@@ -5306,6 +5318,20 @@ function _pmCatMatch(e) {
 // boot), sorts the list by real distance and drops a you-are-here dot on
 // the map. Tapping again turns it off.
 var _pmUserLoc = null;
+// One subscription, the whole city: a live ICS feed calendars keep fresh
+function subscribePlugMap() {
+  var httpsUrl = 'https://dnzvtathfpjelffjnqrc.supabase.co/functions/v1/plug-map-ics';
+  _apModal('pm-subscribe-modal',
+    '<div style="text-align:center;padding:.3rem 0">' +
+      '<div style="font-weight:800;font-size:1.05rem;margin-bottom:.5rem">📅 Plug Map in your calendar</div>' +
+      '<div style="font-size:.8rem;color:var(--muted);line-height:1.6;margin-bottom:1rem">Subscribe once and the next 30 days of Phoenix keep themselves current in Apple or Google Calendar.</div>' +
+      '<a class="cp-post" style="display:inline-flex;text-decoration:none;margin-bottom:.6rem" href="' + httpsUrl.replace('https://', 'webcal://') + '">📲 Subscribe (Apple / phone)</a><br>' +
+      '<button class="pf-btn" style="margin:0 auto .5rem" onclick="navigator.clipboard&&navigator.clipboard.writeText(\'' + httpsUrl + '\');showToast(\'Feed link copied — in Google Calendar: Other calendars → From URL\')">🔗 Copy feed link (Google)</button><br>' +
+      '<button class="pf-btn" style="margin:0 auto" onclick="document.getElementById(\'pm-subscribe-modal\').style.display=\'none\'">Close</button>' +
+    '</div>');
+  trackEvent('ics_subscribe_open', null, null, {});
+}
+
 function plugMapNearMe() {
   var btn = document.getElementById('pm-nearme');
   if (_pmUserLoc) {
@@ -9243,6 +9269,8 @@ async function submitReportCategory(category) {
 }
 
 // ── REPORTS (admin queue) ────────────────────────────────────────────────
+var _reportsTab = 'pending';
+function setReportsTab(t) { _reportsTab = t; loadReports(); }
 async function loadReports() {
   var feed = document.getElementById('reports-feed');
   var badge = document.getElementById('reports-count-badge');
@@ -9250,8 +9278,12 @@ async function loadReports() {
   if (!feed) return;
   feed.innerHTML = '<span style="color:var(--muted);font-size:.84rem">Loading…</span>';
 
-  var res = await _sb.rpc('admin_reports', { p_status: 'pending' });
+  var res = await _sb.rpc('admin_reports', { p_status: _reportsTab === 'pending' ? 'pending' : '' });
   var reports = res.data || [];
+  if (_reportsTab !== 'pending') reports = reports.filter(function(r){ return r.status !== 'pending'; });
+  var tabs = '<div style="display:flex;gap:.4rem;margin-bottom:.7rem">' +
+    '<button class="tb-btn" style="font-size:.72rem;' + (_reportsTab === 'pending' ? 'color:var(--orange);border-color:rgba(249,115,22,.4)' : '') + '" onclick="setReportsTab(\'pending\')">Pending</button>' +
+    '<button class="tb-btn" style="font-size:.72rem;' + (_reportsTab !== 'pending' ? 'color:var(--orange);border-color:rgba(249,115,22,.4)' : '') + '" onclick="setReportsTab(\'history\')">History</button></div>';
 
   if (badge) badge.textContent = reports.length + ' pending';
   if (navBadge) {
@@ -9259,7 +9291,7 @@ async function loadReports() {
     navBadge.textContent = reports.length;
   }
   if (!reports.length) {
-    feed.innerHTML = '<div style="color:var(--muted);font-size:.84rem;padding:.5rem 0">✓ No pending reports. All clear.</div>';
+    feed.innerHTML = tabs + '<div style="color:var(--muted);font-size:.84rem;padding:.5rem 0">' + (_reportsTab === 'pending' ? '✓ No pending reports. All clear.' : 'No resolved reports yet.') + '</div>';
     return;
   }
 
@@ -9279,7 +9311,7 @@ async function loadReports() {
   var catLabels = {};
   REPORT_CATEGORIES.forEach(function(c){ catLabels[c.key] = c.label; });
 
-  feed.innerHTML = reports.map(function(r) {
+  feed.innerHTML = tabs + reports.map(function(r) {
     var content = contentById[r.target_id];
     var d = new Date(r.created_at);
     var when = d.toLocaleDateString('en-US',{month:'short',day:'numeric'}) + ' ' + d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true});
@@ -9296,7 +9328,10 @@ async function loadReports() {
             (content.is_hidden ? ' <span style="color:var(--red);font-size:.7rem">[already hidden]</span>' : '') +
           '</div>'
         : '<div style="font-size:.78rem;color:var(--muted);margin-bottom:.5rem">Content deleted or unavailable</div>') +
-      '<div style="display:flex;gap:.5rem;flex-wrap:wrap">' +
+      (r.status !== 'pending'
+        ? '<div style="font-size:.72rem;color:' + (r.status === 'actioned' ? 'var(--orange-l)' : 'var(--muted)') + '">' + (r.status === 'actioned' ? '⚡ Actioned' : '✓ Dismissed') + '</div>'
+        : '') +
+      '<div style="display:flex;gap:.5rem;flex-wrap:wrap;' + (r.status !== 'pending' ? 'display:none' : '') + '">' +
       (r.target_type === 'dm_thread'
         ? '<button class="tb-btn" style="font-size:.74rem" onclick="openDmReportReview(\'' + r.id + '\')">💬 Review thread</button>' +
           '<button class="tb-btn" style="font-size:.74rem;color:var(--red);border-color:rgba(239,68,68,.3)" onclick="resolveReportAction(\'' + r.id + '\',\'freeze_thread\',this)">❄️ Freeze thread</button>' +
@@ -10347,7 +10382,21 @@ async function sendAsh() {
   if (btn) btn.disabled = false;
 }
 async function ashApprove(id, btn) {
-  if (!confirm('Approve and RUN this change now?')) return;
+  // Dry-run: for a simple UPDATE/DELETE, count the rows it will touch and
+  // put that number in the confirm — approving blind is how mistakes ship.
+  var confirmMsg = 'Approve and RUN this change now?';
+  try {
+    var act = await _sb.from('agent_actions').select('params').eq('id', id).maybeSingle();
+    var sql = (act.data && act.data.params && act.data.params.sql) || '';
+    var m = sql.match(/^\s*update\s+([a-z_\.]+)\s+set[\s\S]*?\bwhere\b([\s\S]+)$/i) ||
+            sql.match(/^\s*delete\s+from\s+([a-z_\.]+)\s+where\b([\s\S]+)$/i);
+    if (m) {
+      var cnt = await _sb.rpc('agent_run_select', { p_sql: 'select count(*) as n from ' + m[1] + ' where ' + m[2].replace(/;\s*$/, '') });
+      var n = cnt.data && cnt.data[0] && cnt.data[0].n;
+      if (n != null) confirmMsg = 'This will touch ' + n + ' row' + (n === 1 ? '' : 's') + ' in ' + m[1] + '.\n\nApprove and RUN now?';
+    }
+  } catch (e) {}
+  if (!confirm(confirmMsg)) return;
   if (btn) { btn.disabled = true; btn.textContent = 'Running…'; }
   var rev = await _sb.rpc('review_agent_action', { p_id: id, p_decision: 'approved' });
   if (rev.error || !(rev.data || {}).ok) { showToast('Could not approve'); loadAshActions(); return; }
@@ -10364,12 +10413,72 @@ async function ashReject(id, btn) {
 
 // ── Launch Desk: the handout-night strip + email queue health ──
 // The receipts table: per-venue proof for deals and negotiations
-async function loadVenueImpact() {
+// DAU/WAU/MAU + funnel + retention + top content — decisions over vibes
+async function loadPlatformPulse() {
+  var el = document.getElementById('platform-pulse');
+  if (!el) return;
+  el.innerHTML = '<div class="pf-empty">Loading…</div>';
+  var res = await _sb.rpc('admin_platform_analytics');
+  var d = res.data || {};
+  if (res.error) { el.innerHTML = '<div class="pf-empty">Could not load.</div>'; return; }
+  var f = d.funnel || {};
+  var stat = function(v, l) {
+    return '<div style="text-align:center;min-width:70px"><div style="font-family:var(--disp);font-size:1.4rem;font-weight:800;color:var(--orange)">' + (v == null ? '—' : v) + '</div><div style="font-size:.64rem;color:var(--muted)">' + l + '</div></div>';
+  };
+  var fbar = function(v, label) {
+    var max = f.accounts || 1;
+    var pct = Math.round((v || 0) / max * 100);
+    return '<div style="margin:.3rem 0"><div style="display:flex;justify-content:space-between;font-size:.72rem;margin-bottom:2px"><span>' + label + '</span><b>' + (v || 0) + '</b></div>' +
+      '<div style="background:var(--bg4);border-radius:5px;height:7px"><div style="width:' + pct + '%;background:linear-gradient(90deg,var(--orange),var(--gold));height:7px;border-radius:5px"></div></div></div>';
+  };
+  el.innerHTML =
+    '<div style="display:flex;gap:1rem;flex-wrap:wrap;justify-content:space-around;margin-bottom:1rem">' +
+      stat(d.dau, 'DAU') + stat(d.wau, 'WAU') + stat(d.mau, 'MAU') +
+      stat(d.retention_d7 != null ? d.retention_d7 + '%' : null, 'D7 retention') + '</div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:1.2rem">' +
+      '<div><div style="font:600 .66rem var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:.4rem">Funnel</div>' +
+        fbar(f.accounts, 'Accounts') + fbar(f.activated, 'Activated (code)') + fbar(f.played, 'Played a track') + fbar(f.posted, 'Posted') + '</div>' +
+      '<div><div style="font:600 .66rem var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:.4rem">Top posts (30d)</div>' +
+        ((d.top_posts_30d || []).map(function(p) {
+          return '<div style="font-size:.74rem;padding:.25rem 0;border-bottom:1px solid var(--line)"><b>' + escapeHtml(p.author) + '</b> ' + escapeHtml(p.text) + ' <span style="color:var(--orange-l)">🔥' + p.likes + '</span></div>';
+        }).join('') || '<div class="pf-empty">Quiet month.</div>') + '</div>' +
+    '</div>' +
+    '<div style="margin-top:1rem"><div style="font:600 .66rem var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:.4rem">Feature flags</div><div id="flag-list" style="display:flex;gap:.5rem;flex-wrap:wrap"></div></div>';
+  _renderFlags();
+}
+// Feature flags: ship dark, flip live from here, kill fast
+var _KNOWN_FLAGS = ['automix_default_off', 'clips_disabled', 'dm_disabled', 'map_disabled', 'composer_media_disabled'];
+async function _renderFlags() {
+  var el = document.getElementById('flag-list');
+  if (!el) return;
+  var flags = (_platformSettings && _platformSettings.feature_flags) || {};
+  el.innerHTML = _KNOWN_FLAGS.map(function(k) {
+    var on = flags[k] === true;
+    return '<button class="tb-btn" style="font-size:.7rem;' + (on ? 'color:var(--red);border-color:rgba(239,68,68,.4)' : '') + '" onclick="toggleFlag(\'' + k + '\', ' + (!on) + ')">' + (on ? '⛔ ' : '') + k + '</button>';
+  }).join('') + '<span style="font-size:.66rem;color:var(--faint);align-self:center">red = engaged kill-switch</span>';
+}
+async function toggleFlag(key, turnOn) {
+  if (!confirm((turnOn ? 'ENGAGE' : 'Release') + ' the "' + key + '" switch?')) return;
+  await _sb.rpc('set_feature_flag', { p_key: key, p_on: turnOn });
+  await loadPlatformSettings();
+  _renderFlags();
+  showToast(turnOn ? '⛔ ' + key + ' engaged' : '✓ ' + key + ' released');
+}
+function flag(key) {
+  return !!((_platformSettings && _platformSettings.feature_flags) || {})[key];
+}
+
+var _viDays = 30, _viRows = [];
+async function loadVenueImpact(days) {
+  if (days) _viDays = days;
+  var badge = document.getElementById('vi-days-badge');
+  if (badge) badge.textContent = _viDays + 'd';
   var tb = document.getElementById('venue-impact-tbody');
   if (!tb) return;
   tb.innerHTML = '<tr><td colspan="8" style="color:var(--muted)">Loading…</td></tr>';
-  var res = await _sb.rpc('admin_venue_impact', { p_days: 30 });
+  var res = await _sb.rpc('admin_venue_impact', { p_days: _viDays });
   var rows = res.data || [];
+  _viRows = rows;
   if (res.error || !rows.length) {
     tb.innerHTML = '<tr><td colspan="8" style="color:var(--muted)">No venue activity in this window yet — it accrues as members browse the map.</td></tr>';
     return;
@@ -10379,7 +10488,8 @@ async function loadVenueImpact() {
     tot.views += r.views; tot.ticket_clicks += r.ticket_clicks; tot.directions += r.directions;
     tot.saves_shares += r.saves_shares; tot.going += r.going; tot.interested += r.interested; tot.followers += r.followers;
     return '<tr>' +
-      '<td style="font-weight:700;cursor:pointer" onclick="showVenuePage(\'' + r.venue_id + '\')">' + escapeHtml(r.venue_name) + '</td>' +
+      '<td style="font-weight:700"><span style="cursor:pointer" onclick="showVenuePage(\'' + r.venue_id + '\')">' + escapeHtml(r.venue_name) + '</span> ' +
+        '<button class="tb-btn" style="font-size:.62rem;padding:.12rem .4rem" onclick="toggleVenueDrill(\'' + r.venue_id + '\', this)">📊</button></td>' +
       '<td>' + r.views + '</td><td style="color:var(--orange-l);font-weight:700">' + r.ticket_clicks + '</td>' +
       '<td>' + r.directions + '</td><td>' + r.saves_shares + '</td>' +
       '<td>' + r.going + '</td><td>' + r.interested + '</td><td>' + r.followers + '</td></tr>';
@@ -10420,6 +10530,38 @@ async function reviewVerify(id, approve, btn) {
   if (res.error || !(res.data || {}).ok) { btn.disabled = false; showToast('Could not save.'); return; }
   showToast(approve ? '✓ Verified' : 'Declined');
   loadVerifyQueue();
+}
+
+function exportVenueImpactCSV() {
+  if (!_viRows.length) { showToast('Load the table first.'); return; }
+  var head = 'Venue,Views,Ticket clicks,Directions,Saves/Shares,Going,Interested,Followers';
+  var csv = [head].concat(_viRows.map(function(r) {
+    return '"' + String(r.venue_name).replace(/"/g, '""') + '",' + [r.views, r.ticket_clicks, r.directions, r.saves_shares, r.going, r.interested, r.followers].join(',');
+  })).join('\n');
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+  a.download = 'phx-venue-impact-' + _viDays + 'd.csv';
+  document.body.appendChild(a); a.click(); a.remove();
+}
+// Per-event drilldown: tap a venue row's 📊 to unfold its events
+async function toggleVenueDrill(venueId, btn) {
+  var tr = btn.closest('tr');
+  var existing = document.getElementById('vi-drill-' + venueId);
+  if (existing) { existing.remove(); return; }
+  btn.disabled = true;
+  var res = await _sb.rpc('admin_event_impact', { p_venue: venueId });
+  btn.disabled = false;
+  var rows = res.data || [];
+  var html = '<tr id="vi-drill-' + venueId + '"><td colspan="8" style="background:var(--bg4);padding:.5rem .8rem">' +
+    (rows.length ? rows.map(function(e) {
+      var d = new Date(e.starts_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      return '<div style="display:flex;gap:.7rem;font-size:.74rem;padding:.2rem 0;border-bottom:1px solid var(--line)">' +
+        '<span style="color:var(--muted);width:52px">' + d + '</span>' +
+        '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + escapeHtml(e.title) + '</span>' +
+        '<span>👀' + e.views + '</span><span style="color:var(--orange-l)">🎟️' + e.ticket_clicks + '</span>' +
+        '<span>🙋' + e.going + '</span><span>⭐' + e.interested + '</span></div>';
+    }).join('') : '<div class="pf-empty">No tracked events here yet.</div>') + '</td></tr>';
+  tr.insertAdjacentHTML('afterend', html);
 }
 
 async function loadLaunchDesk() {
