@@ -5880,10 +5880,14 @@ function renderPlugMapMap() {
     // in the Valley) — zooming out reveals the rest of the city, and the
     // list follows the viewport via the moveend hook.
     setTimeout(function() {
+      // A hidden container has zero size — fitting it produces a garbage
+      // zoom that then STICKS. Skip; the next visible render fits cleanly.
+      var box = el.getBoundingClientRect();
+      if (!box.width || !box.height) return;
       _pmMap.invalidateSize();
-      if (_pmUserLoc) _pmMap.setView([_pmUserLoc.lat, _pmUserLoc.lng], 12);
-      else if (pts.length) _pmMap.fitBounds(pts, { padding: [40, 40], maxZoom: 14 });
-    }, 80);
+      if (_pmUserLoc) _pmMap.setView([_pmUserLoc.lat, _pmUserLoc.lng], 12, { animate: false });
+      else if (pts.length) _pmMap.fitBounds(pts, { padding: [40, 40], maxZoom: 14, animate: false });
+    }, 120);
     if (!_pmMap._pmMoveBound) {
       _pmMap._pmMoveBound = true;
       _pmMap.on('zoomend', function() { _pmDrawPins(); });
