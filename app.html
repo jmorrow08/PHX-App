@@ -206,6 +206,13 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
 :focus-visible{outline:2px solid var(--orange);outline-offset:2px;border-radius:4px}
 .rt-link{color:var(--orange-l);font-weight:600;text-decoration:none}
 .rt-link:hover{text-decoration:underline}
+/* Photo carousels: scroll-snap set with position dots */
+.fp-carousel{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;-webkit-overflow-scrolling:touch;border-radius:10px}
+.fp-carousel::-webkit-scrollbar{display:none}
+.fp-carousel img{flex:0 0 100%;width:100%;max-height:480px;object-fit:cover;scroll-snap-align:start;cursor:pointer;display:block}
+.fp-cardots{display:flex;gap:5px;justify-content:center;padding:.45rem 0 .1rem}
+.fp-cardots span{width:6px;height:6px;border-radius:50%;background:var(--faint);opacity:.5;transition:opacity .15s,background .15s}
+.fp-cardots span.on{background:var(--orange);opacity:1}
 .cm-like{color:var(--muted);font-size:.72rem;text-decoration:none;white-space:nowrap}
 .cm-like.on{color:var(--orange)}
 /* Clips immersion: in the Clips view NOTHING but the video — no app bar,
@@ -4978,6 +4985,7 @@ async function loadCityFeed(force) {
   populateComposerTracks();
   initFeedVideos();
   loadFeedPrompt();
+  _refreshSchedChip();
 }
 
 // Cursor pagination: older pages append in time order (the ranked shuffle
@@ -5967,6 +5975,7 @@ function renderComposer() {
   var myAva = (_myProfile && _myProfile.avatar_url) || '';
   var hasDraft = !!localStorage.getItem('phx_post_draft');
   return '<div class="composer" id="composer-trigger" style="padding:.8rem 1rem">' +
+    '<button id="sched-chip" onclick="openMyScheduled()" style="display:none;align-items:center;gap:.3rem;background:rgba(249,115,22,.12);border:1px solid rgba(249,115,22,.3);border-radius:999px;color:var(--orange-l);font-size:.68rem;font-weight:700;padding:.25rem .7rem;cursor:pointer;margin-bottom:.55rem"></button>' +
     '<div style="display:flex;align-items:center;gap:.65rem">' +
       avatarHtml(myAva, persona.avatar || '👤', 'ava-sm', persona.name, 'style="width:40px;height:40px;font-size:1.05rem;flex-shrink:0"') +
       '<div class="ct-pill" role="button" tabindex="0" onclick="openPostSheet()">' +
@@ -6074,7 +6083,24 @@ function addComposerText() {
     if (last) { last.focus(); try { document.execCommand('selectAll', false, null); } catch (e) {} }
   }, 60);
 }
+// Preview matches the bake: landscape + captions previews at 9:16 with
+// real black bars so text placement is what actually ships
+function _syncBarsPreview() {
+  var stage = document.getElementById('composer-preview-stage');
+  var vid = document.getElementById('composer-preview-vid');
+  if (!stage) return;
+  var bars = !!(window._composerLandscape && _composerTexts.length && vid);
+  stage.style.aspectRatio = bars ? '9/16' : '';
+  stage.style.background = bars ? '#000' : '';
+  stage.style.maxHeight = bars ? '68vh' : '';
+  if (vid) {
+    vid.style.objectFit = bars ? 'contain' : 'cover';
+    vid.style.height = bars ? '100%' : '';
+    vid.style.maxHeight = bars ? 'none' : '340px';
+  }
+}
 function _renderTextLayer() {
+  _syncBarsPreview();
   var layer = document.getElementById('composer-text-layer');
   if (!layer) return;
   layer.innerHTML = _composerTexts.map(function(t, i) {
@@ -6149,6 +6175,16 @@ function _drawTextOverlays(ctx, w, h, texts) {
 
 function renderMediaPreview() {
   var box = document.getElementById('composer-media-preview');
+  if (box && _composerMediaFiles.length > 1) {
+    box.style.display = 'block';
+    box.innerHTML = '<div style="display:flex;gap:.4rem;overflow-x:auto;padding-bottom:.3rem">' +
+      _composerMediaFiles.map(function(f, i) {
+        return '<div style="position:relative;flex:0 0 110px"><img src="' + URL.createObjectURL(f) + '" style="width:110px;height:110px;object-fit:cover;border-radius:10px;display:block">' +
+          '<button onclick="_carouselRemove(' + i + ')" style="position:absolute;top:4px;right:4px;width:22px;height:22px;border-radius:50%;background:rgba(7,7,15,.75);border:none;color:#fff;font-size:.7rem;cursor:pointer">✕</button></div>';
+      }).join('') + '</div>' +
+      '<div style="font-size:.7rem;color:var(--muted);margin-top:.3rem">Swipeable set · first photo leads · drag order = pick order</div>';
+    return;
+  }
   if (!box || !_composerMediaFile) { if (box) { box.style.display = 'none'; box.innerHTML = ''; } return; }
   var url = URL.createObjectURL(_composerMediaFile);
   var isImage = _composerMediaFile.type.indexOf('image/') === 0;
@@ -6156,7 +6192,7 @@ function renderMediaPreview() {
   var media = isImage
     ? '<img id="composer-preview-img" src="' + url + '" style="width:100%;max-height:300px;object-fit:cover;border-radius:14px;display:block;filter:' + css + '">'
     : '<video id="composer-preview-vid" src="' + url + '" controls playsinline ' +
-        'onloadedmetadata="_fitFeedVideo(this);var r=document.getElementById(\'composer-cover-range\');if(r)r.max=this.duration.toFixed(1)" ' +
+        'onloadedmetadata="_fitFeedVideo(this);window._composerLandscape=this.videoWidth>this.videoHeight;_syncBarsPreview();var r=document.getElementById(\'composer-cover-range\');if(r)r.max=this.duration.toFixed(1)" ' +
         'style="width:100%;max-height:340px;border-radius:14px;background:var(--bg3);object-fit:cover;display:block;filter:' + css + '"></video>';
   var altField = isImage
     ? '<input class="form-input" id="composer-alt" maxlength="200" placeholder="Describe this photo for screen readers (optional)" value="' + escapeHtml(window._composerAlt || '') + '" oninput="window._composerAlt=this.value" style="margin-top:.5rem;font-size:.78rem;padding:.45rem .7rem">'
@@ -6306,6 +6342,7 @@ function openPostSheet(shortcut) {
         '<div id="post-sheet-title" style="font-family:var(--disp);font-weight:700;font-size:1rem">New post</div>' +
         '<div style="margin-left:auto;display:flex;gap:.5rem">' +
           '<button class="cp-post" id="post-next-btn" onclick="postSheetNext()">Next</button>' +
+          '<button class="psh-btn" id="post-sched-btn" style="display:none;width:auto;padding:0 .8rem;border-radius:999px;font-size:.78rem" title="Post later" onclick="openScheduleSheet()">🕐</button>' +
           '<button class="cp-post" id="composer-post-btn" style="display:none" onclick="submitFeedPost()">Post</button>' +
         '</div>' +
       '</div>' +
@@ -6320,7 +6357,7 @@ function openPostSheet(shortcut) {
           '<button class="ps-opt" id="composer-track-btn" onclick="openTrackSheet()">🎵 <b>Add a song</b><span>soundtrack your post</span></button>' +
         '</div>' +
         '<select id="composer-track" class="cp-track" style="display:none"><option value="">🎵 Add track</option></select>' +
-        '<input type="file" id="composer-media" accept="video/mp4,video/webm,video/quicktime,image/jpeg,image/png,image/webp,image/gif" style="display:none" onchange="handleComposerMedia(this)">' +
+        '<input type="file" id="composer-media" multiple accept="video/mp4,video/webm,video/quicktime,image/jpeg,image/png,image/webp,image/gif" style="display:none" onchange="handleComposerMedia(this)">' +
         '<input type="file" id="composer-camera" accept="image/*,video/*" capture="environment" style="display:none" onchange="handleComposerMedia(this)">' +
       '</div>' +
       '<div id="post-step2" style="display:none;flex:1;overflow-y:auto;padding:1rem 1.1rem calc(1.2rem + env(safe-area-inset-bottom,0px))">' +
@@ -6368,6 +6405,8 @@ function _postSheetShowStep(n) {
   if (s2) s2.style.display = n === 2 ? 'block' : 'none';
   if (nx) nx.style.display = n === 1 ? 'inline-block' : 'none';
   if (pb) pb.style.display = n === 2 ? 'inline-block' : 'none';
+  var sb2 = document.getElementById('post-sched-btn');
+  if (sb2) sb2.style.display = n === 2 ? 'inline-block' : 'none';
   if (left) left.textContent = n === 1 ? '✕' : '‹';
   if (title) title.textContent = n === 1 ? 'New post' : 'Preview & tweaks';
 }
@@ -6418,10 +6457,73 @@ function _renderPostPreview() {
     } else tk.style.display = 'none';
   }
 }
+function _carouselRemove(i) {
+  _composerMediaFiles.splice(i, 1);
+  if (_composerMediaFiles.length === 1) { _composerMediaFile = _composerMediaFiles[0]; _composerMediaFiles = []; }
+  renderMediaPreview();
+}
 function _postSheetHasWork() {
   var t = document.getElementById('composer-text');
   var sel = document.getElementById('composer-track');
-  return !!((t && t.value.trim()) || _composerMediaFile || (sel && sel.value));
+  return !!((t && t.value.trim()) || _composerMediaFile || _composerMediaFiles.length || (sel && sel.value));
+}
+// ── POST LATER ──────────────────────────────────────────────────────────
+// Same pipeline, one difference: the final write lands in scheduled_posts
+// and a cron publishes it on the minute. Media uploads NOW (it's ready and
+// moderated), words go live later.
+function openScheduleSheet() {
+  var now = new Date(Date.now() + 3600000);
+  now.setMinutes(Math.ceil(now.getMinutes() / 15) * 15, 0, 0);
+  var pad = function(n){ return (n < 10 ? '0' : '') + n; };
+  var localDefault = now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate()) + 'T' + pad(now.getHours()) + ':' + pad(now.getMinutes());
+  _apModal('schedule-sheet',
+    '<div style="font-weight:800;font-size:1.05rem;margin-bottom:.7rem">🕐 Post later</div>' +
+    '<label class="form-label">When it goes live</label>' +
+    '<input class="form-input" type="datetime-local" id="sched-when" value="' + localDefault + '" style="margin-bottom:.8rem;font-size:16px">' +
+    '<button class="upgrade-btn" style="width:100%;margin:0" onclick="confirmSchedule(this)">Schedule it</button>' +
+    '<button class="pf-btn" style="width:100%;justify-content:center;margin-top:.5rem" onclick="document.getElementById(\'schedule-sheet\').style.display=\'none\'">Cancel</button>' +
+    '<div id="sched-msg" style="font-size:.76rem;color:var(--muted);margin-top:.5rem;min-height:1em"></div>');
+}
+function confirmSchedule(btn) {
+  var v = (document.getElementById('sched-when') || {}).value;
+  var msg = document.getElementById('sched-msg');
+  if (!v) { if (msg) msg.textContent = 'Pick a time.'; return; }
+  var when = new Date(v);
+  if (when.getTime() < Date.now() + 4 * 60000) { if (msg) { msg.style.color = 'var(--red)'; msg.textContent = 'At least 5 minutes out.'; } return; }
+  window._scheduleFor = when.toISOString();
+  document.getElementById('schedule-sheet').style.display = 'none';
+  submitFeedPost();
+}
+async function openMyScheduled() {
+  var res = await _sb.from('scheduled_posts').select('id,content,scheduled_for,media_url,media_urls')
+    .eq('user_id', getGuestId()).eq('status', 'pending').order('scheduled_for');
+  var rows = res.data || [];
+  _apModal('my-scheduled-modal',
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.8rem">' +
+      '<div style="font-weight:800;font-size:1.05rem">🕐 Scheduled posts</div>' +
+      '<button onclick="document.getElementById(\'my-scheduled-modal\').style.display=\'none\'" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem">✕</button></div>' +
+    (rows.length ? rows.map(function(r) {
+      var when = new Date(r.scheduled_for).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+      return '<div style="display:flex;align-items:center;gap:.6rem;padding:.5rem 0;border-bottom:1px solid var(--line)">' +
+        '<div style="flex:1;min-width:0"><div style="font-size:.8rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + escapeHtml(r.content || '(media post)') + '</div>' +
+        '<div style="font-size:.68rem;color:var(--orange-l)">' + when + '</div></div>' +
+        '<button class="tb-btn" style="font-size:.7rem" onclick="cancelScheduled(\'' + r.id + '\', this)">✕ Cancel</button></div>';
+    }).join('') : '<div class="pf-empty">Nothing queued — the 🕐 button on a new post schedules it.</div>'));
+}
+async function cancelScheduled(id, btn) {
+  btn.disabled = true;
+  await _sb.rpc('cancel_scheduled_post', { p_id: id });
+  showToast('Canceled');
+  openMyScheduled();
+  _refreshSchedChip();
+}
+async function _refreshSchedChip() {
+  var chip = document.getElementById('sched-chip');
+  if (!chip || !_authUser) return;
+  var res = await _sb.from('scheduled_posts').select('id', { count: 'exact', head: true })
+    .eq('user_id', getGuestId()).eq('status', 'pending');
+  chip.style.display = (res.count || 0) > 0 ? 'inline-flex' : 'none';
+  chip.textContent = '🕐 ' + res.count + ' scheduled';
 }
 function closePostSheet(force) {
   var w = document.getElementById('post-sheet');
@@ -6521,7 +6623,7 @@ function _refreshComposerTrigger() {
   if (pill) pill.textContent = localStorage.getItem('phx_post_draft') ? '📝 Draft saved — tap to continue' : 'What\'s happening in the city?';
 }
 function clearComposerMedia() {
-  _composerMediaFile = null; _composerFilter = 'none'; _composerStamp = false; _composerPosterTime = null; _composerAudioMode = 'original'; _composerTrustedClip = false;
+  _composerMediaFile = null; _composerMediaFiles = []; _composerFilter = 'none'; _composerStamp = false; _composerPosterTime = null; _composerAudioMode = 'original'; _composerTrustedClip = false;
   _composerTexts = [];
   window._composerAlt = '';
   var m1 = document.getElementById('composer-media'); if (m1) m1.value = '';
@@ -6663,8 +6765,19 @@ async function _bakeVideo(file, filterCss, stamp, progressBtn, audioOpts) {
       var vw = v.videoWidth || 720, vh = v.videoHeight || 1280;
       var scale = Math.min(1, 1280 / Math.max(vw, vh));
       var canvas = document.createElement('canvas');
-      canvas.width = Math.round(vw * scale / 2) * 2;
-      canvas.height = Math.round(vh * scale / 2) * 2;
+      // Landscape + captions = Jaye's letterbox move: the canvas becomes
+      // 9:16, the video letterboxes in the middle, and the text owns the
+      // bars — dead space turned into attention.
+      var bars916 = (vw > vh) && _composerTexts.length > 0;
+      var vidW, vidH, vidY;
+      if (bars916) {
+        canvas.width = 720; canvas.height = 1280;
+        vidW = 720; vidH = Math.round(720 * vh / vw / 2) * 2;
+        vidY = Math.round((1280 - vidH) / 2);
+      } else {
+        canvas.width = Math.round(vw * scale / 2) * 2;
+        canvas.height = Math.round(vh * scale / 2) * 2;
+      }
       var ctx = canvas.getContext('2d');
       var stream = canvas.captureStream(30);
       var songEl = null;
@@ -6704,8 +6817,10 @@ async function _bakeVideo(file, filterCss, stamp, progressBtn, audioOpts) {
         resolve(blob.size ? new File([blob], 'styled.' + ext, { type: type }) : file);
       };
       var tick = setInterval(function() {
+        if (bars916) { ctx.fillStyle = '#000'; ctx.fillRect(0, 0, canvas.width, canvas.height); }
         if (filterCss && filterCss !== 'none') ctx.filter = filterCss;
-        ctx.drawImage(v, 0, 0, canvas.width, canvas.height);
+        if (bars916) ctx.drawImage(v, 0, vidY, vidW, vidH);
+        else ctx.drawImage(v, 0, 0, canvas.width, canvas.height);
         ctx.filter = 'none';
         if (stamp) _drawStamp(ctx, canvas.width, canvas.height);
         _drawTextOverlays(ctx, canvas.width, canvas.height, _composerTexts);
@@ -6732,7 +6847,25 @@ function setFeedSort(sort) {
   loadCityFeed(true);
 }
 
+var _composerMediaFiles = [];   // carousel set (2–5 images); single stays in _composerMediaFile
 function handleComposerMedia(input) {
+  // Multiple images selected → carousel path (filters/captions are for
+  // singles; a carousel is the photos as shot)
+  var picked = Array.prototype.slice.call(input.files || []);
+  var allImages = picked.length > 1 && picked.every(function(f){ return f.type.indexOf('image/') === 0; });
+  if (allImages) {
+    if (picked.length > 5) { showToast('Carousels cap at 5 photos — the first 5 are in.'); picked = picked.slice(0, 5); }
+    var oversize = picked.filter(function(f){ return f.size > 52428800; });
+    if (oversize.length) { showToast('⚠️ One of those photos is over 50MB.'); input.value = ''; return; }
+    _composerMediaFiles = picked;
+    _composerMediaFile = null;
+    _composerTexts = [];
+    var nm = document.getElementById('composer-media-name');
+    if (nm) { nm.textContent = '✓ ' + picked.length + ' photos — they post as a swipeable set'; nm.style.color = 'var(--green)'; nm.style.display = 'block'; }
+    renderMediaPreview();
+    return;
+  }
+  _composerMediaFiles = [];
   var file = input.files[0];
   var nameEl = document.getElementById('composer-media-name');
   if (!file) { _composerMediaFile = null; if (nameEl) nameEl.style.display = 'none'; renderMediaPreview(); return; }
@@ -7508,6 +7641,13 @@ function clearTagFilter() {
   loadCityFeed(true);
 }
 
+// Carousel dots track the swipe position
+function _carDots(el) {
+  var i = Math.round(el.scrollLeft / el.clientWidth);
+  var dots = el.parentElement.querySelectorAll('.fp-cardots span');
+  dots.forEach(function(d, di){ d.classList.toggle('on', di === i); });
+}
+
 function renderFeedPost(p) {
   var d = new Date(p.created_at);
   var diff = Math.floor((Date.now() - d.getTime()) / 60000);
@@ -7577,7 +7717,17 @@ function renderFeedPost(p) {
   // player — tap opens the immersive scroller at this exact clip.
   var mediaEmbed = '';
   var mediaUrl = safeUrl(p.media_url);
-  if (mediaUrl) {
+  var setUrls = [];
+  try { if (p.media_urls && p.media_urls.length > 1) setUrls = p.media_urls.map(safeUrl).filter(Boolean); } catch (e) {}
+  if (setUrls.length > 1) {
+    mediaEmbed = '<div class="fp-media"><div class="fp-carousel" id="car-' + p.id + '" onscroll="_carDots(this)">' +
+      setUrls.map(function(u) {
+        return '<img loading="lazy" decoding="async" alt="' + escapeHtml(p.media_alt || '') + '" src="' + imgx(u, 900) + '" data-orig="' + u + '" onerror="_imgxFail(this)" onclick="openLightbox(\'' + u + '\')">';
+      }).join('') + '</div>' +
+      '<div class="fp-cardots">' + setUrls.map(function(_, i) {
+        return '<span class="' + (i === 0 ? 'on' : '') + '"></span>';
+      }).join('') + '</div></div>';
+  } else if (mediaUrl) {
     var isVideo = /\.(mp4|webm|mov)(\?|$)/i.test(p.media_url);
     mediaEmbed = '<div class="fp-media">' + (isVideo
       ? feedVideoEmbed(p.id, mediaUrl, 420, p.media_poster)
@@ -7907,6 +8057,32 @@ async function submitFeedPost() {
   var persona = currentPersona();
   var postBtn = document.getElementById('composer-post-btn');
 
+  // Carousel path: every photo checked + uploaded, posts as one set
+  var mediaUrls = null;
+  if (_composerMediaFiles.length > 1) {
+    if (postBtn) { postBtn.disabled = true; }
+    mediaUrls = [];
+    for (var ci = 0; ci < _composerMediaFiles.length; ci++) {
+      var cf = _composerMediaFiles[ci];
+      if (postBtn) postBtn.textContent = 'Photo ' + (ci + 1) + '/' + _composerMediaFiles.length + '…';
+      var cmv = await _moderateMediaFile(cf);
+      if (!cmv.ok) {
+        if (postBtn) { postBtn.textContent = 'Post'; postBtn.disabled = false; }
+        if (errEl) { errEl.textContent = '🚫 Photo ' + (ci + 1) + ' violates PHX community guidelines.'; errEl.style.display = 'block'; }
+        return;
+      }
+      var cpath = getGuestId().slice(0, 8) + '/' + Date.now() + '_' + ci + '.' + (cf.name.split('.').pop() || 'jpg');
+      var cup = await _sb.storage.from('post-media').upload(cpath, cf, { contentType: cf.type });
+      if (cup.error) {
+        if (postBtn) { postBtn.textContent = 'Post'; postBtn.disabled = false; }
+        if (errEl) { errEl.textContent = 'Upload failed on photo ' + (ci + 1) + ' — try again.'; errEl.style.display = 'block'; }
+        return;
+      }
+      mediaUrls.push(_sb.storage.from('post-media').getPublicUrl(cpath).data.publicUrl);
+    }
+    if (postBtn) { postBtn.textContent = 'Post'; postBtn.disabled = false; }
+  }
+
   // Upload attached video/photo to Storage first (bake photo filter in via canvas)
   var mediaUrl = null, mediaPoster = null;
   if (_composerMediaFile) {
@@ -7991,6 +8167,28 @@ async function submitFeedPost() {
     if (postBtn) { postBtn.textContent = 'Post'; postBtn.disabled = false; }
   }
 
+  if (window._scheduleFor) {
+    var schedAt = window._scheduleFor;
+    window._scheduleFor = null;
+    var sres = await _sb.rpc('schedule_post', {
+      p_author_name: persona.name, p_author_role: persona.role, p_author_avatar: persona.avatar,
+      p_content: content, p_track_id: (trackSel && trackSel.value) || null, p_page_id: persona.page_id || null,
+      p_media_url: mediaUrl, p_media_poster: mediaPoster,
+      p_media_alt: (window._composerAlt || '').trim() || null, p_media_urls: mediaUrls,
+      p_scheduled_for: schedAt
+    });
+    var sd = sres.data || {};
+    if (sres.error || !sd.ok) {
+      if (errEl) { errEl.textContent = sd.reason === 'too_many_scheduled' ? '10 scheduled posts max — post or cancel one first.' : sd.reason === 'bad_time' ? 'Pick a time between 5 minutes and 30 days out.' : 'Could not schedule.'; errEl.style.display = 'block'; }
+      return;
+    }
+    _clearPostDraft();
+    _postSheetHide(true);
+    _refreshComposerTrigger();
+    _refreshSchedChip();
+    showToast('🕐 Scheduled — it posts itself at ' + new Date(schedAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }));
+    return;
+  }
   var { data, error } = await _sb.rpc('create_feed_post', {
     p_user_id: getGuestId(),
     p_author_name: persona.name,
@@ -8002,7 +8200,8 @@ async function submitFeedPost() {
     p_shared_post_id: null,
     p_media_url: mediaUrl,
     p_media_poster: mediaPoster,
-    p_media_alt: (window._composerAlt || '').trim() || null
+    p_media_alt: (window._composerAlt || '').trim() || null,
+    p_media_urls: mediaUrls
   });
   if (error || !data || !data.ok) {
     var msg = (data && data.reason === 'rate_limited') ? 'Rate limited — max 5 posts per 10 minutes.' :
@@ -8015,6 +8214,7 @@ async function submitFeedPost() {
   if (errEl) errEl.style.display = 'none';
   trackEvent('post_create', 'post', data.id, { has_track: !!(trackSel && trackSel.value), has_media: !!mediaUrl });
   _composerMediaFile = null;
+  _composerMediaFiles = [];
   _composerFilter = 'none';
   _composerStamp = false;
   _composerTexts = [];
