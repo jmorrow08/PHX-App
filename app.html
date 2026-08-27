@@ -1443,6 +1443,7 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
           <div class="set-row" onclick="showView('mypass')"><span>💳 My Pass — membership &amp; invite code</span><span class="set-arrow">›</span></div>
           <div class="set-row" onclick="openSavedPosts()"><span>🔖 Saved posts</span><span class="set-arrow">›</span></div>
           <div class="set-row" onclick="openChangeEmail()"><span>✉️ Change email address</span><span class="set-arrow">›</span></div>
+          <div class="set-row" onclick="openNotifPrefs()"><span>🔔 Notification preferences</span><span class="set-arrow">›</span></div>
           <div class="set-row" onclick="exportMyData(this)"><span>📦 Download my data</span><span class="set-arrow">›</span></div>
           <div class="set-row" onclick="openDeleteAccount()"><span style="color:var(--red)">🗑️ Delete my account</span><span class="set-arrow">›</span></div>
           <div class="set-row" onclick="openMyPage()"><span>⭐ View my public page</span><span class="set-arrow">›</span></div>
@@ -2280,6 +2281,13 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
             <th>Venue</th><th>👀 Views</th><th>🎟️ Clicks</th><th>🧭</th><th>🔖/↗</th><th>🙋 Going</th><th>⭐ Int.</th><th>➕ Followers</th>
           </tr></thead><tbody id="venue-impact-tbody"><tr><td colspan="8" style="color:var(--muted)">Loading…</td></tr></tbody></table></div>
         </div>
+      </div>
+
+      <div class="card ld-card" id="ld-card-verify" style="margin-bottom:1rem">
+        <div class="sh" onclick="ldToggle(event, this)" style="margin-bottom:.6rem"><h3>✓ Verification requests</h3><span class="ld-chev">▶</span>
+          <span class="badge badge-orange" id="verify-count">…</span>
+          <button class="tb-btn" style="margin-left:auto;font-size:.74rem;padding:.28rem .6rem" onclick="loadVerifyQueue()">↻</button></div>
+        <div class="ld-body"><div id="verify-queue"><div class="pf-empty">Loading…</div></div></div>
       </div>
 
       <div class="card ld-card" id="ld-card-access" style="margin-bottom:1rem">
@@ -8091,6 +8099,16 @@ function shareCurrentTrackToFeed() {
 // composer already uses) and lands you on that identity's own profile with
 // its followers and stats.
 var _idswLP = null, _idswFired = false;
+function _identityHintOnce() {
+  try {
+    if (localStorage.getItem('phx_idsw_hint')) return;
+    if (typeof personaOptions !== 'function' || personaOptions().length < 2) return;
+    localStorage.setItem('phx_idsw_hint', '1');
+    showToast('💡 Hold the My Pass tab to switch between your profiles');
+  } catch (e) {}
+}
+setTimeout(_identityHintOnce, 12000);
+
 function _bindIdentityLongPress() {
   document.querySelectorAll('.bt-item[data-view="mypass"], .bt-item[data-view="artist-tracks"]').forEach(function(btn) {
     if (btn._idswBound) return;
@@ -8197,9 +8215,19 @@ function openMessages() {
   showView('messages');
   dmShowInbox();
 }
+var _dmInboxChan = null;
 function dmShowInbox() {
   if (typeof _dmUnsub === 'function') _dmUnsub();
   if (_dmMicStream) { try { _dmMicStream.getTracks().forEach(function(t){ t.stop(); }); } catch (e) {} _dmMicStream = null; }
+  // The inbox refreshes itself when any of your threads moves
+  if (!_dmInboxChan && _authUser) {
+    try {
+      _dmInboxChan = _sb.channel('dm-inbox-' + _authUser.id)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'dm_threads', filter: 'a_id=eq.' + _authUser.id }, function(){ if (!_dmThreadId) loadDmInbox(); })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'dm_threads', filter: 'b_id=eq.' + _authUser.id }, function(){ if (!_dmThreadId) loadDmInbox(); })
+        .subscribe();
+    } catch (e) {}
+  }
   if (_dmPollT) { clearInterval(_dmPollT); _dmPollT = null; }
   _dmThreadId = null; _dmOther = null; _dmLastIso = null;
   var c = document.getElementById('dm-chat'); if (c) c.style.display = 'none';
@@ -8328,12 +8356,25 @@ function openDmChat(threadId, other) {
     '</div>' +
     '<div id="dm-error" style="display:none;color:var(--red);font-size:.76rem;margin-top:.35rem"></div>';
   _dmBindMic();
+  // Frozen threads announce themselves instead of failing on send
+  _sb.from('dm_threads').select('frozen').eq('id', threadId).maybeSingle().then(function(fr) {
+    if (fr.data && fr.data.frozen) {
+      var box = document.getElementById('dm-msgs');
+      if (box) box.insertAdjacentHTML('beforebegin',
+        '<div style="background:rgba(56,189,248,.08);border:1px solid rgba(56,189,248,.3);border-radius:10px;padding:.5rem .8rem;font-size:.76rem;color:var(--muted);margin-bottom:.5rem">❄️ This conversation was frozen by moderators — no new messages can be sent.</div>');
+    }
+  });
   _dmFetch();
   // Realtime is the primary wire; the poll is a 15s safety net
   try {
     _dmChannel = _sb.channel('dm-' + threadId)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'dm_messages', filter: 'thread_id=eq.' + threadId }, function() { _dmFetch(); })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'dm_messages', filter: 'thread_id=eq.' + threadId }, function(payload) { _dmApplyReactions(payload.new); })
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'dm_messages' }, function(payload) {
+        var gone = payload.old && payload.old.id;
+        var w = gone && document.querySelector('.dm-wrap[data-msg="' + gone + '"]');
+        if (w) w.remove();
+      })
       .subscribe();
   } catch (e) { reportFailure('dmRealtime', e); }
   if (_dmPollT) clearInterval(_dmPollT);
@@ -8442,17 +8483,35 @@ function _dmShowReactPicker(el, msgId) {
   var old = document.getElementById('dm-react-picker');
   if (old) old.remove();
   var r = el.getBoundingClientRect();
+  var wrap = document.querySelector('.dm-wrap[data-msg="' + msgId + '"]');
+  var mine = wrap && wrap.classList.contains('mine');
   var p = document.createElement('div');
   p.id = 'dm-react-picker';
   p.style.cssText = 'position:fixed;z-index:1195;background:rgba(14,14,24,.98);border:1px solid var(--border);border-radius:999px;padding:.3rem .5rem;display:flex;gap:.35rem;box-shadow:0 10px 30px rgba(0,0,0,.6);top:' + Math.max(8, r.top - 46) + 'px;left:' + Math.min(Math.max(8, r.left), window.innerWidth - 260) + 'px';
   p.innerHTML = _DM_EMOJI.map(function(em) {
     return '<button style="background:none;border:none;font-size:1.25rem;cursor:pointer;padding:.1rem" onclick="dmReact(\'' + msgId + '\',\'' + em + '\')">' + em + '</button>';
-  }).join('');
+  }).join('') +
+  (mine ? '<button style="background:none;border:none;font-size:1.05rem;cursor:pointer;padding:.1rem;border-left:1px solid var(--line);padding-left:.5rem" title="Unsend (10 min window)" onclick="dmUnsend(\'' + msgId + '\')">🗑</button>' : '');
   document.body.appendChild(p);
   setTimeout(function() {
     document.addEventListener('click', function h() { var x = document.getElementById('dm-react-picker'); if (x) x.remove(); }, { once: true });
   }, 60);
 }
+async function dmUnsend(msgId) {
+  var x = document.getElementById('dm-react-picker');
+  if (x) x.remove();
+  if (!confirm('Unsend this message? It disappears for both of you.')) return;
+  var res = await _sb.rpc('dm_unsend', { p_message: msgId });
+  var d = res.data || {};
+  if (res.error || !d.ok) {
+    showToast(d.reason === 'too_late' ? 'Unsend window is 10 minutes — this one\'s in the record now.' : 'Could not unsend.');
+    return;
+  }
+  var wrap = document.querySelector('.dm-wrap[data-msg="' + msgId + '"]');
+  if (wrap) wrap.remove();
+  showToast('Message unsent');
+}
+
 async function dmReact(msgId, emoji) {
   var x = document.getElementById('dm-react-picker');
   if (x) x.remove();
@@ -8509,7 +8568,17 @@ async function dmSendPhoto(input) {
   try {
     var modv = await _moderateMediaFile(f);
     if (!modv.ok) { showToast('🚫 That image violates PHX community guidelines.'); return; }
-    var path = await _dmUploadMedia(f, (f.name.split('.').pop() || 'jpg').toLowerCase());
+    // Downscale to 1600px before it flies — chat photos never need 12MB
+    var sendFile = f;
+    try {
+      var shrunk = await _downscaleToB64(f, 1600);
+      if (shrunk && shrunk.data && shrunk.data.length * 0.75 < f.size) {
+        var bin = atob(shrunk.data), arr = new Uint8Array(bin.length);
+        for (var bi = 0; bi < bin.length; bi++) arr[bi] = bin.charCodeAt(bi);
+        sendFile = new File([arr], 'photo.jpg', { type: 'image/jpeg' });
+      }
+    } catch (e) {}
+    var path = await _dmUploadMedia(sendFile, sendFile === f ? (f.name.split('.').pop() || 'jpg').toLowerCase() : 'jpg');
     var res = await _sb.rpc('dm_send', { p_thread: _dmThreadId, p_body: '', p_kind: 'image', p_media_path: path });
     if (res.error || !(res.data || {}).ok) { showToast('Could not send the photo.'); return; }
     if (typeof haptic === 'function') haptic(8);
@@ -8521,6 +8590,11 @@ var _dmRec = null, _dmRecChunks = [], _dmRecTimer = null, _dmMicStream = null;
 function _dmBindMic() {
   var btn = document.getElementById('dm-mic-btn');
   if (!btn || btn._bound) return;
+  // No MediaRecorder audio support (old iOS) → no dead button
+  var mimeOk = window.MediaRecorder && ['audio/mp4', 'audio/webm;codecs=opus', 'audio/webm'].some(function(t) {
+    return MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t);
+  });
+  if (!mimeOk) { btn.style.display = 'none'; return; }
   btn._bound = true;
   btn.addEventListener('pointerdown', function(e) { e.preventDefault(); _dmRecStart(btn); });
   ['pointerup', 'pointerleave', 'pointercancel'].forEach(function(ev) {
@@ -8674,6 +8748,40 @@ function _notifRealtime() {
   } catch (e) { reportFailure('notifRealtime', e); }
 }
 
+// ── NOTIFICATION PREFERENCES ────────────────────────────────────────────
+// Per-type mutes. Enforced server-side: my_notifications filters the list
+// and notify_push skips the push — a mute is a real mute, not a hidden row.
+var _NOTIF_TYPES = [
+  ['like', '❤️ Reactions on your posts'],
+  ['comment', '💬 Comments & replies'],
+  ['repost', '🔁 Reposts'],
+  ['follow', '➕ New followers'],
+  ['mention', '📣 Mentions'],
+  ['dm', '✉️ Direct messages'],
+  ['system', '🏙️ PHX & Plug Map updates']
+];
+async function openNotifPrefs() {
+  if (!requireAuthAction('Notification settings')) return;
+  var res = await _sb.from('profiles').select('notification_prefs').eq('id', _authUser.id).maybeSingle();
+  var prefs = (res.data && res.data.notification_prefs) || {};
+  _apModal('notif-prefs-modal',
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.8rem">' +
+      '<div style="font-weight:800;font-size:1.05rem">🔔 Notifications</div>' +
+      '<button onclick="document.getElementById(\'notif-prefs-modal\').style.display=\'none\'" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem">✕</button></div>' +
+    '<div style="font-size:.76rem;color:var(--muted);margin-bottom:.8rem">Muting a type silences the bell AND the phone push for it.</div>' +
+    _NOTIF_TYPES.map(function(t) {
+      var muted = prefs['mute_' + t[0]] === true;
+      return '<label style="display:flex;justify-content:space-between;align-items:center;padding:.55rem .1rem;border-bottom:1px solid var(--line);cursor:pointer;font-size:.86rem">' +
+        '<span>' + t[1] + '</span>' +
+        '<input type="checkbox" ' + (muted ? '' : 'checked') + ' style="accent-color:var(--orange);width:18px;height:18px" ' +
+          'onchange="setNotifPref(\'' + t[0] + '\', !this.checked)"></label>';
+    }).join(''));
+}
+async function setNotifPref(key, muted) {
+  await _sb.rpc('set_notification_pref', { p_key: key, p_muted: muted });
+  showToast(muted ? '🔕 Muted' : '🔔 On');
+}
+
 // ── HEADS-UP BANNER ─────────────────────────────────────────────────────
 // A new notification lands as a tappable banner wherever you are in the app
 // — Ash digests, DMs, likes, all of it. The 45s notification poll feeds it;
@@ -8736,7 +8844,23 @@ function renderNotifList(items) {
     return;
   }
   var verbs = { like: 'liked your post', comment: 'commented on your post', repost: 'reposted your post', follow: 'followed you', track_share: 'shared your track', system: 'sent a briefing', report_update: 'update on your report', dm: 'sent you a message', mention: 'mentioned you' };
+  // Group bursts: "A, B + 2 more liked your post" instead of four rows
+  var grouped = [];
+  items.forEach(function(n) {
+    var last = grouped[grouped.length - 1];
+    if (last && last.type === n.type && last.target_id === n.target_id &&
+        ['like', 'follow', 'repost'].indexOf(n.type) !== -1 && last.actor_name !== n.actor_name) {
+      last._extra = (last._extra || 0) + 1;
+      last._names = last._names || [last.actor_name];
+      if (last._names.length < 2) last._names.push(n.actor_name);
+      if (!n.is_read) last.is_read = false;
+      return;
+    }
+    grouped.push(Object.assign({}, n));
+  });
+  items = grouped;
   list.innerHTML = items.map(function(n) {
+    if (n._extra) n.actor_name = n._names.join(', ') + (n._extra > (n._names.length - 1) ? ' + ' + (n._extra - (n._names.length - 1)) + ' more' : '');
     var d = new Date(n.created_at);
     var diff = Math.floor((Date.now() - d.getTime()) / 60000);
     var when = diff < 1 ? 'now' : diff < 60 ? diff + 'm' : diff < 1440 ? Math.floor(diff/60) + 'h' : Math.floor(diff/1440) + 'd';
@@ -10200,8 +10324,41 @@ async function loadVenueImpact() {
     '<td style="font-weight:800">' + tot.going + '</td><td style="font-weight:800">' + tot.interested + '</td><td style="font-weight:800">' + tot.followers + '</td></tr>';
 }
 
+async function loadVerifyQueue() {
+  var el = document.getElementById('verify-queue');
+  var badge = document.getElementById('verify-count');
+  if (!el) return;
+  var res = await _sb.from('verification_requests').select('*').eq('status', 'pending').order('created_at');
+  var rows = res.data || [];
+  if (badge) badge.textContent = String(rows.length);
+  if (res.error || !rows.length) { el.innerHTML = '<div class="pf-empty">Nothing waiting.</div>'; return; }
+  // Resolve subject names in one go per type
+  var artistIds = rows.filter(function(r){ return r.subject_type === 'artist'; }).map(function(r){ return r.subject_id; });
+  var pageIds = rows.filter(function(r){ return r.subject_type === 'page'; }).map(function(r){ return r.subject_id; });
+  var names = {};
+  if (artistIds.length) (await _sb.from('artists').select('id,name').in('id', artistIds)).data.forEach(function(a){ names[a.id] = a.name; });
+  if (pageIds.length) (await _sb.from('pages').select('id,name').in('id', pageIds)).data.forEach(function(p){ names[p.id] = p.name; });
+  el.innerHTML = rows.map(function(r) {
+    return '<div style="display:flex;align-items:center;gap:.6rem;padding:.5rem 0;border-bottom:1px solid var(--line)">' +
+      '<div style="flex:1;min-width:0"><b style="font-size:.86rem">' + escapeHtml(names[r.subject_id] || r.subject_id.slice(0, 8)) + '</b>' +
+        ' <span style="font-size:.68rem;color:var(--muted)">' + r.subject_type + '</span>' +
+        (r.note ? '<div style="font-size:.72rem;color:var(--muted)">' + escapeHtml(r.note) + '</div>' : '') + '</div>' +
+      '<button class="tb-btn" style="font-size:.72rem;color:var(--green)" onclick="reviewVerify(\'' + r.id + '\', true, this)">✓ Verify</button>' +
+      '<button class="tb-btn" style="font-size:.72rem" onclick="reviewVerify(\'' + r.id + '\', false, this)">✕</button>' +
+    '</div>';
+  }).join('');
+}
+async function reviewVerify(id, approve, btn) {
+  btn.disabled = true;
+  var res = await _sb.rpc('review_verification', { p_request: id, p_approve: approve });
+  if (res.error || !(res.data || {}).ok) { btn.disabled = false; showToast('Could not save.'); return; }
+  showToast(approve ? '✓ Verified' : 'Declined');
+  loadVerifyQueue();
+}
+
 async function loadLaunchDesk() {
   loadVenueImpact();
+  loadVerifyQueue();
   loadShowRsvps();
   loadEventQueue();
   var res = await _sb.rpc('admin_launch_desk');
@@ -10595,6 +10752,10 @@ async function openProfileEditor() {
       '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">' +
         '<div style="font-weight:800;font-size:1.05rem">Edit profile</div>' +
         '<button onclick="closeProfileEditor()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem">✕</button></div>' +
+      '<label class="form-label">Profile photo</label>' +
+      '<input type="file" id="pe-avatar" accept="image/*" class="form-input" style="margin-bottom:.6rem">' +
+      '<label class="form-label">Banner photo</label>' +
+      '<input type="file" id="pe-banner" accept="image/*" class="form-input" style="margin-bottom:.6rem">' +
       '<label class="form-label">Username (your @handle)</label>' +
       '<div style="display:flex;align-items:center;gap:.4rem;margin-bottom:.15rem">' +
         '<span style="color:var(--orange);font-weight:800">@</span>' +
@@ -10621,12 +10782,33 @@ async function saveProfileEditor() {
     return;
   }
   if (msg) { msg.style.color = 'var(--muted)'; msg.textContent = 'Saving…'; }
+  var newAva = null, newBan = null;
+  try {
+    var upOne = async function(inputId, kind) {
+      var inp = document.getElementById(inputId);
+      var f = inp && inp.files && inp.files[0];
+      if (!f) return null;
+      var mv = await _moderateMediaFile(f);
+      if (!mv.ok) throw new Error('guidelines');
+      var path = _authUser.id + '/' + kind + '_' + Date.now() + '.' + (f.name.split('.').pop() || 'jpg');
+      var up = await _sb.storage.from('post-media').upload(path, f, { contentType: f.type, upsert: true });
+      if (up.error) throw new Error(up.error.message);
+      return _sb.storage.from('post-media').getPublicUrl(path).data.publicUrl;
+    };
+    newAva = await upOne('pe-avatar', 'avatar');
+    newBan = await upOne('pe-banner', 'banner');
+  } catch (e) {
+    if (msg) { msg.style.color = 'var(--red)'; msg.textContent = e.message === 'guidelines' ? '🚫 That image violates community guidelines.' : 'Image upload failed.'; }
+    return;
+  }
   var res = await _sb.rpc('update_my_profile', {
     p_user_id: _authUser.id,
     p_username: uname || null,
     p_display_name: (document.getElementById('pe-display')||{}).value || null,
     p_city: (document.getElementById('pe-city')||{}).value || null,
-    p_bio: (document.getElementById('pe-bio')||{}).value || null
+    p_bio: (document.getElementById('pe-bio')||{}).value || null,
+    p_avatar_url: newAva,
+    p_banner_url: newBan
   });
   var d = res.data || {};
   if (res.error || !d.ok) {
@@ -12260,6 +12442,7 @@ async function showMemberPage(userId) {
                 '<button class="pf-btn' + (following ? ' on' : '') + '" onclick="toggleFollowUI(\'user\',\'' + userId + '\',this)">' +
                   (following ? '✓ Following' : '+ Follow') + '</button>' +
                 '<button class="pf-btn" onclick="dmStart(\'' + userId + '\')">✉️ Message</button>' +
+                '<button class="pf-btn" onclick="showProfileQR(\'' + userId + '\',\'' + escapeHtml(name).replace(/'/g, '') + '\')">▦ QR</button>' +
               '</div>') +
           '<div class="pf-stats">' + statBits.join('<span class="dot">·</span>') + '</div>' +
           (p.bio ? '<div class="pf-bio">' + escapeHtml(p.bio) + '</div>' : '') +
@@ -15058,6 +15241,21 @@ async function submitInquiry() {
       '<button class="pf-btn" style="margin-top:1.1rem" onclick="closeInquiryForm()">Close</button></div>';
 }
 
+// QR card: scan-at-the-show profile sharing (IG nametag pattern)
+function showProfileQR(userId, name) {
+  var link = SITE_URL + '/app#member/' + userId;
+  _apModal('qr-modal',
+    '<div style="text-align:center;padding:.4rem 0">' +
+      '<div style="font-weight:800;font-size:1.05rem;margin-bottom:.8rem">' + escapeHtml(name || 'PHX profile') + '</div>' +
+      '<div style="background:#fff;border-radius:16px;padding:14px;display:inline-block">' +
+        '<img src="https://api.qrserver.com/v1/create-qr-code/?size=220x220&color=0B0B14&data=' + encodeURIComponent(link) + '" width="220" height="220" alt="QR code" style="display:block">' +
+      '</div>' +
+      '<div style="font-size:.74rem;color:var(--muted);margin:.8rem 0">Point a camera at it — lands on this profile.</div>' +
+      '<button class="pf-btn" style="margin:0 auto" onclick="navigator.clipboard&&navigator.clipboard.writeText(\'' + link + '\');showToast(\'Link copied\')">🔗 Copy link</button>' +
+      '<button class="pf-btn" style="margin:.5rem auto 0" onclick="document.getElementById(\'qr-modal\').style.display=\'none\'">Close</button>' +
+    '</div>');
+}
+
 function sharePageProfile(slug, name) {
   var url = window.location.origin + '/app#page/' + slug;
   if (navigator.share) {
@@ -15879,6 +16077,7 @@ function openArtistEditor() {
     '</div></div>' +
     '<label class="form-label">About</label>' +
     '<textarea class="form-input" id="ae-bio" rows="8" maxlength="4000" style="margin-bottom:.8rem;resize:vertical">' + escapeHtml(a.bio || '') + '</textarea>' +
+    (a.verified ? '' : '<button class="pf-btn" style="width:100%;justify-content:center;margin-bottom:.6rem" onclick="requestVerification(\'artist\',\'' + a.id + '\', this)">✓ Request verification</button>') +
     '<button class="upgrade-btn" style="width:100%;margin:0" onclick="saveArtistEditor()">Save</button>' +
     '<div id="ae-msg" style="font-size:.78rem;color:var(--muted);margin-top:.55rem;min-height:1em"></div>');
 }
@@ -15927,6 +16126,19 @@ async function saveArtistEditor() {
   } catch (e) {
     if (msg) { msg.style.color = 'var(--red)'; msg.textContent = 'Could not save: ' + e.message; }
   }
+}
+
+async function requestVerification(type, id, btn) {
+  if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
+  var res = await _sb.rpc('request_verification', { p_subject_type: type, p_subject_id: id });
+  var d = res.data || {};
+  if (res.error || !d.ok) {
+    if (btn) { btn.disabled = false; btn.textContent = '✓ Request verification'; }
+    showToast(d.reason === 'already_pending' ? 'A request is already waiting for review.' : 'Could not send the request.');
+    return;
+  }
+  if (btn) btn.textContent = '✓ Request sent — PHX will review';
+  showToast('✓ Verification request sent');
 }
 
 async function removeArtistHeroVideo() {
@@ -16978,6 +17190,8 @@ function _routeProfileHash(delay) {
   if (pl) { setTimeout(function(){ showSharedPlaylist(pl[1]); }, delay || 0); return true; }
   var vn = window.location.hash.match(/^#venue\/([0-9a-f-]{36})$/);
   if (vn) { setTimeout(function(){ showVenuePage(vn[1]); }, delay || 0); return true; }
+  var mb = window.location.hash.match(/^#member\/([0-9a-f-]{36})$/);
+  if (mb) { setTimeout(function(){ showMemberPage(mb[1]); }, delay || 0); return true; }
   return false;
 }
 _whenDomReady(function(){ _routeProfileHash(300); });
