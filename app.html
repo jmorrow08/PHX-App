@@ -988,6 +988,8 @@ body[data-daypart="night"]{--orange:#F26312;--orange-l:#F98B4A;--orange-d:#C2410
 .reel video{width:100%;height:100%;object-fit:contain;background:#000}
 .reel-overlay{position:absolute;left:0;right:0;bottom:0;padding:1rem;background:linear-gradient(transparent,rgba(0,0,0,.75));display:flex;align-items:flex-end;gap:.75rem}
 .reel-info{flex:1;min-width:0}
+.reel-sound{font-size:.72rem;color:#fff;opacity:.85;margin-top:.3rem;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:230px}
+.reel-sound:hover{opacity:1}
 .reel-author{display:flex;align-items:center;gap:.4rem;font-family:var(--disp);font-size:.9rem;font-weight:600;color:#fff;margin-bottom:.2rem}
 .reel-caption{font-size:.8rem;color:rgba(255,255,255,.85);overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 .reel-actions{display:flex;flex-direction:column;gap:.9rem;align-items:center}
@@ -2541,7 +2543,9 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
     <div style="display:flex;justify-content:center;gap:.5rem;margin:.55rem 0 0">
       <button class="pf-btn" id="automix-toggle" style="font-size:.7rem;padding:.32rem .85rem" onclick="toggleAutoMix()">∿ AutoMix</button>
       <button class="pf-btn" id="sleep-btn" style="font-size:.7rem;padding:.32rem .85rem" onclick="cycleSleepTimer()">🌙 Sleep: Off</button>
+      <button class="pf-btn" id="lyrics-btn" style="font-size:.7rem;padding:.32rem .85rem" onclick="toggleLyrics()">📜 Lyrics</button>
     </div>
+    <div id="lyrics-panel" style="display:none;background:var(--bg3);border:1px solid var(--line);border-radius:14px;padding:.9rem 1rem;margin-top:.7rem;max-height:38vh;overflow-y:auto;font-size:.9rem;line-height:1.8;white-space:pre-wrap;color:var(--white)"></div>
     <div class="sh" style="margin:1rem 0 .4rem"><h3 style="font-size:.82rem">Up Next</h3><span style="font-size:.7rem;color:var(--muted);margin-left:auto" id="queue-count">—</span></div>
     <div class="track-list queue-list" id="queue-list"><div class="pf-empty">Play something and the queue builds itself.</div></div>
     <div class="sh" style="margin:1rem 0 .4rem"><h3 style="font-size:.82rem">Recently Played</h3></div>
@@ -7275,8 +7279,8 @@ async function toggleCommentLike(commentId) {
   }
 }
 
-async function loadComments(postId) {
-  var box = document.getElementById('comments-' + postId);
+async function loadComments(postId, boxOverride) {
+  var box = boxOverride || document.getElementById('comments-' + postId);
   if (!box) return;
   var { data } = await _sb.from('post_comments')
     .select('*').eq('post_id', postId)
@@ -11744,6 +11748,32 @@ function _syncAutoMixBtn() {
 }
 _whenDomReady(_syncAutoMixBtn);
 
+// ── LYRICS ─────────────────────────────────────────────────────────────
+// Artist-entered words (track editor), shown in the expanded player.
+var _lyricsShownFor = null;
+async function toggleLyrics() {
+  var panel = document.getElementById('lyrics-panel');
+  var btn = document.getElementById('lyrics-btn');
+  if (!panel) return;
+  if (panel.style.display !== 'none') {
+    panel.style.display = 'none';
+    if (btn) btn.classList.remove('on');
+    return;
+  }
+  panel.style.display = 'block';
+  if (btn) btn.classList.add('on');
+  var uuid = typeof currentTrackUuid === 'function' ? currentTrackUuid() : null;
+  if (!uuid) { panel.textContent = 'Play a song first.'; return; }
+  if (_lyricsShownFor !== uuid) {
+    panel.textContent = 'Loading…';
+    var res = await _sb.from('tracks').select('lyrics,title').eq('id', uuid).maybeSingle();
+    _lyricsShownFor = uuid;
+    panel.textContent = (res.data && res.data.lyrics)
+      ? res.data.lyrics
+      : 'No lyrics for this one yet — artists add them in the track editor.';
+  }
+}
+
 // ── SLEEP TIMER ────────────────────────────────────────────────────────
 // Tap to cycle Off → 15 → 30 → 60 minutes; when it fires the music pauses.
 var _sleepTimer = null, _SLEEP_STEPS = [0, 15, 30, 60], _sleepIdx = 0;
@@ -13141,21 +13171,29 @@ async function exportClipWatermarked(postId, mediaUrl, authorName) {
 async function loadReels(scrollToPost) {
   var container = document.getElementById('reels-container');
   if (!container) return;
-  var res = await _sb.from('feed_posts')
-    .select('id,user_id,page_id,author_name,author_avatar,content,likes_count,comments_count,media_url,created_at')
+  var resQ = _sb.from('feed_posts')
+    .select('id,user_id,page_id,author_name,author_avatar,content,likes_count,comments_count,media_url,created_at,track_id,tracks(id,title,artists(name))')
     .not('media_url', 'is', null)
     .eq('is_hidden', false)
     .order('created_at', { ascending: false })
     .limit(30);
+  if (window._reelsTrackFilter) resQ = resQ.eq('track_id', window._reelsTrackFilter);
+  var res = await resQ;
   var videos = (res.data || []).filter(function(p){ return /\.(mp4|webm|mov)(\?|$)/i.test(p.media_url || ''); });
   try { await resolveAuthorAvatars(videos); } catch (e) { reportFailure('loadReels', e); }
 
   if (!videos.length) {
-    container.innerHTML = '<div class="reels-empty">🎬 No clips yet.<br><br>Post a video from the City Feed composer — camera or upload — and it lands here.</div>';
+    container.innerHTML = '<div class="reels-empty">' + (window._reelsTrackFilter
+      ? '♫ No clips use this sound yet.<br><br><button class="pf-btn" onclick="clearSoundFilter()">Show all clips</button>'
+      : '🎬 No clips yet.<br><br>Post a video from the City Feed composer — camera or upload — and it lands here.') + '</div>';
     return;
   }
+  var soundChip = window._reelsTrackFilter
+    ? '<div style="position:fixed;top:calc(16px + env(safe-area-inset-top,0px));left:60px;right:60px;z-index:95;display:flex;justify-content:center;pointer-events:none">' +
+        '<button style="pointer-events:auto;background:rgba(7,7,15,.72);border:1px solid rgba(249,115,22,.45);border-radius:999px;color:#fff;font-size:.72rem;font-weight:700;padding:.35rem .8rem;cursor:pointer;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" onclick="clearSoundFilter()">♫ ' + escapeHtml(window._reelsTrackName || 'this sound') + ' · ✕</button></div>'
+    : '';
 
-  container.innerHTML = videos.map(function(p) {
+  container.innerHTML = soundChip + videos.map(function(p) {
     var liked = !!_myPostLikes[p.id];
     return '<div class="reel" data-post="' + p.id + '">' +
       '<video src="' + p.media_url + '" loop playsinline preload="metadata" ' +
@@ -13170,6 +13208,7 @@ async function loadReels(scrollToPost) {
                        escapeHtml(String(p.author_name||'').replace(/["\'\\]/g,'')) + '&quot;)"') +
             '<span>' + escapeHtml(p.author_name) + '</span></div>' +
           '<div class="reel-caption">' + escapeHtml(p.content||'') + '</div>' +
+          (p.tracks ? '<div class="reel-sound" onclick="event.stopPropagation();openSoundClips(\'' + p.track_id + '\',\'' + escapeHtml((p.tracks.title || '') + (p.tracks.artists ? ' — ' + p.tracks.artists.name : '')).replace(/'/g, '') + '\')">♫ ' + escapeHtml(p.tracks.title || '') + (p.tracks.artists ? ' — ' + escapeHtml(p.tracks.artists.name) : '') + '</div>' : '') +
         '</div>' +
         '<div class="reel-actions">' +
           '<span class="react-slot" style="position:relative;display:inline-block">' +
@@ -13177,7 +13216,7 @@ async function loadReels(scrollToPost) {
             'onpointerdown="reactHoldStart(\'' + p.id + '\', event)" onpointerup="reactHoldEnd(event)" onpointerleave="reactHoldCancel()" ' +
             'oncontextmenu="return false">' + (liked ? (REACTION_EMOJI[_myPostLikes[p.id]] || '🔥') : '🤍') + '<span id="reel-like-count-' + p.id + '">' + (p.likes_count||0) + '</span></button>' +
           '<span class="react-bar-slot"></span></span>' +
-          '<button class="reel-act" onclick="openPostFromDiscover(\'' + p.id + '\')">💬<span>' + (p.comments_count||0) + '</span></button>' +
+          '<button class="reel-act" onclick="openClipComments(\'' + p.id + '\')">💬<span>' + (p.comments_count||0) + '</span></button>' +
           '<button class="reel-act" onclick="shareFeedPost(\'' + p.id + '\')">↗<span>Share</span></button>' +
           '<button class="reel-act" onclick="exportClipWatermarked(\'' + p.id + '\', \'' + escapeHtml(p.media_url) + '\', \'' + escapeHtml(p.author_name || 'PHX').replace(/'/g, '') + '\')">⬇<span>Save</span></button>' +
         '</div>' +
@@ -13227,6 +13266,47 @@ async function loadReels(scrollToPost) {
 // Any video card in the feed opens the Clips player at that clip.
 // showView('reels') triggers loadReels() via the router; the pending var
 // carries the jump target through that call.
+// ── SOUND ATTRIBUTION: "this sound" — every clip using a track ─────────
+function openSoundClips(trackId, label) {
+  window._reelsTrackFilter = trackId;
+  window._reelsTrackName = label || 'this sound';
+  if (typeof haptic === 'function') haptic(8);
+  loadReels();
+}
+function clearSoundFilter() {
+  window._reelsTrackFilter = null;
+  window._reelsTrackName = null;
+  loadReels();
+}
+
+// ── IN-PLAYER COMMENTS: the scroll session never ends ──────────────────
+function openClipComments(postId) {
+  var w = document.getElementById('clip-comments-sheet');
+  if (!w) {
+    w = document.createElement('div');
+    w.id = 'clip-comments-sheet';
+    w.style.cssText = 'position:fixed;left:0;right:0;bottom:0;z-index:95;display:none;background:var(--bg2);border-top:1px solid var(--border);border-radius:18px 18px 0 0;max-height:62vh;overflow-y:auto;padding:.8rem 1rem calc(1rem + env(safe-area-inset-bottom,0px));box-shadow:0 -14px 44px rgba(0,0,0,.6)';
+    document.body.appendChild(w);
+  }
+  w.style.display = 'block';
+  w.innerHTML =
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.6rem">' +
+      '<div style="font-weight:800;font-size:.95rem">💬 Comments</div>' +
+      '<button class="psh-btn" style="width:30px;height:30px;font-size:.85rem" onclick="document.getElementById(\'clip-comments-sheet\').style.display=\'none\'">✕</button>' +
+    '</div>' +
+    '<div id="clip-comments-box"><div class="pf-empty">Loading…</div></div>';
+  var box = document.getElementById('clip-comments-box');
+  loadComments(postId, box);
+  if (!w._swipeBound) {
+    w._swipeBound = true;
+    w.addEventListener('touchstart', function(e){ var t = e.touches[0]; if (t) w._sy = t.clientY; }, { passive: true });
+    w.addEventListener('touchend', function(e){
+      var t = e.changedTouches[0];
+      if (t && w._sy != null && t.clientY - w._sy > 80 && w.scrollTop <= 0) w.style.display = 'none';
+    }, { passive: true });
+  }
+}
+
 var _pendingClipScroll = null;
 function openClipAt(postId) {
   _pendingClipScroll = postId;
@@ -14963,7 +15043,9 @@ function openTrackEditor(trackId) {
       '<option value="insider"' + (t.exclusive_tier === 'insider' ? ' selected' : '') + '>Insider pass only</option>' +
     '</select>' +
     '<label class="form-label">Audio ' + (t.audio_url ? '<span style="color:var(--green)">· uploaded ✓</span>' : '<span style="color:var(--faint)">· none yet</span>') + '</label>' +
-    '<input type="file" id="te-audio" accept="audio/*" class="form-input" style="margin-bottom:.9rem">' +
+    '<input type="file" id="te-audio" accept="audio/*" class="form-input" style="margin-bottom:.6rem">' +
+    '<label class="form-label">Lyrics <span style="color:var(--faint);font-size:.68rem">shown in the player</span></label>' +
+    '<textarea class="form-input" id="te-lyrics" rows="5" maxlength="8000" placeholder="Paste the words…" style="margin-bottom:.9rem;resize:vertical">' + escapeHtml(t.lyrics || '') + '</textarea>' +
     '<button class="upgrade-btn" style="width:100%;margin:0 0 .5rem" onclick="saveTrackEditor(\'' + t.id + '\')">Save</button>' +
     '<button class="pf-btn" style="width:100%;color:var(--red);border-color:rgba(239,68,68,.4)" onclick="deleteTrack(\'' + t.id + '\')">Delete track</button>' +
     '<div id="te-msg" style="font-size:.78rem;color:var(--muted);margin-top:.55rem;min-height:1em"></div>');
@@ -14978,7 +15060,8 @@ async function saveTrackEditor(trackId) {
       featuring: (document.getElementById('te-feat') || {}).value || null,
       album_id: (document.getElementById('te-album') || {}).value || null,
       track_number: parseInt((document.getElementById('te-num') || {}).value, 10) || null,
-      exclusive_tier: (document.getElementById('te-tier') || {}).value || null
+      exclusive_tier: (document.getElementById('te-tier') || {}).value || null,
+      lyrics: ((document.getElementById('te-lyrics') || {}).value || '').trim() || null
     };
     // First Listen is a window; favorites-only and the tier gates are open-ended
     patch.exclusive_until = patch.exclusive_tier === 'first_listen' ? new Date(Date.now() + 172800000).toISOString() : null;
@@ -15400,12 +15483,51 @@ async function openPlaylist(plId, plName) {
     .eq('playlist_id', plId).order('added_at');
   var rows = (res.data || []).filter(function(l){ return l.tracks; });
   _libSheetTracks = rows.map(function(l){ return l.tracks; });
-  _openLibSheet('🎧 ' + plName, rows.length
-    ? rows.map(function(l) {
-        return _libTrackRow(l.tracks,
-          '<button class="trk-add" aria-label="Remove" onclick="event.stopPropagation();removeFromPlaylist(\'' + plId + '\',\'' + l.tracks.id + '\',\'' + escapeHtml(plName).replace(/'/g, '&#39;') + '\')">✕</button>');
-      }).join('')
-    : '<div class="pf-empty">Empty playlist — use ＋ on any song in the catalog.</div>', rows.length > 0);
+  var nameEsc = escapeHtml(plName).replace(/'/g, '&#39;');
+  _openLibSheet('🎧 ' + plName,
+    '<div style="display:flex;gap:.5rem;margin-bottom:.6rem;flex-wrap:wrap">' +
+      '<button class="pf-btn" style="font-size:.74rem" onclick="sharePlaylist(\'' + plId + '\',\'' + nameEsc + '\')">↗ Share playlist</button>' +
+      '<button class="pf-btn" style="font-size:.74rem;color:var(--red);border-color:rgba(239,68,68,.35)" onclick="deletePlaylistConfirm(\'' + plId + '\')">🗑️</button>' +
+    '</div>' +
+    (rows.length
+      ? rows.map(function(l) {
+          return _libTrackRow(l.tracks,
+            '<button class="trk-add" aria-label="Remove" onclick="event.stopPropagation();removeFromPlaylist(\'' + plId + '\',\'' + l.tracks.id + '\',\'' + nameEsc + '\')">✕</button>');
+        }).join('')
+      : '<div class="pf-empty">Empty playlist — use ＋ on any song in the catalog.</div>'), rows.length > 0);
+}
+// Sharing makes it public (that's what a link means) and hands out the URL
+async function sharePlaylist(plId, plName) {
+  var up = await _sb.from('playlists').update({ is_public: true }).eq('id', plId).eq('user_id', _authUser.id);
+  if (up.error) { showToast('Could not share this playlist.'); return; }
+  var url = SITE_URL + '/app#playlist/' + plId;
+  if (navigator.share) navigator.share({ title: plName + ' — a PHX playlist', text: 'My PHX playlist: ' + plName, url: url }).catch(function(){});
+  else if (navigator.clipboard) { navigator.clipboard.writeText(url); showToast('🔗 Public link copied'); }
+}
+async function deletePlaylistConfirm(plId) {
+  if (!confirm('Delete this playlist? The songs stay in the catalog.')) return;
+  await _sb.from('playlist_tracks').delete().eq('playlist_id', plId);
+  var res = await _sb.from('playlists').delete().eq('id', plId).eq('user_id', _authUser.id);
+  if (res.error) { showToast('Could not delete.'); return; }
+  closeLibSheet();
+  showToast('Playlist deleted');
+  loadMyLibrary();
+}
+// A shared link opens anyone's PUBLIC playlist, playable on the spot
+async function showSharedPlaylist(plId) {
+  var pl = await _sb.from('playlists').select('id,name,is_public,user_id').eq('id', plId).maybeSingle();
+  if (!pl.data || !pl.data.is_public) {
+    if (pl.data && _authUser && pl.data.user_id === _authUser.id) { openPlaylist(plId, pl.data.name); return; }
+    showToast('That playlist is private or gone.');
+    return;
+  }
+  var res = await _sb.from('playlist_tracks').select('track_id,tracks(id,title,cover_url,audio_url,stream_count,artists(name,slug))')
+    .eq('playlist_id', plId).order('added_at');
+  var rows = (res.data || []).filter(function(l){ return l.tracks; });
+  _libSheetTracks = rows.map(function(l){ return l.tracks; });
+  _openLibSheet('🎧 ' + pl.data.name, rows.length
+    ? rows.map(function(l){ return _libTrackRow(l.tracks); }).join('')
+    : '<div class="pf-empty">This playlist is empty.</div>', rows.length > 0);
 }
 // Featured artist: play their catalog top-down as the queue
 async function playSpotlightTop(btn) {
@@ -15857,6 +15979,8 @@ function _routeProfileHash(delay) {
   if (p) { setTimeout(function(){ showPageProfile(p[1]); }, delay || 0); return true; }
   var ev = window.location.hash.match(/^#event\/(show|event)\/([0-9a-f-]{36})$/);
   if (ev) { setTimeout(function(){ showEventPage(ev[1], ev[2]); }, delay || 0); return true; }
+  var pl = window.location.hash.match(/^#playlist\/([0-9a-f-]{36})$/);
+  if (pl) { setTimeout(function(){ showSharedPlaylist(pl[1]); }, delay || 0); return true; }
   return false;
 }
 _whenDomReady(function(){ _routeProfileHash(300); });
