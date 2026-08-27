@@ -627,6 +627,7 @@ body[data-daypart="night"]{--orange:#F26312;--orange-l:#F98B4A;--orange-d:#C2410
 .pm-seg button{border:none;background:transparent;border-radius:999px;padding:.38rem .78rem;font-size:.73rem;font-weight:600;color:var(--muted);cursor:pointer;white-space:nowrap;font-family:inherit;display:inline-flex;align-items:center;gap:.32rem;transition:background .15s,color .15s;touch-action:manipulation}
 .pm-seg button.on{background:rgba(249,115,22,.16);color:var(--orange)}
 /* Zoomed-out clusters: neutral counters, tap to dive in */
+@keyframes reel-heart{0%{opacity:0;transform:translate(-50%,-50%) scale(.4)}25%{opacity:1;transform:translate(-50%,-50%) scale(1.15)}70%{opacity:1}100%{opacity:0;transform:translate(-50%,-80%) scale(1)}}
 .pm-cluster{min-width:32px;height:32px;border-radius:50%;background:rgba(12,12,22,.94);border:2px solid var(--orange);color:#fff;display:flex;align-items:center;justify-content:center;font:800 .8rem var(--disp);box-shadow:0 4px 14px rgba(0,0,0,.55);padding:0 5px;cursor:pointer}
 /* Venue pins: colored by what's happening there, count badge when stacked */
 .pm-pin{width:20px;height:20px;border-radius:50%;border:2.5px solid rgba(7,7,15,.9);box-shadow:0 3px 10px rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;font:800 .68rem var(--disp);color:#0B0B14}
@@ -1795,6 +1796,11 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
     <div class="view" id="v-artist-analytics">
       <!-- Deep analytics — Full/Headline artists (tier-gated by artist_analytics RPC) -->
       <div id="artist-deep-analytics" style="margin-bottom:1.2rem"><div class="pf-empty">Loading…</div></div>
+      <div class="card" style="margin-bottom:1.2rem">
+        <div class="sh" style="margin-bottom:.6rem"><h3>🎬 Your clips</h3>
+          <button class="tb-btn" style="margin-left:auto;font-size:.74rem;padding:.28rem .6rem" onclick="loadClipStats()">↻</button></div>
+        <div id="artist-clip-stats"><div class="pf-empty">Loading…</div></div>
+      </div>
       <div class="a-stat-grid">
         <div class="a-stat"><div class="a-stat-val" style="color:var(--teal)" id="artist-streams-mom">—</div><div class="a-stat-label">Streams vs Last Month</div></div>
         <div class="a-stat"><div class="a-stat-val" style="color:var(--orange)" id="artist-nativeplus-pct">—</div><div class="a-stat-label">Native+ Listeners</div></div>
@@ -2595,7 +2601,7 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
       <button class="ps-side-btn" id="np-like-btn" title="Like song" onclick="toggleCurrentTrackLike()">♥</button>
       <button class="ps-side-btn" title="Share to City Feed" onclick="shareCurrentTrackToFeed()">↗</button>
     </div>
-    <div style="font-size:.68rem;color:var(--faint);margin-bottom:.6rem">This track: <span id="current-stream-count">0</span> streams</div>
+    <div style="font-size:.68rem;color:var(--faint);margin-bottom:.6rem">This track: <span id="current-stream-count">0</span> streams<span id="np-citynow" style="color:var(--orange-l)"></span></div>
     <input type="range" class="seek" id="ps-seek" min="0" max="1000" value="0" aria-label="Seek">
     <div class="progress-times" style="margin-bottom:.5rem"><span id="elapsed-time">0:00</span><span id="total-time">0:00</span></div>
     <div class="ps-controls">
@@ -2608,12 +2614,13 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
     <div style="display:flex;justify-content:center;gap:.5rem;margin:.55rem 0 0">
       <button class="pf-btn" id="automix-toggle" style="font-size:.7rem;padding:.32rem .85rem" onclick="toggleAutoMix()">∿ AutoMix</button>
       <button class="pf-btn" id="sleep-btn" style="font-size:.7rem;padding:.32rem .85rem" onclick="cycleSleepTimer()">🌙 Sleep: Off</button>
+      <button class="pf-btn" id="mix-secs-btn" style="font-size:.7rem;padding:.32rem .6rem" title="Crossfade length" onclick="cycleMixSeconds()">6s</button>
       <button class="pf-btn" id="lyrics-btn" style="font-size:.7rem;padding:.32rem .85rem" onclick="toggleLyrics()">📜 Lyrics</button>
     </div>
     <div id="lyrics-panel" style="display:none;background:var(--bg3);border:1px solid var(--line);border-radius:14px;padding:.9rem 1rem;margin-top:.7rem;max-height:38vh;overflow-y:auto;font-size:.9rem;line-height:1.8;white-space:pre-wrap;color:var(--white)"></div>
     <div class="sh" style="margin:1rem 0 .4rem"><h3 style="font-size:.82rem">Up Next</h3><span style="font-size:.7rem;color:var(--muted);margin-left:auto" id="queue-count">—</span></div>
     <div class="track-list queue-list" id="queue-list"><div class="pf-empty">Play something and the queue builds itself.</div></div>
-    <div class="sh" style="margin:1rem 0 .4rem"><h3 style="font-size:.82rem">Recently Played</h3></div>
+    <div class="sh" style="margin:1rem 0 .4rem"><h3 style="font-size:.82rem">Recently Played</h3><a href="#" style="margin-left:auto;font-size:.7rem;color:var(--muted)" onclick="openListenHistory();return false">See all →</a></div>
     <div class="track-list" id="ps-recent"></div>
   </div>
 </div>
@@ -2901,6 +2908,23 @@ function openFullPlayer() {
   if (typeof renderPlayerSheet === 'function') renderPlayerSheet();
   m.style.display = 'flex';
   if (typeof startEmber === 'function') startEmber();
+  _npCityNow();
+}
+// The live-pulse chip rides along in the expanded player too
+async function _npCityNow() {
+  var el = document.getElementById('np-citynow');
+  if (!el || !_authUser) return;
+  el.textContent = '';
+  var uuid = typeof currentTrackUuid === 'function' ? currentTrackUuid() : null;
+  if (!uuid) return;
+  try {
+    var t = await _sb.from('tracks').select('artist_id').eq('id', uuid).maybeSingle();
+    if (!t.data || !t.data.artist_id) return;
+    var res = await _sb.rpc('artist_city_now', { p_artist_id: t.data.artist_id });
+    var d = res.data || {};
+    if (d.ok && (d.now || 0) >= 2) el.textContent = ' · 🔥 ' + d.now + ' in the city right now';
+    else if (d.ok && (d.today || 0) >= 2) el.textContent = ' · 🎧 ' + d.today + ' in the city today';
+  } catch (e) {}
 }
 
 // ── LISTENING EMBER ────────────────────────────────────────────────────
@@ -2980,7 +3004,7 @@ var titles = {
 // behind it converts far worse than a page that shows the artist and THEN
 // asks you to join. Everything else needs an account.
 // ═══════════════════════════════════════════════════════════════════════
-var PUBLIC_VIEWS = ['artist-page', 'page-profile', 'artist-directory', 'member-page', 'event-page'];
+var PUBLIC_VIEWS = ['artist-page', 'page-profile', 'artist-directory', 'member-page', 'event-page', 'venue-page'];
 
 // The signed-out destination. Not a dead end: artist pages stay public
 // because that's the whole funnel — someone taps a link in Murkemz's bio,
@@ -3192,6 +3216,7 @@ function showView(id) {
   if (id === 'admin-analytics') { loadAdminAnalytics(); loadAdminEngagement(); }
   if (id === 'music') { loadMusicCatalog(); loadListeningWent(); loadMyRotation(); _mountRecapEntry(); }
   if (id === 'messages') { if (!_dmThreadId) dmShowInbox(); }
+  if (id === 'artist-analytics') loadClipStats();
   if (id === 'artist-submit') populateGenreSelect();
   if (id === 'reels') loadReels();
   else pauseAllReels();
@@ -3442,7 +3467,7 @@ function setRole(role) {
   // async, so without this check it landed AFTER deep-link routing and yanked
   // people off the page they were sent to, straight into the join sheet.
   var pathname = (window.location.pathname || '').replace(/\/$/, '');
-  var onPublicDeepLink = /^#(artist|page|event)\//.test(window.location.hash || '') ||
+  var onPublicDeepLink = /^#(artist|page|event|playlist|venue)\//.test(window.location.hash || '') ||
     (/^\/[a-z0-9][a-z0-9._-]{1,40}$/i.test(pathname) &&
      ['/app', '/index', '/legal', '/app.html', '/index.html'].indexOf(pathname.toLowerCase()) === -1);
   // Navigate only when the role genuinely changed or this is the boot nav —
@@ -6377,9 +6402,7 @@ function closePostSheet(force) {
   if (!w) return;
   if (!force && _postSheetHasWork()) {
     var note = document.getElementById('post-draft-note');
-    if (note) note.textContent = _composerMediaFile
-      ? 'Your words and song save as a draft. The attached ' + (/^video\//.test(_composerMediaFile.type) ? 'video' : 'photo') + ' stays only until the app is closed — re-attach it if you come back later.'
-      : 'Save it as a draft and it\'ll be waiting next time you tap the box.';
+    if (note) note.textContent = 'Save it as a draft — words, song and attachment will all be waiting next time you tap the box.';
     var ask = document.getElementById('post-draft-ask');
     if (ask) ask.style.display = 'flex';
     return;
@@ -6402,16 +6425,50 @@ function postDraftDiscard() {
   _postSheetHide(true);
   _refreshComposerTrigger();
 }
+// Media survives app closes via IndexedDB (localStorage can't hold a video)
+function _draftDb() {
+  return new Promise(function(resolve) {
+    var rq = indexedDB.open('phx-drafts', 1);
+    rq.onupgradeneeded = function() { rq.result.createObjectStore('media'); };
+    rq.onsuccess = function() { resolve(rq.result); };
+    rq.onerror = function() { resolve(null); };
+  });
+}
+async function _draftMediaSave(file) {
+  try {
+    var db = await _draftDb();
+    if (!db) return;
+    var tx = db.transaction('media', 'readwrite');
+    if (file) tx.objectStore('media').put({ blob: file, name: file.name, type: file.type }, 'current');
+    else tx.objectStore('media').delete('current');
+  } catch (e) {}
+}
+function _draftMediaLoad() {
+  return new Promise(function(resolve) {
+    _draftDb().then(function(db) {
+      if (!db) return resolve(null);
+      try {
+        var rq = db.transaction('media').objectStore('media').get('current');
+        rq.onsuccess = function() { resolve(rq.result || null); };
+        rq.onerror = function() { resolve(null); };
+      } catch (e) { resolve(null); }
+    });
+  });
+}
 function _savePostDraft() {
   var t = document.getElementById('composer-text');
   var sel = document.getElementById('composer-track');
   try {
     localStorage.setItem('phx_post_draft', JSON.stringify({
-      text: (t ? t.value : ''), track: (sel && sel.value) || '', ts: Date.now()
+      text: (t ? t.value : ''), track: (sel && sel.value) || '', ts: Date.now(), hasMedia: !!_composerMediaFile
     }));
   } catch (e) {}
+  _draftMediaSave(_composerMediaFile || null);
 }
-function _clearPostDraft() { try { localStorage.removeItem('phx_post_draft'); } catch (e) {} }
+function _clearPostDraft() {
+  try { localStorage.removeItem('phx_post_draft'); } catch (e) {}
+  _draftMediaSave(null);
+}
 function _restorePostDraft() {
   var raw = null;
   try { raw = localStorage.getItem('phx_post_draft'); } catch (e) {}
@@ -6421,6 +6478,15 @@ function _restorePostDraft() {
     var t = document.getElementById('composer-text');
     if (t && d.text) { t.value = d.text; _postTextGrow(t); }
     if (d.track) { populateComposerTracks().then(function(){ pickComposerTrack(d.track); }); }
+    if (d.hasMedia && !_composerMediaFile) {
+      _draftMediaLoad().then(function(rec) {
+        if (!rec || !rec.blob) return;
+        _composerMediaFile = new File([rec.blob], rec.name || 'draft-media', { type: rec.type || rec.blob.type });
+        var nameEl = document.getElementById('composer-media-name');
+        if (nameEl) { nameEl.textContent = '✓ ' + (rec.name || 'attachment') + ' (restored from draft)'; nameEl.style.color = 'var(--green)'; nameEl.style.display = 'block'; }
+        renderMediaPreview();
+      });
+    }
     showToast('📝 Draft restored');
   } catch (e) { _clearPostDraft(); }
 }
@@ -11726,6 +11792,8 @@ function _isPublicProfileRoute() {
   if (slug && ['app','index','legal','admin','artist','tour','studio'].indexOf(slug) === -1) return true;
   if ((window.location.hash || '').indexOf('#artist/') === 0) return true;
   if ((window.location.hash || '').indexOf('#event/') === 0) return true;   // shared event links are public city info
+  if ((window.location.hash || '').indexOf('#playlist/') === 0) return true; // shared playlists are a front door
+  if ((window.location.hash || '').indexOf('#venue/') === 0) return true;
   if (/[?&]artist=/.test(window.location.search || '')) return true;
   return false;
 }
@@ -12695,6 +12763,18 @@ function _resolveQueueFor(trackId) {
   renderUpNext();
 }
 
+// Reorder Up Next: offset is positions ahead of the playing track
+function queueMove(offset, dir) {
+  if (_queuePos < 0 || _playQueue.length < 3) return;
+  var from = (_queuePos + offset) % _playQueue.length;
+  var to = (_queuePos + offset + dir) % _playQueue.length;
+  if (to === _queuePos || to < 0) return;
+  var item = _playQueue.splice(from, 1)[0];
+  _playQueue.splice(to, 0, item);
+  renderUpNext();
+  if (typeof haptic === 'function') haptic(6);
+}
+
 function queueAdvance(dir) {
   if (_playQueue.length < 2) return null;
   if (typeof _shuffleOn !== 'undefined' && _shuffleOn) {
@@ -12719,7 +12799,15 @@ function queueAdvance(dir) {
 // iPhones get the gapless hop instead of the fade (feature-detected, never
 // assumed; routing through WebAudio would fix fades but kills background
 // playback, which matters more).
-var _MIX_SECONDS = 6;
+var _MIX_SECONDS = (function(){ try { return parseInt(localStorage.getItem('phx_mix_secs'), 10) || 6; } catch (e) { return 6; } })();
+function cycleMixSeconds() {
+  var steps = [3, 6, 9, 12];
+  _MIX_SECONDS = steps[(steps.indexOf(_MIX_SECONDS) + 1) % steps.length] || 6;
+  try { localStorage.setItem('phx_mix_secs', String(_MIX_SECONDS)); } catch (e) {}
+  var b = document.getElementById('mix-secs-btn');
+  if (b) b.textContent = _MIX_SECONDS + 's';
+  showToast('Crossfade: ' + _MIX_SECONDS + ' seconds');
+}
 var _fadeOK = null;
 function _canFade() {
   if (_fadeOK !== null) return _fadeOK;
@@ -12746,7 +12834,17 @@ _whenDomReady(_syncAutoMixBtn);
 
 // ── LYRICS ─────────────────────────────────────────────────────────────
 // Artist-entered words (track editor), shown in the expanded player.
-var _lyricsShownFor = null;
+var _lyricsShownFor = null, _lrcLines = null, _lrcTimer = null;
+// Plain lyrics show as text; LRC-timestamped lines ([mm:ss.xx] ...) become
+// Apple-style synced lyrics — the current line lights up and autoscrolls.
+function _parseLrc(text) {
+  var lines = [];
+  String(text).split(/\r?\n/).forEach(function(ln) {
+    var m = ln.match(/^\s*\[(\d{1,2}):(\d{2})(?:\.(\d{1,2}))?\](.*)$/);
+    if (m) lines.push({ t: parseInt(m[1], 10) * 60 + parseInt(m[2], 10) + (m[3] ? parseInt(m[3], 10) / 100 : 0), text: m[4].trim() });
+  });
+  return lines.length >= 3 ? lines : null;
+}
 async function toggleLyrics() {
   var panel = document.getElementById('lyrics-panel');
   var btn = document.getElementById('lyrics-btn');
@@ -12754,20 +12852,37 @@ async function toggleLyrics() {
   if (panel.style.display !== 'none') {
     panel.style.display = 'none';
     if (btn) btn.classList.remove('on');
+    clearInterval(_lrcTimer); _lrcTimer = null;
     return;
   }
   panel.style.display = 'block';
   if (btn) btn.classList.add('on');
   var uuid = typeof currentTrackUuid === 'function' ? currentTrackUuid() : null;
   if (!uuid) { panel.textContent = 'Play a song first.'; return; }
-  if (_lyricsShownFor !== uuid) {
-    panel.textContent = 'Loading…';
-    var res = await _sb.from('tracks').select('lyrics,title').eq('id', uuid).maybeSingle();
-    _lyricsShownFor = uuid;
-    panel.textContent = (res.data && res.data.lyrics)
-      ? res.data.lyrics
-      : 'No lyrics for this one yet — artists add them in the track editor.';
-  }
+  panel.textContent = 'Loading…';
+  var res = await _sb.from('tracks').select('lyrics,title').eq('id', uuid).maybeSingle();
+  _lyricsShownFor = uuid;
+  var raw = res.data && res.data.lyrics;
+  if (!raw) { panel.textContent = 'No lyrics for this one yet — artists add them in the track editor.'; return; }
+  _lrcLines = _parseLrc(raw);
+  if (!_lrcLines) { panel.textContent = raw; return; }
+  panel.innerHTML = _lrcLines.map(function(l, i) {
+    return '<div class="lrc-line" data-i="' + i + '" style="opacity:.45;transition:opacity .2s,color .2s;padding:.12rem 0">' + escapeHtml(l.text || '♪') + '</div>';
+  }).join('');
+  clearInterval(_lrcTimer);
+  _lrcTimer = setInterval(function() {
+    if (!PHX_AUDIO || panel.style.display === 'none') { clearInterval(_lrcTimer); _lrcTimer = null; return; }
+    var t = PHX_AUDIO.currentTime;
+    var cur = -1;
+    for (var i = 0; i < _lrcLines.length; i++) { if (_lrcLines[i].t <= t) cur = i; else break; }
+    panel.querySelectorAll('.lrc-line').forEach(function(el, i) {
+      var on = i === cur;
+      el.style.opacity = on ? '1' : '.45';
+      el.style.color = on ? 'var(--orange-l)' : '';
+      el.style.fontWeight = on ? '700' : '';
+      if (on && el.scrollIntoView) el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    });
+  }, 400);
 }
 
 // ── SLEEP TIMER ────────────────────────────────────────────────────────
@@ -12897,7 +13012,8 @@ function renderUpNext() {
       '<div class="track-art">' + (art ? '<img src="' + art + '" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:6px">' : '🎵') + '</div>' +
       '<div class="track-info"><div class="track-title">' + escapeHtml(t.title) + '</div>' +
         '<div class="track-feat">' + escapeHtml(t.artist_name || '') + '</div></div>' +
-      '<div class="track-streams">' + fmtK(t.stream_count || 0) + '</div>' +
+      '<button class="trk-add" title="Move up" onclick="event.stopPropagation();queueMove(' + (i + 1) + ', -1)">↑</button>' +
+      '<button class="trk-add" title="Move down" onclick="event.stopPropagation();queueMove(' + (i + 1) + ', 1)">↓</button>' +
     '</div>';
   }).join('');
 }
@@ -14285,8 +14401,31 @@ async function loadReels(scrollToPost) {
 // Any video card in the feed opens the Clips player at that clip.
 // showView('reels') triggers loadReels() via the router; the pending var
 // carries the jump target through that call.
+// Clips analytics: the watch data surfaces to its creator at last
+async function loadClipStats() {
+  var el = document.getElementById('artist-clip-stats');
+  if (!el || !_authUser) return;
+  var res = await _sb.rpc('artist_clip_stats');
+  var d = res.data || {};
+  var clips = d.clips || [];
+  if (res.error || !clips.length) {
+    el.innerHTML = '<div class="pf-empty">No clips posted yet — video posts land here with views, 30s watches and completions.</div>';
+    return;
+  }
+  el.innerHTML = '<div style="overflow-x:auto"><table class="data-table" style="min-width:480px"><thead><tr>' +
+    '<th>Clip</th><th>👀 Views</th><th>⏱ 30s+</th><th>✅ Full</th><th>🔥</th><th>💬</th></tr></thead><tbody>' +
+    clips.map(function(c) {
+      return '<tr style="cursor:pointer" onclick="openClipAt(\'' + c.id + '\')">' +
+        '<td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + escapeHtml(c.title) + '</td>' +
+        '<td>' + c.views + '</td><td>' + c.watch30 + '</td><td>' + c.completes + '</td>' +
+        '<td>' + (c.likes || 0) + '</td><td>' + (c.comments || 0) + '</td></tr>';
+    }).join('') + '</tbody></table></div>';
+}
+
 // ── SOUND ATTRIBUTION: "this sound" — every clip using a track ─────────
 function openSoundClips(trackId, label) {
+  var c = document.getElementById('reels-container');
+  window._reelsScrollBack = c ? c.scrollTop : 0;
   window._reelsTrackFilter = trackId;
   window._reelsTrackName = label || 'this sound';
   if (typeof haptic === 'function') haptic(8);
@@ -14295,7 +14434,10 @@ function openSoundClips(trackId, label) {
 function clearSoundFilter() {
   window._reelsTrackFilter = null;
   window._reelsTrackName = null;
-  loadReels();
+  Promise.resolve(loadReels()).then(function() {
+    var c = document.getElementById('reels-container');
+    if (c && window._reelsScrollBack) c.scrollTop = window._reelsScrollBack;
+  });
 }
 
 // ── IN-PLAYER COMMENTS: the scroll session never ends ──────────────────
@@ -14326,13 +14468,45 @@ function openClipComments(postId) {
   }
 }
 
+// Double-tap likes (with a heart burst); a lone tap pauses after the
+// double-tap window closes. The speed chip cycles 1× → 1.5× → 2× → 0.5×.
+var _reelTapT = 0, _reelTapTimer = null;
+function _reelTap(vid, postId) {
+  var now = Date.now();
+  if (now - _reelTapT < 300) {
+    clearTimeout(_reelTapTimer);
+    _reelTapT = 0;
+    reelLike(postId);
+    if (typeof haptic === 'function') haptic(12);
+    var burst = document.createElement('div');
+    burst.textContent = '🔥';
+    burst.style.cssText = 'position:absolute;left:50%;top:45%;transform:translate(-50%,-50%);font-size:4.5rem;pointer-events:none;animation:reel-heart .7s ease forwards;z-index:5';
+    vid.parentElement.appendChild(burst);
+    setTimeout(function(){ burst.remove(); }, 750);
+    return;
+  }
+  _reelTapT = now;
+  _reelTapTimer = setTimeout(function() {
+    if (vid.paused) vid.play().catch(function(){}); else vid.pause();
+  }, 310);
+}
+function _reelSpeed(btn) {
+  var reel = btn.closest('.reel');
+  var vid = reel && reel.querySelector('video');
+  if (!vid) return;
+  var steps = [1, 1.5, 2, 0.5];
+  var next = steps[(steps.indexOf(vid.playbackRate) + 1) % steps.length] || 1;
+  vid.playbackRate = next;
+  btn.childNodes[0].textContent = String(next).replace('0.5', '½') + '×';
+}
+
 // One reel card — shared by the first page and every appended batch
 function _reelHtml(p) {
     var liked = !!_myPostLikes[p.id];
     return '<div class="reel" data-post="' + p.id + '">' +
       '<video src="' + p.media_url + '" loop playsinline preload="metadata" ' +
         'onloadedmetadata="this.style.objectFit=(this.videoWidth&&this.videoWidth<this.videoHeight)?\'cover\':\'contain\'" ' +
-        'onclick="this.paused?this.play():this.pause()"></video>' +
+        'onclick="_reelTap(this,\'' + p.id + '\')"></video>' +
       '<div class="reel-overlay">' +
         '<div class="reel-info">' +
           '<div class="reel-author">' +
@@ -14352,6 +14526,7 @@ function _reelHtml(p) {
           '<span class="react-bar-slot"></span></span>' +
           '<button class="reel-act" onclick="openClipComments(\'' + p.id + '\')">💬<span>' + (p.comments_count||0) + '</span></button>' +
           '<button class="reel-act" onclick="shareFeedPost(\'' + p.id + '\')">↗<span>Share</span></button>' +
+          '<button class="reel-act" onclick="_reelSpeed(this)">1×<span>Speed</span></button>' +
           '<button class="reel-act" onclick="exportClipWatermarked(\'' + p.id + '\', \'' + escapeHtml(p.media_url) + '\', \'' + escapeHtml(p.author_name || 'PHX').replace(/'/g, '') + '\')">⬇<span>Save</span></button>' +
         '</div>' +
       '</div>' +
@@ -14373,7 +14548,8 @@ async function loadMoreReels() {
   var older = (res.data || []).filter(function(p){ return /\.(mp4|webm|mov)(\?|$)/i.test(p.media_url || ''); });
   var tail = document.getElementById('reels-tail');
   if (!older.length) {
-    if (tail) tail.innerHTML = '✅ You\'re all caught up.<br><br><span style="font-size:.8rem;color:var(--faint)">That\'s every clip on PHX — newest first, no algorithm games.</span>';
+    if (tail) tail.innerHTML = '✅ You\'re all caught up.<br><br><span style="font-size:.8rem;color:var(--faint)">That\'s every clip on PHX — newest first, no algorithm games.</span>' +
+      '<br><br><button class="pf-btn" onclick="showArtistDirectory()">Follow more artists →</button>';
     window._reelsCursor = null;
     return;
   }
@@ -16617,6 +16793,22 @@ async function openLikedSongs() {
     ? rows.map(function(l) { return _libTrackRow(l.tracks); }).join('')
     : '<div class="pf-empty">Tap the ♥ on any song to save it here.</div>', rows.length > 0);
 }
+// Full listening history — every counted play, straight from the ledger
+async function openListenHistory() {
+  if (!requireAuthAction('History')) return;
+  var res = await _sb.from('stream_events')
+    .select('listened_at, tracks(id,title,cover_url,audio_url,stream_count,artists(name,slug))')
+    .eq('user_id', getGuestId()).order('listened_at', { ascending: false }).limit(200);
+  var rows = (res.data || []).filter(function(r){ return r.tracks; });
+  _libSheetTracks = rows.map(function(r){ return r.tracks; });
+  _openLibSheet('🕐 Listening history', rows.length
+    ? rows.map(function(r) {
+        var when = new Date(r.listened_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        return _libTrackRow(r.tracks, '<span style="font-size:.66rem;color:var(--faint);white-space:nowrap">' + when + '</span>');
+      }).join('')
+    : '<div class="pf-empty">Nothing counted yet — plays land here after 30 seconds.</div>', rows.length > 0);
+}
+
 async function openPlaylist(plId, plName) {
   var res = await _sb.from('playlist_tracks').select('track_id,position,tracks(id,title,cover_url,audio_url,stream_count,artists(name,slug))')
     .eq('playlist_id', plId).order('added_at');
