@@ -188,6 +188,10 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
 .dm-when{font-size:.62rem;color:var(--faint);margin:.4rem 0 .1rem;text-align:center}
 .dm-row{display:flex;align-items:center;gap:.7rem;padding:.7rem .4rem;border-bottom:1px solid var(--line);cursor:pointer}
 .dm-row:hover{background:rgba(241,241,248,.02)}
+.rt-link{color:var(--orange-l);font-weight:600;text-decoration:none}
+.rt-link:hover{text-decoration:underline}
+.cm-like{color:var(--muted);font-size:.72rem;text-decoration:none;white-space:nowrap}
+.cm-like.on{color:var(--orange)}
 /* Clips immersion: in the Clips view NOTHING but the video — no app bar,
    no logo, no tabs, no music bar. Exit = swipe right or the ‹ button. */
 body[data-view="reels"] #mob-appbar,
@@ -1409,6 +1413,7 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
         <div class="set-card">
           <div class="set-head"><span class="set-ico">🔐</span><div><div class="set-title">Account</div><div class="set-sub">Signed in as <b id="set-email" style="color:var(--white)">—</b></div></div></div>
           <div class="set-row" onclick="showView('mypass')"><span>💳 My Pass — membership &amp; invite code</span><span class="set-arrow">›</span></div>
+          <div class="set-row" onclick="openSavedPosts()"><span>🔖 Saved posts</span><span class="set-arrow">›</span></div>
           <div class="set-row" onclick="openMyPage()"><span>⭐ View my public page</span><span class="set-arrow">›</span></div>
           <div class="set-row" onclick="signOut()" style="color:var(--red)"><span>Log out</span><span class="set-arrow">›</span></div>
         </div>
@@ -4730,14 +4735,20 @@ async function loadCityFeed(force) {
   var container = document.getElementById('city-feed-container');
   if (!container || !_sb) return;
 
-  // Posts + this device's likes, in parallel
+  // Posts + this device's likes, in parallel. A hashtag lens narrows the
+  // query itself, not just the rendered set.
+  var postsQ = _sb.from('feed_posts')
+    .select('*, tracks(id,title,cover_url,featuring,exclusive_tier,stream_count,duration_seconds,audio_url,artist_id,artists(name,slug))')
+    .order('created_at', { ascending: false })
+    .limit(30);
+  if (window._feedTagFilter) postsQ = postsQ.ilike('content', '%' + window._feedTagFilter + '%');
   var results = await Promise.all([
-    _sb.from('feed_posts')
-      .select('*, tracks(id,title,cover_url,featuring,exclusive_tier,stream_count,duration_seconds,audio_url,artist_id,artists(name,slug))')
-      .order('created_at', { ascending: false })
-      .limit(30),
-    _sb.from('post_likes').select('post_id,reaction').eq('user_id', getGuestId())
+    postsQ,
+    _sb.from('post_likes').select('post_id,reaction').eq('user_id', getGuestId()),
+    _sb.from('saved_posts').select('post_id').eq('user_id', getGuestId())
   ]);
+  _mySavedPosts = {};
+  (results[2].data || []).forEach(function(r){ _mySavedPosts[r.post_id] = true; });
   var data = results[0].data, error = results[0].error;
   if (error || !data) return;
 
@@ -5556,6 +5567,12 @@ function renderComposer() {
       '<button class="ct-cam" title="Open PHX Lens" aria-label="Open PHX Lens" onclick="openPostSheet(\'lens\')">📸</button>' +
     '</div>' +
   '</div>' +
+  (window._feedTagFilter
+    ? '<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.6rem">' +
+        '<span style="font-family:var(--disp);font-weight:800;font-size:1.05rem;color:var(--orange-l)">' + escapeHtml(window._feedTagFilter) + '</span>' +
+        '<button class="tb-btn" style="font-size:.72rem;padding:.3rem .7rem" onclick="clearTagFilter()">✕ back to the city</button>' +
+      '</div>'
+    : '') +
   '<div style="display:flex;gap:.5rem;margin-bottom:.9rem;flex-wrap:wrap">' +
     ['top:🔥 Popular', 'latest:🕐 Latest', 'following:⭐ Following', 'tracks:🎵 Music'].map(function(v) {
       var parts = v.split(':');
@@ -6915,6 +6932,35 @@ var _fvMoDebounce = null;
   }).observe(document.body, { childList: true, subtree: true });
 })();
 
+// ── RICH TEXT: @mentions and #hashtags become live links ───────────────
+// Escapes FIRST, then decorates — the linkifier never touches raw input.
+function richText(raw) {
+  var t = escapeHtml(raw || '');
+  t = t.replace(/(^|[\s(])@([a-zA-Z0-9_.]{2,30})/g, function(_, pre, u) {
+    return pre + '<a href="#" class="rt-link" onclick="event.stopPropagation();openMentionProfile(\'' + u + '\');return false">@' + u + '</a>';
+  });
+  t = t.replace(/(^|[\s(])#([a-zA-Z0-9_]{2,40})/g, function(_, pre, h) {
+    return pre + '<a href="#" class="rt-link" onclick="event.stopPropagation();openHashtag(\'' + h + '\');return false">#' + h + '</a>';
+  });
+  return t;
+}
+async function openMentionProfile(username) {
+  var res = await _sb.from('public_profiles').select('id').ilike('username', username).maybeSingle();
+  if (res.data) { showMemberPage(res.data.id); return; }
+  showToast('No @' + username + ' on PHX yet');
+}
+// A hashtag is a feed lens: the feed reloads showing only tagged posts,
+// with a clear-chip up top to get the whole city back.
+function openHashtag(tag) {
+  window._feedTagFilter = '#' + tag;
+  showView('home');
+  loadCityFeed(true);
+}
+function clearTagFilter() {
+  window._feedTagFilter = null;
+  loadCityFeed(true);
+}
+
 function renderFeedPost(p) {
   var d = new Date(p.created_at);
   var diff = Math.floor((Date.now() - d.getTime()) / 60000);
@@ -7004,7 +7050,7 @@ function renderFeedPost(p) {
         '<button class="fp-act fp-menu-btn" aria-label="Post options" onclick="togglePostMenu(\'' + p.id + '\', event, ' + (isAdminRole ? 'true' : 'false') + ')">⋯</button>' +
         '<span id="post-menu-' + p.id + '"></span></span>' +
     '</div>' +
-    '<div class="fp-body">' + escapeHtml(p.content) + '</div>' +
+    '<div class="fp-body">' + richText(p.content) + '</div>' +
     mediaEmbed + trackCard + repostEmbed +
     '<div class="fp-actions" style="margin-top:.6rem">' +
       '<span class="react-slot" style="position:relative;display:inline-block">' +
@@ -7157,10 +7203,27 @@ function _renderCommentRow(c, postId, isReply) {
     avatarHtml(authorAvatarUrl(c), c.author_avatar || '👤', 'ava-sm', c.author_name,
                'style="width:24px;height:24px;font-size:.72rem;cursor:pointer" onclick="' + cClick + '"') +
     '<strong style="white-space:nowrap;cursor:pointer" onclick="' + cClick + '">' + escapeHtml(c.author_name) + '</strong>' +
-    '<span class="cm-text" style="flex:1">' + escapeHtml(c.content) + '</span>' +
+    '<span class="cm-text" style="flex:1">' + richText(c.content) + '</span>' +
+    '<a href="#" class="cm-like' + (_myCommentLikes[c.id] ? ' on' : '') + '" id="cm-like-' + c.id + '" onclick="toggleCommentLike(\'' + c.id + '\');return false">' +
+      (_myCommentLikes[c.id] ? '❤️' : '🤍') + ((c.likes_count || 0) ? ' ' + c.likes_count : '') + '</a>' +
     '<span style="color:var(--muted);font-size:.7rem">' + when + '</span>' +
     (!isReply ? '<a href="#" style="color:var(--muted);font-size:.7rem" onclick="setReplyTarget(\'' + postId + '\',\'' + c.id + '\',\'' + safeName + '\');return false">Reply</a>' : '') +
   '</div>';
+}
+
+var _myCommentLikes = {};
+async function toggleCommentLike(commentId) {
+  if (!requireAuthAction('Liking')) return;
+  if (typeof haptic === 'function') haptic(8);
+  var res = await _sb.rpc('toggle_comment_like', { p_comment_id: commentId });
+  var d = res.data || {};
+  if (res.error || !d.ok) return;
+  _myCommentLikes[commentId] = d.liked ? true : undefined;
+  var el = document.getElementById('cm-like-' + commentId);
+  if (el) {
+    el.classList.toggle('on', !!d.liked);
+    el.innerHTML = (d.liked ? '❤️' : '🤍') + (d.count ? ' ' + d.count : '');
+  }
 }
 
 async function loadComments(postId) {
@@ -7170,6 +7233,14 @@ async function loadComments(postId) {
     .select('*').eq('post_id', postId)
     .order('created_at', { ascending: true }).limit(80);
   try { await resolveAuthorAvatars(data || []); } catch (e) { reportFailure('loadComments', e); }
+  // Which of these have I hearted? (colors the hearts on first paint)
+  if (_authUser && (data || []).length) {
+    try {
+      var mine = await _sb.from('comment_likes').select('comment_id')
+        .eq('user_id', getGuestId()).in('comment_id', data.map(function(c){ return c.id; }));
+      (mine.data || []).forEach(function(l){ _myCommentLikes[l.comment_id] = true; });
+    } catch (e) {}
+  }
   // One-level threading: top-level comments with their replies beneath
   var all = data || [];
   var replies = {};
@@ -7846,7 +7917,7 @@ function _showHeadsUp(n, count) {
     w.style.cssText = 'position:fixed;top:calc(8px + env(safe-area-inset-top,0px));left:10px;right:10px;z-index:1130;display:none;justify-content:center;pointer-events:none';
     document.body.appendChild(w);
   }
-  var verbs = { like: 'liked your post', comment: 'commented on your post', repost: 'reposted your post', follow: 'followed you', track_share: 'shared your track', system: 'sent a briefing', report_update: 'update on your report', dm: 'sent you a message' };
+  var verbs = { like: 'liked your post', comment: 'commented on your post', repost: 'reposted your post', follow: 'followed you', track_share: 'shared your track', system: 'sent a briefing', report_update: 'update on your report', dm: 'sent you a message', mention: 'mentioned you' };
   w.innerHTML = '<div onclick="_headsUpOpen()" style="pointer-events:auto;display:flex;align-items:center;gap:.6rem;max-width:440px;width:100%;background:rgba(12,12,22,.97);border:1px solid rgba(249,115,22,.35);border-radius:16px;padding:.65rem .85rem;box-shadow:0 14px 44px rgba(0,0,0,.6);cursor:pointer;animation:headsup-in .28s var(--ease)">' +
     '<span style="font-size:1.25rem;flex-shrink:0">' + (n.actor_avatar || '🔔') + '</span>' +
     '<div style="flex:1;min-width:0">' +
@@ -7881,7 +7952,7 @@ function renderNotifList(items) {
     list.innerHTML = '<div style="padding:1.2rem;text-align:center;color:var(--muted);font-size:.82rem">No notifications yet.<br>Likes, comments and reposts on your posts show up here.</div>';
     return;
   }
-  var verbs = { like: 'liked your post', comment: 'commented on your post', repost: 'reposted your post', follow: 'followed you', track_share: 'shared your track', system: 'sent a briefing', report_update: 'update on your report', dm: 'sent you a message' };
+  var verbs = { like: 'liked your post', comment: 'commented on your post', repost: 'reposted your post', follow: 'followed you', track_share: 'shared your track', system: 'sent a briefing', report_update: 'update on your report', dm: 'sent you a message', mention: 'mentioned you' };
   list.innerHTML = items.map(function(n) {
     var d = new Date(n.created_at);
     var diff = Math.floor((Date.now() - d.getTime()) / 60000);
@@ -7972,12 +8043,50 @@ function togglePostMenu(postId, ev, isAdmin) {
     return '<button class="post-menu-item" onclick="event.stopPropagation();closePostMenus();' + action + '">' + icon + ' ' + label + '</button>';
   };
   slot.innerHTML = '<div class="post-menu">' +
+    item(_mySavedPosts[postId] ? '🔖' : '📑', _mySavedPosts[postId] ? 'Unsave post' : 'Save post', 'toggleSavePost(\'' + postId + '\')') +
     item('🔗', 'Copy link', 'copyPostLink(\'' + postId + '\', this)') +
     item('🚩', 'Report post', 'openReportModal(\'post\',\'' + postId + '\')') +
     (isAdmin ? item('🚫', 'Hide post (admin)', 'hideFeedPost(\'' + postId + '\')') : '') +
   '</div>';
   setTimeout(function() { document.addEventListener('click', closePostMenus, { once: true }); }, 50);
 }
+// ── SAVED POSTS (bookmarks) ─────────────────────────────────────────────
+var _mySavedPosts = {};
+async function toggleSavePost(postId) {
+  if (!requireAuthAction('Saving')) return;
+  if (_mySavedPosts[postId]) {
+    await _sb.from('saved_posts').delete().eq('user_id', getGuestId()).eq('post_id', postId);
+    delete _mySavedPosts[postId];
+    showToast('Removed from Saved');
+  } else {
+    var res = await _sb.from('saved_posts').insert({ user_id: getGuestId(), post_id: postId });
+    if (res.error) { showToast('Could not save that post.'); return; }
+    _mySavedPosts[postId] = true;
+    if (typeof haptic === 'function') haptic(8);
+    showToast('🔖 Saved — find it in Settings → Saved posts');
+  }
+}
+async function openSavedPosts() {
+  if (!requireAuthAction('Saved posts')) return;
+  var res = await _sb.from('saved_posts')
+    .select('post_id, created_at, feed_posts(id,author_name,content,media_url,created_at)')
+    .eq('user_id', getGuestId()).order('created_at', { ascending: false }).limit(100);
+  var rows = (res.data || []).filter(function(r){ return r.feed_posts; });
+  _apModal('saved-posts-sheet',
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.8rem">' +
+      '<div style="font-weight:800;font-size:1.05rem">🔖 Saved posts</div>' +
+      '<button onclick="document.getElementById(\'saved-posts-sheet\').style.display=\'none\'" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem">✕</button></div>' +
+    (rows.length ? rows.map(function(r) {
+      var p = r.feed_posts;
+      var isVid = /\.(mp4|webm|mov)(\?|$)/i.test(p.media_url || '');
+      var open = isVid ? "openClipAt('" + p.id + "')" : "showView('home');setTimeout(function(){scrollToPost('" + p.id + "')},400)";
+      return '<div class="pf-post" onclick="document.getElementById(\'saved-posts-sheet\').style.display=\'none\';' + open + '">' +
+        '<div style="font-size:.78rem;font-weight:700;margin-bottom:.2rem">' + escapeHtml(p.author_name || '') + (isVid ? ' · 🎬' : p.media_url ? ' · 📷' : '') + '</div>' +
+        (p.content ? '<div class="pf-post-txt">' + escapeHtml(String(p.content).slice(0, 160)) + '</div>' : '') +
+      '</div>';
+    }).join('') : '<div class="pf-empty">Nothing saved yet — the ⋯ menu on any post has a Save option.</div>'));
+}
+
 function closePostMenus() {
   document.querySelectorAll('.post-menu').forEach(function(m) {
     var s = m.parentElement; if (s) s.innerHTML = '';
