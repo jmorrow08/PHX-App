@@ -123,7 +123,7 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
 .notif-dot{width:8px;height:8px;border-radius:50%;background:var(--orange);position:absolute;top:4px;right:4px}
 
 /* VIEWS */
-.content{padding:1.8rem 1.8rem;overflow-y:auto;flex:1}
+.content{padding:1.8rem 1.8rem;overflow-y:auto;overflow-x:clip;flex:1;overscroll-behavior-x:none}
 .view{display:none}
 .view.active{display:block;animation:view-in .25s var(--ease)}
 @keyframes view-in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
@@ -607,8 +607,16 @@ body[data-daypart="night"]{--orange:#F26312;--orange-l:#F98B4A;--orange-d:#C2410
 .ld-card.open .ld-chev{transform:rotate(90deg)}
 .ld-card .ld-body{display:none}
 .ld-card.open .ld-body{display:block}
-.pm-mode.on,.pm-range.on,.pm-cat.on{color:var(--orange);border-color:rgba(249,115,22,.45)}
-.pm-range,.pm-cat{font-size:.72rem!important;padding:.38rem .72rem!important;border-radius:999px!important}
+.pm-mode.on{color:var(--orange);border-color:rgba(249,115,22,.45)}
+/* Filter rails: labeled segmented pills — one calm line per axis */
+.pm-rail{display:flex;align-items:center;gap:.55rem;margin-bottom:.55rem;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.pm-rail::-webkit-scrollbar{display:none}
+.pm-rail-label{font:700 .58rem var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--faint);flex-shrink:0;min-width:36px}
+.pm-seg{display:inline-flex;gap:3px;background:var(--bg3);border:1px solid var(--line);border-radius:999px;padding:3px;flex-shrink:0}
+.pm-seg button{border:none;background:transparent;border-radius:999px;padding:.38rem .78rem;font-size:.73rem;font-weight:600;color:var(--muted);cursor:pointer;white-space:nowrap;font-family:inherit;display:inline-flex;align-items:center;gap:.32rem;transition:background .15s,color .15s;touch-action:manipulation}
+.pm-seg button.on{background:rgba(249,115,22,.16);color:var(--orange)}
+/* Zoomed-out clusters: neutral counters, tap to dive in */
+.pm-cluster{min-width:32px;height:32px;border-radius:50%;background:rgba(12,12,22,.94);border:2px solid var(--orange);color:#fff;display:flex;align-items:center;justify-content:center;font:800 .8rem var(--disp);box-shadow:0 4px 14px rgba(0,0,0,.55);padding:0 5px;cursor:pointer}
 /* Venue pins: colored by what's happening there, count badge when stacked */
 .pm-pin{width:20px;height:20px;border-radius:50%;border:2.5px solid rgba(7,7,15,.9);box-shadow:0 3px 10px rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;font:800 .68rem var(--disp);color:#0B0B14}
 .pm-pin.multi{width:27px;height:27px}
@@ -1529,23 +1537,23 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
           <button class="tb-btn pm-mode on" data-mode="map" onclick="plugMapMode('map')">Map</button>
         </div>
       </div>
-      <div style="display:flex;gap:.4rem;overflow-x:auto;padding-bottom:.5rem;margin-bottom:.6rem;scrollbar-width:none">
-        <button class="tb-btn pm-range" data-range="today" onclick="plugMapRange('today')">Today</button>
-        <button class="tb-btn pm-range" data-range="tomorrow" onclick="plugMapRange('tomorrow')">Tomorrow</button>
-        <button class="tb-btn pm-range" data-range="weekend" onclick="plugMapRange('weekend')">Weekend</button>
-        <button class="tb-btn pm-range on" data-range="week" onclick="plugMapRange('week')">This week</button>
-        <button class="tb-btn pm-range" data-range="month" onclick="plugMapRange('month')">30 days</button>
-        <button class="tb-btn pm-range" data-range="all" onclick="plugMapRange('all')">All</button>
-      </div>
-      <div style="display:flex;gap:.4rem;overflow-x:auto;padding-bottom:.5rem;margin-bottom:.6rem;scrollbar-width:none">
-        <button class="tb-btn pm-cat on" data-cat="all" onclick="plugMapCat('all')">Everything</button>
-        <button class="tb-btn pm-cat" data-cat="music" onclick="plugMapCat('music')">🎵 Music</button>
-        <button class="tb-btn pm-cat" data-cat="nightlife" onclick="plugMapCat('nightlife')">🌙 Nightlife</button>
-        <button class="tb-btn pm-cat" data-cat="food_drink" onclick="plugMapCat('food_drink')">🍽 Food & drink</button>
-        <button class="tb-btn pm-cat" data-cat="family" onclick="plugMapCat('family')">🧒 Family</button>
-        <button class="tb-btn pm-cat" data-cat="community" onclick="plugMapCat('community')">🤝 Community</button>
-        <button class="tb-btn pm-cat" data-cat="art" onclick="plugMapCat('art')">🎨 Art</button>
-      </div>
+      <div class="pm-rail"><span class="pm-rail-label">When</span><div class="pm-seg">
+        <button class="pm-range" data-range="today" onclick="plugMapRange('today')">Today</button>
+        <button class="pm-range" data-range="tomorrow" onclick="plugMapRange('tomorrow')">Tomorrow</button>
+        <button class="pm-range" data-range="weekend" onclick="plugMapRange('weekend')">Weekend</button>
+        <button class="pm-range on" data-range="week" onclick="plugMapRange('week')">This week</button>
+        <button class="pm-range" data-range="month" onclick="plugMapRange('month')">30 days</button>
+        <button class="pm-range" data-range="all" onclick="plugMapRange('all')">All</button>
+      </div></div>
+      <div class="pm-rail"><span class="pm-rail-label">What</span><div class="pm-seg">
+        <button class="pm-cat on" data-cat="all" onclick="plugMapCat('all')">Everything</button>
+        <button class="pm-cat" data-cat="music" onclick="plugMapCat('music')"><span style="color:#F97316">●</span>Music</button>
+        <button class="pm-cat" data-cat="nightlife" onclick="plugMapCat('nightlife')"><span style="color:#A78BFA">●</span>Nightlife</button>
+        <button class="pm-cat" data-cat="food_drink" onclick="plugMapCat('food_drink')"><span style="color:#22C55E">●</span>Food</button>
+        <button class="pm-cat" data-cat="family" onclick="plugMapCat('family')"><span style="color:#38BDF8">●</span>Family</button>
+        <button class="pm-cat" data-cat="community" onclick="plugMapCat('community')"><span style="color:#38BDF8">●</span>Community</button>
+        <button class="pm-cat" data-cat="art" onclick="plugMapCat('art')"><span style="color:#EC4899">●</span>Art</button>
+      </div></div>
       <div id="plug-map-canvas" style="display:block;position:relative;height:clamp(320px,46vh,480px);border-radius:var(--r-m);overflow:hidden;background:var(--bg3);margin-bottom:.35rem"></div>
       <div id="pm-legend" style="display:flex;gap:.8rem;flex-wrap:wrap;font-size:.66rem;color:var(--muted);margin-bottom:.9rem;padding:0 .2rem">
         <span><span style="color:#F97316">●</span> Music</span><span><span style="color:#A78BFA">●</span> Nightlife</span><span><span style="color:#22C55E">●</span> Food</span><span><span style="color:#EC4899">●</span> Art</span><span><span style="color:#38BDF8">●</span> Community</span><span><span style="color:#F97316">⦿</span> you</span><span style="margin-left:auto">a number on a pin = that many events there</span>
@@ -5087,6 +5095,8 @@ function plugMapMode(m) {
   document.querySelectorAll('.pm-mode').forEach(function(b){ b.classList.toggle('on', b.dataset.mode === m); });
   var canvas = document.getElementById('plug-map-canvas');
   if (canvas) canvas.style.display = m === 'map' ? 'block' : 'none';
+  var lg = document.getElementById('pm-legend');
+  if (lg) lg.style.display = m === 'map' ? 'flex' : 'none';
   if (m === 'map') renderPlugMapMap();
 }
 function plugMapRange(r) {
@@ -5455,19 +5465,108 @@ function _loadLeaflet(cb) {
   var css = document.createElement('link'); css.rel = 'stylesheet'; css.href = 'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css'; document.head.appendChild(css);
   var js = document.createElement('script'); js.src = 'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js'; js.onload = cb; document.head.appendChild(js);
 }
+var _pmTouch = ('ontouchstart' in window);
+var _pmFull = false;
+// Fullscreen explore mode: the ONLY place one-finger panning is on. The
+// embedded map stays stationary under a scrolling thumb.
+function plugMapFullscreen() {
+  var el = document.getElementById('plug-map-canvas');
+  var btn = document.getElementById('pm-expand');
+  if (!el) return;
+  _pmFull = !_pmFull;
+  if (_pmFull) {
+    el.dataset.origStyle = el.getAttribute('style') || '';
+    el.setAttribute('style', 'display:block;position:fixed;inset:0;z-index:1140;height:100dvh;border-radius:0;background:var(--bg3)');
+    document.body.style.overflow = 'hidden';
+    if (btn) { btn.textContent = '✕'; btn.title = 'Close map'; }
+    if (_pmMap) { _pmMap.dragging.enable(); setTimeout(function(){ _pmMap.invalidateSize(); }, 60); }
+  } else {
+    el.setAttribute('style', el.dataset.origStyle || '');
+    document.body.style.overflow = '';
+    if (btn) { btn.textContent = '⤢'; btn.title = 'Explore fullscreen'; }
+    if (_pmMap) { if (_pmTouch) _pmMap.dragging.disable(); setTimeout(function(){ _pmMap.invalidateSize(); }, 60); }
+  }
+}
+
+// Pins with a zoom brain: zoomed out (< 12) venues merge into area
+// clusters — one counter per ~2-mile cell, tap to dive in. Zoomed in,
+// venue pins with kind colors and lineup popups.
+function _pmDrawPins() {
+  if (!_pmMap || !window.L) return [];
+  if (_pmLayer) _pmLayer.remove();
+  _pmLayer = L.layerGroup().addTo(_pmMap);
+  var pts = [];
+  if (_pmUserLoc) {
+    // White core + ember ring: on no key, matches no category — just you
+    L.circleMarker([_pmUserLoc.lat, _pmUserLoc.lng], { radius: 9, color: '#F97316', fillColor: '#FFFFFF', fillOpacity: 1, weight: 3.5 })
+      .addTo(_pmLayer).bindPopup('<b>You are here</b>');
+    pts.push([_pmUserLoc.lat, _pmUserLoc.lng]);
+  }
+  // One group per venue first
+  var byVenue = {};
+  _pmRows.forEach(function(e) {
+    if (!e.lat || !e.lng) return;
+    var key = (e.venue_name || '').toLowerCase() + '|' + Number(e.lat).toFixed(3) + ',' + Number(e.lng).toFixed(3);
+    (byVenue[key] = byVenue[key] || { lat: e.lat, lng: e.lng, name: e.venue_name || e.title, events: [] }).events.push(e);
+  });
+  var venues = Object.keys(byVenue).map(function(k){ return byVenue[k]; });
+  var zoom = _pmMap.getZoom();
+  if (zoom < 12 && venues.length > 8) {
+    // Area clusters: ~2-mile grid cells with counts; tap = zoom in there
+    var cells = {};
+    venues.forEach(function(v) {
+      var ck = Math.round(v.lat / 0.03) + ',' + Math.round(v.lng / 0.03);
+      var c = (cells[ck] = cells[ck] || { lat: 0, lng: 0, n: 0, venues: 0 });
+      c.lat += v.lat; c.lng += v.lng; c.n += v.events.length; c.venues++;
+    });
+    Object.keys(cells).forEach(function(ck) {
+      var c = cells[ck];
+      var lat = c.lat / c.venues, lng = c.lng / c.venues;
+      var icon = L.divIcon({ className: '', html: '<div class="pm-cluster">' + c.n + '</div>', iconSize: [32, 32], iconAnchor: [16, 16] });
+      L.marker([lat, lng], { icon: icon }).addTo(_pmLayer).on('click', function() {
+        _pmMap.setView([lat, lng], Math.min(13, zoom + 2));
+      });
+      pts.push([lat, lng]);
+    });
+    return pts;
+  }
+  venues.forEach(function(g) {
+    g.events.sort(function(a, b) { return new Date(a.starts_at) - new Date(b.starts_at); });
+    var color = PM_KIND_COLOR[g.events[0].kind] || '#F97316';
+    var n = g.events.length;
+    var icon = L.divIcon({
+      className: '',
+      html: '<div class="pm-pin' + (n > 1 ? ' multi' : '') + '" style="background:' + color + '">' + (n > 1 ? n : '') + '</div>',
+      iconSize: [n > 1 ? 27 : 20, n > 1 ? 27 : 20],
+      iconAnchor: [n > 1 ? 13 : 10, n > 1 ? 13 : 10]
+    });
+    var mk = L.marker([g.lat, g.lng], { icon: icon }).addTo(_pmLayer);
+    var listHtml = g.events.slice(0, 4).map(function(ev) {
+      var tp = showTimeParts(ev);
+      return '<div style="margin:.4rem 0 0"><a href="#" style="color:#F97316;font-weight:700;text-decoration:none" onclick="showEventPage(\'' + ev.src + '\',\'' + ev.id + '\');return false">' + escapeHtml(ev.title) + '</a>' +
+        '<div style="font-size:.72rem;opacity:.75">' + escapeHtml(tp.mon + ' ' + tp.day + ' · ' + tp.time) + '</div></div>';
+    }).join('');
+    mk.bindPopup('<div style="font-family:inherit;min-width:190px;max-width:240px"><b style="font-size:.88rem">📍 ' + escapeHtml(g.name) + '</b>' + listHtml +
+      (n > 4 ? '<div style="font-size:.72rem;opacity:.7;margin-top:.35rem">+' + (n - 4) + ' more at this spot</div>' : '') + '</div>', { className: 'pm-popup' });
+    pts.push([g.lat, g.lng]);
+  });
+  return pts;
+}
+
 function renderPlugMapMap() {
   var el = document.getElementById('plug-map-canvas');
   if (!el) return;
   _loadLeaflet(function() {
     if (!_pmMap) {
-      _pmMap = L.map(el, { zoomControl: true, attributionControl: true }).setView([33.4484, -112.0740], 11);
+      // Touch devices: one-finger drag is OFF in the embed (the map was
+      // hijacking every sideways thumb) — pinch-zoom still works, and the
+      // ⤢ fullscreen mode turns real panning on.
+      _pmMap = L.map(el, { zoomControl: true, attributionControl: true, dragging: !_pmTouch, tap: true }).setView([33.4484, -112.0740], 11);
       L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
         attribution: '&copy; OpenStreetMap &copy; CARTO', maxZoom: 19
       }).addTo(_pmMap);
     }
-    if (_pmLayer) _pmLayer.remove();
-    _pmLayer = L.layerGroup().addTo(_pmMap);
-    // Floating locate control on the map itself — Near me is never buried
+    // Floating controls: locate + fullscreen explore
     if (!document.getElementById('pm-locate')) {
       var lb = document.createElement('button');
       lb.id = 'pm-locate';
@@ -5478,44 +5577,17 @@ function renderPlugMapMap() {
       lb.onclick = plugMapNearMe;
       el.appendChild(lb);
     }
-    var pts = [];
-    if (_pmUserLoc) {
-      // White core + ember ring: on no key, matches no category — just you
-      L.circleMarker([_pmUserLoc.lat, _pmUserLoc.lng], { radius: 9, color: '#F97316', fillColor: '#FFFFFF', fillOpacity: 1, weight: 3.5 })
-        .addTo(_pmLayer).bindPopup('<b>You are here</b>');
-      pts.push([_pmUserLoc.lat, _pmUserLoc.lng]);
+    if (!document.getElementById('pm-expand')) {
+      var xb = document.createElement('button');
+      xb.id = 'pm-expand';
+      xb.title = 'Explore fullscreen';
+      xb.setAttribute('aria-label', 'Explore fullscreen');
+      xb.textContent = '⤢';
+      xb.style.cssText = 'position:absolute;right:10px;bottom:60px;z-index:1000;width:42px;height:42px;border-radius:50%;background:rgba(10,10,18,.94);border:1px solid rgba(241,241,248,.2);color:#fff;font-size:1.05rem;cursor:pointer;box-shadow:0 5px 16px rgba(0,0,0,.55)';
+      xb.onclick = plugMapFullscreen;
+      el.appendChild(xb);
     }
-    // ONE PIN PER VENUE (a venue with 6 shows was 6 stacked bubbles before).
-    // Color = what's happening there; a count badge when events stack up;
-    // the popup lists that venue's next events, each a door to its page.
-    var KIND_COLOR = PM_KIND_COLOR;
-    var byVenue = {};
-    _pmRows.forEach(function(e) {
-      if (!e.lat || !e.lng) return;
-      var key = (e.venue_name || '').toLowerCase() + '|' + Number(e.lat).toFixed(3) + ',' + Number(e.lng).toFixed(3);
-      (byVenue[key] = byVenue[key] || { lat: e.lat, lng: e.lng, name: e.venue_name || e.title, events: [] }).events.push(e);
-    });
-    Object.keys(byVenue).forEach(function(key) {
-      var g = byVenue[key];
-      g.events.sort(function(a, b) { return new Date(a.starts_at) - new Date(b.starts_at); });
-      var color = KIND_COLOR[g.events[0].kind] || '#F97316';
-      var n = g.events.length;
-      var icon = L.divIcon({
-        className: '',
-        html: '<div class="pm-pin' + (n > 1 ? ' multi' : '') + '" style="background:' + color + '">' + (n > 1 ? n : '') + '</div>',
-        iconSize: [n > 1 ? 27 : 20, n > 1 ? 27 : 20],
-        iconAnchor: [n > 1 ? 13 : 10, n > 1 ? 13 : 10]
-      });
-      var mk = L.marker([g.lat, g.lng], { icon: icon }).addTo(_pmLayer);
-      var listHtml = g.events.slice(0, 4).map(function(ev) {
-        var tp = showTimeParts(ev);
-        return '<div style="margin:.4rem 0 0"><a href="#" style="color:#F97316;font-weight:700;text-decoration:none" onclick="showEventPage(\'' + ev.src + '\',\'' + ev.id + '\');return false">' + escapeHtml(ev.title) + '</a>' +
-          '<div style="font-size:.72rem;opacity:.75">' + escapeHtml(tp.mon + ' ' + tp.day + ' · ' + tp.time) + '</div></div>';
-      }).join('');
-      mk.bindPopup('<div style="font-family:inherit;min-width:190px;max-width:240px"><b style="font-size:.88rem">📍 ' + escapeHtml(g.name) + '</b>' + listHtml +
-        (n > 4 ? '<div style="font-size:.72rem;opacity:.7;margin-top:.35rem">+' + (n - 4) + ' more at this spot</div>' : '') + '</div>', { className: 'pm-popup' });
-      pts.push([g.lat, g.lng]);
-    });
+    var pts = _pmDrawPins();
     // Near me: land zoomed to roughly a 10-mile stretch around you (zoom 12
     // in the Valley) — zooming out reveals the rest of the city, and the
     // list follows the viewport via the moveend hook.
@@ -5526,6 +5598,7 @@ function renderPlugMapMap() {
     }, 80);
     if (!_pmMap._pmMoveBound) {
       _pmMap._pmMoveBound = true;
+      _pmMap.on('zoomend', function() { _pmDrawPins(); });
       _pmMap.on('moveend', function() {
         if (_pmUserLoc) _pmRenderList(_pmVisibleRows());
       });
@@ -5627,13 +5700,12 @@ function renderComposer() {
         '<button class="tb-btn" style="font-size:.72rem;padding:.3rem .7rem" onclick="clearTagFilter()">✕ back to the city</button>' +
       '</div>'
     : '') +
-  '<div style="display:flex;gap:.5rem;margin-bottom:.9rem;flex-wrap:wrap">' +
+  '<div class="pm-rail" style="margin-bottom:.8rem"><div class="pm-seg">' +
     ['top:🔥 Popular', 'latest:🕐 Latest', 'following:⭐ Following', 'tracks:🎵 Music'].map(function(v) {
       var parts = v.split(':');
-      var active = _feedSort === parts[0];
-      return '<button class="tb-btn" style="border-radius:999px;font-size:.76rem;' + (active ? 'color:var(--orange);border-color:rgba(249,115,22,.4)' : '') + '" onclick="setFeedSort(\'' + parts[0] + '\')">' + parts[1] + '</button>';
+      return '<button class="' + (_feedSort === parts[0] ? 'on' : '') + '" onclick="setFeedSort(\'' + parts[0] + '\')">' + parts[1] + '</button>';
     }).join('') +
-  '</div>';
+  '</div></div>';
 }
 
 var _feedSort = 'top'; // most-popular default, per IG/TikTok convention
