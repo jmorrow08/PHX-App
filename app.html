@@ -54,7 +54,7 @@ if (location.pathname.replace(/\/+$/, '') === '/studio') {
   --orange:#F97316;--orange-l:#FB923C;--orange-d:#EA580C;
   --gold:#EAB308;--purple:#EA580C;--purple-l:#A78BFA;
   --teal:#22C55E;--green:#22C55E;--blue:#9A9AA6;--red:#EF4444;
-  --white:#F1F1F8;--muted:#9A9AA6;--faint:#6B7280;
+  --white:#F1F1F8;--muted:#9A9AA6;--faint:#78808F;
   --border:rgba(241,241,248,.08);--line:rgba(241,241,248,.06);
   --r-s:10px;--r-m:16px;--r-l:24px;
   --disp:'Space Grotesk',sans-serif;--mono:'IBM Plex Mono',monospace;
@@ -202,6 +202,8 @@ a{color:var(--orange-l);text-decoration:none}a:hover{color:var(--orange)}
 .ct-ov-btn{background:rgba(7,7,15,.6);border:none;color:#fff;border-radius:8px;font-size:.68rem;padding:.2rem .4rem;cursor:pointer}
 .dm-row{display:flex;align-items:center;gap:.7rem;padding:.7rem .4rem;border-bottom:1px solid var(--line);cursor:pointer}
 .dm-row:hover{background:rgba(241,241,248,.02)}
+/* Keyboard users get a visible ring; touch taps stay clean */
+:focus-visible{outline:2px solid var(--orange);outline-offset:2px;border-radius:4px}
 .rt-link{color:var(--orange-l);font-weight:600;text-decoration:none}
 .rt-link:hover{text-decoration:underline}
 .cm-like{color:var(--muted);font-size:.72rem;text-decoration:none;white-space:nowrap}
@@ -1441,6 +1443,7 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
           <div class="set-row" onclick="showView('mypass')"><span>💳 My Pass — membership &amp; invite code</span><span class="set-arrow">›</span></div>
           <div class="set-row" onclick="openSavedPosts()"><span>🔖 Saved posts</span><span class="set-arrow">›</span></div>
           <div class="set-row" onclick="openChangeEmail()"><span>✉️ Change email address</span><span class="set-arrow">›</span></div>
+          <div class="set-row" onclick="exportMyData(this)"><span>📦 Download my data</span><span class="set-arrow">›</span></div>
           <div class="set-row" onclick="openDeleteAccount()"><span style="color:var(--red)">🗑️ Delete my account</span><span class="set-arrow">›</span></div>
           <div class="set-row" onclick="openMyPage()"><span>⭐ View my public page</span><span class="set-arrow">›</span></div>
           <div class="set-row" onclick="signOut()" style="color:var(--red)"><span>Log out</span><span class="set-arrow">›</span></div>
@@ -2038,6 +2041,7 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
         <div class="admin-kpi"><div class="admin-kpi-val" style="color:var(--teal)" id="admin-streams-today">—</div><div class="admin-kpi-label">Total Streams</div><div class="admin-kpi-change" style="color:var(--muted)" id="admin-streams-change"></div></div>
         <div class="admin-kpi"><div class="admin-kpi-val" style="color:var(--purple-l)" id="admin-artists-active">—</div><div class="admin-kpi-label">Active Artists</div><div class="admin-kpi-change" style="color:var(--muted)" id="admin-artists-pending"></div></div>
         <div class="admin-kpi"><div class="admin-kpi-val" style="color:var(--gold)" id="admin-dm-24h">—</div><div class="admin-kpi-label">DMs (24h)</div><div class="admin-kpi-change" style="color:var(--muted)" id="admin-dm-sub"></div></div>
+        <div class="admin-kpi"><div class="admin-kpi-val" style="color:var(--red)" id="admin-errors-7d">—</div><div class="admin-kpi-label">Client errors (7d)</div><div class="admin-kpi-change" style="color:var(--muted)" id="admin-errors-sub"></div></div>
       </div>
       <div class="grid-2">
         <div class="card">
@@ -2847,6 +2851,25 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
 </div>
 
 <script>
+// ── ERROR BEACON ───────────────────────────────────────────────────────
+// Production errors land in user_events (capped 5/session) so the Studio
+// dashboard can show breakage instead of nobody knowing.
+var _errBeaconN = 0;
+function _errBeacon(msg, src, line) {
+  if (_errBeaconN >= 5 || !window._sb || !_authUser) return;
+  _errBeaconN++;
+  try {
+    _sb.from('user_events').insert({
+      user_id: getGuestId(), session_id: SESSION_ID, event_type: 'client_error',
+      metadata: { msg: String(msg).slice(0, 200), src: String(src || '').slice(0, 120), line: line || 0, ua: navigator.userAgent.slice(0, 80) }
+    }).then(function(){});
+  } catch (e) {}
+}
+window.addEventListener('error', function(e) { _errBeacon(e.message, e.filename, e.lineno); });
+window.addEventListener('unhandledrejection', function(e) {
+  _errBeacon('unhandledrejection: ' + String(e.reason && e.reason.message || e.reason).slice(0, 160), '', 0);
+});
+
 // ── CITY LIGHT + HAPTICS ───────────────────────────────────────────────
 // The palette follows the actual Phoenix sky; refreshed every 15 minutes.
 function applyCityLight() {
@@ -7271,7 +7294,7 @@ function _fitFeedVideo(v) {
 function feedVideoEmbed(postId, url, maxH, poster) {
   return '<div style="position:relative;cursor:pointer" role="button" aria-label="Open in Clips" ' +
       'onclick="event.stopPropagation();openClipAt(\'' + postId + '\')">' +
-    '<video class="feed-video" muted loop playsinline preload="metadata" ' +
+    '<video class="feed-video" muted loop playsinline preload="none" ' +
       (poster ? 'poster="' + safeUrl(poster) + '" ' : '') +
       'onloadedmetadata="_fitFeedVideo(this)" ' +
       'style="width:100%;max-height:' + maxH + 'px;border-radius:12px;margin-top:.5rem;background:var(--bg3);display:block;object-fit:cover" src="' + url + '"></video>' +
@@ -8813,6 +8836,28 @@ function togglePostMenu(postId, ev, isAdmin, isMine) {
   setTimeout(function() { document.addEventListener('click', closePostMenus, { once: true }); }, 50);
 }
 // ── ACCOUNT DELETION (self-serve, permanent) ────────────────────────────
+// ── DATA EXPORT (self-serve) ────────────────────────────────────────────
+async function exportMyData(row) {
+  if (!requireAuthAction('Data export')) return;
+  var span = row && row.querySelector('span');
+  if (span) span.textContent = '📦 Preparing your export…';
+  try {
+    var res = await _sb.functions.invoke('export-my-data', { body: {} });
+    if (res.error || !res.data) throw new Error('export failed');
+    var blob = new Blob([JSON.stringify(res.data, null, 2)], { type: 'application/json' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'phx-my-data-' + new Date().toISOString().slice(0, 10) + '.json';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    showToast('📦 Your data is downloading');
+  } catch (e) {
+    showToast('Could not build the export — email privacy@thephx.app and we\'ll send it.');
+  }
+  if (span) span.textContent = '📦 Download my data';
+}
+
 // ── EMAIL CHANGE ────────────────────────────────────────────────────────
 function openChangeEmail() {
   if (!requireAuthAction('Account settings')) return;
@@ -10259,6 +10304,12 @@ async function sendSubmitEvent(btn) {
   var fInput = document.getElementById('se-flyer');
   var f = fInput && fInput.files && fInput.files[0];
   if (f && f.size <= 15728640) {
+    var _fmv = await _moderateMediaFile(f);
+    if (!_fmv.ok) {
+      if (msg) msg.textContent = '🚫 That flyer violates PHX community guidelines.';
+      if (btn) { btn.disabled = false; btn.textContent = 'Put it on the map'; }
+      return;
+    }
     var path = getGuestId().slice(0,8) + '/flyer_' + Date.now() + '.' + (f.name.split('.').pop() || 'jpg');
     var up = await _sb.storage.from('post-media').upload(path, f, { contentType: f.type });
     if (!up.error) { var ur = _sb.storage.from('post-media').getPublicUrl(path); flyerUrl = ur.data ? ur.data.publicUrl : null; }
@@ -11905,6 +11956,8 @@ async function _uploadPageImage(fileInputId, pageId, kind) {
   var inp = document.getElementById(fileInputId);
   if (!inp || !inp.files || !inp.files[0]) return null;
   var f = inp.files[0];
+  var _pmv = await _moderateMediaFile(f);
+  if (!_pmv.ok) { showToast('🚫 That image violates PHX community guidelines.'); return null; }
   var ext = (f.name.split('.').pop() || 'jpg').toLowerCase();
   var path = pageId + '/' + kind + '_' + Date.now() + '.' + ext;
   var up = await _sb.storage.from('post-media').upload(path, f, { contentType: f.type, upsert: true });
@@ -12916,6 +12969,8 @@ async function onbNext(skip) {
         if (msg) msg.textContent = 'Uploading…';
         try {
           var f = inp.files[0];
+          var _omv = await _moderateMediaFile(f);
+          if (!_omv.ok) { if (msg) msg.textContent = '🚫 That photo violates community guidelines — pick another.'; return; }
           var ext = (f.name.split('.').pop() || 'jpg').toLowerCase();
           var path = _authUser.id + '/avatar_' + Date.now() + '.' + ext;
           var up = await _sb.storage.from('post-media').upload(path, f, { contentType: f.type, upsert: true });
@@ -14532,6 +14587,15 @@ async function loadAdminOps() {
     var activeArtists = artists.filter(function(a){ return a.status === 'active'; });
     _setText('admin-artists-active', String(activeArtists.length));
 
+    // Production breakage counter — the error beacon feeds this
+    _sb.from('user_events').select('id', { count: 'exact', head: true })
+      .eq('event_type', 'client_error')
+      .gte('created_at', new Date(Date.now() - 7 * 86400000).toISOString())
+      .then(function(er) {
+        _setText('admin-errors-7d', String(er.count || 0));
+        var sub = document.getElementById('admin-errors-sub');
+        if (sub) sub.textContent = (er.count || 0) > 0 ? 'check user_events → client_error' : 'all quiet';
+      });
     // DM health (aggregates only — content stays private even from this view)
     _sb.from('dm_health').select('*').single().then(function(dh) {
       var d = dh.data;
@@ -15652,6 +15716,8 @@ async function _apfUpload(inputId, kind) {
   var input = document.getElementById(inputId);
   var fFile = input && input.files && input.files[0];
   if (!fFile) return null;
+  var _amv = await _moderateMediaFile(fFile);
+  if (!_amv.ok) throw new Error('That image violates PHX community guidelines');
   var path = _myArtistRow.id + '/' + kind + '_' + Date.now() + '.' + (fFile.name.split('.').pop() || 'jpg');
   var up = await _sb.storage.from('post-media').upload(path, fFile, { contentType: fFile.type, upsert: true });
   if (up.error) throw new Error(up.error.message);
@@ -15821,6 +15887,8 @@ async function _uploadArtistImage(inputId, kind) {
   var input = document.getElementById(inputId);
   var f = input && input.files && input.files[0];
   if (!f) return null;
+  var _emv = await _moderateMediaFile(f);
+  if (!_emv.ok) throw new Error('that image violates PHX community guidelines');
   var path = (_artistPage.id) + '/' + kind + '_' + Date.now() + '.' + (f.name.split('.').pop() || 'jpg');
   var up = await _sb.storage.from('post-media').upload(path, f, { contentType: f.type, upsert: true });
   if (up.error) throw new Error(up.error.message);
@@ -15841,6 +15909,9 @@ async function saveArtistEditor() {
     if (avaUrl) patch.avatar_url = avaUrl;
     if (banUrl) patch.banner_url = banUrl;
     if (_heroVideoFile) {
+      if (msg) msg.textContent = 'Checking header video…';
+      var _hmv = await _moderateMediaFile(_heroVideoFile);
+      if (!_hmv.ok) throw new Error('that video violates PHX community guidelines');
       if (msg) msg.textContent = 'Uploading header video…';
       var hvPath = _artistPage.id + '/herovideo_' + Date.now() + '.' + (_heroVideoFile.name.split('.').pop() || 'webm');
       var hvUp = await _sb.storage.from('post-media').upload(hvPath, _heroVideoFile, { contentType: _heroVideoFile.type, upsert: true });
