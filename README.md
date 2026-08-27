@@ -216,3 +216,6 @@ True edge-to-edge feed (view-clip bug), follow off feed cards, hero-video trimme
 
 ## August 27, 2026
 Plug Map v3 (near-me radius + viewport list, tickets-from pricing), parity batch (mentions, hashtags, comment likes, saved posts, Interested/Going + friends-going, sleep timer, queue, lyrics, shareable playlists, DM requests/reactions/realtime, clip comments + sound pages), vision media moderation, in-app account deletion. Detail: docs/PHX-Operating-Manual.md.
+
+## August 27, 2026 (sixth drop)
+Venue pages + follow-venue with event pings, price-drop/cancel alerts to RSVPs, scraper overhaul (flyers + direct links — images were being stripped before the model saw them), realtime bell, DM voice notes + photos, caption text editor baked into media, 602 Recap (December launch, founder preview now), Esri basemap fix. Detail: docs/PHX-Operating-Manual.md.
