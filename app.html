@@ -7616,6 +7616,7 @@ async function dmSend() {
     if (input) input.value = body;   // give their words back
     if (errEl) {
       errEl.textContent = d.reason === 'blocked' ? 'You can\'t message this member.' :
+        d.reason === 'thread_frozen' ? '❄️ This conversation was frozen by moderators — no more messages can be sent.' :
         d.reason === 'rate_limited' ? 'Slow down — too many messages at once.' :
         d.reason === 'content_blocked' ? '🚫 That message violates PHX community guidelines.' :
         'Could not send — try again.';
