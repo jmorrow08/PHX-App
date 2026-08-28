@@ -318,3 +318,11 @@ _Everything below is live in production. Recorded here so Ash, future hires, and
 - **Press-and-hold before/after** on the preview.
 - **🎚 BEAT-CUT (flagship)** — pick a live PHX track → BPM comb-detection (70–180) on the decoded audio → the clip re-cuts itself on the beat (every 1/2/4 beats, 10/15/20s), punch-in zoom pulses + 90ms ember flash per hit, the track baked into the export via MediaRecorder. `beat_cut` tracked per track = artist discovery loop.
 - All of it rides the existing bake pipeline (filters/stamp/captions/audio modes unchanged); resets with the composer.
+
+## Update — August 28, 2026 (the camera drop + editor v2)
+
+**Studio-grade Lens.** Glow and Night are now LIVE on the camera: GPU blend-layers over the same stream preview them at zero cost, and the canvas capture pipeline bakes them into photos AND recordings — what you saw is what the file holds. Glow defaults to 30 (the "everyone looks good on PHX" baseline), sliders behind the ✨ button. **Night boost switches itself on in dark rooms** (frame luminance sampled once per open, <58 mean → Night 35 + a toast). Hardware: 🔦 torch (capability-gated, back camera), continuous autofocus/auto-exposure requested where the camera exposes them, ⏱ 3s countdown timer, photo sensor request bumped to 2560px. `_studioLayers` reuses scratch canvases so 30fps effect recording doesn't stutter.
+
+**Editor v2.** 😀 **Stickers** — 24-emoji PHX tray (🐦‍🔥🌵🏜️…), drag anywhere, double-tap cycles four sizes, tap once to remove, six max, drop-shadowed, baked at export. ✏️ **Draw** — 6-color floating toolbar, undo, strokes stored normalized so they land identically at preview and full export resolution, on photos and every video frame. Both ride the existing bake pipeline and reset with the composer; Beat-Cut wipes them (fresh canvas).
+
+**Still queued for editor v3:** MediaPipe face-landmark Glow (targeted retouch), background blur/swap (segmentation), multi-clip timeline, auto-captions (server transcription).
