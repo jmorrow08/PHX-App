@@ -3,13 +3,13 @@
 //    phone locks (browser tabs get suspended much more aggressively).
 // 2) App-shell precache → the app opens offline and static assets load
 //    instantly from cache.
-var CACHE_NAME = 'phx-shell-v7';
+var CACHE_NAME = 'phx-shell-v8';
 var SHELL = [
   './',
   'app',
   'app.html',
   'index.html',
-  'shared.css?v=10',
+  'shared.css?v=11',
   'shared.js?v=12',
   'manifest.json'
 ];

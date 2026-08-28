@@ -1102,14 +1102,15 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
   .upgrade-btn{padding:.85rem 1.6rem;font-size:.95rem}
   .tb-btn{padding:.55rem 1rem;font-size:.82rem;min-height:38px}
   /* Bottom tabs: frosted, springy */
-  .bottom-tabs{background:rgba(8,8,16,.92)!important;backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
+  .bottom-tabs{background:rgba(10,10,20,.58)!important;backdrop-filter:blur(26px) saturate(1.5);-webkit-backdrop-filter:blur(26px) saturate(1.5);border-color:rgba(241,241,248,.05)!important;box-shadow:0 10px 40px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.05)!important}
+  .mini-player{background:rgba(10,10,20,.62)!important;backdrop-filter:blur(24px) saturate(1.4);-webkit-backdrop-filter:blur(24px) saturate(1.4)}
   .bt-item{transition:transform .12s var(--ease)}
   .bt-item:active{transform:scale(.9)}
   .bt-item.active .bt-icon{filter:drop-shadow(0 2px 10px rgba(249,115,22,.55))}
 }
 </style>
   <link rel="preconnect" href="https://dnzvtathfpjelffjnqrc.supabase.co" crossorigin>
-  <link rel="stylesheet" href="shared.css?v=10">
+  <link rel="stylesheet" href="shared.css?v=11">
 </head>
 <body>
 <!-- Boot veil: covers the app until identity + role + first view are settled,
@@ -2986,6 +2987,28 @@ setInterval(applyCityLight, 15 * 60 * 1000);
 // vibration API — silently a no-op there, never a fake.
 function haptic(ms) { try { if (navigator.vibrate) navigator.vibrate(ms || 8); } catch (e) {} }
 
+// Mini-player gestures: swipe UP anywhere on the bar opens the full player
+// (tap still works); starts collapsed until something actually plays
+(function() {
+  function mount() {
+    var bar = document.querySelector('.mini-player');
+    if (!bar) return;
+    bar.classList.add('idle');
+    var y0 = null;
+    bar.addEventListener('touchstart', function(e) { y0 = e.touches[0].clientY; }, { passive: true });
+    bar.addEventListener('touchmove', function(e) {
+      if (y0 === null) return;
+      if (y0 - e.touches[0].clientY > 32) { y0 = null; openFullPlayer(); }
+    }, { passive: true });
+    bar.addEventListener('touchend', function() { y0 = null; }, { passive: true });
+    // The collapsed bar is one big open-the-player button
+    bar.addEventListener('click', function(e) {
+      if (bar.classList.contains('idle') && !e.target.closest('input')) openFullPlayer();
+    });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mount);
+  else mount();
+})();
 // ── VIEW SWITCHING ─────────────────────────────────────────────────────
 function openFullPlayer() {
   // The bar opens the player as a sheet (Apple Music gesture) — Now
@@ -3263,6 +3286,13 @@ function showView(id) {
   if (requiresAuth(id)) { showLockedGate(id); return; }
   // Profile screens push their own richer entry (which artist/member/page)
   if (['artist-page', 'member-page', 'page-profile'].indexOf(id) === -1) _navPush('view', id);
+  // A view switch starts at the top — landing mid-scroll on stale content
+  // (the feed opening on its own tail) reads as broken
+  if (window._curView !== id) {
+    try { window.scrollTo(0, 0); } catch (e) {}
+    var cEl = document.querySelector('.content');
+    if (cEl) cEl.scrollTop = 0;
+  }
   window._curView = id;
   document.body.dataset.view = id;
   // Premium hero loops only run while their page is on screen
@@ -3874,6 +3904,8 @@ var TRACK_META = {
 
 function playAudio() {
   streamData.playing = true;
+  var mpb = document.querySelector('.mini-player');
+  if (mpb) mpb.classList.remove('idle');
   document.querySelectorAll('.ctrl-btn.play, .mp-btn.play').forEach(function(b){ b.innerHTML = PICON.pause; });
   startStreamTimer(streamData.currentTrack);
   // Autoplay rejection is an expected browser policy outcome, not a fault
@@ -3883,6 +3915,8 @@ function playAudio() {
 
 function pauseAudio() {
   streamData.playing = false;
+  var mpb = document.querySelector('.mini-player');
+  if (mpb) mpb.classList.add('idle');
   document.querySelectorAll('.ctrl-btn.play, .mp-btn.play').forEach(function(b){ b.innerHTML = PICON.play; });
   _finalizeListen();
   clearStreamTimer();
@@ -7956,13 +7990,27 @@ function _fitFeedVideo(v) {
   v.style.objectFit = Math.abs(shown - ar) > 0.02 ? 'cover' : 'contain';
   v.style.background = 'var(--bg3)';
 }
+// Loading videos shimmer in brand colors instead of sitting black
+(function() {
+  var st = document.createElement('style');
+  st.textContent = '.feed-video{background:var(--bg3)}' +
+    '.feed-video.fv-loading{background:linear-gradient(110deg,#14101E 30%,#241732 45%,#2A1206 55%,#14101E 70%);background-size:220% 100%;animation:fvshimmer 1.6s linear infinite}' +
+    '@keyframes fvshimmer{from{background-position:130% 0}to{background-position:-90% 0}}' +
+    '.mini-player.idle .mp-art,.mini-player.idle .mp-info,.mini-player.idle .mp-controls,.mini-player.idle .mp-stream-live{display:none!important}' +
+    '@media (max-width:768px){' +
+      '.mini-player.idle{padding:.3rem .9rem .5rem!important;min-height:0!important;gap:0!important}' +
+      '.mini-player.idle .mp-time{display:block!important;font-size:.6rem;color:var(--muted);text-align:center;width:100%;letter-spacing:.04em}' +
+      '.mini-player.idle::before{content:"";position:absolute;top:5px;left:50%;transform:translateX(-50%);width:34px;height:3px;border-radius:2px;background:rgba(241,241,248,.22)}' +
+    '}';
+  document.head.appendChild(st);
+})();
 function feedVideoEmbed(postId, url, maxH, poster) {
   return '<div style="position:relative;cursor:pointer" role="button" aria-label="Open in Clips" ' +
       'onclick="event.stopPropagation();openClipAt(\'' + postId + '\')">' +
-    '<video class="feed-video" muted loop playsinline preload="none" ' +
+    '<video class="feed-video fv-loading" muted loop playsinline preload="' + (poster ? 'none' : 'metadata') + '" ' +
       (poster ? 'poster="' + safeUrl(poster) + '" ' : '') +
-      'onloadedmetadata="_fitFeedVideo(this)" ' +
-      'style="width:100%;max-height:' + maxH + 'px;border-radius:12px;margin-top:.5rem;background:var(--bg3);display:block;object-fit:cover" src="' + url + '"></video>' +
+      'onloadedmetadata="_fitFeedVideo(this)" onloadeddata="this.classList.remove(\'fv-loading\')" oncanplay="this.classList.remove(\'fv-loading\')" ' +
+      'style="width:100%;max-height:' + maxH + 'px;border-radius:12px;margin-top:.5rem;display:block;object-fit:cover" src="' + url + (poster ? '' : '#t=0.1') + '"></video>' +
     '<button class="fv-mute" onclick="event.stopPropagation();toggleFeedMute(this)" aria-label="Unmute">🔇</button>' +
   '</div>';
 }
@@ -16309,15 +16357,13 @@ async function showPageProfile(slugOrId) {
     '<div class="pf">' +
       profileHeroHtml({
         name: pg.name, avatar_url: pg.avatar_url, banner_url: pg.banner_url,
-        banner_video_url: pg.banner_video_url,
         verified: pg.is_verified,
         meta: [pageTypeIcon(pg.page_type) + ' ' + (PAGE_TYPE_LABEL[pg.page_type] || 'Page'), pg.city].filter(Boolean).join(' · ')
       }) +
       '<div class="pf-body">' +
         '<div class="pf-actions">' +
           (isOwner
-            ? '<button class="pf-btn" onclick="openPageEditor(\'' + pg.id + '\')">✎ Edit page</button>' +
-              '<button class="pf-btn" onclick="pgSetHeaderVideo(\'' + pg.id + '\')">🎬 Header video</button>'
+            ? '<button class="pf-btn" onclick="openPageEditor(\'' + pg.id + '\')">✎ Edit page</button>'
             : '<button class="pf-btn' + (following ? ' on' : '') + '" onclick="toggleFollowUI(\'page\',\'' + pg.id + '\',this)">' +
                 (following ? '✓ Following' : '+ Follow') + '</button>' +
               (pg.owner_id ? '<button class="pf-btn" onclick="dmStart(\'' + pg.owner_id + '\')">✉️ Message</button>' : '')) +
