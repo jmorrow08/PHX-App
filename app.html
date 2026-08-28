@@ -1306,6 +1306,12 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
         <div id="discover-tonight" style="display:flex;gap:.6rem;overflow-x:auto;padding-bottom:.3rem;scrollbar-width:none"><div class="pf-empty">Loading…</div></div>
       </div>
 
+      <!-- Taste-matched picks: hidden until the engine has signals on you -->
+      <div id="discover-foryou-wrap" style="display:none;margin-bottom:1.4rem">
+        <div class="sh" style="margin-bottom:.6rem"><h3>✨ Picked for you</h3><span style="font-size:.7rem;color:var(--muted)">From what you follow &amp; show up to</span></div>
+        <div id="discover-foryou-events" style="display:flex;gap:.6rem;overflow-x:auto;padding-bottom:.3rem;scrollbar-width:none"></div>
+      </div>
+
       <!-- PEOPLE YOU MAY KNOW — the city, one swipe: artists first, then
            the newest members. Excludes you and everyone you already follow. -->
       <div style="margin-bottom:1.4rem">
@@ -1581,6 +1587,12 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
           <button class="tb-btn pm-mode on" data-mode="map" onclick="plugMapMode('map')">Map</button>
         </div>
       </div>
+      <div style="position:relative;margin-bottom:.6rem">
+        <input class="form-input" id="pm-ai-search" placeholder="🧠 Say what you feel like — &quot;chill wine night&quot;, &quot;something for the kids&quot;…"
+          style="font-size:.85rem;padding-right:4.4rem" onkeydown="if(event.key==='Enter')plugMapAsk()">
+        <button class="tb-btn" onclick="plugMapAsk()" style="position:absolute;right:.35rem;top:50%;transform:translateY(-50%);font-size:.72rem;padding:.3rem .6rem">Ask</button>
+      </div>
+      <div id="pm-ai-results" style="display:none;margin-bottom:.9rem"></div>
       <div class="pm-rail"><span class="pm-rail-label">When</span><div class="pm-seg">
         <button class="pm-range" data-range="today" onclick="plugMapRange('today')">Today</button>
         <button class="pm-range" data-range="tomorrow" onclick="plugMapRange('tomorrow')">Tomorrow</button>
@@ -3258,7 +3270,7 @@ function showView(id) {
   if (id === 'artist-profile') loadArtistProfileEditor();
   if (id === 'home') { loadCityFeed(); loadTrendingRail(); }
   if (id === 'profile') loadMyPages();
-  if (id === 'discover') { loadDiscoverTonight(); loadForYou(); loadTrendingRail(); loadPeopleYouMayKnow(); loadSceneLeaders(); }
+  if (id === 'discover') { loadDiscoverTonight(); loadEventsForYou(); loadForYou(); loadTrendingRail(); loadPeopleYouMayKnow(); loadSceneLeaders(); }
   if (id === 'settings') loadSettings();
   if (id === 'admin-ash') loadAshPanel();
   if (id === 'admin-analytics') { loadAdminAnalytics(); loadAdminEngagement(); }
@@ -5852,6 +5864,129 @@ async function showVenuePage(venueId) {
   _loadReviews('venue', venueId);
 }
 
+// ── SEMANTIC SEARCH ────────────────────────────────────────────────────
+// Type a vibe, not a keyword: the phrase is embedded server-side and
+// matched against every event's meaning, so "chill wine night" finds the
+// wine trail even though no event says "chill".
+async function plugMapAsk() {
+  var inp = document.getElementById('pm-ai-search');
+  var box = document.getElementById('pm-ai-results');
+  var q = inp ? inp.value.trim() : '';
+  if (!box) return;
+  if (!q) { box.style.display = 'none'; return; }
+  box.style.display = 'block';
+  box.innerHTML = '<div class="pf-empty">🧠 Reading the city…</div>';
+  try {
+    var res = await _sb.functions.invoke('embed-events', { body: { q: q, count: 8 } });
+    var evs = (res.data && res.data.events) || [];
+    if (!evs.length) { box.innerHTML = '<div class="pf-empty">Nothing matched that vibe — try different words.</div>'; return; }
+    box.innerHTML =
+      '<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.5rem"><span style="font-size:.72rem;color:var(--orange-l);font-weight:700;letter-spacing:.08em;text-transform:uppercase">Closest to the vibe</span>' +
+        '<button class="tb-btn" style="margin-left:auto;font-size:.66rem;padding:.2rem .5rem" onclick="document.getElementById(\'pm-ai-results\').style.display=\'none\';document.getElementById(\'pm-ai-search\').value=\'\'">✕ Clear</button></div>' +
+      evs.map(function(e) {
+        var tp = showTimeParts(e);
+        return '<div class="pm-card" role="button" style="cursor:pointer" onclick="showEventPage(\'' + e.src + '\',\'' + e.id + '\')">' +
+          '<div class="ap-date"><div class="m">' + tp.mon + '</div><div class="d">' + tp.day + '</div></div>' +
+          '<div style="flex:1;min-width:0">' +
+            '<div style="font-family:var(--disp);font-size:.92rem;font-weight:700">' + escapeHtml(e.title) + '</div>' +
+            '<div style="font-size:.74rem;color:var(--muted);margin-top:2px">' + escapeHtml([tp.time, e.venue_name].filter(Boolean).join(' · ')) + (e.is_free ? ' · FREE' : '') + '</div>' +
+          '</div>' +
+          (safeUrl(e.cover_url) ? '<img src="' + safeUrl(e.cover_url) + '" alt="" loading="lazy" style="width:46px;height:46px;border-radius:8px;object-fit:cover;flex-shrink:0">' : '') +
+        '</div>';
+      }).join('');
+    trackEvent('semantic_search', 'events', null, { q: q.slice(0, 80), hits: evs.length });
+  } catch (e) {
+    box.innerHTML = '<div class="pf-empty">Search hiccuped — try again.</div>';
+  }
+}
+
+// ── EVENTS FOR YOU ─────────────────────────────────────────────────────
+// Taste-based picks: followed venues + favorite artists + the kinds of
+// nights they actually show up to + wizard interests. Server scores it.
+async function loadEventsForYou() {
+  var box = document.getElementById('discover-foryou-events');
+  if (!box || !_authUser) return;
+  var res = await _sb.rpc('recommend_events', { p_limit: 8 });
+  var evs = (res.data || []).filter(function(e){ return e.score > 0; });
+  var wrap = document.getElementById('discover-foryou-wrap');
+  if (!evs.length) { if (wrap) wrap.style.display = 'none'; return; }
+  if (wrap) wrap.style.display = 'block';
+  box.innerHTML = evs.map(function(e) {
+    var img = safeUrl(e.cover_url);
+    var d = new Date(e.starts_at);
+    var when = d.toLocaleDateString('en-US', { weekday: 'short' }) + ' ' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    return '<div role="button" onclick="showEventPage(\'' + e.src + '\',\'' + e.id + '\')" style="flex:0 0 178px;height:120px;border-radius:14px;overflow:hidden;position:relative;cursor:pointer;background:' +
+      (img ? 'linear-gradient(180deg,rgba(7,7,15,.05) 30%,rgba(7,7,15,.88)),url(\'' + img + '\') center/cover' : 'linear-gradient(160deg,#1A0F2A,#160B18)') + '">' +
+      '<div style="position:absolute;left:.6rem;right:.6rem;bottom:.5rem">' +
+        '<div style="font-size:.78rem;font-weight:800;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">' + escapeHtml(e.title) + '</div>' +
+        '<div style="font-size:.62rem;color:var(--purple-l);font-weight:700;margin-top:2px">' + when + (e.is_free ? ' · FREE' : '') + '</div>' +
+      '</div></div>';
+  }).join('');
+}
+
+// ── FLYER SCAN ─────────────────────────────────────────────────────────
+// The camera reads the flyer: vision model extracts title/date/venue/price
+// and pre-fills the form. Member confirms, sends, done in 15 seconds.
+async function scanFlyer(btn) {
+  var fInput = document.getElementById('se-flyer');
+  var f = fInput && fInput.files && fInput.files[0];
+  var msg = document.getElementById('se-msg');
+  if (!f) { if (msg) { msg.style.color = 'var(--muted)'; msg.textContent = 'Add the flyer photo first, then scan.'; } return; }
+  btn.disabled = true; btn.textContent = '✨ Reading the flyer…';
+  try {
+    var b64 = await _downscaleToB64(f, 1400);
+    if (!b64) throw new Error('no_frame');
+    var res = await _sb.functions.invoke('extract-flyer', { body: { image_b64: b64.data, media_type: b64.type } });
+    var ev = res.data && res.data.event;
+    if (!ev || res.error) throw new Error((res.data && res.data.error) || 'failed');
+    var set = function(id, v) { var el = document.getElementById(id); if (el && v && !el.value) el.value = v; };
+    set('se-title', ev.title);
+    set('se-venue', [ev.venue, ev.address].filter(Boolean).join(', '));
+    set('se-link', ev.ticket_url);
+    set('se-note', [ev.description, ev.is_free ? 'FREE' : ev.price_text].filter(Boolean).join(' — '));
+    if (ev.date) {
+      var t = (ev.time || '19:00');
+      var el = document.getElementById('se-when');
+      if (el && !el.value) el.value = ev.date + 'T' + t;
+    }
+    if (msg) { msg.style.color = 'var(--green)'; msg.textContent = '✨ Read it — double-check the details and send.'; }
+    if (typeof haptic === 'function') haptic(12);
+  } catch (e) {
+    if (msg) { msg.style.color = 'var(--red)'; msg.textContent = 'Could not read that flyer — fill it in manually.'; }
+  }
+  btn.disabled = false; btn.textContent = '✨ Scan the flyer';
+}
+
+// ── EVENT REFS IN POSTS ────────────────────────────────────────────────
+// Admin city posts carry [events:src~id,...] — rendered as one tappable
+// chip that opens a sheet of event cards instead of hyperlink soup.
+async function openPostEvents(refs) {
+  var pairs = refs.split(',').map(function(r){ return r.split('~'); }).filter(function(p){ return p.length === 2; });
+  if (!pairs.length) return;
+  _apModal('post-events-modal',
+    '<div style="display:flex;align-items:center;margin-bottom:.8rem"><div style="font-weight:800;font-size:1.05rem">🎟 In this post</div>' +
+      '<button onclick="document.getElementById(\'post-events-modal\').style.display=\'none\'" style="margin-left:auto;background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem">✕</button></div>' +
+    '<div id="pe-list" style="max-height:60vh;overflow-y:auto"><div class="pf-empty">Loading…</div></div>');
+  var ids = pairs.map(function(p){ return p[1]; });
+  var res = await _sb.from('city_events').select('*').in('id', ids);
+  var evs = res.data || [];
+  var order = {}; ids.forEach(function(id, i){ order[id] = i; });
+  evs.sort(function(a, b){ return (order[a.id] || 0) - (order[b.id] || 0); });
+  var list = document.getElementById('pe-list');
+  if (!list) return;
+  list.innerHTML = evs.length ? evs.map(function(e) {
+    var tp = showTimeParts(e);
+    return '<div class="pm-card" role="button" style="cursor:pointer" onclick="document.getElementById(\'post-events-modal\').style.display=\'none\';showEventPage(\'' + e.src + '\',\'' + e.id + '\')">' +
+      '<div class="ap-date"><div class="m">' + tp.mon + '</div><div class="d">' + tp.day + '</div></div>' +
+      '<div style="flex:1;min-width:0">' +
+        '<div style="font-family:var(--disp);font-size:.9rem;font-weight:700">' + escapeHtml(e.title) + '</div>' +
+        '<div style="font-size:.72rem;color:var(--muted);margin-top:2px">' + escapeHtml([tp.time, e.venue_name].filter(Boolean).join(' · ')) + (e.is_free ? ' · FREE' : '') + '</div>' +
+      '</div>' +
+      (safeUrl(e.cover_url) ? '<img src="' + safeUrl(e.cover_url) + '" alt="" loading="lazy" style="width:44px;height:44px;border-radius:8px;object-fit:cover;flex-shrink:0">' : '') +
+    '</div>';
+  }).join('') : '<div class="pf-empty">Those events have passed.</div>';
+}
+
 // ── GEO CHECK-INS ──────────────────────────────────────────────────────
 // The endgame receipt: bodies through the door, verified by the phone's
 // own location against the venue (server-side geofence, ~500m, from 2h
@@ -7891,6 +8026,12 @@ var _fvMoDebounce = null;
 // Escapes FIRST, then decorates — the linkifier never touches raw input.
 function richText(raw) {
   var t = escapeHtml(raw || '');
+  // [events:src~id,...] markers become one tappable chip, never raw text
+  t = t.replace(/\[events:([a-zA-Z0-9~,\-]+)\]/g, function(_, refs) {
+    var n = refs.split(',').length;
+    return '<br><a href="#" class="rt-link" style="display:inline-block;margin-top:.35rem;padding:.35rem .7rem;border:1px solid rgba(249,115,22,.4);border-radius:999px;font-size:.78rem;font-weight:700" ' +
+      'onclick="event.stopPropagation();openPostEvents(\'' + refs + '\');return false">🎟 ' + n + ' events — tap to browse</a>';
+  });
   t = t.replace(/(^|[\s(])@([a-zA-Z0-9_.]{2,30})/g, function(_, pre, u) {
     return pre + '<a href="#" class="rt-link" onclick="event.stopPropagation();openMentionProfile(\'' + u + '\');return false">@' + u + '</a>';
   });
@@ -11182,6 +11323,8 @@ function openSubmitEvent() {
       '<input class="form-input" id="se-when" type="datetime-local" style="margin-bottom:.55rem">' +
       '<input class="form-input" id="se-link" placeholder="Tickets or info link (optional)" style="margin-bottom:.55rem">' +
       '<div style="margin-bottom:.55rem">' + filePickHtml('se-flyer', 'image/*', '🖼 Add the flyer', 'Optional — a photo of the flyer works') + '</div>' +
+      '<button class="pf-btn" style="width:100%;justify-content:center;margin-bottom:.55rem;border-color:rgba(124,58,237,.45)" onclick="scanFlyer(this)">✨ Scan the flyer</button>' +
+      '<div style="font-size:.66rem;color:var(--faint);margin:-.25rem 0 .55rem;text-align:center">Scan reads the details off the flyer and fills the form for you</div>' +
       '<textarea class="form-input" id="se-note" placeholder="Anything else? (optional)" maxlength="300" rows="2" style="margin-bottom:.9rem;resize:vertical"></textarea>' +
       '<button class="upgrade-btn" style="margin:0;width:100%" onclick="sendSubmitEvent(this)">Send it in</button>' +
       '<button onclick="document.getElementById(\'submit-event-sheet\').style.display=\'none\'" style="display:block;width:100%;background:none;border:none;color:var(--muted);cursor:pointer;font-size:.8rem;margin-top:.7rem;text-decoration:underline">Cancel</button>' +
@@ -13869,7 +14012,7 @@ async function startOnboarding() {
 
 function _onbDots(n) {
   var s = '';
-  for (var i = 1; i <= 4; i++) {
+  for (var i = 1; i <= 5; i++) {
     s += '<span style="width:26px;height:3px;border-radius:2px;background:' + (i <= n ? 'var(--orange)' : 'rgba(255,255,255,.14)') + '"></span>';
   }
   return '<div style="display:flex;gap:.3rem;justify-content:center;margin-bottom:1.2rem">' + s + '</div>';
@@ -13920,6 +14063,30 @@ async function renderOnboard() {
   }
 
   if (_onbStep === 4) {
+    var INTS = [
+      ['music', '🎤 Live music'], ['comedy', '🎭 Comedy'], ['nightlife', '🌙 Nightlife'],
+      ['art', '🎨 Art'], ['food', '🍽 Food & drink'], ['family', '👨‍👩‍👧 Family'],
+      ['sports', '🏀 Sports'], ['markets', '🛍 Markets'], ['community', '🏙 Community'],
+      ['fitness', '💪 Fitness'], ['barbers', '✂️ Barbers & beauty'], ['fashion', '👕 Local fashion'],
+      ['podcasts', '🎙 Podcasts & talk']
+    ];
+    window._onbInterests = window._onbInterests || [];
+    m.innerHTML = shell(
+      '<div style="font-size:1.2rem;font-weight:800;margin-bottom:.35rem">What are you into?</div>' +
+      '<p style="color:var(--muted);font-size:.85rem;margin-bottom:1rem">Tap everything that sounds like your kind of night. PHX uses this to hand-pick events, music, and — as the city grows — everything else.</p>' +
+      '<div id="onb-int-grid" style="display:flex;flex-wrap:wrap;gap:.45rem;margin-bottom:1.1rem">' +
+        INTS.map(function(it) {
+          var on = window._onbInterests.indexOf(it[0]) >= 0;
+          return '<button class="tb-btn' + (on ? ' primary' : '') + '" data-int="' + it[0] + '" onclick="onbToggleInterest(this)" style="font-size:.8rem">' + it[1] + '</button>';
+        }).join('') + '</div>' +
+      '<button class="upgrade-btn" style="margin:0;width:100%" onclick="onbSaveInterests()">Continue</button>' +
+      '<button onclick="_onbStep=5;renderOnboard()" style="display:block;width:100%;background:none;border:none;color:var(--muted);cursor:pointer;font-size:.8rem;margin-top:.7rem;text-decoration:underline">Skip</button>' +
+      '<div id="onb-msg" style="font-size:.78rem;color:var(--muted);margin-top:.55rem;min-height:1em"></div>'
+    );
+    return;
+  }
+
+  if (_onbStep === 5) {
     // Points primer + 30-second tour. Their activation bonus is already in
     // the ledger, so the first number they see is real and already theirs.
     var pts = 0;
@@ -14023,6 +14190,21 @@ function onbToggleFollow(kind, id) {
   }
 }
 
+function onbToggleInterest(btn) {
+  var k = btn.dataset.int;
+  window._onbInterests = window._onbInterests || [];
+  var i = window._onbInterests.indexOf(k);
+  if (i >= 0) { window._onbInterests.splice(i, 1); btn.classList.remove('primary'); }
+  else { window._onbInterests.push(k); btn.classList.add('primary'); }
+}
+async function onbSaveInterests() {
+  try {
+    if ((window._onbInterests || []).length) {
+      await _sb.from('profiles').update({ interests: window._onbInterests }).eq('id', _authUser.id);
+    }
+  } catch (e) { reportFailure('onbInterests', e); }
+  _onbStep = 5; renderOnboard();
+}
 var _onbData = {};
 async function onbNext(skip) {
   var msg = document.getElementById('onb-msg');
