@@ -269,3 +269,29 @@ _Everything below is live in production. Recorded here so Ash, future hires, and
 - *Map*: Sports/Markets/Open-mic/**Free** categories, time-of-day rail (daytime/tonight/late), never-dead-end empty states, venue flyer headers, **live ICS calendar feed** (plug-map-ics fn + 📅 subscribe modal).
 
 **External actions for Jaye** (can't be done from here): DMARC TXT record (`_dmarc.thephx.app` → `v=DMARC1; p=quarantine; rua=mailto:admin@thephx.app`); Turnstile keys (Cloudflare → Supabase Auth bot-protection → site key into platform_settings); DMCA agent $6 filing; password-reset one real-device test; send-push VAPID keys → Supabase secrets (still hardcoded, pre-scale). Deferred by design: Wrapped public (Dec 1 auto), native ticketing (Stripe), 2FA (paused), link unfurl + server transcoding (billing-gated), backup restore drill (needs a maintenance window).
+
+## Update — August 27, 2026 (the to-do drop: doors, receipts, real answers)
+
+**Events pipeline.** Comedy is a first-class kind: Ticketmaster now pulls the comedy classification (16 events landed day one), and Stand Up Live Phoenix + Tempe Improv joined the nightly page readers. New `enrich` op visits each event's source page and back-fills missing description / ticket link / flyer / end date (cron every 2h, limit 5, ~90-event backlog clearing). Multi-day runs carry `ends_at` end-to-end: cards show "thru Sep 14", event pages show the full range, and the Today filter keeps a running show visible mid-run. Same-run duplicates (per-day calendar listings) merge nightly (`merge_duplicate_event_runs`, cron 10:35).
+
+**Geo check-ins.** Event pages grow an "I'm here — check in" button inside the window (2h before doors → 6h after start). The server verifies the phone is within ~500m of the venue, mints a door number, banks +25 PHX Points, and the full-screen moment offers one tap into the Lens ("Capture the night"). Counts show on the page ("🔥 N through the door"). This is the venue-pitch endgame: verified bodies, not clicks.
+
+**Reviews.** Events: check-in-gated — only people who were in the room can rate it. Venues: any member. Stars + average + one review per person, moderated server-side.
+
+**Plug Map.** Free filter is white (no longer collides with Food green), 🎭 Comedy chip added, Family filter also regex-catches kids/children/all-ages events filed under other kinds. Event QR cards (flyers/doors) from every event page.
+
+**City Question.** Answer now opens the composer with the question pinned above the box and auto-tags #CityQuestion; a "See answers" button opens the hashtag thread. Answers are normal feed posts.
+
+**Discover.** "In the city this week" event rail up top (multi-day aware) linking into the Plug Map. Every stale "Events coming Q3" reference is gone — Events chips say LIVE and link to the map; Eats/Drops say "in development" with no dates to go stale.
+
+**DMs.** Read receipts: "Seen" under your last message, mutual-consent only (both sides must leave the toggle on — Settings → Account). Server: `dm_thread_meta` + `set_read_receipts`.
+
+**Settings.** Member-page Edit Profile now routes to the Settings hub (one place to edit who you are). New rows: 🛡 Two-factor authentication, 👁 DM read receipts toggle.
+
+**2FA.** TOTP via any authenticator app: enroll in Settings (QR + manual key), 6-digit challenge at sign-in, cancel = sign out. Invite-code signup gate untouched — enrollment is post-account only.
+
+**Emails.** Root cause of blank approval emails fixed (`_email_html` had no `track_approved` branch; safe ELSE means no template can ever send blank again). Launch Desk email card gained a template previewer (`admin_email_preview` renders any template with sample data, byte-for-byte what the drainer sends).
+
+**Artist pages.** Videos tab redesigned: newest video is a full-width marquee with title overlay, catalog grid under it. Tab order now Music · Videos · Shows · Merch · Posts · About.
+
+**Hardening.** sign-audio v5: 60/min per-caller rate limit. ash v7: 20-per-5-min human-path limit. **Backups**: free tier has no managed backups OR branching (drill finding) — built our own: `backup-db` edge fn dumps all 80 tables to the private `db-backups` bucket (first run: 4,034 rows, 1.5MB, 0 errors), weekly cron Sundays 4am Phoenix, keeps last 10. Restore = download JSON, replay per table with the service role.
