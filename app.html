@@ -8974,7 +8974,7 @@ async function _dmFetch() {
   if (_dmLastIso) q = q.gt('created_at', _dmLastIso);
   var res = await q;
   var rows = res.data || [];
-  if (!rows.length) return;
+  if (!rows.length) { _dmUpdateSeen(); return; }
   var box = document.getElementById('dm-msgs');
   if (!box) return;
   var me = getGuestId();
@@ -8991,6 +8991,7 @@ async function _dmFetch() {
     var wrap = document.createElement('div');
     wrap.className = 'dm-wrap ' + (m.sender_id === me ? 'mine' : 'theirs');
     wrap.dataset.msg = m.id;
+    wrap.dataset.at = m.created_at;
     var b = document.createElement('div');
     b.className = 'dm-bubble ' + (m.sender_id === me ? 'mine' : 'theirs');
     if (m.kind === 'image' && m.media_path) {
@@ -9027,6 +9028,33 @@ async function _dmFetch() {
   _dmLastIso = rows[rows.length - 1].created_at;
   box.scrollTop = box.scrollHeight;
   _sb.rpc('dm_mark_read', { p_thread: _dmThreadId }).then(_refreshDmBadge);
+  _dmUpdateSeen();
+}
+// "Seen" under your last message — only when BOTH people keep read
+// receipts on (dm_thread_meta enforces the mutual-consent rule server-side)
+var _dmSeenBusy = false;
+async function _dmUpdateSeen() {
+  if (!_dmThreadId || _dmSeenBusy) return;
+  _dmSeenBusy = true;
+  try {
+    var res = await _sb.rpc('dm_thread_meta', { p_thread: _dmThreadId });
+    var meta = res.data || {};
+    var box = document.getElementById('dm-msgs');
+    if (!box || !meta.ok) return;
+    var old = document.getElementById('dm-seen');
+    var mine = box.querySelectorAll('.dm-wrap.mine');
+    var last = mine.length ? mine[mine.length - 1] : null;
+    var show = last && meta.other_seen_at && last.dataset.at &&
+      new Date(meta.other_seen_at) >= new Date(last.dataset.at);
+    if (!show) { if (old) old.remove(); return; }
+    if (old && old.previousElementSibling === last) return;
+    if (old) old.remove();
+    var el = document.createElement('div');
+    el.id = 'dm-seen';
+    el.style.cssText = 'align-self:flex-end;font-size:.62rem;color:var(--muted);padding:1px 6px 4px;letter-spacing:.03em';
+    el.textContent = 'Seen';
+    last.insertAdjacentElement('afterend', el);
+  } finally { _dmSeenBusy = false; }
 }
 // ── DM REACTIONS ────────────────────────────────────────────────────────
 // Long-press a bubble → pick one of six. One reaction per person; tapping
