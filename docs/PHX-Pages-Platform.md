@@ -99,3 +99,37 @@ My answers to that prompt live in §3–§6; the flywheel line is the strategy: 
 
 ---
 *Related: business tiers already in `tiers` table; reviews/QR/identity-switcher shipped; wizard interests (Aug 28) already collect fitness/barbers/fashion signals for the directory.*
+
+---
+
+## §10. Future module map + tier matrix (added Aug 28 — the OCD pass)
+
+**Decided:** video header is an ARTIST feature (top-tier artist flex), not a page module.
+
+### Modules to prepare for (in rough build order)
+| Module | What | Tier | Needs |
+|---|---|---|---|
+| **Door kit** | Guest lists, QR scan-in, capacity counter | Full (promoter/venue) | pairs w/ check-ins, pre-Stripe OK |
+| **Perks / loyalty** | Punch cards ("5th cut free"), member discounts — auto-tracked via completed bookings | Full | nothing; killer retention hook |
+| **Class mode** | Booking slots with capacity > 1 (a 6pm class, 12 seats) | Full (fitness) | small booking-engine extension |
+| **Staff seats** | Multi-chair shops: book a specific barber; each staff member gets their own calendar + client book | Pro | team model on pages |
+| **Waitlist / walk-ins** | "3 ahead of you" live queue | Pro | realtime |
+| **Auto-rebook nudges** | "It's been 3 weeks — book your next cut" push | Pro | cron + booking history (data already accrues) |
+| **Intake forms** | Tattoo consent, trainer health questionnaire attached to a booking | Pro | forms builder-lite |
+| **Before/after pairs** | Portfolio upgrade: swipeable A/B | Full | gallery extension |
+| **Checkout** | Real payment on shop + booking deposits + no-show fees | Pro | **Stripe Connect** |
+| **Memberships billing** | Recurring packages, auto-charge | Pro | Stripe |
+| **Gift cards** | Prepaid credit | Pro | Stripe |
+| **Tips** | Post-completion tip prompt | Pro | Stripe |
+| **Payout dashboard** | Connect earnings view on the page | Pro | Stripe |
+| **Insights+** | Rebook rate, retention, revenue, busiest hours | Pro | data already accruing |
+| **Featured placement** | Directory priority + Discover spotlight (the business "headline") | Pro add-on | curation rules |
+| **Menu** | Structured food menus | Full (food) | ships with Eats |
+
+### Tier matrix (target state)
+- **Members**: Free → PHX Native $9.99 → Insider. Unchanged.
+- **Artists**: basic → full → **headline** (curatorial: featured, priority, **video header**).
+- **Businesses**: **Basic Listing** (free forever — directory, reviews, QR, 1 link; the claim hook) → **Full Page** (~$19–29/mo at billing; founding = free) → **Pro** (~$49–79/mo, Stripe era: checkout, memberships, deposits, staff seats, waitlist, auto-rebook, gift cards, Insights+, featured option).
+- **Venues**: claim free (growth loop) → Venue Pro later (impact analytics + door kit + featured).
+- **Positioning law**: PHX never takes a % of bookings — flat tiers only. That one sentence beats Booksy/StyleSeat in every pitch.
+- **Design law**: Studio is Jaye-only. Every owner tool renders on the owner's own page/app surface.
