@@ -305,3 +305,16 @@ _Everything below is live in production. Recorded here so Ash, future hires, and
 **Studio → Launch Desk → 🏪 Founding pages**: provision a page for any account (@handle or email) — type picks the modules, lands at Full tier + founding flag + is_claimed, owner gets a notification with the keys. This is the concierge-onboarding tool: build their page, then pitch. Founding = top tier free; grandfather at billing. Artists already default to Full tier on approval.
 
 **Weekly city post** regenerated in the new day-grouped format with the tappable "🎟 12 events" chip.
+
+## Update — August 28, 2026 (the feel drop: physics + PHX Studio)
+
+**Swipe physics.** Sheets and pages now track the finger 1:1 and leave at the finger's own release speed (`attachSheetDrag`: rubber-banding, velocity-matched exit 90–260ms, spring-back under threshold, direction-lock for horizontal). Wired: player sheet (with entrance slide + backdrop fade), post sheet (head-driven whole-body drag, draft-guard safe), event pages (slide right to the map).
+
+**PHX STUDIO — the editor, inside the post flow.** A gradient-framed rack under the filter chips:
+- **🌟 Glow (0–100)** — on-device Orton pass: quarter-res blurred copy folded back in soft-light + a whisper of screen + ember warmth. Flatters without plastic smoothing. $0/user.
+- **✨ Enhance** — real per-pixel auto-enhance on photos (percentile histogram stretch, gentle S-curve, +10% sat); filter-approximated on video frames.
+- **🌙 Night (0–100)** — screen-composited shadow lift for dark venue footage.
+- **✂️ Smart crop** — 1:1 / 4:5 / 9:16 with detail-centroid auto-framing (luminance-variance grid, slight top bias for faces).
+- **Press-and-hold before/after** on the preview.
+- **🎚 BEAT-CUT (flagship)** — pick a live PHX track → BPM comb-detection (70–180) on the decoded audio → the clip re-cuts itself on the beat (every 1/2/4 beats, 10/15/20s), punch-in zoom pulses + 90ms ember flash per hit, the track baked into the export via MediaRecorder. `beat_cut` tracked per track = artist discovery loop.
+- All of it rides the existing bake pipeline (filters/stamp/captions/audio modes unchanged); resets with the composer.
