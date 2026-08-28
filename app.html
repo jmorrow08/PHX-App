@@ -7370,8 +7370,11 @@ function _studioActive() { return _editSet.enhance || _editSet.glow > 0 || _edit
 function _studioLayers(ctx, srcCanvas, w, h, set) {
   if (set.glow > 0) {
     var g = set.glow / 100;
-    var gs = document.createElement('canvas');
-    gs.width = Math.max(2, Math.round(w / 4)); gs.height = Math.max(2, Math.round(h / 4));
+    var gs = ctx._stG;
+    if (!gs || gs.width !== Math.max(2, Math.round(w / 4))) {
+      gs = ctx._stG = document.createElement('canvas');
+      gs.width = Math.max(2, Math.round(w / 4)); gs.height = Math.max(2, Math.round(h / 4));
+    }
     var gctx = gs.getContext('2d');
     gctx.filter = 'blur(' + Math.max(2, Math.round(w / 240)) + 'px) brightness(1.05)';
     gctx.drawImage(srcCanvas, 0, 0, gs.width, gs.height);
@@ -7390,8 +7393,11 @@ function _studioLayers(ctx, srcCanvas, w, h, set) {
   }
   if (set.night > 0) {
     var n = set.night / 100;
-    var ns = document.createElement('canvas');
-    ns.width = Math.max(2, Math.round(w / 3)); ns.height = Math.max(2, Math.round(h / 3));
+    var ns = ctx._stN;
+    if (!ns || ns.width !== Math.max(2, Math.round(w / 3))) {
+      ns = ctx._stN = document.createElement('canvas');
+      ns.width = Math.max(2, Math.round(w / 3)); ns.height = Math.max(2, Math.round(h / 3));
+    }
     var nctx = ns.getContext('2d');
     nctx.filter = 'brightness(' + (1 + 0.9 * n) + ') blur(1px) saturate(.92)';
     nctx.drawImage(srcCanvas, 0, 0, ns.width, ns.height);
@@ -8167,6 +8173,9 @@ async function startTrimExport() {
 // Camera runs ONLY while the Lens is open; tracks stop the moment it closes.
 var _lensStream = null, _lensFacing = 'environment', _lensRec = null, _lensChunks = [],
     _lensTick = null, _lensHold = null, _lensT0 = 0, _lensCanvas = null, _lensCtx = null;
+// Live Studio on the camera: Glow starts at 30 — the "why does everyone
+// look good on PHX" baseline. Night wakes itself up in dark rooms.
+var _lensGlow = 30, _lensNight = 0, _lensNightAuto = true, _lensTorch = false, _lensTimer = false;
 
 async function openPhxLens() {
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.MediaRecorder) {
@@ -8184,12 +8193,27 @@ async function openPhxLens() {
   wrap.innerHTML =
     '<div style="position:relative;flex:1;overflow:hidden" ontouchstart="_lensTS(event)" ontouchend="_lensTE(event)">' +
       '<video id="lens-view" autoplay playsinline muted style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"></video>' +
+      // GPU preview of the Studio layers: the same stream, blended over
+      // itself. What the capture bakes is what these show.
+      '<video id="lens-glow-layer" autoplay playsinline muted aria-hidden="true" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:blur(14px) brightness(1.05);mix-blend-mode:soft-light;opacity:0;pointer-events:none"></video>' +
+      '<div id="lens-warm-layer" aria-hidden="true" style="position:absolute;inset:0;background:#FF9A5C;mix-blend-mode:overlay;opacity:0;pointer-events:none"></div>' +
+      '<video id="lens-night-layer" autoplay playsinline muted aria-hidden="true" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:brightness(1.9) blur(2px) saturate(.92);mix-blend-mode:screen;opacity:0;pointer-events:none"></video>' +
+      '<div id="lens-countdown" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;font-family:var(--disp);font-size:6rem;font-weight:900;color:#fff;text-shadow:0 4px 30px rgba(0,0,0,.6);pointer-events:none"></div>' +
       '<div id="lens-grid" style="display:' + (_lensGridOn ? 'block' : 'none') + ';position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(rgba(255,255,255,.16) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.16) 1px,transparent 1px);background-size:33.34% 33.34%"></div>' +
       '<div id="lens-zoom-badge" style="display:none;position:absolute;bottom:calc(196px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);background:rgba(7,7,15,.6);border-radius:999px;padding:.22rem .65rem;font-weight:700;font-size:.74rem;color:#fff;pointer-events:none">1×</div>' +
       '<div id="lens-filter-name" style="position:absolute;top:calc(18px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);background:rgba(7,7,15,.72);border-radius:999px;padding:.32rem .95rem;font-weight:800;font-size:.9rem;color:#fff;opacity:0;transition:opacity .25s;pointer-events:none;white-space:nowrap"></div>' +
       '<div id="lens-rec-badge" style="display:none;position:absolute;top:calc(18px + env(safe-area-inset-top,0px));left:16px;background:rgba(220,38,38,.9);border-radius:999px;padding:.28rem .7rem;font-weight:800;font-size:.78rem;color:#fff">● <span id="lens-rec-time">0:00</span></div>' +
       '<button onclick="closePhxLens()" aria-label="Close" style="position:absolute;top:calc(14px + env(safe-area-inset-top,0px));right:14px;width:36px;height:36px;border-radius:50%;background:rgba(7,7,15,.6);border:none;color:#fff;font-size:1rem;cursor:pointer">✕</button>' +
       '<button id="lens-grid-btn" onclick="toggleLensGrid()" aria-label="Grid" style="position:absolute;top:calc(60px + env(safe-area-inset-top,0px));right:14px;width:36px;height:36px;border-radius:50%;background:rgba(7,7,15,.6);border:none;color:' + (_lensGridOn ? 'var(--orange)' : '#fff') + ';font-size:.95rem;cursor:pointer">▦</button>' +
+      '<button id="lens-studio-btn" onclick="toggleLensStudio()" aria-label="Studio adjustments" style="position:absolute;top:calc(106px + env(safe-area-inset-top,0px));right:14px;width:36px;height:36px;border-radius:50%;background:rgba(7,7,15,.6);border:none;color:var(--orange);font-size:.95rem;cursor:pointer">✨</button>' +
+      '<button id="lens-torch-btn" onclick="toggleLensTorch()" aria-label="Light" style="display:none;position:absolute;top:calc(152px + env(safe-area-inset-top,0px));right:14px;width:36px;height:36px;border-radius:50%;background:rgba(7,7,15,.6);border:none;color:#fff;font-size:.95rem;cursor:pointer">🔦</button>' +
+      '<button id="lens-timer-btn" onclick="_lensTimer=!_lensTimer;this.style.color=_lensTimer?\'var(--orange)\':\'#fff\';_flashLensName(_lensTimer?\'⏱ 3s timer on\':\'Timer off\')" aria-label="3 second timer" style="position:absolute;top:calc(198px + env(safe-area-inset-top,0px));right:14px;width:36px;height:36px;border-radius:50%;background:rgba(7,7,15,.6);border:none;color:#fff;font-size:.9rem;cursor:pointer">⏱</button>' +
+      '<div id="lens-studio-panel" style="display:none;position:absolute;right:60px;top:calc(100px + env(safe-area-inset-top,0px));background:rgba(7,7,15,.72);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:.7rem .8rem;width:190px">' +
+        '<div style="display:flex;align-items:center;gap:.45rem;font-size:.68rem;color:#fff;margin-bottom:.2rem"><span style="width:44px">🌟 Glow</span>' +
+          '<input type="range" min="0" max="100" step="5" value="' + _lensGlow + '" oninput="_lensSetGlow(this.value)" style="flex:1;accent-color:var(--orange)"><b id="lens-glow-val" style="width:20px;text-align:right">' + _lensGlow + '</b></div>' +
+        '<div style="display:flex;align-items:center;gap:.45rem;font-size:.68rem;color:#fff"><span style="width:44px">🌙 Night</span>' +
+          '<input type="range" min="0" max="100" step="5" value="' + _lensNight + '" oninput="_lensSetNight(this.value)" style="flex:1;accent-color:var(--purple-l)"><b id="lens-night-val" style="width:20px;text-align:right">' + _lensNight + '</b></div>' +
+      '</div>' +
       '<div style="position:absolute;left:0;right:0;bottom:0;padding:0 0 calc(26px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;align-items:center;gap:14px;background:linear-gradient(transparent,rgba(0,0,0,.55))">' +
         '<div id="lens-chips" style="display:flex;gap:.4rem;overflow-x:auto;max-width:92%;padding:.2rem;scrollbar-width:none">' +
           Object.keys(PHOTO_FILTERS).map(function(k) {
@@ -8221,7 +8245,7 @@ async function _lensStart() {
       // CAMERA ONLY here — the mic prompt waits until the first video
       // recording, so photos never ask for a microphone (the pattern users
       // trust from every major camera app).
-      video: { facingMode: _lensFacing, width: { ideal: 1920 }, height: { ideal: 1080 }, frameRate: { ideal: 30 } }
+      video: { facingMode: _lensFacing, width: { ideal: 2560 }, height: { ideal: 1440 }, frameRate: { ideal: 30 } }
     });
     _lensInitZoom();
   } catch (e) {
@@ -8236,6 +8260,81 @@ async function _lensStart() {
     v.style.transform = _lensFacing === 'user' ? 'scaleX(-1)' : '';
     v.style.filter = PHOTO_FILTERS[_lensFilter] ? PHOTO_FILTERS[_lensFilter].css : 'none';
   }
+  // Preview layers share the stream — zero extra camera cost
+  ['lens-glow-layer', 'lens-night-layer'].forEach(function(id) {
+    var l = document.getElementById(id);
+    if (l) { l.srcObject = _lensStream; l.style.transform = _lensFacing === 'user' ? 'scaleX(-1)' : ''; }
+  });
+  _lensPaintStudio();
+  // Hardware extras where the camera exposes them: torch on the back
+  // camera, continuous focus/exposure so the frame never sits soft
+  try {
+    var track = _lensStream.getVideoTracks()[0];
+    var caps = track.getCapabilities ? track.getCapabilities() : {};
+    var tb = document.getElementById('lens-torch-btn');
+    if (tb) tb.style.display = (caps.torch && _lensFacing === 'environment') ? 'block' : 'none';
+    _lensTorch = false;
+    var adv = [];
+    if (caps.focusMode && caps.focusMode.indexOf('continuous') !== -1) adv.push({ focusMode: 'continuous' });
+    if (caps.exposureMode && caps.exposureMode.indexOf('continuous') !== -1) adv.push({ exposureMode: 'continuous' });
+    if (adv.length) track.applyConstraints({ advanced: adv }).catch(function(){});
+  } catch (e) { /* capability probing is best-effort */ }
+  // Dark room? Night boost switches itself on once per open (mean luminance
+  // of an early frame) — the user can always slide it back down
+  if (_lensNightAuto) {
+    setTimeout(function() {
+      try {
+        if (!_lensStream || _lensNight > 0) return;
+        var vv = document.getElementById('lens-view');
+        if (!vv || !vv.videoWidth) return;
+        var c = document.createElement('canvas');
+        c.width = 32; c.height = 32;
+        var cx = c.getContext('2d');
+        cx.drawImage(vv, 0, 0, 32, 32);
+        var dd = cx.getImageData(0, 0, 32, 32).data, sum = 0;
+        for (var i = 0; i < dd.length; i += 4) sum += (dd[i] * 77 + dd[i + 1] * 150 + dd[i + 2] * 29) >> 8;
+        if (sum / 1024 < 58) {
+          _lensSetNight(35);
+          var sl = document.querySelector('#lens-studio-panel input[oninput*="Night"]');
+          if (sl) sl.value = 35;
+          _flashLensName('🌙 Dark room — Night boost on');
+        }
+      } catch (e) { /* sampling optional */ }
+    }, 900);
+  }
+}
+function _lensPaintStudio() {
+  var g = document.getElementById('lens-glow-layer');
+  var wl = document.getElementById('lens-warm-layer');
+  var n = document.getElementById('lens-night-layer');
+  if (g) g.style.opacity = String(0.65 * _lensGlow / 100);
+  if (wl) wl.style.opacity = String(0.10 * _lensGlow / 100);
+  if (n) n.style.opacity = String(0.5 * _lensNight / 100);
+}
+function _lensSetGlow(v) {
+  _lensGlow = parseInt(v, 10) || 0;
+  _lensPaintStudio();
+  var el = document.getElementById('lens-glow-val'); if (el) el.textContent = _lensGlow;
+}
+function _lensSetNight(v) {
+  _lensNight = parseInt(v, 10) || 0;
+  _lensNightAuto = false;
+  _lensPaintStudio();
+  var el = document.getElementById('lens-night-val'); if (el) el.textContent = _lensNight;
+}
+function toggleLensStudio() {
+  var p = document.getElementById('lens-studio-panel');
+  if (p) p.style.display = p.style.display === 'none' ? 'block' : 'none';
+}
+async function toggleLensTorch() {
+  try {
+    var track = _lensStream && _lensStream.getVideoTracks()[0];
+    if (!track) return;
+    _lensTorch = !_lensTorch;
+    await track.applyConstraints({ advanced: [{ torch: _lensTorch }] });
+    var b = document.getElementById('lens-torch-btn');
+    if (b) b.style.color = _lensTorch ? 'var(--orange)' : '#fff';
+  } catch (e) { showToast('This camera has no light PHX can reach.'); }
 }
 var _lensAudioStream = null;
 function _lensStop() {
@@ -8351,6 +8450,11 @@ function _lensDraw(v) {
   if (_lensFacing === 'user') { ctx.save(); ctx.translate(c.width, 0); ctx.scale(-1, 1); ctx.drawImage(v, 0, 0, c.width, c.height); ctx.restore(); }
   else ctx.drawImage(v, 0, 0, c.width, c.height);
   ctx.filter = 'none';
+  // The Studio layers ride every captured frame — photo and video alike.
+  // What the preview showed is what the file holds.
+  if (_lensGlow > 0 || _lensNight > 0) {
+    _studioLayers(ctx, c, c.width, c.height, { glow: _lensGlow, night: _lensNight });
+  }
 }
 
 function _lensShutterDown(e) {
@@ -8362,7 +8466,26 @@ function _lensShutterUp(e) {
   e.preventDefault();
   clearTimeout(_lensHold);
   if (_lensRec && _lensRec.state === 'recording') _lensStopRec();
-  else if (Date.now() - _lensT0 < 350) _lensPhoto();
+  else if (Date.now() - _lensT0 < 350) {
+    if (_lensTimer) _lensCountdown(3, _lensPhoto);
+    else _lensPhoto();
+  }
+}
+function _lensCountdown(n, then) {
+  var el = document.getElementById('lens-countdown');
+  if (!el) { then(); return; }
+  if (n <= 0) { el.style.display = 'none'; then(); return; }
+  el.style.display = 'flex';
+  el.textContent = n;
+  if (typeof haptic === 'function') haptic(10);
+  setTimeout(function(){ _lensCountdown(n - 1, then); }, 1000);
+}
+// Reuse the filter-name pill for any Lens status flash
+function _flashLensName(msg) {
+  var el = document.getElementById('lens-filter-name');
+  if (!el) return;
+  el.textContent = msg; el.style.opacity = '1';
+  clearTimeout(el._t); el._t = setTimeout(function(){ el.style.opacity = '0'; }, 1200);
 }
 function _lensPhoto() {
   if (!_lensStream) return;
