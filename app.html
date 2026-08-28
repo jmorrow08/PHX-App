@@ -371,6 +371,11 @@ body[data-daypart="night"]{--orange:#F26312;--orange-l:#F98B4A;--orange-d:#C2410
 .set-arrow{color:var(--faint);font-size:1.05rem}
 /* Artist videos */
 .apv-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1rem}
+.apv-feat{grid-column:1/-1}
+.apv-feat .apv-frame{border-radius:16px;box-shadow:0 12px 34px rgba(0,0,0,.45)}
+.apv-feat .apv-cap{position:absolute;left:0;right:0;bottom:0;padding:2rem 1rem .8rem;background:linear-gradient(180deg,transparent,rgba(7,7,15,.88));pointer-events:none}
+.apv-feat .apv-cap b{font-family:var(--disp);font-size:1.05rem;font-weight:800;letter-spacing:-.01em}
+.apv-feat .apv-cap span{display:block;font-size:.64rem;letter-spacing:.14em;text-transform:uppercase;color:var(--orange-l);margin-bottom:.15rem}
 .apv-card{min-width:0}
 .apv-frame{position:relative;aspect-ratio:16/9;border-radius:12px;overflow:hidden;background:#000;cursor:pointer}
 .apv-frame img{width:100%;height:100%;object-fit:cover;display:block}
@@ -1268,11 +1273,11 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
           <div class="sh"><h3>What's Coming to PHX App</h3></div>
           <div style="display:flex;flex-direction:column;gap:.5rem">
             <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:.8rem 1rem;display:flex;align-items:center;gap:.75rem;font-size:.84rem">
-              <span>🎟️</span><div><div style="font-weight:600">PHX Events</div><div style="font-size:.75rem;color:var(--muted)">Live shows · Ticketing · PHX Pass access — Q3 2026</div></div>
-              <span class="nav-soon" style="margin-left:auto">SOON</span>
+              <span>🎟️</span><div><div style="font-weight:600">PHX Events — the Plug Map</div><div style="font-size:.75rem;color:var(--muted)">The whole city's calendar, live now</div></div>
+              <span class="badge badge-orange" style="margin-left:auto;cursor:pointer" onclick="showView('events')">LIVE →</span>
             </div>
             <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:.8rem 1rem;display:flex;align-items:center;gap:.75rem;font-size:.84rem">
-              <span>🍽️</span><div><div style="font-weight:600">PHX Eats</div><div style="font-size:.75rem;color:var(--muted)">Restaurant perks · Member discounts — Q3 2026</div></div>
+              <span>🍽️</span><div><div style="font-weight:600">PHX Eats</div><div style="font-size:.75rem;color:var(--muted)">Restaurant perks · Member discounts — in development</div></div>
               <span class="nav-soon" style="margin-left:auto">SOON</span>
             </div>
             <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:.8rem 1rem;display:flex;align-items:center;gap:.75rem;font-size:.84rem">
@@ -1294,6 +1299,12 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
       </div>
       <div id="search-results-container" style="display:none;margin-bottom:1.5rem"></div>
       <div id="discover-default-content">
+
+      <!-- The city, tonight — Plug Map's front porch on Discover -->
+      <div style="margin-bottom:1.4rem">
+        <div class="sh" style="margin-bottom:.6rem"><h3>🗺 In the city this week</h3><a href="#" onclick="showView('events');return false">Open Plug Map</a></div>
+        <div id="discover-tonight" style="display:flex;gap:.6rem;overflow-x:auto;padding-bottom:.3rem;scrollbar-width:none"><div class="pf-empty">Loading…</div></div>
+      </div>
 
       <!-- PEOPLE YOU MAY KNOW — the city, one swipe: artists first, then
            the newest members. Excludes you and everyone you already follow. -->
@@ -1321,9 +1332,9 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
       <div class="sh" style="margin-bottom:.6rem"><h3>One pass, whole city</h3><span style="font-size:.7rem;color:var(--muted)">What's coming</span></div>
       <div class="vert-shelf">
         <div class="vert-chip live" onclick="showView('music')"><span class="vc-icon">🎵</span><span class="vc-name">Music</span><span class="vc-tag">LIVE</span></div>
-        <div class="vert-chip"><span class="vc-icon">🎟️</span><span class="vc-name">Events</span><span class="vc-tag">Q3</span></div>
-        <div class="vert-chip"><span class="vc-icon">🍽️</span><span class="vc-name">Eats</span><span class="vc-tag">Q3</span></div>
-        <div class="vert-chip"><span class="vc-icon">👕</span><span class="vc-name">Drops</span><span class="vc-tag">Q3</span></div>
+        <div class="vert-chip live" onclick="showView('events')"><span class="vc-icon">🎟️</span><span class="vc-name">Events</span><span class="vc-tag">LIVE</span></div>
+        <div class="vert-chip"><span class="vc-icon">🍽️</span><span class="vc-name">Eats</span><span class="vc-tag">SOON</span></div>
+        <div class="vert-chip"><span class="vc-icon">👕</span><span class="vc-name">Drops</span><span class="vc-tag">SOON</span></div>
         <div class="vert-chip"><span class="vc-icon">🎙️</span><span class="vc-name">Audio</span><span class="vc-tag">Q4</span></div>
         <div class="vert-chip"><span class="vc-icon">✂️</span><span class="vc-name">Cuts</span><span class="vc-tag">Q4</span></div>
         <div class="vert-chip"><span class="vc-icon">🎨</span><span class="vc-name">Canvas</span><span class="vc-tag">'27</span></div>
@@ -1452,6 +1463,8 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
           <div class="set-row" onclick="openSavedPosts()"><span>🔖 Saved posts</span><span class="set-arrow">›</span></div>
           <div class="set-row" onclick="openChangeEmail()"><span>✉️ Change email address</span><span class="set-arrow">›</span></div>
           <div class="set-row" onclick="openNotifPrefs()"><span>🔔 Notification preferences</span><span class="set-arrow">›</span></div>
+          <div class="set-row" style="cursor:default" onclick="event.stopPropagation()"><span>👁 DM read receipts <span style="display:block;font-size:.68rem;color:var(--muted);margin-top:2px">Both sides must have this on to see "Seen"</span></span>
+            <label style="position:relative;display:inline-block;width:40px;height:22px;flex-shrink:0"><input type="checkbox" id="set-read-receipts" onchange="toggleReadReceipts(this)" style="opacity:0;width:0;height:0"><span id="set-rr-knob" style="position:absolute;inset:0;background:var(--bg4);border:1px solid var(--border);border-radius:999px;transition:.2s;cursor:pointer"></span><span id="set-rr-dot" style="position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:var(--muted);transition:.2s;pointer-events:none"></span></label></div>
           <div class="set-row" onclick="exportMyData(this)"><span>📦 Download my data</span><span class="set-arrow">›</span></div>
           <div class="set-row" onclick="openDeleteAccount()"><span style="color:var(--red)">🗑️ Delete my account</span><span class="set-arrow">›</span></div>
           <div class="set-row" onclick="openMyPage()"><span>⭐ View my public page</span><span class="set-arrow">›</span></div>
@@ -1621,7 +1634,7 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
           <div class="cs-feature"><span class="cs-feature-icon">🎵</span>Partner restaurants sponsor PHX Music — your dining funds local artists</div>
         </div>
         <button class="cs-notify-btn">Notify Me When Live</button>
-        <div class="cs-timeline">Estimated Launch: Q3 2026</div>
+        <div class="cs-timeline">In development — Music &amp; Events came first</div>
       </div>
     </div>
 
@@ -1654,7 +1667,7 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
           <div class="cs-feature"><span class="cs-feature-icon">⏰</span>Drop alerts, countdown timers, and PHX Pass early access built in</div>
         </div>
         <button class="cs-notify-btn">Notify Me When Live</button>
-        <div class="cs-timeline">Estimated Launch: Q3 2026</div>
+        <div class="cs-timeline">In development — Music &amp; Events came first</div>
       </div>
     </div>
 
@@ -2340,6 +2353,21 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
         <div class="ld-body">
           <div style="font-size:.78rem;color:var(--muted);margin-bottom:.7rem">Delivers automatically every 5 minutes. The button retries failures and pushes everything queued immediately.</div>
           <div id="ld-email-list"><div class="pf-empty">Loading…</div></div>
+          <div style="display:flex;gap:.5rem;align-items:center;margin-top:.7rem;flex-wrap:wrap">
+            <select class="form-select" id="ld-email-tpl" style="flex:1;min-width:180px;font-size:.78rem">
+              <option value="">Preview a template…</option>
+              <option value="access_approved">access_approved</option>
+              <option value="access_denied">access_denied</option>
+              <option value="artist_live">artist_live</option>
+              <option value="track_approved">track_approved</option>
+              <option value="artist_weekly">artist_weekly</option>
+              <option value="weekly_digest">weekly_digest</option>
+              <option value="admin_new_request">admin_new_request</option>
+              <option value="generic">generic</option>
+            </select>
+            <button class="tb-btn" style="font-size:.74rem" onclick="previewEmailTemplate()">👁 Preview</button>
+          </div>
+          <div id="ld-email-preview" style="display:none;margin-top:.7rem;border:1px solid var(--border);border-radius:12px;overflow:hidden;background:#fff"></div>
         </div>
       </div>
       <div class="card ld-card" id="ld-card-claims" style="margin-bottom:1rem">
@@ -3229,7 +3257,7 @@ function showView(id) {
   if (id === 'artist-profile') loadArtistProfileEditor();
   if (id === 'home') { loadCityFeed(); loadTrendingRail(); }
   if (id === 'profile') loadMyPages();
-  if (id === 'discover') { loadForYou(); loadTrendingRail(); loadPeopleYouMayKnow(); loadSceneLeaders(); }
+  if (id === 'discover') { loadDiscoverTonight(); loadForYou(); loadTrendingRail(); loadPeopleYouMayKnow(); loadSceneLeaders(); }
   if (id === 'settings') loadSettings();
   if (id === 'admin-ash') loadAshPanel();
   if (id === 'admin-analytics') { loadAdminAnalytics(); loadAdminEngagement(); }
@@ -4686,6 +4714,31 @@ function editUsername() {
 }
 
 // ── SETTINGS ──
+// Discover rail: the next few days of the Plug Map as swipeable cards —
+// multi-day runs count while they are still running
+async function loadDiscoverTonight() {
+  var box = document.getElementById('discover-tonight');
+  if (!box) return;
+  var now = new Date();
+  var to = new Date(now.getTime() + 4 * 86400000);
+  var res = await _sb.from('city_events').select('*')
+    .lte('starts_at', to.toISOString())
+    .or('starts_at.gte.' + new Date(now.getTime() - 2 * 3600000).toISOString() + ',ends_at.gte.' + now.toISOString())
+    .order('starts_at', { ascending: true }).limit(10);
+  var evs = res.data || [];
+  if (!evs.length) { box.innerHTML = '<div class="pf-empty">Quiet week — check the Plug Map.</div>'; return; }
+  box.innerHTML = evs.map(function(e) {
+    var img = safeUrl(e.cover_url);
+    var d = new Date(e.starts_at);
+    var when = d.toLocaleDateString('en-US', { weekday: 'short' }) + ' ' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    return '<div role="button" onclick="showEventPage(\'' + e.src + '\',\'' + e.id + '\')" style="flex:0 0 178px;height:120px;border-radius:14px;overflow:hidden;position:relative;cursor:pointer;background:' +
+      (img ? 'linear-gradient(180deg,rgba(7,7,15,.05) 30%,rgba(7,7,15,.88)),url(\'' + img + '\') center/cover' : 'linear-gradient(160deg,#2A1206,#160B18)') + '">' +
+      '<div style="position:absolute;left:.6rem;right:.6rem;bottom:.5rem">' +
+        '<div style="font-size:.78rem;font-weight:800;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">' + escapeHtml(e.title) + '</div>' +
+        '<div style="font-size:.62rem;color:var(--orange-l);font-weight:700;margin-top:2px">' + when + (e.is_free ? ' · FREE' : '') + '</div>' +
+      '</div></div>';
+  }).join('');
+}
 function loadSettings() {
   if (!_authUser) { openAuthModal(); return; }
   var p = _myProfile || {};
@@ -4706,12 +4759,33 @@ function loadSettings() {
   _setText('set-hero-tag', p.username ? '@' + p.username : '');
   var tierLabel = { explorer: 'Free', native: 'PHX Native', insider: 'Insider' }[_accountTier] || '';
   _setText('set-hero-tier', _myArtistId ? '🎤 Artist' : tierLabel);
+  _initReadReceiptsToggle();
   // Artists edit their artist page, members their profile page
   var eb = document.getElementById('set-editor-btn');
   if (eb) {
     if (_myArtistId) { eb.innerHTML = '🎤 Artist page &amp; photos'; eb.setAttribute('onclick', "showView('artist-profile')"); }
     else { eb.innerHTML = '🖼 Photos &amp; profile page'; eb.setAttribute('onclick', "showView('profile')"); }
   }
+}
+function _paintRrToggle(on) {
+  var knob = document.getElementById('set-rr-knob'), dot = document.getElementById('set-rr-dot');
+  if (knob) knob.style.background = on ? 'var(--orange)' : 'var(--bg4)';
+  if (dot) { dot.style.left = on ? '21px' : '3px'; dot.style.background = on ? '#fff' : 'var(--muted)'; }
+}
+async function _initReadReceiptsToggle() {
+  var cb = document.getElementById('set-read-receipts');
+  if (!cb || !_authUser) return;
+  var r = await _sb.from('profiles').select('dm_read_receipts').eq('id', _authUser.id).single();
+  var on = !!(r.data && r.data.dm_read_receipts);
+  cb.checked = on;
+  _paintRrToggle(on);
+}
+async function toggleReadReceipts(cb) {
+  var on = cb.checked;
+  _paintRrToggle(on);
+  var res = await _sb.rpc('set_read_receipts', { p_on: on });
+  if (res.error) { cb.checked = !on; _paintRrToggle(!on); showToast('Could not update'); return; }
+  showToast(on ? '👁 Read receipts on — you\'ll see Seen, they\'ll see yours' : 'Read receipts off');
 }
 async function saveSettingsProfile(btn) {
   if (!_authUser) return;
@@ -10965,6 +11039,28 @@ async function toggleVenueDrill(venueId, btn) {
   tr.insertAdjacentHTML('afterend', html);
 }
 
+// Renders any template with sample payload through the same _email_html
+// the drainer uses — what you see here is byte-for-byte what lands in inboxes
+async function previewEmailTemplate() {
+  var tpl = (document.getElementById('ld-email-tpl') || {}).value;
+  var box = document.getElementById('ld-email-preview');
+  if (!tpl || !box) return;
+  var sample = {
+    access_approved: { name: 'Sample Member', code: 'PHX-TEST' },
+    access_denied: { name: 'Sample Member' },
+    artist_live: { artist: 'Jaye Mali', fan_code: 'R4MSRV', slug: 'jaye-mali', name: 'Jaye' },
+    track_approved: { track: 'Situationship', artist: 'Jaye Mali', name: 'Jaye' },
+    artist_weekly: { artist: 'Jaye Mali', streams: 42, minutes: 120, followers: 7, name: 'Jaye' },
+    weekly_digest: { name: 'Sample', my_streams: 12, my_minutes: 38, my_artist: 'Jaye Mali', points: 150 },
+    admin_new_request: { name: 'Sample Member', email: 'sample@example.com' },
+    generic: { message: 'This is a sample generic email body.', name: 'Sample' }
+  }[tpl] || {};
+  var res = await _sb.rpc('admin_email_preview', { p_template: tpl, p_payload: sample });
+  if (res.error || !res.data) { showToast('Preview failed — ' + ((res.error || {}).message || 'no output')); return; }
+  box.style.display = 'block';
+  box.innerHTML = '<iframe sandbox="" style="width:100%;height:420px;border:0;display:block;background:#fff" srcdoc="' +
+    String(res.data).replace(/&/g, '&amp;').replace(/"/g, '&quot;') + '"></iframe>';
+}
 async function loadLaunchDesk() {
   loadVenueImpact();
   loadVerifyQueue();
@@ -13048,7 +13144,7 @@ async function showMemberPage(userId) {
         }) +
         '<div class="pf-body">' +
           (isSelf
-            ? '<div class="pf-actions"><button class="pf-btn" onclick="showView(\'profile\')">✎ Edit profile</button></div>'
+            ? '<div class="pf-actions"><button class="pf-btn" onclick="showView(\'settings\')">✎ Edit profile</button></div>'
             : '<div class="pf-actions">' +
                 '<button class="pf-btn' + (following ? ' on' : '') + '" onclick="toggleFollowUI(\'user\',\'' + userId + '\',this)">' +
                   (following ? '✓ Following' : '+ Follow') + '</button>' +
@@ -16185,11 +16281,11 @@ async function showArtistPage(slug) {
     '<div class="ap-tabs" id="ap-tabs">' +
       '<button class="ap-tab on" data-tab="music" onclick="apTab(\'music\')">Music</button>' +
       ((_artistVideos.length || (artistPageCanEdit() && artistVideosAllowed())) ? '<button class="ap-tab" data-tab="videos" onclick="apTab(\'videos\')">Videos' + (_artistVideos.length ? ' <span class="n">' + _artistVideos.length + '</span>' : '') + '</button>' : '') +
-      (_artistMerch.length ? '<button class="ap-tab" data-tab="merch" onclick="apTab(\'merch\')">Merch <span class="n">' + _artistMerch.length + '</span></button>' : '') +
       '<button class="ap-tab" data-tab="shows" onclick="apTab(\'shows\')">Shows' +
         (_artistShows.length ? ' <span class="n">' + _artistShows.length + '</span>' : '') + '</button>' +
-      '<button class="ap-tab" data-tab="about" onclick="apTab(\'about\')">About</button>' +
+      (_artistMerch.length ? '<button class="ap-tab" data-tab="merch" onclick="apTab(\'merch\')">Merch <span class="n">' + _artistMerch.length + '</span></button>' : '') +
       '<button class="ap-tab" data-tab="posts" onclick="apTab(\'posts\')">Posts' + (_artistPosts.length ? ' <span class="n">' + _artistPosts.length + '</span>' : '') + '</button>' +
+      '<button class="ap-tab" data-tab="about" onclick="apTab(\'about\')">About</button>' +
     '</div>' +
 
     '<div class="ap-panel" id="ap-panel-music"><div id="ap-drops"></div>' + renderArtistTracks() + '</div>' +
@@ -16263,14 +16359,19 @@ function renderArtistVideos(artist) {
     return '<div class="card" style="border-color:rgba(249,115,22,.3)"><div class="sh"><h3>🎬 Music Videos</h3><span class="badge badge-orange" style="font-size:.6rem">FULL ARTIST</span></div>' +
       '<div style="font-size:.82rem;color:var(--muted);line-height:1.7">Music videos on your page unlock with the Full Artist plan — paste YouTube links and they play right on your profile.</div></div>';
   }
-  var html = _artistVideos.length ? _artistVideos.map(function(v) {
-    return '<div class="apv-card">' +
+  // Marquee-first: the newest video gets the big frame with a title
+  // overlay (maxres poster), the catalog sits under it as a grid
+  var html = _artistVideos.length ? _artistVideos.map(function(v, i) {
+    var feat = i === 0;
+    return '<div class="apv-card' + (feat ? ' apv-feat' : '') + '">' +
       '<div class="apv-frame" id="apv-' + v.id + '" onclick="playArtistVideo(\'' + v.id + '\',\'' + v.youtube_id + '\')" role="button" aria-label="Play video">' +
-        '<img src="https://i.ytimg.com/vi/' + v.youtube_id + '/hqdefault.jpg" alt="" loading="lazy">' +
+        '<img src="https://i.ytimg.com/vi/' + v.youtube_id + '/' + (feat ? 'maxresdefault' : 'hqdefault') + '.jpg" alt="" loading="lazy"' +
+          (feat ? ' onerror="this.onerror=null;this.src=\'https://i.ytimg.com/vi/' + v.youtube_id + '/hqdefault.jpg\'"' : '') + '>' +
         '<span class="apv-play">▶</span>' +
+        (feat ? '<div class="apv-cap"><span>Latest video</span><b>' + escapeHtml(v.title) + '</b></div>' : '') +
       '</div>' +
       '<div style="display:flex;align-items:center;gap:.5rem;margin-top:.45rem">' +
-        '<div class="apv-title" style="flex:1">' + escapeHtml(v.title) + '</div>' +
+        (feat ? (canEdit ? '<div style="flex:1"></div>' : '') : '<div class="apv-title" style="flex:1">' + escapeHtml(v.title) + '</div>') +
         (canEdit ? '<button class="trk-add" aria-label="Remove video" onclick="removeArtistVideo(\'' + v.id + '\')">✕</button>' : '') +
       '</div>' +
     '</div>';
