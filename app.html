@@ -6763,9 +6763,35 @@ function renderMediaPreview() {
       }).join('') +
       '<button class="tb-btn" id="composer-stamp-chip" style="font-size:.7rem;padding:.25rem .6rem;white-space:nowrap;flex-shrink:0" onclick="toggleComposerStamp()">🐦‍🔥 PHX stamp</button>' +
       '<button class="tb-btn" style="font-size:.7rem;padding:.25rem .6rem;white-space:nowrap;flex-shrink:0" onclick="addComposerText()">Aa Text</button>' +
+    '</div>' +
+    '<div style="margin-top:.55rem;padding:2px;border-radius:14px;background:linear-gradient(120deg,rgba(249,115,22,.5),rgba(124,58,237,.5))">' +
+      '<div style="background:var(--bg2);border-radius:12px;padding:.6rem .7rem">' +
+        '<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.5rem">' +
+          '<span style="font:800 .62rem var(--mono);letter-spacing:.18em;text-transform:uppercase;background:linear-gradient(90deg,#F97316,#A78BFA);-webkit-background-clip:text;background-clip:text;color:transparent">PHX Studio</span>' +
+          '<span style="font-size:.6rem;color:var(--faint)">on-device · hold the ' + (isImage ? 'photo' : 'video') + ' for before/after</span>' +
+        '</div>' +
+        '<div style="display:flex;gap:.4rem;flex-wrap:wrap;align-items:center">' +
+          '<button class="tb-btn" id="st-enhance-chip" onclick="stToggleEnhance()" style="font-size:.72rem">✨ Enhance</button>' +
+          (isImage ? '' : '<button class="tb-btn" onclick="openBeatCut()" style="font-size:.72rem;border-color:rgba(249,115,22,.5);font-weight:800">🎚 Beat-Cut</button>') +
+        '</div>' +
+        '<div style="display:flex;align-items:center;gap:.55rem;margin-top:.55rem;font-size:.72rem">' +
+          '<span style="width:58px;flex-shrink:0">🌟 Glow</span>' +
+          '<input type="range" min="0" max="100" step="5" value="' + _editSet.glow + '" oninput="stSetGlow(this.value)" style="flex:1;accent-color:var(--orange)">' +
+          '<span id="st-glow-val" style="width:22px;text-align:right;color:var(--orange-l);font-weight:700"></span></div>' +
+        '<div style="display:flex;align-items:center;gap:.55rem;margin-top:.4rem;font-size:.72rem">' +
+          '<span style="width:58px;flex-shrink:0">🌙 Night</span>' +
+          '<input type="range" min="0" max="100" step="5" value="' + _editSet.night + '" oninput="stSetNight(this.value)" style="flex:1;accent-color:var(--purple-l)">' +
+          '<span id="st-night-val" style="width:22px;text-align:right;color:var(--purple-l);font-weight:700"></span></div>' +
+        (isImage
+          ? '<div style="display:flex;gap:.4rem;align-items:center;margin-top:.5rem;font-size:.72rem"><span style="width:58px;flex-shrink:0">✂️ Crop</span>' +
+              [['null', 'Original'], ['1', '1:1'], ['0.8', '4:5'], ['0.5625', '9:16']].map(function(p) {
+                return '<button class="tb-btn st-crop-chip" data-ar="' + p[0] + '" onclick="stSetCrop(\'' + p[0] + '\')" style="font-size:.68rem;padding:.22rem .5rem">' + p[1] + '</button>';
+              }).join('') + '</div>'
+          : '') +
+      '</div>' +
     '</div>';
   box.innerHTML =
-    '<div id="composer-preview-stage" style="position:relative;border-radius:14px" ontouchstart="_fltTS(event)" ontouchend="_fltTE(event)">' +
+    '<div id="composer-preview-stage" style="position:relative;border-radius:14px" ontouchstart="_fltTS(event)" ontouchend="_fltTE(event);stBeforeUp()" onpointerdown="if(event.pointerType!==\'touch\')return;window._stHoldT=setTimeout(stBeforeDown,320)" onpointerup="clearTimeout(window._stHoldT)" onpointercancel="clearTimeout(window._stHoldT);stBeforeUp()">' +
       media +
       '<img id="composer-stamp-overlay" src="assets/logo-wordmark.png" alt="" style="display:none;position:absolute;right:12px;bottom:' + (isImage ? '12px' : '48px') + ';width:22%;opacity:.85;pointer-events:none">' +
       '<div id="composer-text-layer" style="position:absolute;inset:0;pointer-events:none;overflow:hidden"></div>' +
@@ -6782,8 +6808,10 @@ function renderMediaPreview() {
           'oninput="var v=document.getElementById(\'composer-preview-vid\');if(v){v.pause();v.currentTime=parseFloat(this.value);}_composerPosterTime=parseFloat(this.value)">' +
       '</div>');
   box.style.display = 'block';
+  _origPreviewUrl = null;
   _refreshFilterChips();
   _refreshAudioOpts();
+  _studioRefresh();
 }
 
 // Video + song attached → choose whose sound wins (and the song's volume)
@@ -7228,6 +7256,7 @@ function _refreshComposerTrigger() {
 }
 function clearComposerMedia() {
   _composerMediaFile = null; _composerMediaFiles = []; _composerFilter = 'none'; _composerStamp = false; _composerPosterTime = null; _composerAudioMode = 'original'; _composerTrustedClip = false;
+  _editSet = { enhance: false, glow: 0, night: 0 }; _cropAspect = null; _origPreviewUrl = null; _bcTrack = null;
   _composerTexts = [];
   window._composerAlt = '';
   var m1 = document.getElementById('composer-media'); if (m1) m1.value = '';
@@ -7324,22 +7353,423 @@ function setComposerFilter(key) {
   _flashFilterName(PHOTO_FILTERS[key].label);
 }
 
+// ═══ PHX STUDIO — the edit engine ═══════════════════════════════════════
+// Everything runs on the phone: no upload, no per-use cost, no watermark
+// tricks. The same layer stack drives the photo bake AND every video frame,
+// so the preview is the product.
+var _editSet = { enhance: false, glow: 0, night: 0 };
+var _cropAspect = null;   // null=original, or 1, 0.8 (4:5), 0.5625 (9:16)
+
+function _studioActive() { return _editSet.enhance || _editSet.glow > 0 || _editSet.night > 0; }
+
+// Glow: an Orton pass — a soft-blurred copy folded back over the image in
+// soft-light with a whisper of screen + warmth. It flatters skin because it
+// lifts midtone luminance and melts micro-contrast WITHOUT plastic smoothing.
+// Night: shadow lift via a screen-composited, brightened, gently blurred
+// copy — grainy dark venue footage comes up without blowing the lights out.
+function _studioLayers(ctx, srcCanvas, w, h, set) {
+  if (set.glow > 0) {
+    var g = set.glow / 100;
+    var gs = document.createElement('canvas');
+    gs.width = Math.max(2, Math.round(w / 4)); gs.height = Math.max(2, Math.round(h / 4));
+    var gctx = gs.getContext('2d');
+    gctx.filter = 'blur(' + Math.max(2, Math.round(w / 240)) + 'px) brightness(1.05)';
+    gctx.drawImage(srcCanvas, 0, 0, gs.width, gs.height);
+    ctx.save();
+    ctx.globalCompositeOperation = 'soft-light';
+    ctx.globalAlpha = 0.65 * g;
+    ctx.drawImage(gs, 0, 0, w, h);
+    ctx.globalCompositeOperation = 'screen';
+    ctx.globalAlpha = 0.14 * g;
+    ctx.drawImage(gs, 0, 0, w, h);
+    ctx.globalCompositeOperation = 'overlay';
+    ctx.globalAlpha = 0.10 * g;
+    ctx.fillStyle = '#FF9A5C';
+    ctx.fillRect(0, 0, w, h);
+    ctx.restore();
+  }
+  if (set.night > 0) {
+    var n = set.night / 100;
+    var ns = document.createElement('canvas');
+    ns.width = Math.max(2, Math.round(w / 3)); ns.height = Math.max(2, Math.round(h / 3));
+    var nctx = ns.getContext('2d');
+    nctx.filter = 'brightness(' + (1 + 0.9 * n) + ') blur(1px) saturate(.92)';
+    nctx.drawImage(srcCanvas, 0, 0, ns.width, ns.height);
+    ctx.save();
+    ctx.globalCompositeOperation = 'screen';
+    ctx.globalAlpha = 0.5 * n;
+    ctx.drawImage(ns, 0, 0, w, h);
+    ctx.restore();
+  }
+}
+
+// Auto-enhance (photos): percentile histogram stretch + a gentle S-curve +
+// +10% saturation. Real per-pixel math, not a CSS guess.
+function _pxAutoEnhance(canvas) {
+  var ctx = canvas.getContext('2d');
+  var w = canvas.width, h = canvas.height;
+  var img;
+  try { img = ctx.getImageData(0, 0, w, h); } catch (e) { return; }
+  var d = img.data, hist = new Uint32Array(256), i, l;
+  for (i = 0; i < d.length; i += 4) {
+    hist[(d[i] * 77 + d[i + 1] * 150 + d[i + 2] * 29) >> 8]++;
+  }
+  var total = w * h, lo = 0, hi = 255, acc = 0;
+  for (i = 0; i < 256; i++) { acc += hist[i]; if (acc > total * 0.006) { lo = i; break; } }
+  acc = 0;
+  for (i = 255; i >= 0; i--) { acc += hist[i]; if (acc > total * 0.004) { hi = i; break; } }
+  if (hi - lo < 24) return;
+  var lut = new Uint8Array(256);
+  for (i = 0; i < 256; i++) {
+    var x = Math.max(0, Math.min(1, (i - lo) / (hi - lo)));
+    x = x + 0.14 * Math.sin((x - 0.5) * Math.PI) * (1 - Math.abs(x - 0.5) * 2) * 2; // gentle S
+    lut[i] = Math.max(0, Math.min(255, Math.round(x * 255)));
+  }
+  for (i = 0; i < d.length; i += 4) {
+    var r = lut[d[i]], g2 = lut[d[i + 1]], b = lut[d[i + 2]];
+    l = (r * 77 + g2 * 150 + b * 29) >> 8;
+    d[i]     = Math.max(0, Math.min(255, l + (r - l) * 1.1));
+    d[i + 1] = Math.max(0, Math.min(255, l + (g2 - l) * 1.1));
+    d[i + 2] = Math.max(0, Math.min(255, l + (b - l) * 1.1));
+  }
+  ctx.putImageData(img, 0, 0);
+}
+
+// Smart crop: detail lives where luminance VARIES. Score a coarse grid by
+// local variance, take the weighted centroid, center the crop window there.
+function _smartCropRect(sw, sh, aspect, img) {
+  var tw, th;
+  if (sw / sh > aspect) { th = sh; tw = Math.round(sh * aspect); }
+  else { tw = sw; th = Math.round(sw / aspect); }
+  var cx = sw / 2, cy = sh / 2;
+  try {
+    var g = document.createElement('canvas');
+    g.width = 48; g.height = 48;
+    var gc = g.getContext('2d');
+    gc.drawImage(img, 0, 0, 48, 48);
+    var dd = gc.getImageData(0, 0, 48, 48).data;
+    var lum = [], y, x;
+    for (y = 0; y < 48; y++) { lum[y] = []; for (x = 0; x < 48; x++) { var o = (y * 48 + x) * 4; lum[y][x] = (dd[o] * 77 + dd[o + 1] * 150 + dd[o + 2] * 29) >> 8; } }
+    var wx = 0, wy = 0, wt = 0;
+    for (y = 1; y < 47; y++) for (x = 1; x < 47; x++) {
+      var v = Math.abs(lum[y][x] - lum[y][x - 1]) + Math.abs(lum[y][x] - lum[y - 1][x]);
+      // slight top bias — faces live in the upper half of most shots
+      v *= (1.25 - (y / 48) * 0.5);
+      wx += x * v; wy += y * v; wt += v;
+    }
+    if (wt > 0) { cx = (wx / wt / 48) * sw; cy = (wy / wt / 48) * sh; }
+  } catch (e) { /* centroid optional */ }
+  var rx = Math.max(0, Math.min(sw - tw, Math.round(cx - tw / 2)));
+  var ry = Math.max(0, Math.min(sh - th, Math.round(cy - th / 2)));
+  return { x: rx, y: ry, w: tw, h: th };
+}
+
+// ── Live preview: photos re-render through the real engine at ≤720px ──
+var _origPreviewUrl = null, _pvT = null;
+function _studioPreviewPhoto() {
+  var el = document.getElementById('composer-preview-img');
+  if (!el || !_composerMediaFile) return;
+  if (!_origPreviewUrl) _origPreviewUrl = el.src;
+  clearTimeout(_pvT);
+  _pvT = setTimeout(function() {
+    if (!_studioActive() && !_cropAspect) { el.src = _origPreviewUrl; return; }
+    var img = new Image();
+    img.onload = function() {
+      var crop = _cropAspect
+        ? _smartCropRect(img.naturalWidth, img.naturalHeight, _cropAspect, img)
+        : { x: 0, y: 0, w: img.naturalWidth, h: img.naturalHeight };
+      var scale = Math.min(1, 720 / crop.w);
+      var c = document.createElement('canvas');
+      c.width = Math.round(crop.w * scale); c.height = Math.round(crop.h * scale);
+      var ctx = c.getContext('2d');
+      ctx.drawImage(img, crop.x, crop.y, crop.w, crop.h, 0, 0, c.width, c.height);
+      if (_editSet.enhance) _pxAutoEnhance(c);
+      var base = document.createElement('canvas');
+      base.width = c.width; base.height = c.height;
+      base.getContext('2d').drawImage(c, 0, 0);
+      _studioLayers(ctx, base, c.width, c.height, _editSet);
+      el.src = c.toDataURL('image/jpeg', 0.85);
+    };
+    img.src = _origPreviewUrl;
+  }, 120);
+}
+function _studioPreviewVideo() {
+  var v = document.getElementById('composer-preview-vid');
+  if (!v) return;
+  // Live approximation — export runs the true layer stack per frame
+  var css = PHOTO_FILTERS[_composerFilter].css;
+  var extra = '';
+  if (_editSet.glow > 0) extra += ' brightness(' + (1 + _editSet.glow / 100 * 0.06) + ') saturate(' + (1 + _editSet.glow / 100 * 0.08) + ')';
+  if (_editSet.night > 0) extra += ' brightness(' + (1 + _editSet.night / 100 * 0.35) + ') contrast(' + (1 - _editSet.night / 100 * 0.08) + ')';
+  if (_editSet.enhance) extra += ' contrast(1.08) saturate(1.12) brightness(1.02)';
+  v.style.filter = ((css !== 'none' ? css : '') + extra).trim() || 'none';
+}
+function _studioRefresh() {
+  var isImage = _composerMediaFile && _composerMediaFile.type.indexOf('image/') === 0;
+  if (isImage) _studioPreviewPhoto(); else _studioPreviewVideo();
+  var g = document.getElementById('st-glow-val'); if (g) g.textContent = _editSet.glow ? _editSet.glow : '';
+  var n = document.getElementById('st-night-val'); if (n) n.textContent = _editSet.night ? _editSet.night : '';
+  var e = document.getElementById('st-enhance-chip'); if (e) e.classList.toggle('primary', _editSet.enhance);
+  document.querySelectorAll('.st-crop-chip').forEach(function(b) {
+    b.classList.toggle('primary', String(_cropAspect) === b.dataset.ar);
+  });
+}
+function stToggleEnhance() { _editSet.enhance = !_editSet.enhance; _studioRefresh(); if (typeof haptic === 'function') haptic(8); }
+function stSetGlow(v) { _editSet.glow = parseInt(v, 10) || 0; _studioRefresh(); }
+function stSetNight(v) { _editSet.night = parseInt(v, 10) || 0; _studioRefresh(); }
+function stSetCrop(ar) { _cropAspect = ar === 'null' ? null : parseFloat(ar); _studioRefresh(); }
+// Press-and-hold Before/After — the oldest trick and still the best demo
+function stBeforeDown() {
+  var img = document.getElementById('composer-preview-img');
+  var vid = document.getElementById('composer-preview-vid');
+  if (img && _origPreviewUrl) { img.dataset.after = img.src; img.src = _origPreviewUrl; img.style.filter = 'none'; }
+  if (vid) { vid.dataset.after = vid.style.filter; vid.style.filter = 'none'; }
+}
+function stBeforeUp() {
+  var img = document.getElementById('composer-preview-img');
+  var vid = document.getElementById('composer-preview-vid');
+  if (img && img.dataset.after) { img.src = img.dataset.after; img.style.filter = PHOTO_FILTERS[_composerFilter].css; delete img.dataset.after; }
+  if (vid && vid.dataset.after != null) { vid.style.filter = vid.dataset.after; delete vid.dataset.after; }
+  _studioRefresh();
+}
+
+// ═══ BEAT-CUT ═══════════════════════════════════════════════════════════
+// Pick a PHX track → the editor reads its pulse (energy-comb BPM detection
+// on the decoded audio) → your clip re-cuts itself on the beat, punch-ins
+// and a 90ms ember flash on every hit, the track baked into the export.
+// Nobody else's editor is wired to a hometown catalog. That's the point.
+var _bcTrack = null, _bcLen = 15, _bcRate = 2, _bcPunch = true;
+async function openBeatCut() {
+  if (!_composerMediaFile || _composerMediaFile.type.indexOf('video/') !== 0) { showToast('Attach a video first.'); return; }
+  _apModal('beatcut-modal',
+    '<div style="display:flex;align-items:center;margin-bottom:.5rem">' +
+      '<div style="font-family:var(--disp);font-weight:900;font-size:1.15rem">🎚 Beat-Cut</div>' +
+      '<button onclick="document.getElementById(\'beatcut-modal\').style.display=\'none\'" style="margin-left:auto;background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem">✕</button></div>' +
+    '<div style="font-size:.76rem;color:var(--muted);line-height:1.55;margin-bottom:.8rem">Pick a PHX track — your clip re-cuts itself on the beat, track included. The artist gets the play.</div>' +
+    '<div id="bc-tracks" style="max-height:32vh;overflow-y:auto;margin-bottom:.7rem"><div class="pf-empty">Loading the catalog…</div></div>' +
+    '<div style="display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.55rem" id="bc-len">' +
+      '<span style="font-size:.64rem;color:var(--muted);align-self:center;letter-spacing:.1em;text-transform:uppercase">Length</span>' +
+      [10, 15, 20].map(function(n){ return '<button class="tb-btn' + (n === _bcLen ? ' primary' : '') + '" data-v="' + n + '" onclick="_bcLen=' + n + ';_bcChips(this)" style="font-size:.74rem">' + n + 's</button>'; }).join('') + '</div>' +
+    '<div style="display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.55rem" id="bc-rate">' +
+      '<span style="font-size:.64rem;color:var(--muted);align-self:center;letter-spacing:.1em;text-transform:uppercase">Cut every</span>' +
+      [[1, 'beat'], [2, '2 beats'], [4, '4 beats']].map(function(p){ return '<button class="tb-btn' + (p[0] === _bcRate ? ' primary' : '') + '" data-v="' + p[0] + '" onclick="_bcRate=' + p[0] + ';_bcChips(this)" style="font-size:.74rem">' + p[1] + '</button>'; }).join('') + '</div>' +
+    '<label style="display:flex;gap:.4rem;align-items:center;font-size:.78rem;margin-bottom:.8rem;cursor:pointer"><input type="checkbox" ' + (_bcPunch ? 'checked' : '') + ' onchange="_bcPunch=this.checked" style="accent-color:var(--orange)"> Punch-in on the hit (subtle zoom pulse)</label>' +
+    '<button class="cp-post" id="bc-go" style="margin:0;width:100%;justify-content:center;display:flex" onclick="runBeatCut(this)">Cut it to the beat</button>' +
+    '<div id="bc-msg" style="font-size:.72rem;color:var(--muted);margin-top:.5rem;min-height:1em;text-align:center"></div>');
+  var res = await _sb.from('tracks').select('id,title,artist_id').eq('status', 'live').not('audio_url', 'is', null).limit(30);
+  var tracks = res.data || [];
+  var ar = await _sb.from('artists').select('id,name').in('id', tracks.map(function(t){ return t.artist_id; }).filter(Boolean));
+  var names = {};
+  (ar.data || []).forEach(function(a){ names[a.id] = a.name; });
+  var box = document.getElementById('bc-tracks');
+  if (!box) return;
+  box.innerHTML = tracks.length ? tracks.map(function(t) {
+    return '<div class="bc-track" data-id="' + t.id + '" onclick="_bcPick(this,\'' + t.id + '\')" role="button" style="display:flex;align-items:center;gap:.6rem;padding:.5rem .6rem;border-radius:10px;cursor:pointer;border:1px solid transparent">' +
+      '<span style="font-size:1.05rem">🎵</span>' +
+      '<div style="flex:1;min-width:0"><div style="font-size:.84rem;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + escapeHtml(t.title) + '</div>' +
+      '<div style="font-size:.68rem;color:var(--muted)">' + escapeHtml(names[t.artist_id] || 'PHX artist') + '</div></div>' +
+    '</div>';
+  }).join('') : '<div class="pf-empty">No tracks with audio yet.</div>';
+}
+function _bcChips(btn) {
+  Array.prototype.forEach.call(btn.parentElement.querySelectorAll('.tb-btn'), function(b){ b.classList.toggle('primary', b === btn); });
+}
+function _bcPick(el, id) {
+  _bcTrack = id;
+  document.querySelectorAll('.bc-track').forEach(function(b) {
+    var on = b.dataset.id === id;
+    b.style.border = on ? '1px solid var(--orange)' : '1px solid transparent';
+    b.style.background = on ? 'rgba(249,115,22,.1)' : '';
+  });
+}
+// The pulse reader: energy envelope → comb-score 70–180 BPM → best phase
+function _beatGrid(buf) {
+  var ch = buf.getChannelData(0);
+  var hop = 1024, frames = Math.floor(ch.length / hop);
+  var env = new Float32Array(frames);
+  for (var f = 0; f < frames; f++) {
+    var sum = 0;
+    for (var i = f * hop; i < (f + 1) * hop; i += 4) sum += ch[i] * ch[i];
+    env[f] = sum;
+  }
+  // onset strength = positive energy delta
+  var on = new Float32Array(frames);
+  for (f = 1; f < frames; f++) on[f] = Math.max(0, env[f] - env[f - 1]);
+  var fps = buf.sampleRate / hop;
+  var best = { score: -1, bpm: 100, phase: 0 };
+  for (var bpm = 70; bpm <= 180; bpm++) {
+    var period = 60 / bpm * fps;
+    for (var ph = 0; ph < period; ph += period / 8) {
+      var score = 0, k;
+      for (k = ph; k < frames; k += period) score += on[Math.round(k)] || 0;
+      if (score > best.score) best = { score: score, bpm: bpm, phase: ph };
+    }
+  }
+  return { bpm: best.bpm, offset: best.phase / fps, interval: 60 / best.bpm };
+}
+async function runBeatCut(btn) {
+  if (!_bcTrack) { var m0 = document.getElementById('bc-msg'); if (m0) m0.textContent = 'Pick a track first.'; return; }
+  var msg = document.getElementById('bc-msg');
+  btn.disabled = true; btn.textContent = '🎧 Reading the beat…';
+  try {
+    var sig = await _sb.functions.invoke('sign-audio', { body: { track_id: _bcTrack } });
+    var songUrl = sig.data && sig.data.url;
+    if (!songUrl) throw new Error((sig.data && sig.data.error) || 'no_audio');
+    var ab = await (await fetch(songUrl)).arrayBuffer();
+    var actx = new (window.AudioContext || window.webkitAudioContext)();
+    var buf = await actx.decodeAudioData(ab);
+    var grid = _beatGrid(buf);
+    actx.close();
+    if (msg) msg.textContent = '♩ ' + grid.bpm + ' BPM locked — cutting…';
+    btn.textContent = '✂️ Cutting… 0%';
+    var out = await _beatCutExport(_composerMediaFile, songUrl, grid, _bcLen, _bcRate, _bcPunch, btn);
+    if (!out) throw new Error('export_failed');
+    _composerMediaFile = out;
+    _composerTrustedClip = true;
+    _composerAudioMode = 'original';   // the track is already in the file
+    _composerPosterTime = null;
+    _composerTexts = [];
+    _origPreviewUrl = null;
+    document.getElementById('beatcut-modal').style.display = 'none';
+    renderMediaPreview();
+    showToast('🎚 Cut to the beat — ' + grid.bpm + ' BPM');
+    if (typeof haptic === 'function') haptic(20);
+    trackEvent('beat_cut', 'track', _bcTrack, { bpm: grid.bpm, len: _bcLen, rate: _bcRate });
+  } catch (e) {
+    reportFailure('beatCut', e);
+    if (msg) msg.textContent = 'Could not cut that combination — try another track.';
+  }
+  btn.disabled = false; btn.textContent = 'Cut it to the beat';
+}
+function _beatCutExport(file, songUrl, grid, outLen, rate, punch, btn) {
+  return new Promise(function(resolve) {
+    if (!window.MediaRecorder) { resolve(null); return; }
+    var v = document.createElement('video');
+    v.muted = true; v.playsInline = true; v.preload = 'auto';
+    var done = false;
+    var bail = setTimeout(function(){ if (!done) { done = true; resolve(null); } }, 180000);
+    v.onerror = function(){ if (!done) { done = true; clearTimeout(bail); resolve(null); } };
+    v.onloadedmetadata = function() {
+      var segDur = grid.interval * rate;
+      var nSeg = Math.max(2, Math.ceil(outLen / segDur));
+      var srcDur = Math.max(0.5, v.duration - segDur);
+      var offsets = [];
+      for (var i = 0; i < nSeg; i++) offsets.push(Math.min(srcDur, (srcDur / Math.max(1, nSeg - 1)) * i));
+      var scale = Math.min(1, 720 / Math.min(v.videoWidth, v.videoHeight));
+      var canvas = document.createElement('canvas');
+      canvas.width = Math.round(v.videoWidth * scale / 2) * 2;
+      canvas.height = Math.round(v.videoHeight * scale / 2) * 2;
+      var ctx = canvas.getContext('2d');
+      var base = document.createElement('canvas');
+      base.width = canvas.width; base.height = canvas.height;
+      var bctx = base.getContext('2d');
+      var stream = canvas.captureStream(30);
+      var songEl = new Audio();
+      songEl.crossOrigin = 'anonymous';
+      songEl.src = songUrl;
+      var actx2 = new (window.AudioContext || window.webkitAudioContext)();
+      var dest = actx2.createMediaStreamDestination();
+      try {
+        var ssrc = actx2.createMediaElementSource(songEl);
+        ssrc.connect(dest);
+        var at = dest.stream.getAudioTracks()[0];
+        if (at) stream.addTrack(at);
+      } catch (err) { reportFailure('bcAudio', err); }
+      var mime = ['video/mp4', 'video/webm;codecs=vp9', 'video/webm'].filter(function(t) {
+        return MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t);
+      })[0];
+      var rec = new MediaRecorder(stream, mime ? { mimeType: mime, videoBitsPerSecond: 4000000 } : undefined);
+      var chunks = [];
+      rec.ondataavailable = function(ev){ if (ev.data && ev.data.size) chunks.push(ev.data); };
+      rec.onstop = function() {
+        if (done) return;
+        done = true; clearTimeout(bail);
+        try { actx2.close(); } catch (e) {}
+        var type = (rec.mimeType || mime || 'video/webm').split(';')[0];
+        var ext = type.indexOf('mp4') !== -1 ? 'mp4' : 'webm';
+        var blob = new Blob(chunks, { type: type });
+        resolve(blob.size ? new File([blob], 'beatcut.' + ext, { type: type }) : null);
+      };
+      var seg = 0, flashUntil = 0, curScale = 1;
+      function jumpTo(i) {
+        seg = i;
+        try { v.currentTime = offsets[Math.min(i, offsets.length - 1)]; } catch (e) {}
+        flashUntil = performance.now() + 90;
+        curScale = punch ? (i % 2 ? 1.055 : 1.0) : 1.0;
+      }
+      var tick = setInterval(function() {
+        var t = songEl.currentTime - grid.offset;
+        var want = Math.max(0, Math.floor(t / segDur));
+        if (want !== seg && want < nSeg) jumpTo(want);
+        // draw base frame (with punch scale), run the Studio layer stack,
+        // then the beat flash
+        bctx.save();
+        bctx.fillStyle = '#000'; bctx.fillRect(0, 0, base.width, base.height);
+        var cs = curScale;
+        bctx.translate(base.width * (1 - cs) / 2, base.height * (1 - cs) / 2);
+        bctx.scale(cs, cs);
+        var css = PHOTO_FILTERS[_composerFilter].css;
+        if (css && css !== 'none') bctx.filter = css;
+        try { bctx.drawImage(v, 0, 0, base.width, base.height); } catch (e) {}
+        bctx.filter = 'none';
+        bctx.restore();
+        ctx.drawImage(base, 0, 0);
+        _studioLayers(ctx, base, canvas.width, canvas.height, _editSet);
+        if (performance.now() < flashUntil) {
+          ctx.save();
+          ctx.globalAlpha = 0.22 * ((flashUntil - performance.now()) / 90);
+          ctx.fillStyle = '#FFD9B8';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.restore();
+        }
+        if (btn) btn.textContent = '✂️ Cutting… ' + Math.min(99, Math.round(songEl.currentTime / outLen * 100)) + '%';
+        if (songEl.currentTime >= outLen) {
+          clearInterval(tick);
+          try { songEl.pause(); v.pause(); } catch (e) {}
+          try { rec.stop(); } catch (e) { if (!done) { done = true; clearTimeout(bail); resolve(null); } }
+        }
+      }, 33);
+      jumpTo(0);
+      v.play().then(function() {
+        songEl.play().then(function(){ rec.start(500); }, function() {
+          clearInterval(tick);
+          if (!done) { done = true; clearTimeout(bail); resolve(null); }
+        });
+      }, function() {
+        clearInterval(tick);
+        if (!done) { done = true; clearTimeout(bail); resolve(null); }
+      });
+    };
+    v.src = URL.createObjectURL(file);
+  });
+}
+
 // Re-encode a photo through canvas with the chosen filter baked in
 async function applyFilterToImage(file, filterCss) {
-  if (filterCss === 'none' && !_composerStamp && !_composerTexts.length) return file;
+  if (filterCss === 'none' && !_composerStamp && !_composerTexts.length && !_studioActive() && !_cropAspect) return file;
   if (_composerStamp) await _getStampImg();
   return new Promise(function(resolve) {
     var img = new Image();
     img.onload = function() {
+      var crop = _cropAspect
+        ? _smartCropRect(img.naturalWidth, img.naturalHeight, _cropAspect, img)
+        : { x: 0, y: 0, w: img.naturalWidth, h: img.naturalHeight };
       var maxW = 1920;
-      var scale = Math.min(1, maxW / img.naturalWidth);
+      var scale = Math.min(1, maxW / crop.w);
       var canvas = document.createElement('canvas');
-      canvas.width = Math.round(img.naturalWidth * scale);
-      canvas.height = Math.round(img.naturalHeight * scale);
+      canvas.width = Math.round(crop.w * scale);
+      canvas.height = Math.round(crop.h * scale);
       var ctx = canvas.getContext('2d');
       if (filterCss !== 'none') ctx.filter = filterCss;
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, crop.x, crop.y, crop.w, crop.h, 0, 0, canvas.width, canvas.height);
       ctx.filter = 'none';
+      if (_editSet.enhance) _pxAutoEnhance(canvas);
+      if (_editSet.glow > 0 || _editSet.night > 0) {
+        var stBase = document.createElement('canvas');
+        stBase.width = canvas.width; stBase.height = canvas.height;
+        stBase.getContext('2d').drawImage(canvas, 0, 0);
+        _studioLayers(ctx, stBase, canvas.width, canvas.height, _editSet);
+      }
       if (_composerStamp) _drawStamp(ctx, canvas.width, canvas.height);
       _drawTextOverlays(ctx, canvas.width, canvas.height, _composerTexts);
       canvas.toBlob(function(blob) {
@@ -7356,7 +7786,7 @@ async function applyFilterToImage(file, filterCss) {
 async function _bakeVideo(file, filterCss, stamp, progressBtn, audioOpts) {
   audioOpts = audioOpts || {};
   var wantsSong = audioOpts.mode === 'replace' || audioOpts.mode === 'mix';
-  if ((filterCss === 'none' || !filterCss) && !stamp && !wantsSong && !_composerTexts.length) return file;
+  if ((filterCss === 'none' || !filterCss) && !stamp && !wantsSong && !_composerTexts.length && !_studioActive()) return file;
   if (!window.MediaRecorder) return file;   // preview-only filter is better than a dead post
   if (stamp) await _getStampImg();
   return new Promise(function(resolve) {
@@ -7420,12 +7850,15 @@ async function _bakeVideo(file, filterCss, stamp, progressBtn, audioOpts) {
         var blob = new Blob(chunks, { type: type });
         resolve(blob.size ? new File([blob], 'styled.' + ext, { type: type }) : file);
       };
+      var stVid = _editSet.enhance ? ' contrast(1.08) saturate(1.12) brightness(1.02)' : '';
       var tick = setInterval(function() {
         if (bars916) { ctx.fillStyle = '#000'; ctx.fillRect(0, 0, canvas.width, canvas.height); }
-        if (filterCss && filterCss !== 'none') ctx.filter = filterCss;
+        var fx = ((filterCss && filterCss !== 'none' ? filterCss : '') + stVid).trim();
+        if (fx) ctx.filter = fx;
         if (bars916) ctx.drawImage(v, 0, vidY, vidW, vidH);
         else ctx.drawImage(v, 0, 0, canvas.width, canvas.height);
         ctx.filter = 'none';
+        if (_editSet.glow > 0 || _editSet.night > 0) _studioLayers(ctx, canvas, canvas.width, canvas.height, _editSet);
         if (stamp) _drawStamp(ctx, canvas.width, canvas.height);
         _drawTextOverlays(ctx, canvas.width, canvas.height, _composerTexts);
         if (progressBtn && v.duration) progressBtn.textContent = 'Styling… ' + Math.min(99, Math.round(v.currentTime / v.duration * 100)) + '%';
