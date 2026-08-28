@@ -5619,13 +5619,20 @@ async function showEventPage(src, id) {
           '<a class="pf-btn" href="' + gcal + '" target="_blank" rel="noopener" onclick="trackEvent(\'calendar_add\',\'event\',\'' + e.id + '\',{src:\'' + e.src + '\'})">📅 Calendar</a>' +
           (e.lat && e.lng ? '<a class="pf-btn" href="https://maps.apple.com/?q=' + encodeURIComponent(e.venue_name || e.title) + '&ll=' + e.lat + ',' + e.lng + '" target="_blank" rel="noopener" onclick="trackEvent(\'directions_click\',\'event\',\'' + e.id + '\',{src:\'' + e.src + '\'})">🧭 Directions</a>' : '') +
           '<button class="pf-btn" onclick="shareEvent(\'' + e.src + '\',\'' + e.id + '\',\'' + escapeHtml(e.title).replace(/'/g, '') + '\')">↗ Share</button>' +
+          '<button class="pf-btn" onclick="showEventQR(\'' + e.src + '\',\'' + e.id + '\',\'' + escapeHtml(e.title).replace(/'/g, '') + '\')">▦ QR</button>' +
         '</div>' +
+        '<div id="ev-checkin-row" style="display:none;margin-bottom:1rem"></div>' +
         '<div id="ev-friends" style="display:none;font-size:.8rem;color:var(--orange-l);margin:-.35rem 0 .9rem"></div>' +
         (e.description ? '<div style="font-size:.88rem;color:var(--muted);line-height:1.65;white-space:pre-wrap;max-width:62ch;margin-bottom:1rem">' + escapeHtml(e.description) + '</div>' : '') +
         (e.lat && e.lng ? '<div id="ev-mini-map" style="height:190px;border-radius:12px;overflow:hidden;border:1px solid var(--border)"></div>' : '') +
+        '<div id="ev-reviews" style="margin-top:1.1rem"></div>' +
       '</div>' +
     '</div>';
   _loadEventRsvpState(e);
+  window._lastEventRow = e;
+  // reviews wait on the check-in lookup — reviewing an event is gated on
+  // having checked in, so we need to know before drawing the composer
+  _mountCheckinRow(e).then(function() { _loadReviews('event', e.id, e); });
   // Swipe right anywhere on the page = back to the map (same gesture as Clips)
   if (!el._swipeBound) {
     el._swipeBound = true;
@@ -5726,6 +5733,7 @@ async function showVenuePage(venueId) {
   var following = !!_myFollows['venue:' + venueId];
   var heroFlyer = '';
   for (var hf = 0; hf < evs.length; hf++) { if (safeUrl(evs[hf].cover_url)) { heroFlyer = safeUrl(evs[hf].cover_url); break; } }
+  window._venueForReviews = venueId;
   el.innerHTML =
     '<div style="margin-bottom:.8rem"><a href="#" style="color:var(--muted);font-size:.78rem" onclick="showView(\'events\');return false">← Plug Map</a></div>' +
     '<div class="pf" style="background:var(--bg3);border-radius:var(--r-m);overflow:hidden">' +
@@ -5758,9 +5766,159 @@ async function showVenuePage(venueId) {
             (safeUrl(e.cover_url) ? '<img src="' + safeUrl(e.cover_url) + '" alt="" loading="lazy" style="width:50px;height:50px;border-radius:8px;object-fit:cover;flex-shrink:0">' : '') +
           '</div>';
         }).join('') : '<div class="pf-empty">Nothing on the calendar here yet.</div>') +
+        '<div id="venue-reviews" style="margin-top:1.1rem"></div>' +
       '</div>' +
     '</div>';
   trackEvent('venue_view', 'venue', venueId, {});
+  _loadReviews('venue', venueId);
+}
+
+// ── GEO CHECK-INS ──────────────────────────────────────────────────────
+// The endgame receipt: bodies through the door, verified by the phone's
+// own location against the venue (server-side geofence, ~500m, from 2h
+// before doors to 6h after start). Checking in mints your door number,
+// banks 25 PHX Points, and unlocks reviewing the event.
+var _myCheckin = null;
+async function _mountCheckinRow(e) {
+  var row = document.getElementById('ev-checkin-row');
+  if (!row) return;
+  _myCheckin = null;
+  var winOpen = e.lat && e.lng &&
+    Date.now() > new Date(e.starts_at).getTime() - 2 * 3600000 &&
+    Date.now() < new Date(e.ends_at || e.starts_at).getTime() + 6 * 3600000;
+  var counts = await _sb.from('event_checkins').select('user_id').eq('event_id', e.id);
+  var here = (counts.data || []).length;
+  var mine = _authUser && (counts.data || []).some(function(c){ return c.user_id === _authUser.id; });
+  if (mine) _myCheckin = true;
+  if (!winOpen && !here) { row.style.display = 'none'; return; }
+  row.style.display = 'block';
+  row.innerHTML =
+    (winOpen && !mine
+      ? '<button class="cp-post" style="margin:0;width:100%;padding:.8rem;font-size:1rem;justify-content:center;display:flex" onclick="doEventCheckin(\'' + e.src + '\',\'' + e.id + '\', this)">📍 I\'m here — check in</button>'
+      : '') +
+    (mine ? '<div style="text-align:center;font-size:.85rem;color:var(--orange-l);font-weight:700;padding:.4rem 0">✓ You\'re checked in</div>' : '') +
+    (here ? '<div style="text-align:center;font-size:.74rem;color:var(--muted);margin-top:.25rem">🔥 ' + here + ' through the door' + (winOpen ? ' so far' : '') + '</div>' : '');
+}
+async function doEventCheckin(src, id, btn) {
+  if (!requireAuthAction('Checking in')) return;
+  if (!navigator.geolocation) { showToast('Location isn\'t available in this browser.'); return; }
+  btn.disabled = true; btn.textContent = '📍 Finding you…';
+  navigator.geolocation.getCurrentPosition(async function(pos) {
+    btn.textContent = 'Checking in…';
+    var res = await _sb.rpc('event_checkin', { p_src: src, p_id: id, p_lat: pos.coords.latitude, p_lng: pos.coords.longitude });
+    var d = res.data || {};
+    if (res.error || !d.ok) {
+      btn.disabled = false; btn.textContent = '📍 I\'m here — check in';
+      showToast(d.reason === 'too_far' ? 'You\'re ' + (d.meters > 1000 ? (d.meters / 1000).toFixed(1) + 'km' : d.meters + 'm') + ' from the venue — check in when you arrive.'
+        : d.reason === 'outside_window' ? 'Check-in opens 2 hours before doors.'
+        : d.reason === 'no_venue_location' ? 'This event\'s venue isn\'t mapped yet.'
+        : 'Could not check in — try again.');
+      return;
+    }
+    if (typeof haptic === 'function') haptic(20);
+    _showCheckinMoment(d, src, id);
+    trackEvent('event_checkin', 'event', id, { src: src, number: d.number });
+  }, function() {
+    btn.disabled = false; btn.textContent = '📍 I\'m here — check in';
+    showToast('Location permission needed to check in — it proves you\'re really here.');
+  }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 });
+}
+// The moment: one full-screen beat that says YOU MADE IT — number minted,
+// points banked, one tap to capture the night, one tap back to it.
+function _showCheckinMoment(d, src, id) {
+  var w = document.createElement('div');
+  w.id = 'checkin-moment';
+  w.style.cssText = 'position:fixed;inset:0;z-index:1200;display:flex;align-items:center;justify-content:center;background:radial-gradient(120% 120% at 50% 20%, rgba(249,115,22,.35) 0%, rgba(7,7,15,.97) 60%);backdrop-filter:blur(6px);animation:headsup-in .3s var(--ease)';
+  w.innerHTML =
+    '<div style="text-align:center;padding:2rem;max-width:340px">' +
+      '<div style="font-size:3.4rem;animation:bv-pulse 1.2s ease-in-out infinite">🐦‍🔥</div>' +
+      '<div style="font-family:var(--disp);font-size:2rem;font-weight:900;letter-spacing:-.02em;margin:.5rem 0 .2rem">You\'re in.</div>' +
+      '<div style="font-family:var(--disp);font-size:1.1rem;color:var(--orange-l);font-weight:800;margin-bottom:.4rem">#' + d.number + ' through the door' + (d.already ? '' : ' tonight') + '</div>' +
+      (d.already ? '' : '<div style="font-size:.85rem;color:var(--gold);font-weight:700;margin-bottom:1.2rem">+25 PHX Points banked</div>') +
+      '<button class="cp-post" style="margin:0 auto .6rem;display:flex;justify-content:center;width:100%" onclick="document.getElementById(\'checkin-moment\').remove();window._promptContext=null;openPostSheet(\'lens\')">📸 Capture the night</button>' +
+      '<button class="pf-btn" style="margin:0 auto;justify-content:center;width:100%" onclick="document.getElementById(\'checkin-moment\').remove();_mountCheckinRow(window._lastEventRow||{});showEventPage(\'' + src + '\',\'' + id + '\')">Back to the night</button>' +
+    '</div>';
+  document.body.appendChild(w);
+}
+
+// ── REVIEWS ────────────────────────────────────────────────────────────
+// Events: only people who CHECKED IN can review (you were there or it
+// doesn't count). Venues: any member. One review per person, editable.
+async function _loadReviews(subjectType, subjectId, ev) {
+  var box = document.getElementById('ev-reviews') || document.getElementById('venue-reviews');
+  if (!box) return;
+  var res = await _sb.rpc('get_reviews', { p_subject_type: subjectType, p_subject_id: subjectId });
+  var rows = res.data || [];
+  var avg = rows.length ? (rows.reduce(function(a, r){ return a + r.rating; }, 0) / rows.length) : 0;
+  var stars = function(n) {
+    var out = '';
+    for (var i = 1; i <= 5; i++) out += '<span style="color:' + (i <= Math.round(n) ? 'var(--gold)' : 'var(--faint)') + '">★</span>';
+    return out;
+  };
+  var canReview = subjectType === 'venue' ? !!_authUser : !!_myCheckin;
+  box.innerHTML =
+    '<div class="pf-sec" style="margin-top:0"><h3>⭐ Reviews' + (rows.length ? ' · ' + avg.toFixed(1) : '') + '</h3>' +
+      (rows.length ? '<span style="font-size:.72rem;color:var(--muted)">' + rows.length + ' from the scene</span>' : '') + '</div>' +
+    (canReview
+      ? '<div style="margin-bottom:.8rem">' +
+          '<div id="rv-stars" style="font-size:1.5rem;letter-spacing:.2rem;cursor:pointer;margin-bottom:.4rem">' +
+            [1,2,3,4,5].map(function(i){ return '<span data-star="' + i + '" style="color:var(--faint)" onclick="_rvPick(' + i + ')">★</span>'; }).join('') + '</div>' +
+          '<textarea class="form-input" id="rv-body" rows="2" maxlength="600" placeholder="' + (subjectType === 'event' ? 'How was it? You were there — say it.' : 'What should the city know about this spot?') + '" style="resize:vertical;margin-bottom:.4rem"></textarea>' +
+          '<button class="pf-btn" onclick="submitReviewUI(\'' + subjectType + '\',\'' + subjectId + '\', this)">Post review</button>' +
+        '</div>'
+      : (subjectType === 'event'
+          ? '<div style="font-size:.76rem;color:var(--muted);margin-bottom:.8rem">📍 Check in at the event to leave a review — reviews here come from people who were really in the room.</div>'
+          : '')) +
+    (rows.length ? rows.map(function(r) {
+      var when = new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      return '<div style="padding:.55rem 0;border-bottom:1px solid var(--line)">' +
+        '<div style="display:flex;align-items:center;gap:.5rem;font-size:.8rem">' +
+          '<b style="cursor:pointer" onclick="showMemberPage(\'' + r.reviewer_id + '\')">' + escapeHtml(r.reviewer) + '</b>' +
+          '<span style="font-size:.72rem">' + stars(r.rating) + '</span>' +
+          '<span style="margin-left:auto;font-size:.66rem;color:var(--faint)">' + when + '</span></div>' +
+        (r.body ? '<div style="font-size:.82rem;color:var(--muted);line-height:1.5;margin-top:.2rem">' + escapeHtml(r.body) + '</div>' : '') +
+      '</div>';
+    }).join('') : '<div style="font-size:.76rem;color:var(--faint)">No reviews yet.</div>');
+}
+var _rvRating = 0;
+function _rvPick(n) {
+  _rvRating = n;
+  document.querySelectorAll('#rv-stars span').forEach(function(el) {
+    el.style.color = parseInt(el.dataset.star, 10) <= n ? 'var(--gold)' : 'var(--faint)';
+  });
+}
+async function submitReviewUI(subjectType, subjectId, btn) {
+  if (!_rvRating) { showToast('Tap the stars first.'); return; }
+  btn.disabled = true; btn.textContent = 'Posting…';
+  var res = await _sb.rpc('submit_review', {
+    p_subject_type: subjectType, p_subject_id: subjectId,
+    p_rating: _rvRating, p_body: (document.getElementById('rv-body') || {}).value || null
+  });
+  var d = res.data || {};
+  btn.disabled = false; btn.textContent = 'Post review';
+  if (res.error || !d.ok) {
+    showToast(d.reason === 'checkin_required' ? 'Check in at the event first.' :
+      d.reason === 'content_blocked' ? '🚫 That review violates community guidelines.' : 'Could not post the review.');
+    return;
+  }
+  _rvRating = 0;
+  showToast('⭐ Review posted');
+  _loadReviews(subjectType, subjectId);
+}
+
+// Event QR: for flyers, tables, the door — scan lands on the event page
+function showEventQR(src, id, title) {
+  var link = SITE_URL + '/app#event/' + src + '/' + id;
+  _apModal('qr-modal',
+    '<div style="text-align:center;padding:.4rem 0">' +
+      '<div style="font-weight:800;font-size:1rem;margin-bottom:.8rem">' + escapeHtml(title || 'PHX event') + '</div>' +
+      '<div style="background:#fff;border-radius:16px;padding:14px;display:inline-block">' +
+        '<img src="https://api.qrserver.com/v1/create-qr-code/?size=220x220&color=0B0B14&data=' + encodeURIComponent(link) + '" width="220" height="220" alt="QR code" style="display:block">' +
+      '</div>' +
+      '<div style="font-size:.74rem;color:var(--muted);margin:.8rem 0">Put it on the flyer, the table, the door — a scan opens this event in PHX.</div>' +
+      '<button class="pf-btn" style="margin:0 auto" onclick="navigator.clipboard&&navigator.clipboard.writeText(\'' + link + '\');showToast(\'Link copied\')">🔗 Copy link</button>' +
+      '<button class="pf-btn" style="margin:.5rem auto 0" onclick="document.getElementById(\'qr-modal\').style.display=\'none\'">Close</button>' +
+    '</div>');
 }
 
 function shareEvent(src, id, title) {
