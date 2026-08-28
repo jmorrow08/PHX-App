@@ -1586,7 +1586,8 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
         <button class="pm-cat" data-cat="sports" onclick="plugMapCat('sports')"><span style="color:#34D399">●</span>Sports</button>
         <button class="pm-cat" data-cat="market" onclick="plugMapCat('market')"><span style="color:#EAB308">●</span>Markets</button>
         <button class="pm-cat" data-cat="open_mic" onclick="plugMapCat('open_mic')"><span style="color:#FB923C">●</span>Open mic</button>
-        <button class="pm-cat" data-cat="free" onclick="plugMapCat('free')"><span style="color:#22C55E">●</span>Free</button>
+        <button class="pm-cat" data-cat="comedy" onclick="plugMapCat('comedy')"><span style="color:#A3E635">●</span>Comedy</button>
+        <button class="pm-cat" data-cat="free" onclick="plugMapCat('free')"><span style="color:#F1F1F8">●</span>Free</button>
       </div></div>
       <div class="pm-rail"><span class="pm-rail-label">Time</span><div class="pm-seg">
         <button class="pm-tod on" data-tod="any" onclick="plugMapTod('any')">Anytime</button>
@@ -1596,7 +1597,7 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
       </div></div>
       <div id="plug-map-canvas" style="display:block;position:relative;height:clamp(320px,46vh,480px);border-radius:var(--r-m);overflow:hidden;background:var(--bg3);margin-bottom:.35rem"></div>
       <div id="pm-legend" style="display:flex;gap:.8rem;flex-wrap:wrap;font-size:.66rem;color:var(--muted);margin-bottom:.9rem;padding:0 .2rem">
-        <span><span style="color:#F97316">●</span> Music</span><span><span style="color:#A78BFA">●</span> Nightlife</span><span><span style="color:#22C55E">●</span> Food</span><span><span style="color:#EC4899">●</span> Art</span><span><span style="color:#38BDF8">●</span> Community</span><span><span style="color:#F97316">⦿</span> you</span><span style="margin-left:auto">a number on a pin = that many events there</span>
+        <span><span style="color:#F97316">●</span> Music</span><span><span style="color:#A78BFA">●</span> Nightlife</span><span><span style="color:#22C55E">●</span> Food</span><span><span style="color:#EC4899">●</span> Art</span><span><span style="color:#A3E635">●</span> Comedy</span><span><span style="color:#38BDF8">●</span> Community</span><span><span style="color:#F97316">⦿</span> you</span><span style="margin-left:auto">a number on a pin = that many events there</span>
       </div>
       <div id="plug-map-list"><div class="pf-empty">Loading the city…</div></div>
       <div style="margin-top:1.2rem;text-align:center;padding:1.1rem;background:var(--bg3);border-radius:var(--r-m)">
@@ -5035,14 +5036,31 @@ async function loadFeedPrompt() {
     '<div style="flex:1;min-width:0">' +
       '<div style="font-size:.6rem;letter-spacing:.12em;text-transform:uppercase;color:var(--orange-l);margin-bottom:.25rem">🐦‍🔥 City question' + streak + '</div>' +
       '<div style="font-size:.92rem;font-weight:700;line-height:1.4">' + escapeHtml(t) + '</div></div>' +
-    '<button class="tb-btn" style="font-size:.76rem;flex-shrink:0" onclick="answerPrompt()">Answer</button></div>';
+    '<div style="display:flex;flex-direction:column;gap:.35rem;flex-shrink:0">' +
+      '<button class="tb-btn" style="font-size:.76rem" onclick="window._lastPromptText=' + JSON.stringify(t).replace(/"/g, '&quot;') + ';answerPrompt(window._lastPromptText)">Answer</button>' +
+      '<button class="tb-btn" style="font-size:.68rem;padding:.25rem .5rem" onclick="openHashtag(\'CityQuestion\')">See answers</button>' +
+    '</div></div>';
 }
-function answerPrompt() {
+// The city question is a conversation starter for people who never know
+// what to post: tap Answer → the post page opens with the QUESTION pinned
+// above the box, and the answer publishes as a normal feed post tagged
+// #CityQuestion — the tag groups every answer into one tappable thread.
+function answerPrompt(questionText) {
+  window._promptContext = questionText || window._lastPromptText || null;
   openPostSheet();
   setTimeout(function() {
+    var banner = document.getElementById('prompt-context-banner');
+    var step1 = document.getElementById('post-step1');
+    if (window._promptContext && step1 && !banner) {
+      step1.insertAdjacentHTML('afterbegin',
+        '<div id="prompt-context-banner" style="background:rgba(249,115,22,.1);border:1px solid rgba(249,115,22,.3);border-radius:12px;padding:.6rem .8rem;margin-bottom:.7rem">' +
+          '<div style="font-size:.6rem;letter-spacing:.12em;text-transform:uppercase;color:var(--orange-l);margin-bottom:.2rem">🐦‍🔥 Answering the city question</div>' +
+          '<div style="font-size:.85rem;font-weight:700;line-height:1.4">' + escapeHtml(window._promptContext) + '</div>' +
+        '</div>');
+    }
     var ta = document.getElementById('composer-text');
-    if (ta) ta.focus();
-  }, 150);
+    if (ta) { ta.placeholder = 'Your answer…'; ta.focus(); }
+  }, 160);
 }
 
 // ── Your Week: the pass keeps score of you ──
@@ -5320,6 +5338,12 @@ function _pmCatMatch(e) {
   if (_pmCat === 'all') return true;
   if (_pmCat === 'music') return !!_PM_MUSIC_KINDS[e.kind];
   if (_pmCat === 'free') return !!e.is_free || /^free$/i.test(e.price_text || '');
+  // Family means family — an art event "for kids" belongs here even when
+  // the source filed it under art
+  if (_pmCat === 'family') {
+    return e.kind === 'family' ||
+      /\b(kids?|children|child|family|families|all[- ]ages|toddler|youth)\b/i.test((e.title || '') + ' ' + (e.description || ''));
+  }
   return e.kind === _pmCat;
 }
 // "Near me": location is requested ONLY when this chip is tapped (never at
@@ -5368,8 +5392,8 @@ function _pmMiles(lat1, lng1, lat2, lng2) {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-var PM_KIND = { show: 'Show', shoot: 'Video shoot', listening_party: 'Listening party', open_mic: 'Open mic', drop: 'Drop', ticketed: 'Ticketed', perk: 'Perk', other: 'Event', community: 'Community', family: 'Family & kids', food_drink: 'Food & drink', nightlife: 'Nightlife', art: 'Art', sports: 'Sports', market: 'Market' };
-var PM_KIND_COLOR = { show:'#F97316', ticketed:'#F97316', open_mic:'#FB923C', drop:'#EF4444', shoot:'#F97316', listening_party:'#A78BFA', nightlife:'#A78BFA', food_drink:'#22C55E', art:'#EC4899', market:'#EAB308', family:'#38BDF8', community:'#38BDF8', sports:'#34D399', perk:'#EAB308', other:'#9A9AA6' };
+var PM_KIND = { show: 'Show', shoot: 'Video shoot', listening_party: 'Listening party', open_mic: 'Open mic', drop: 'Drop', ticketed: 'Ticketed', perk: 'Perk', other: 'Event', community: 'Community', family: 'Family & kids', food_drink: 'Food & drink', nightlife: 'Nightlife', art: 'Art', sports: 'Sports', market: 'Market', comedy: 'Comedy' };
+var PM_KIND_COLOR = { show:'#F97316', ticketed:'#F97316', open_mic:'#FB923C', drop:'#EF4444', shoot:'#F97316', listening_party:'#A78BFA', nightlife:'#A78BFA', food_drink:'#22C55E', art:'#EC4899', market:'#EAB308', family:'#38BDF8', community:'#38BDF8', sports:'#34D399', perk:'#EAB308', comedy:'#A3E635', other:'#9A9AA6' };
 
 // What a card says about money/access. Tickets → "from $X" (the number a
 // browser actually wants); free → Free + info link; nothing known → the
@@ -5405,9 +5429,12 @@ async function loadPlugMap() {
   var list = document.getElementById('plug-map-list');
   if (!list) return;
   var w = _pmWindow();
+  // An event RUNNING through the window counts (multi-day: Matilda opened
+  // last week but plays tonight) — starts in window OR ends after it opens
   var res = await _sb.from('city_events').select('*')
-    .gte('starts_at', w.from.toISOString()).lte('starts_at', w.to.toISOString())
-    .order('starts_at', { ascending: true }).limit(80);
+    .lte('starts_at', w.to.toISOString())
+    .or('starts_at.gte.' + w.from.toISOString() + ',ends_at.gte.' + w.from.toISOString())
+    .order('starts_at', { ascending: true }).limit(100);
   _pmRows = (res.data || []).filter(_pmCatMatch).filter(_pmTodMatch);
   if (_pmUserLoc) {
     _pmRows.forEach(function(e) {
@@ -5481,7 +5508,8 @@ function _pmRenderList(rows) {
     var priceLine = _pmPriceLabel(e, true);
     var cover = safeUrl(e.cover_url);
     return '<div class="pm-card" role="button" style="cursor:pointer" onclick="showEventPage(\'' + e.src + '\',\'' + e.id + '\')">' +
-      '<div class="ap-date"><div class="m">' + tp.mon + '</div><div class="d">' + tp.day + '</div></div>' +
+      '<div class="ap-date"><div class="m">' + tp.mon + '</div><div class="d">' + tp.day + '</div>' +
+        (e.ends_at ? '<div style="font-size:.5rem;color:var(--orange-l);font-weight:700;letter-spacing:.05em">thru ' + new Date(e.ends_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + '</div>' : '') + '</div>' +
       '<div style="flex:1;min-width:0">' +
         '<div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap"><span class="pm-kind"><span style="color:' + (PM_KIND_COLOR[e.kind] || '#F97316') + '">●</span> ' + (PM_KIND[e.kind] || 'Event') + '</span>' +
           (e.artist_name ? artistLinkHtml(e.artist_name, e.artist_slug) : '') + '</div>' +
@@ -5535,6 +5563,9 @@ async function showEventPage(src, id) {
   var KEMOJI = { show: '🎤', shoot: '🎬', listening_party: '🎧', open_mic: '🎙️', drop: '🔥', nightlife: '🌙', food_drink: '🍽️', art: '🎨', sports: '🏀', market: '🛍️', family: '🎡', community: '🏙️' };
   var d = new Date(e.starts_at);
   var dateLong = d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+  if (e.ends_at) {
+    dateLong += ' – ' + new Date(e.ends_at).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }) + ' · multi-day run';
+  }
   var timeStr = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
   var doors = e.doors_at ? new Date(e.doors_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : null;
   var cover = safeUrl(e.cover_url);
@@ -6300,6 +6331,9 @@ var _postStep = 1;
 // Single exit path: hides the sheet AND consumes the history entry the
 // open pushed, so the phone's back-gesture state stays consistent.
 function _postSheetHide(wipe) {
+  window._promptContext = null;
+  var pcb = document.getElementById('prompt-context-banner');
+  if (pcb && wipe) pcb.remove();
   var w = document.getElementById('post-sheet');
   if (!w) return;
   w.style.display = 'none';
@@ -8057,6 +8091,11 @@ async function submitFeedPost() {
   if (!content && !_composerMediaFile) {
     if (errEl) { errEl.textContent = 'Write something — or attach a photo or video.'; errEl.style.display = 'block'; }
     return;
+  }
+  // City-question answers carry the grouping tag automatically
+  if (window._promptContext && content && content.indexOf('#CityQuestion') === -1) {
+    content = content + '\n\n#CityQuestion';
+    window._promptContext = null;
   }
   var persona = currentPersona();
   var postBtn = document.getElementById('composer-post-btn');
