@@ -383,6 +383,14 @@ body[data-daypart="night"]{--orange:#F26312;--orange-l:#F98B4A;--orange-d:#C2410
 .apv-play{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:1.4rem;color:#fff;background:rgba(7,7,15,.35)}
 .apv-play::after{content:'';position:absolute;width:58px;height:58px;border-radius:50%;background:rgba(249,115,22,.9);z-index:-1}
 .apv-title{font-size:.84rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media (max-width:768px){
+  .apv-grid{display:flex;overflow-x:auto;gap:.7rem;scroll-snap-type:x mandatory;padding-bottom:.45rem;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .apv-grid::-webkit-scrollbar{display:none}
+  .apv-card{flex:0 0 84%;scroll-snap-align:center;min-width:0}
+  .apv-card.apv-feat{flex:0 0 100%}
+  .apv-grid .pf-btn{flex:0 0 auto;align-self:center;white-space:nowrap}
+  .apv-feat .apv-frame{border-radius:14px}
+}
 
 /* EVENTS */
 .event-row{display:grid;grid-template-columns:70px 1fr auto;gap:1rem;align-items:center;background:var(--bg3);border:none;border-radius:var(--r-m);padding:1rem 1.2rem;margin-bottom:.75rem}
@@ -1144,8 +1152,9 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
     <button class="nav-item" onclick="showView('reels')"><span class="icon">🎬</span>Clips</button>
     <div class="sb-section">Live Now</div>
     <button class="nav-item nav-dup" onclick="showView('music')"><span class="icon">🎵</span>PHX Music<span class="badge-teal badge" style="margin-left:auto;font-size:.58rem;padding:.1rem .45rem">LIVE</span></button>
+    <button class="nav-item nav-dup" onclick="showView('events')"><span class="icon">🗺️</span>Plug Map<span class="badge-teal badge" style="margin-left:auto;font-size:.58rem;padding:.1rem .45rem">LIVE</span></button>
+    <div class="nav-business-slot"></div>
     <div class="sb-section">Coming Soon</div>
-    <button class="nav-item nav-dup" onclick="showView('events')"><span class="icon">🗺️</span>Plug Map</button>
     <button class="nav-item nav-soon-item" onclick="showView('eats')"><span class="icon">🍽️</span>PHX Eats<span class="nav-soon">SOON</span></button>
     <button class="nav-item nav-soon-item" onclick="showView('audio')"><span class="icon">🎙️</span>PHX Audio<span class="nav-soon">SOON</span></button>
     <button class="nav-item nav-soon-item" onclick="showView('drops')"><span class="icon">👕</span>PHX Drops<span class="nav-soon">SOON</span></button>
@@ -1171,6 +1180,7 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
     <button class="nav-item" onclick="showView('artist-earnings')"><span class="icon">💚</span>Earnings</button>
     <div class="sb-section">Tools</div>
     <button class="nav-item" onclick="showView('artist-submit')"><span class="icon">➕</span>Submit Track</button>
+    <div class="nav-business-slot"></div>
     <div class="sb-section">Account</div>
     <button class="nav-item nav-dup" onclick="showView('mypass')"><span class="icon">💳</span>My Pass</button>
     <button class="nav-item" onclick="openMyPage()"><span class="icon">⭐</span>My Page</button>
@@ -5586,7 +5596,7 @@ async function loadPlugMap() {
   var res = await _sb.from('city_events').select('*')
     .lte('starts_at', w.to.toISOString())
     .or('starts_at.gte.' + w.from.toISOString() + ',ends_at.gte.' + w.from.toISOString())
-    .order('starts_at', { ascending: true }).limit(100);
+    .order('starts_at', { ascending: true }).limit(500);
   _pmRows = (res.data || []).filter(_pmCatMatch).filter(_pmTodMatch);
   if (_pmUserLoc) {
     _pmRows.forEach(function(e) {
@@ -10118,6 +10128,25 @@ async function resolveReportAction(reportId, action, btn) {
 }
 
 // ── PAGES — multi-identity system ────────────────────────────────────────
+// The hamburger speaks the owner's trade: a barber sees their book and
+// their work, a brand sees their shop — all deep-linking to the page where
+// those tools live (Studio stays admin-only)
+function _renderBusinessNav() {
+  var slots = document.querySelectorAll('.nav-business-slot');
+  if (!slots.length) return;
+  var biz = (_myPages || []).filter(function(pg){ return pg.page_type !== 'artist'; });
+  var html = biz.map(function(pg) {
+    var mods = pg.modules || _pageDefaultModules(pg.page_type);
+    var go = "showPageProfile('" + (pg.slug || pg.id) + "')";
+    return '<div class="sb-section">' + pageTypeIcon(pg.page_type) + ' ' + escapeHtml(pg.name) + (pg.founding ? ' <span class="badge badge-orange" style="font-size:.52rem;padding:.05rem .35rem">FOUNDING</span>' : '') + '</div>' +
+      '<button class="nav-item" onclick="' + go + '"><span class="icon">📄</span>My page</button>' +
+      (mods.booking ? '<button class="nav-item" onclick="' + go + '"><span class="icon">📋</span>Bookings &amp; clients</button>' : '') +
+      (mods.products ? '<button class="nav-item" onclick="' + go + '"><span class="icon">🛍</span>My shop</button>' : '') +
+      (mods.gallery ? '<button class="nav-item" onclick="' + go + '"><span class="icon">🖼</span>My work</button>' : '') +
+      (mods.reviews ? '<button class="nav-item" onclick="' + go + '"><span class="icon">⭐</span>Reviews</button>' : '');
+  }).join('');
+  slots.forEach(function(sl){ sl.innerHTML = html; });
+}
 async function loadMyPages() {
   var list = document.getElementById('my-pages-list');
   // Pages are owned by the AUTH account. Falling back to the device id kept
@@ -10125,6 +10154,7 @@ async function loadMyPages() {
   var ownerId = (_authUser && _authUser.id) ? _authUser.id : getGuestId();
   var res = await _sb.from('pages').select('*').eq('owner_id', ownerId).order('created_at');
   _myPages = res.data || [];
+  _renderBusinessNav();
   if (!list) return;
   var activeId = localStorage.getItem('phx_active_page');
   var typeIcons = { artist:'🎤', creator:'📸', food_drink:'🍽️', style_care:'💈', fitness_wellness:'🏋️', retail_brands:'🛍️', nightlife_events:'🎟️', other:'⭐',
@@ -17188,6 +17218,8 @@ function renderArtistVideos(artist) {
 function playArtistVideo(id, ytId) {
   var el = document.getElementById('apv-' + id);
   if (!el) return;
+  // The video takes the stage — music steps aside
+  if (typeof streamData !== 'undefined' && streamData.playing && typeof pauseAudio === 'function') pauseAudio();
   el.outerHTML = '<div class="apv-frame playing"><iframe src="https://www.youtube-nocookie.com/embed/' + ytId + '?autoplay=1&playsinline=1" ' +
     'title="Music video" frameborder="0" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe></div>';
   trackEvent('video_play', 'artist_video', id, {});
