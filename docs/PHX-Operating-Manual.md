@@ -295,3 +295,13 @@ _Everything below is live in production. Recorded here so Ash, future hires, and
 **Artist pages.** Videos tab redesigned: newest video is a full-width marquee with title overlay, catalog grid under it. Tab order now Music · Videos · Shows · Merch · Posts · About.
 
 **Hardening.** sign-audio v5: 60/min per-caller rate limit. ash v7: 20-per-5-min human-path limit. **Backups**: free tier has no managed backups OR branching (drill finding) — built our own: `backup-db` edge fn dumps all 80 tables to the private `db-backups` bucket (first run: 4,034 rows, 1.5MB, 0 errors), weekly cron Sundays 4am Phoenix, keeps last 10. Restore = download JSON, replay per table with the service role.
+
+## Update — August 28, 2026 (the metro + modules drop)
+
+**Metro-wide events.** TM ingest now pulls a 30-mile radius around downtown instead of Phoenix city limits — Mesa, Tempe, Glendale, Chandler, Scottsdale shows were invisible before (the Tiffany Haddish gap). First metro run: +105 events including State Farm Stadium and Talking Stick Amphitheatre. **Sold-out shows stay on the map** tagged SOLD OUT in red (big names prove the city moves through PHX); their CTA becomes "Sold out — check resale."
+
+**Pages Modules v1 — the professional platform is live.** Tables: page_services / page_availability / page_bookings / page_clients / page_gallery / page_products. Per-type module defaults (style_care & fitness_wellness & creator get booking+shop+gallery+reviews; retail & food get shop+gallery+reviews). On any page: **📅 Book** (services, weekly hours, slot picker, request→confirm flow with push both ways), **📋 Your book** (owner-only: requests, upcoming, client history w/ visits & no-shows, private client notes — all ON the page, never in Studio), **🛍 Shop** (products/packages/memberships, reserve-by-DM until Stripe), **🖼 Work** (portfolio gallery, moderated uploads), **⭐ Reviews** (extended to pages, owner can't review self). Members get **📅 My bookings** in Settings with cancel. Booking RPC chain verified end-to-end (slot generation, conflicts, geofenced… er, timezone-correct Phoenix slots).
+
+**Studio → Launch Desk → 🏪 Founding pages**: provision a page for any account (@handle or email) — type picks the modules, lands at Full tier + founding flag + is_claimed, owner gets a notification with the keys. This is the concierge-onboarding tool: build their page, then pitch. Founding = top tier free; grandfather at billing. Artists already default to Full tier on approval.
+
+**Weekly city post** regenerated in the new day-grouped format with the tappable "🎟 12 events" chip.
