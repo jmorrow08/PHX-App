@@ -1466,6 +1466,7 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
         <div class="set-card">
           <div class="set-head"><span class="set-ico">🔐</span><div><div class="set-title">Account</div><div class="set-sub">Signed in as <b id="set-email" style="color:var(--white)">—</b></div></div></div>
           <div class="set-row" onclick="showView('mypass')"><span>💳 My Pass — membership &amp; invite code</span><span class="set-arrow">›</span></div>
+          <div class="set-row" onclick="openMyBookings()"><span>📅 My bookings</span><span class="set-arrow">›</span></div>
           <div class="set-row" onclick="openSavedPosts()"><span>🔖 Saved posts</span><span class="set-arrow">›</span></div>
           <div class="set-row" onclick="openChangeEmail()"><span>✉️ Change email address</span><span class="set-arrow">›</span></div>
           <div class="set-row" onclick="open2FA()"><span>🛡 Two-factor authentication <span id="set-2fa-state" style="font-size:.68rem;color:var(--muted)"></span></span><span class="set-arrow">›</span></div>
@@ -2334,6 +2335,32 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
         </div>
       </div>
 
+      <div class="card ld-card" id="ld-card-provision" style="margin-bottom:1rem">
+        <div class="sh" onclick="ldToggle(event, this)" style="margin-bottom:.6rem"><h3>🏪 Founding pages</h3><span class="ld-chev">▶</span></div>
+        <div class="ld-body">
+          <div style="font-size:.78rem;color:var(--muted);margin-bottom:.7rem">Build a professional's page before you pitch them: pick the owner, the type sets the modules (booking, shop, gallery), and they land at Full tier, founding, free. They get a notification with the keys.</div>
+          <input class="form-input" id="pv-owner" placeholder="Owner — @handle or account email" style="margin-bottom:.5rem">
+          <input class="form-input" id="pv-name" placeholder="Page name (e.g. Fade Factory AZ)" maxlength="50" style="margin-bottom:.5rem">
+          <select class="form-select" id="pv-type" style="margin-bottom:.5rem">
+            <option value="style_care">💈 Style &amp; Care — booking + shop + gallery</option>
+            <option value="fitness_wellness">🏋️ Fitness &amp; Wellness — booking + shop + gallery</option>
+            <option value="creator">📸 Creator — booking + shop + gallery</option>
+            <option value="retail_brands">🛍️ Retail &amp; Brand — shop + gallery</option>
+            <option value="food_drink">🍽️ Food &amp; Drink — shop + gallery</option>
+            <option value="nightlife_events">🎟️ Nightlife &amp; Events — gallery + reviews</option>
+            <option value="other">⭐ Other — gallery + reviews</option>
+          </select>
+          <div style="display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.6rem;font-size:.74rem" id="pv-mods">
+            <label style="display:flex;gap:.3rem;align-items:center;cursor:pointer"><input type="checkbox" value="booking" style="accent-color:var(--orange)">📅 Booking</label>
+            <label style="display:flex;gap:.3rem;align-items:center;cursor:pointer"><input type="checkbox" value="products" style="accent-color:var(--orange)">🛍 Shop</label>
+            <label style="display:flex;gap:.3rem;align-items:center;cursor:pointer"><input type="checkbox" value="gallery" style="accent-color:var(--orange)">🖼 Gallery</label>
+            <label style="display:flex;gap:.3rem;align-items:center;cursor:pointer"><input type="checkbox" value="reviews" style="accent-color:var(--orange)">⭐ Reviews</label>
+          </div>
+          <div style="font-size:.66rem;color:var(--faint);margin-bottom:.6rem">Leave all boxes empty to use the type's defaults shown above.</div>
+          <button class="tb-btn primary" onclick="provisionPage(this)">Create founding page</button>
+          <div id="pv-msg" style="font-size:.76rem;margin-top:.5rem;min-height:1em"></div>
+        </div>
+      </div>
       <div class="card ld-card" id="ld-card-verify" style="margin-bottom:1rem">
         <div class="sh" onclick="ldToggle(event, this)" style="margin-bottom:.6rem"><h3>✓ Verification requests</h3><span class="ld-chev">▶</span>
           <span class="badge badge-orange" id="verify-count">…</span>
@@ -5605,7 +5632,7 @@ function _pmRenderList(rows) {
         '<div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap"><span class="pm-kind"><span style="color:' + (PM_KIND_COLOR[e.kind] || '#F97316') + '">●</span> ' + (PM_KIND[e.kind] || 'Event') + '</span>' +
           (e.artist_name ? artistLinkHtml(e.artist_name, e.artist_slug) : '') + '</div>' +
         '<div style="font-family:var(--disp);font-size:.95rem;font-weight:700;margin-top:.25rem">' + escapeHtml(e.title) +
-          (e.status_note ? ' <span style="font:600 .58rem var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--gold);border:1px solid rgba(234,179,8,.4);border-radius:999px;padding:.1rem .45rem">' + escapeHtml(e.status_note) + '</span>' : '') + '</div>' +
+          (e.status_note ? ' <span style="font:600 .58rem var(--mono);letter-spacing:.1em;text-transform:uppercase;color:' + (/sold out/i.test(e.status_note) ? 'var(--red);border:1px solid rgba(239,68,68,.45)' : 'var(--gold);border:1px solid rgba(234,179,8,.4)') + ';border-radius:999px;padding:.1rem .45rem">' + escapeHtml(e.status_note) + '</span>' : '') + '</div>' +
         '<div style="font-size:.76rem;color:var(--muted);margin-top:2px;line-height:1.45">' + escapeHtml(tp.time) + ' · ' + escapeHtml(where) + (priceLine ? '<br>' + priceLine : '') + '</div>' +
         '<div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;margin-top:.55rem">' +
           (e.src === 'show' ? '<button class="tb-btn" id="rsvp-' + e.id + '" style="font-size:.7rem;padding:.3rem .6rem" onclick="event.stopPropagation();toggleRsvpUI(\'' + e.id + '\', this)">🙋 I\'m going</button>' : '') +
@@ -5687,7 +5714,7 @@ async function showEventPage(src, id) {
       '<div style="padding:1.1rem 1.2rem 1.3rem">' +
         '<div style="display:flex;gap:.45rem;flex-wrap:wrap;margin-bottom:.55rem">' +
           chip(KIND[e.kind] || 'Event', 'var(--orange-l)') +
-          (e.status_note ? chip(e.status_note, 'var(--gold)') : '') +
+          (e.status_note ? chip(e.status_note, /sold out/i.test(e.status_note) ? 'var(--red)' : 'var(--gold)') : '') +
           (e.members_only ? chip('Members only', 'var(--purple-l)') : '') +
         '</div>' +
         '<div style="font-family:var(--disp);font-size:1.45rem;font-weight:800;letter-spacing:-.02em;line-height:1.2">' + escapeHtml(e.title) + '</div>' +
@@ -5704,7 +5731,9 @@ async function showEventPage(src, id) {
           (infoUrl && !ticket ? '<div>ℹ️ <a href="' + infoUrl + '" target="_blank" rel="noopener" style="color:var(--orange-l)">Event page & contact ↗</a><br><span style="color:var(--faint);font-size:.72rem;margin-left:1.35rem">details straight from the organizer</span></div>' : '') +
         '</div>' +
         '<div style="display:flex;gap:.55rem;flex-wrap:wrap;margin-bottom:1rem">' +
-          (ticket ? '<a class="cp-post" style="margin:0;text-decoration:none;display:inline-flex;align-items:center" href="' + _utm(ticket) + '" target="_blank" rel="noopener" onclick="trackEvent(\'ticket_click\',\'event\',\'' + e.id + '\',{src:\'' + e.src + '\',venue_id:\'' + (e.venue_id || '') + '\',from:\'event_page\'})">🎟️ Get tickets</a>' : '') +
+          (ticket ? (/sold out/i.test(e.status_note || '')
+            ? '<a class="pf-btn" style="opacity:.65" href="' + _utm(ticket) + '" target="_blank" rel="noopener" onclick="trackEvent(\'ticket_click\',\'event\',\'' + e.id + '\',{src:\'' + e.src + '\',venue_id:\'' + (e.venue_id || '') + '\',from:\'event_page_soldout\'})">🎟️ Sold out — check resale ↗</a>'
+            : '<a class="cp-post" style="margin:0;text-decoration:none;display:inline-flex;align-items:center" href="' + _utm(ticket) + '" target="_blank" rel="noopener" onclick="trackEvent(\'ticket_click\',\'event\',\'' + e.id + '\',{src:\'' + e.src + '\',venue_id:\'' + (e.venue_id || '') + '\',from:\'event_page\'})">🎟️ Get tickets</a>') : '') +
           '<button class="pf-btn" id="ev-going" onclick="evRsvp(\'' + e.src + '\',\'' + e.id + '\',\'going\')">🙋 Going</button>' +
           '<button class="pf-btn" id="ev-interested" onclick="evRsvp(\'' + e.src + '\',\'' + e.id + '\',\'interested\')">⭐ Interested</button>' +
           '<a class="pf-btn" href="' + gcal + '" target="_blank" rel="noopener" onclick="trackEvent(\'calendar_add\',\'event\',\'' + e.id + '\',{src:\'' + e.src + '\'})">📅 Calendar</a>' +
@@ -6059,7 +6088,7 @@ function _showCheckinMoment(d, src, id) {
 // Events: only people who CHECKED IN can review (you were there or it
 // doesn't count). Venues: any member. One review per person, editable.
 async function _loadReviews(subjectType, subjectId, ev) {
-  var box = document.getElementById('ev-reviews') || document.getElementById('venue-reviews');
+  var box = document.getElementById('ev-reviews') || document.getElementById('venue-reviews') || document.getElementById('page-reviews');
   if (!box) return;
   var res = await _sb.rpc('get_reviews', { p_subject_type: subjectType, p_subject_id: subjectId });
   var rows = res.data || [];
@@ -6069,7 +6098,9 @@ async function _loadReviews(subjectType, subjectId, ev) {
     for (var i = 1; i <= 5; i++) out += '<span style="color:' + (i <= Math.round(n) ? 'var(--gold)' : 'var(--faint)') + '">★</span>';
     return out;
   };
-  var canReview = subjectType === 'venue' ? !!_authUser : !!_myCheckin;
+  var canReview = subjectType === 'event' ? !!_myCheckin
+    : subjectType === 'page' ? (!!_authUser && !(window._pageOwnerId && _authUser && _authUser.id === window._pageOwnerId))
+    : !!_authUser;
   box.innerHTML =
     '<div class="pf-sec" style="margin-top:0"><h3>⭐ Reviews' + (rows.length ? ' · ' + avg.toFixed(1) : '') + '</h3>' +
       (rows.length ? '<span style="font-size:.72rem;color:var(--muted)">' + rows.length + ' from the scene</span>' : '') + '</div>' +
@@ -11235,6 +11266,28 @@ async function previewEmailTemplate() {
   box.innerHTML = '<iframe sandbox="" style="width:100%;height:420px;border:0;display:block;background:#fff" srcdoc="' +
     String(res.data).replace(/&/g, '&amp;').replace(/"/g, '&quot;') + '"></iframe>';
 }
+async function provisionPage(btn) {
+  var owner = (document.getElementById('pv-owner') || {}).value || '';
+  var name = (document.getElementById('pv-name') || {}).value || '';
+  var type = (document.getElementById('pv-type') || {}).value;
+  var msg = document.getElementById('pv-msg');
+  if (!owner.trim() || !name.trim()) { if (msg) { msg.style.color = 'var(--red)'; msg.textContent = 'Owner and page name required.'; } return; }
+  var picked = {};
+  document.querySelectorAll('#pv-mods input:checked').forEach(function(cb){ picked[cb.value] = true; });
+  btn.disabled = true; btn.textContent = 'Creating…';
+  var res = await _sb.rpc('admin_provision_page', {
+    p_owner: owner.trim(), p_name: name.trim(), p_type: type,
+    p_modules: Object.keys(picked).length ? picked : null, p_tier: 'full'
+  });
+  var d = res.data || {};
+  btn.disabled = false; btn.textContent = 'Create founding page';
+  if (res.error || !d.ok) {
+    if (msg) { msg.style.color = 'var(--red)'; msg.textContent = d.reason === 'owner_not_found' ? 'No account with that handle/email — they need to sign up first (send them an invite code).' : 'Could not create the page.'; }
+    return;
+  }
+  if (msg) { msg.style.color = 'var(--green)'; msg.innerHTML = '✓ Live — <a href="#" style="color:var(--orange)" onclick="showPageProfile(\'' + d.slug + '\');return false">open ' + escapeHtml(name) + '</a> and load it up before the pitch.'; }
+  document.getElementById('pv-owner').value = ''; document.getElementById('pv-name').value = '';
+}
 async function loadLaunchDesk() {
   loadVenueImpact();
   loadVerifyQueue();
@@ -16229,6 +16282,7 @@ async function showPageProfile(slugOrId) {
   }
   if (pg.slug) { try { window.location.hash = 'page/' + pg.slug; } catch (e) { reportFailure('showPageProfile', e); } }
 
+  var mods = pg.modules || _pageDefaultModules(pg.page_type);
   var pgRes = await Promise.all([
     _sb.from('feed_posts')
       .select('id,content,created_at,likes_count,comments_count,media_url')
@@ -16237,10 +16291,18 @@ async function showPageProfile(slugOrId) {
     pageCan(pg.page_type, 'shows')
       ? _sb.from('shows').select('*').eq('page_id', pg.id).eq('status','live')
           .gte('starts_at', new Date().toISOString()).order('starts_at')
-      : Promise.resolve({ data: [] })
+      : Promise.resolve({ data: [] }),
+    mods.booking ? _sb.from('page_services').select('*').eq('page_id', pg.id).eq('active', true).order('sort').order('created_at') : Promise.resolve({ data: [] }),
+    mods.gallery ? _sb.from('page_gallery').select('*').eq('page_id', pg.id).order('sort').order('created_at', { ascending: false }).limit(24) : Promise.resolve({ data: [] }),
+    mods.products ? _sb.from('page_products').select('*').eq('page_id', pg.id).eq('active', true).order('sort').order('created_at') : Promise.resolve({ data: [] })
   ]);
   var posts = pgRes[0].data || [];
   var pageShows = pgRes[1].data || [];
+  var pageServices = pgRes[2].data || [];
+  var pageGallery = pgRes[3].data || [];
+  var pageProducts = pgRes[4].data || [];
+  window._pageCtx = pg;
+  window._pageOwnerId = pg.owner_id;
 
   var fRes = await _sb.from('follows').select('id', { count: 'exact', head: true })
     .eq('followee_type', 'page').eq('followee_id', pg.id);
@@ -16296,11 +16358,321 @@ async function showPageProfile(slugOrId) {
               '📧 <a href="mailto:' + escapeHtml(pg.contact_email) + '" style="color:var(--orange)">' + escapeHtml(pg.contact_email) + '</a></div>' +
             '<button class="pf-btn" onclick="openInquiryForm(\'' + pg.id + '\')">✉️ Send an inquiry</button>'
           : '') +
+        (isOwner ? '<div id="pg-owner-desk" style="margin-top:1rem"></div>' : '') +
+        (mods.booking ? _pgBookingHtml(pg, pageServices, isOwner) : '') +
+        (mods.products ? _pgProductsHtml(pg, pageProducts, isOwner) : '') +
+        (mods.gallery ? _pgGalleryHtml(pg, pageGallery, isOwner) : '') +
         (pageCan(pg.page_type, 'menu') ? '<div class="pf-sec"><h3>Menu</h3></div><div class="pf-empty">Menu coming with PHX Eats.</div>' : '') +
         (pageCan(pg.page_type, 'perks') ? '<div class="pf-sec"><h3>Member perks</h3></div><div class="pf-empty">Perks launch with the partner program.</div>' : '') +
+        (mods.reviews ? '<div id="page-reviews" style="margin-top:1.1rem"></div>' : '') +
         renderProfilePosts('pp-posts', posts, pg.name, pg.avatar_url) +
       '</div>' +
     '</div>';
+  if (mods.reviews) _loadReviews('page', pg.id);
+  if (isOwner) _pgOwnerDesk(pg.id);
+}
+
+// ═══ PAGE MODULES ═══════════════════════════════════════════════════════
+// Build once, switch on per type. The chassis (posts/follows/reviews/QR)
+// is shared; these are the professional tools layered on top. Owners
+// manage everything right here on their page — Studio is Jaye-only.
+function _pageDefaultModules(t) {
+  return {
+    style_care:       { booking: 1, gallery: 1, products: 1, reviews: 1 },
+    fitness_wellness: { booking: 1, gallery: 1, products: 1, reviews: 1 },
+    creator:          { booking: 1, gallery: 1, products: 1, reviews: 1 },
+    retail_brands:    { products: 1, gallery: 1, reviews: 1 },
+    food_drink:       { products: 1, gallery: 1, reviews: 1 },
+    nightlife_events: { gallery: 1, reviews: 1 },
+    artist:           { gallery: 1 }
+  }[t] || { gallery: 1, reviews: 1 };
+}
+
+// ── Booking: services + slot picker ──
+function _pgBookingHtml(pg, services, isOwner) {
+  return '<div class="pf-sec"><h3>📅 Book</h3>' +
+      (isOwner ? '<span style="display:flex;gap:.4rem">' +
+        '<button class="tb-btn" style="font-size:.68rem;padding:.22rem .5rem" onclick="pgAddService(\'' + pg.id + '\')">＋ Service</button>' +
+        '<button class="tb-btn" style="font-size:.68rem;padding:.22rem .5rem" onclick="pgEditHours(\'' + pg.id + '\')">🕒 Hours</button></span>' : '') + '</div>' +
+    (pg.booking_note ? '<div style="font-size:.74rem;color:var(--muted);margin-bottom:.6rem">' + escapeHtml(pg.booking_note) + '</div>' : '') +
+    (services.length ? services.map(function(sv) {
+      return '<div style="display:flex;align-items:center;gap:.7rem;padding:.6rem 0;border-bottom:1px solid var(--line)">' +
+        '<div style="flex:1;min-width:0"><div style="font-weight:700;font-size:.9rem">' + escapeHtml(sv.name) + '</div>' +
+          '<div style="font-size:.72rem;color:var(--muted)">' + sv.duration_min + ' min' + (sv.price_text ? ' · ' + escapeHtml(sv.price_text) : '') +
+          (sv.description ? ' — ' + escapeHtml(sv.description) : '') + '</div></div>' +
+        (isOwner
+          ? '<button class="trk-add" aria-label="Remove service" onclick="pgDelService(\'' + sv.id + '\')">✕</button>'
+          : '<button class="pf-btn" style="flex-shrink:0" onclick="pgOpenBook(\'' + pg.id + '\',\'' + sv.id + '\',\'' + escapeHtml(sv.name).replace(/'/g, '') + '\',' + sv.duration_min + ')">Book</button>') +
+      '</div>';
+    }).join('') : '<div class="pf-empty">' + (isOwner ? 'Add your first bookable service — a cut, a session, a shoot.' : 'Booking opens soon.') + '</div>');
+}
+async function pgOpenBook(pageId, serviceId, name, dur) {
+  if (!requireAuthAction('Booking')) return;
+  var days = [];
+  for (var i = 0; i < 14; i++) {
+    var d = new Date(Date.now() + i * 86400000);
+    days.push(d);
+  }
+  _apModal('pg-book-modal',
+    '<div style="display:flex;align-items:center;margin-bottom:.6rem"><div style="font-weight:800;font-size:1.05rem">📅 ' + escapeHtml(name) + '</div>' +
+      '<button onclick="document.getElementById(\'pg-book-modal\').style.display=\'none\'" style="margin-left:auto;background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem">✕</button></div>' +
+    '<div style="font-size:.74rem;color:var(--muted);margin-bottom:.6rem">' + dur + ' minutes · pick a day, then a time</div>' +
+    '<div style="display:flex;gap:.4rem;overflow-x:auto;padding-bottom:.4rem;margin-bottom:.6rem;scrollbar-width:none">' +
+      days.map(function(d, i) {
+        return '<button class="tb-btn pg-day' + (i === 0 ? ' primary' : '') + '" data-date="' + d.toISOString().slice(0, 10) + '" onclick="pgPickDay(this,\'' + pageId + '\',\'' + serviceId + '\')" style="flex-shrink:0;font-size:.74rem;display:flex;flex-direction:column;padding:.4rem .7rem">' +
+          '<span style="font-size:.6rem;opacity:.7">' + d.toLocaleDateString('en-US', { weekday: 'short' }) + '</span><b>' + d.getDate() + '</b></button>';
+      }).join('') + '</div>' +
+    '<div id="pg-slots" style="min-height:60px"><div class="pf-empty">Loading times…</div></div>' +
+    '<textarea class="form-input" id="pg-book-note" rows="2" maxlength="240" placeholder="Anything they should know? (optional)" style="margin-top:.6rem;resize:none"></textarea>' +
+    '<button class="cp-post" id="pg-book-go" style="margin:.7rem 0 0;width:100%;justify-content:center;display:none" onclick="pgConfirmBook(\'' + pageId + '\',\'' + serviceId + '\', this)">Request this time</button>');
+  pgLoadSlots(pageId, serviceId, days[0].toISOString().slice(0, 10));
+}
+function pgPickDay(btn, pageId, serviceId) {
+  document.querySelectorAll('.pg-day').forEach(function(b){ b.classList.remove('primary'); });
+  btn.classList.add('primary');
+  window._pgSlot = null;
+  var go = document.getElementById('pg-book-go');
+  if (go) go.style.display = 'none';
+  pgLoadSlots(pageId, serviceId, btn.dataset.date);
+}
+async function pgLoadSlots(pageId, serviceId, date) {
+  var box = document.getElementById('pg-slots');
+  if (!box) return;
+  box.innerHTML = '<div class="pf-empty">Loading times…</div>';
+  var res = await _sb.rpc('get_page_slots', { p_page: pageId, p_service: serviceId, p_date: date });
+  var slots = res.data || [];
+  if (!slots.length) { box.innerHTML = '<div class="pf-empty">No open times that day.</div>'; return; }
+  box.innerHTML = '<div style="display:flex;flex-wrap:wrap;gap:.4rem">' + slots.map(function(t) {
+    var d = new Date(t);
+    return '<button class="tb-btn pg-slot" data-t="' + t + '" onclick="pgPickSlot(this)" style="font-size:.78rem">' +
+      d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) + '</button>';
+  }).join('') + '</div>';
+}
+function pgPickSlot(btn) {
+  document.querySelectorAll('.pg-slot').forEach(function(b){ b.classList.remove('primary'); });
+  btn.classList.add('primary');
+  window._pgSlot = btn.dataset.t;
+  var go = document.getElementById('pg-book-go');
+  if (go) go.style.display = 'flex';
+}
+async function pgConfirmBook(pageId, serviceId, btn) {
+  if (!window._pgSlot) return;
+  btn.disabled = true; btn.textContent = 'Requesting…';
+  var res = await _sb.rpc('page_book', {
+    p_page: pageId, p_service: serviceId, p_starts_at: window._pgSlot,
+    p_note: (document.getElementById('pg-book-note') || {}).value || null
+  });
+  var d = res.data || {};
+  btn.disabled = false; btn.textContent = 'Request this time';
+  if (res.error || !d.ok) {
+    showToast(d.reason === 'slot_taken' ? 'That time just got taken — pick another.'
+      : d.reason === 'rate_limited' ? 'That is a lot of bookings today — slow down.'
+      : d.reason === 'own_page' ? 'That is your own page.' : 'Could not book — try again.');
+    if (d.reason === 'slot_taken') { var day = document.querySelector('.pg-day.primary'); if (day) pgLoadSlots(pageId, serviceId, day.dataset.date); }
+    return;
+  }
+  document.getElementById('pg-book-modal').style.display = 'none';
+  if (typeof haptic === 'function') haptic(15);
+  showToast('📅 Requested — you\'ll get a ping when they confirm');
+  trackEvent('page_book', 'page', pageId, {});
+}
+// Owner: add/remove services, set hours
+async function pgAddService(pageId) {
+  var name = prompt('Service name (e.g. Fade + lineup):'); if (!name) return;
+  var dur = parseInt(prompt('How many minutes does it take?', '30') || '30', 10) || 30;
+  var price = prompt('Price shown to members (e.g. $35):') || null;
+  var res = await _sb.from('page_services').insert({ page_id: pageId, name: name.slice(0, 80), duration_min: Math.max(5, Math.min(480, dur)), price_text: price });
+  if (res.error) { showToast('Could not add'); return; }
+  showToast('✓ Service added');
+  showPageProfile(pageId);
+}
+async function pgDelService(id) {
+  if (!confirm('Remove this service?')) return;
+  await _sb.from('page_services').update({ active: false }).eq('id', id);
+  if (window._pageCtx) showPageProfile(window._pageCtx.id);
+}
+async function pgEditHours(pageId) {
+  var res = await _sb.from('page_availability').select('*').eq('page_id', pageId);
+  var rows = res.data || [];
+  var DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  var timeOpts = function(sel) {
+    var out = '';
+    for (var h = 5; h <= 23; h++) for (var m2 = 0; m2 < 60; m2 += 30) {
+      var v = h * 60 + m2;
+      var lbl = ((h % 12) || 12) + ':' + (m2 ? '30' : '00') + (h < 12 ? 'am' : 'pm');
+      out += '<option value="' + v + '"' + (v === sel ? ' selected' : '') + '>' + lbl + '</option>';
+    }
+    return out;
+  };
+  _apModal('pg-hours-modal',
+    '<div style="display:flex;align-items:center;margin-bottom:.7rem"><div style="font-weight:800;font-size:1.05rem">🕒 Your hours</div>' +
+      '<button onclick="document.getElementById(\'pg-hours-modal\').style.display=\'none\'" style="margin-left:auto;background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem">✕</button></div>' +
+    '<div style="font-size:.74rem;color:var(--muted);margin-bottom:.7rem">Members can only book inside these windows. Slots step every 30 minutes.</div>' +
+    DAYS.map(function(d, i) {
+      var r = rows.filter(function(x){ return x.dow === i; })[0];
+      return '<div style="display:flex;align-items:center;gap:.45rem;padding:.35rem 0;font-size:.8rem">' +
+        '<label style="display:flex;align-items:center;gap:.35rem;width:86px;flex-shrink:0;cursor:pointer"><input type="checkbox" class="pg-hr-on" data-dow="' + i + '"' + (r ? ' checked' : '') + ' style="accent-color:var(--orange)"> ' + d.slice(0, 3) + '</label>' +
+        '<select class="form-select pg-hr-start" data-dow="' + i + '" style="flex:1;font-size:.76rem;padding:.3rem">' + timeOpts(r ? r.start_min : 540) + '</select>' +
+        '<span style="color:var(--faint)">–</span>' +
+        '<select class="form-select pg-hr-end" data-dow="' + i + '" style="flex:1;font-size:.76rem;padding:.3rem">' + timeOpts(r ? r.end_min : 1020) + '</select>' +
+      '</div>';
+    }).join('') +
+    '<button class="cp-post" style="margin:.8rem 0 0;width:100%;justify-content:center;display:flex" onclick="pgSaveHours(\'' + pageId + '\', this)">Save hours</button>');
+}
+async function pgSaveHours(pageId, btn) {
+  btn.disabled = true; btn.textContent = 'Saving…';
+  var inserts = [];
+  document.querySelectorAll('.pg-hr-on').forEach(function(cb) {
+    if (!cb.checked) return;
+    var dow = parseInt(cb.dataset.dow, 10);
+    var st = parseInt(document.querySelector('.pg-hr-start[data-dow="' + dow + '"]').value, 10);
+    var en = parseInt(document.querySelector('.pg-hr-end[data-dow="' + dow + '"]').value, 10);
+    if (en > st) inserts.push({ page_id: pageId, dow: dow, start_min: st, end_min: en, slot_min: 30 });
+  });
+  await _sb.from('page_availability').delete().eq('page_id', pageId);
+  if (inserts.length) await _sb.from('page_availability').insert(inserts);
+  btn.disabled = false; btn.textContent = 'Save hours';
+  document.getElementById('pg-hours-modal').style.display = 'none';
+  showToast('🕒 Hours saved');
+}
+
+// ── Owner desk: booking requests + client book, on the page itself ──
+async function _pgOwnerDesk(pageId) {
+  var box = document.getElementById('pg-owner-desk');
+  if (!box) return;
+  var res = await _sb.rpc('owner_page_bookings', { p_page: pageId });
+  var rows = res.data || [];
+  var pending = rows.filter(function(r){ return r.status === 'pending'; });
+  var upcoming = rows.filter(function(r){ return r.status === 'confirmed' && new Date(r.starts_at) > new Date(); });
+  if (!rows.length) { box.innerHTML = ''; return; }
+  var fmt = function(t) { var d = new Date(t); return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) + ' ' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }); };
+  var row = function(r, actions) {
+    return '<div style="padding:.55rem 0;border-bottom:1px solid var(--line)">' +
+      '<div style="display:flex;align-items:center;gap:.5rem;font-size:.82rem;flex-wrap:wrap">' +
+        '<b style="cursor:pointer" onclick="showMemberPage(\'' + r.client_id + '\')">' + escapeHtml(r.client) + '</b>' +
+        '<span style="color:var(--muted)">' + escapeHtml(r.service) + ' · ' + fmt(r.starts_at) + '</span>' +
+        (r.visits ? '<span style="font-size:.64rem;color:var(--teal)">' + r.visits + ' visit' + (r.visits === 1 ? '' : 's') + '</span>' : '<span style="font-size:.64rem;color:var(--orange-l)">new client</span>') +
+        (r.no_shows ? '<span style="font-size:.64rem;color:var(--red)">' + r.no_shows + ' no-show' + (r.no_shows === 1 ? '' : 's') + '</span>' : '') +
+      '</div>' +
+      (r.note ? '<div style="font-size:.74rem;color:var(--muted);margin-top:2px">"' + escapeHtml(r.note) + '"</div>' : '') +
+      '<div style="display:flex;gap:.4rem;margin-top:.4rem;flex-wrap:wrap">' + actions +
+        '<button class="tb-btn" style="font-size:.66rem;padding:.2rem .5rem" onclick="pgClientNote(\'' + pageId + '\',\'' + r.client_id + '\',\'' + escapeHtml(r.client_notes || '').replace(/'/g, '') + '\')">📝 Note</button>' +
+      '</div></div>';
+  };
+  box.innerHTML =
+    '<div class="pf-sec" style="margin-top:0"><h3>📋 Your book</h3><span style="font-size:.7rem;color:var(--muted)">Only you see this</span></div>' +
+    (pending.length ? '<div style="font:600 .66rem var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--orange-l);margin:.3rem 0">Requests</div>' +
+      pending.map(function(r) {
+        return row(r,
+          '<button class="tb-btn primary" style="font-size:.7rem" onclick="pgRespond(\'' + r.id + '\',\'confirm\',\'' + pageId + '\')">✓ Confirm</button>' +
+          '<button class="tb-btn" style="font-size:.7rem" onclick="pgRespond(\'' + r.id + '\',\'decline\',\'' + pageId + '\')">Decline</button>');
+      }).join('') : '') +
+    (upcoming.length ? '<div style="font:600 .66rem var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:.6rem 0 .3rem">Upcoming</div>' +
+      upcoming.map(function(r) {
+        return row(r,
+          '<button class="tb-btn" style="font-size:.7rem" onclick="pgRespond(\'' + r.id + '\',\'complete\',\'' + pageId + '\')">✓ Came through</button>' +
+          '<button class="tb-btn" style="font-size:.7rem" onclick="pgRespond(\'' + r.id + '\',\'no_show\',\'' + pageId + '\')">No-show</button>' +
+          '<button class="tb-btn" style="font-size:.7rem" onclick="pgRespond(\'' + r.id + '\',\'cancel\',\'' + pageId + '\')">Cancel</button>');
+      }).join('') : '');
+}
+async function pgRespond(bookingId, action, pageId) {
+  var res = await _sb.rpc('page_booking_respond', { p_booking: bookingId, p_action: action });
+  if (res.error || !(res.data || {}).ok) { showToast('Could not update'); return; }
+  showToast('✓ Updated');
+  _pgOwnerDesk(pageId);
+}
+async function pgClientNote(pageId, clientId, current) {
+  var note = prompt('Private note about this client (only you see it):', current || '');
+  if (note === null) return;
+  await _sb.from('page_clients').update({ notes: note.slice(0, 500) }).eq('page_id', pageId).eq('user_id', clientId);
+  showToast('📝 Saved');
+  _pgOwnerDesk(pageId);
+}
+
+// ── Products / shop ──
+function _pgProductsHtml(pg, products, isOwner) {
+  return '<div class="pf-sec"><h3>🛍 Shop</h3>' +
+      (isOwner ? '<button class="tb-btn" style="font-size:.68rem;padding:.22rem .5rem" onclick="pgAddProduct(\'' + pg.id + '\')">＋ Product</button>' : '') + '</div>' +
+    (products.length
+      ? '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:.7rem">' +
+        products.map(function(p) {
+          var img = safeUrl(p.image_url);
+          return '<div style="border:1px solid var(--border);border-radius:12px;overflow:hidden">' +
+            (img ? '<img src="' + img + '" alt="" loading="lazy" style="width:100%;aspect-ratio:1;object-fit:cover;display:block;cursor:pointer" onclick="openLightbox(\'' + img + '\')">' : '') +
+            '<div style="padding:.5rem .6rem">' +
+              '<div style="font-size:.8rem;font-weight:700;line-height:1.3">' + escapeHtml(p.name) + '</div>' +
+              (p.price_text ? '<div style="font-size:.74rem;color:var(--orange-l);font-weight:700;margin-top:2px">' + escapeHtml(p.price_text) + '</div>' : '') +
+              (p.kind !== 'product' ? '<div style="font-size:.62rem;color:var(--purple-l);text-transform:uppercase;letter-spacing:.08em">' + p.kind + '</div>' : '') +
+              (isOwner
+                ? '<button class="tb-btn" style="font-size:.64rem;margin-top:.35rem" onclick="pgDelProduct(\'' + p.id + '\')">Remove</button>'
+                : (window._pageOwnerId ? '<button class="tb-btn" style="font-size:.64rem;margin-top:.35rem" onclick="pgReserve(\'' + escapeHtml(p.name).replace(/'/g, '') + '\')">🛎 Reserve</button>' : '')) +
+            '</div></div>';
+        }).join('') + '</div>' +
+        (isOwner ? '' : '<div style="font-size:.66rem;color:var(--faint);margin-top:.5rem">Reserve sends them a message — pay in person. In-app checkout comes with billing.</div>')
+      : '<div class="pf-empty">' + (isOwner ? 'Add products, packages, or memberships.' : 'Nothing in the shop yet.') + '</div>');
+}
+function pgReserve(name) {
+  if (!requireAuthAction('Reserving')) return;
+  dmStart(window._pageOwnerId);
+  // Prefill lands once the chat mounts — reserve-by-DM until Stripe checkout
+  var text = 'Hey — I want to reserve: ' + name;
+  var tries = 0;
+  var t = setInterval(function() {
+    var inp = document.getElementById('dm-input');
+    if (inp) { inp.value = text; inp.focus(); clearInterval(t); }
+    else if (++tries > 20) clearInterval(t);
+  }, 200);
+}
+async function pgAddProduct(pageId) {
+  var name = prompt('Product / package name:'); if (!name) return;
+  var price = prompt('Price (e.g. $25, $150/mo):') || null;
+  var kind = (prompt('Type — product, package, or membership?', 'product') || 'product').toLowerCase();
+  if (['product', 'package', 'membership'].indexOf(kind) < 0) kind = 'product';
+  var res = await _sb.from('page_products').insert({ page_id: pageId, name: name.slice(0, 80), price_text: price, kind: kind });
+  if (res.error) { showToast('Could not add'); return; }
+  showToast('✓ Added to the shop');
+  showPageProfile(pageId);
+}
+async function pgDelProduct(id) {
+  if (!confirm('Remove this from the shop?')) return;
+  await _sb.from('page_products').update({ active: false }).eq('id', id);
+  if (window._pageCtx) showPageProfile(window._pageCtx.id);
+}
+
+// ── Gallery / portfolio ──
+function _pgGalleryHtml(pg, gallery, isOwner) {
+  return '<div class="pf-sec"><h3>🖼 Work</h3>' +
+      (isOwner ? '<span>' + filePickHtml('pg-gal-file', 'image/*', '＋ Photo', '') + '</span>' : '') + '</div>' +
+    (isOwner ? '<button class="tb-btn" style="font-size:.68rem;margin-bottom:.5rem" onclick="pgUploadGallery(\'' + pg.id + '\', this)">⬆ Upload selected photo</button>' : '') +
+    (gallery.length
+      ? '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:.35rem">' +
+        gallery.map(function(g) {
+          var u = safeUrl(g.media_url);
+          return u ? '<div style="position:relative"><img src="' + u + '" alt="" loading="lazy" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;display:block;cursor:pointer" onclick="openLightbox(\'' + u + '\')">' +
+            (isOwner ? '<button class="trk-add" style="position:absolute;top:2px;right:2px" aria-label="Remove" onclick="pgDelGallery(\'' + g.id + '\')">✕</button>' : '') + '</div>' : '';
+        }).join('') + '</div>'
+      : '<div class="pf-empty">' + (isOwner ? 'Show your work — cuts, sessions, fits, plates.' : 'No photos yet.') + '</div>');
+}
+async function pgUploadGallery(pageId, btn) {
+  var inp = document.getElementById('pg-gal-file');
+  var f = inp && inp.files && inp.files[0];
+  if (!f) { showToast('Pick a photo first.'); return; }
+  btn.disabled = true; btn.textContent = 'Uploading…';
+  var mv = await _moderateMediaFile(f);
+  if (!mv.ok) { btn.disabled = false; btn.textContent = '⬆ Upload selected photo'; showToast('🚫 That photo violates community guidelines.'); return; }
+  var path = pageId.slice(0, 8) + '/gal_' + Date.now() + '.' + (f.name.split('.').pop() || 'jpg');
+  var up = await _sb.storage.from('post-media').upload(path, f, { contentType: f.type });
+  btn.disabled = false; btn.textContent = '⬆ Upload selected photo';
+  if (up.error) { showToast('Upload failed'); return; }
+  var pub = _sb.storage.from('post-media').getPublicUrl(path);
+  await _sb.from('page_gallery').insert({ page_id: pageId, media_url: pub.data ? pub.data.publicUrl : null });
+  showToast('🖼 Added');
+  showPageProfile(pageId);
+}
+async function pgDelGallery(id) {
+  if (!confirm('Remove this photo?')) return;
+  await _sb.from('page_gallery').delete().eq('id', id);
+  if (window._pageCtx) showPageProfile(window._pageCtx.id);
 }
 
 // Inquiry form — goes to the page's own contact address through the email
@@ -17103,6 +17475,34 @@ async function saveArtistLinks() {
 // One login can be a person, an artist, and the owner of several Pages.
 // A single destination → jump straight there. Multiple → a picker sheet,
 // which doubles as the switcher for people managing several pages.
+async function openMyBookings() {
+  _apModal('my-bookings-modal',
+    '<div style="display:flex;align-items:center;margin-bottom:.7rem"><div style="font-weight:800;font-size:1.05rem">📅 My bookings</div>' +
+      '<button onclick="document.getElementById(\'my-bookings-modal\').style.display=\'none\'" style="margin-left:auto;background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem">✕</button></div>' +
+    '<div id="myb-list"><div class="pf-empty">Loading…</div></div>');
+  var res = await _sb.rpc('my_bookings');
+  var rows = res.data || [];
+  var list = document.getElementById('myb-list');
+  if (!list) return;
+  var COL = { pending: 'var(--gold)', confirmed: 'var(--green)', declined: 'var(--red)', canceled: 'var(--faint)', completed: 'var(--teal)', no_show: 'var(--red)' };
+  list.innerHTML = rows.length ? rows.map(function(r) {
+    var d = new Date(r.starts_at);
+    var future = d > new Date() && (r.status === 'pending' || r.status === 'confirmed');
+    return '<div style="padding:.55rem 0;border-bottom:1px solid var(--line)">' +
+      '<div style="display:flex;align-items:center;gap:.5rem;font-size:.84rem;flex-wrap:wrap">' +
+        '<b style="cursor:pointer" onclick="document.getElementById(\'my-bookings-modal\').style.display=\'none\';showPageProfile(\'' + (r.page_slug || r.page_id) + '\')">' + escapeHtml(r.page_name) + '</b>' +
+        '<span style="color:var(--muted)">' + escapeHtml(r.service) + '</span>' +
+        '<span style="font-size:.64rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:' + (COL[r.status] || 'var(--muted)') + '">' + r.status.replace('_', ' ') + '</span></div>' +
+      '<div style="font-size:.74rem;color:var(--muted);margin-top:2px">' + d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) + ' · ' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) +
+        (future ? ' <a href="#" style="color:var(--red);margin-left:.5rem" onclick="pgCancelMine(\'' + r.id + '\');return false">Cancel</a>' : '') + '</div>' +
+    '</div>';
+  }).join('') : '<div class="pf-empty">No bookings yet — find a page on Discover and book something.</div>';
+}
+async function pgCancelMine(id) {
+  if (!confirm('Cancel this booking?')) return;
+  await _sb.rpc('page_booking_respond', { p_booking: id, p_action: 'cancel' });
+  openMyBookings();
+}
 async function openMyPage() {
   if (!requireAuthAction('see your page')) return;
   var dests = [];
