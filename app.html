@@ -3020,6 +3020,85 @@ function haptic(ms) { try { if (navigator.vibrate) navigator.vibrate(ms || 8); }
   else mount();
 })();
 // ── VIEW SWITCHING ─────────────────────────────────────────────────────
+// ── SWIPE PHYSICS ──────────────────────────────────────────────────────
+// Sheets follow the finger 1:1 and leave at the finger's own speed. The
+// difference between "swipe → it vanishes" and "I threw it off screen" is
+// this function.
+// opts: axis 'y'|'x' (dismiss = down / right), handle (drag surface, defaults
+// to el), moves (element that translates, defaults to el), backdrop (fades
+// with progress), lock (px before horizontal drags engage), onDismiss.
+function attachSheetDrag(el, opts) {
+  opts = opts || {};
+  var handle = opts.handle || el;
+  var mover = opts.moves || el;
+  var axis = opts.axis || 'y';
+  var p0 = null, d = 0, lastT = 0, lastD = 0, vel = 0, engaged = false, other0 = 0;
+  function setD(v) {
+    d = v;
+    mover.style.transition = 'none';
+    mover.style.transform = axis === 'y' ? 'translateY(' + v + 'px)' : 'translateX(' + v + 'px)';
+    if (opts.backdrop) opts.backdrop.style.opacity = String(Math.max(0, 1 - v / (axis === 'y' ? 420 : 320)));
+  }
+  function settle(back) {
+    var size = axis === 'y' ? (mover.offsetHeight || window.innerHeight) : (mover.offsetWidth || window.innerWidth);
+    if (back) {
+      mover.style.transition = 'transform .3s cubic-bezier(.2,.9,.25,1.15)';
+      mover.style.transform = 'translate(0,0)';
+      if (opts.backdrop) { opts.backdrop.style.transition = 'opacity .25s'; opts.backdrop.style.opacity = '1'; }
+      setTimeout(function() { mover.style.transition = ''; if (opts.backdrop) opts.backdrop.style.transition = ''; }, 320);
+      return;
+    }
+    // Fly out at the finger's release speed — never slower than a beat,
+    // never so fast it pops
+    var remain = Math.max(40, size - d);
+    var ms = Math.max(90, Math.min(260, remain / Math.max(vel, 0.6)));
+    mover.style.transition = 'transform ' + Math.round(ms) + 'ms linear';
+    mover.style.transform = axis === 'y' ? 'translateY(' + size + 'px)' : 'translateX(' + size + 'px)';
+    if (opts.backdrop) { opts.backdrop.style.transition = 'opacity ' + Math.round(ms) + 'ms linear'; opts.backdrop.style.opacity = '0'; }
+    setTimeout(function() {
+      if (opts.onDismiss) opts.onDismiss();
+      // Whatever the dismisser did (or refused to do — draft guards), the
+      // element must be usable next open
+      setTimeout(function() {
+        mover.style.transition = 'none';
+        mover.style.transform = '';
+        if (opts.backdrop) { opts.backdrop.style.transition = ''; opts.backdrop.style.opacity = ''; }
+        setTimeout(function(){ mover.style.transition = ''; }, 40);
+      }, 60);
+    }, ms + 20);
+  }
+  handle.addEventListener('touchstart', function(e) {
+    var t = e.touches[0]; if (!t) return;
+    p0 = axis === 'y' ? t.clientY : t.clientX;
+    other0 = axis === 'y' ? t.clientX : t.clientY;
+    lastD = 0; lastT = e.timeStamp; vel = 0; engaged = axis === 'y' && !opts.lock;
+  }, { passive: true });
+  handle.addEventListener('touchmove', function(e) {
+    if (p0 === null) return;
+    var t = e.touches[0]; if (!t) return;
+    var cur = axis === 'y' ? t.clientY : t.clientX;
+    var raw = cur - p0;
+    if (!engaged) {
+      var cross = Math.abs((axis === 'y' ? t.clientX : t.clientY) - other0);
+      if (raw > (opts.lock || 14) && raw > cross * 1.3) engaged = true;
+      else if (cross > 24) { p0 = null; return; }   // it's a scroll — let go
+      else return;
+    }
+    var v = raw > 0 ? raw : raw / 3;               // rubber-band the wrong way
+    var dt = e.timeStamp - lastT;
+    if (dt > 0) vel = Math.max(0, (v - lastD) / dt); // px per ms, dismiss-dir only
+    lastD = v; lastT = e.timeStamp;
+    setD(v);
+  }, { passive: true });
+  handle.addEventListener('touchend', function() {
+    if (p0 === null) return;
+    p0 = null;
+    if (!engaged) return;
+    var size = axis === 'y' ? (mover.offsetHeight || window.innerHeight) : (mover.offsetWidth || window.innerWidth);
+    settle(!(d > size * 0.28 || vel > 0.55));
+  }, { passive: true });
+  handle.addEventListener('touchcancel', function() { if (p0 !== null) { p0 = null; if (engaged) settle(true); } }, { passive: true });
+}
 function openFullPlayer() {
   // The bar opens the player as a sheet (Apple Music gesture) — Now
   // Playing, Up Next, and Recently Played without leaving the page.
@@ -3027,6 +3106,18 @@ function openFullPlayer() {
   if (!m) return;
   if (typeof renderPlayerSheet === 'function') renderPlayerSheet();
   m.style.display = 'flex';
+  var psc = m.querySelector('.ps-card');
+  if (psc && !psc._dragBound) {
+    psc._dragBound = true;
+    // entrance: slide up so open matches close
+    psc.style.transform = 'translateY(40px)'; psc.style.opacity = '0';
+    requestAnimationFrame(function() {
+      psc.style.transition = 'transform .32s cubic-bezier(.2,.9,.25,1), opacity .28s';
+      psc.style.transform = ''; psc.style.opacity = '';
+      setTimeout(function(){ psc.style.transition = ''; }, 340);
+    });
+    attachSheetDrag(m, { moves: psc, backdrop: m, onDismiss: closePlayerSheet });
+  }
   if (typeof startEmber === 'function') startEmber();
   _npCityNow();
 }
@@ -5800,12 +5891,7 @@ async function showEventPage(src, id) {
   // Swipe right anywhere on the page = back to the map (same gesture as Clips)
   if (!el._swipeBound) {
     el._swipeBound = true;
-    el.addEventListener('touchstart', function(ev){ var t = ev.touches[0]; if (t) { el._sx = t.clientX; el._sy = t.clientY; } }, { passive: true });
-    el.addEventListener('touchend', function(ev){
-      var t = ev.changedTouches[0]; if (!t || el._sx == null) return;
-      var dx = t.clientX - el._sx, dy = t.clientY - el._sy;
-      if (dx > 70 && Math.abs(dx) > Math.abs(dy) * 1.6) showView('events');
-    }, { passive: true });
+    attachSheetDrag(el, { axis: 'x', lock: 16, onDismiss: function() { showView('events'); } });
   }
   // Mini-map: one ember pin on the venue
   if (e.lat && e.lng) {
@@ -6792,12 +6878,54 @@ window.addEventListener('popstate', function() {
   }
 });
 var _pshY0 = 0;
-function _postHeadTS(e) { var t = e.touches && e.touches[0]; if (t) _pshY0 = t.clientY; }
-function _postHeadTE(e) {
-  var t = e.changedTouches && e.changedTouches[0];
-  if (t && _pshY0 && t.clientY - _pshY0 > 65) closePostSheet();
-  _pshY0 = 0;
+// Tracked drag: the head starts it, the whole sheet rides the finger.
+// The #post-sheet container persists across opens, so move/end listeners
+// bind once there and only act while a head-touch is live.
+var _pshDrag = null;
+function _postHeadTS(e) {
+  var t = e.touches && e.touches[0]; if (!t) return;
+  var w = document.getElementById('post-sheet');
+  if (!w) return;
+  _pshDrag = { y0: t.clientY, d: 0, lastD: 0, lastT: e.timeStamp, vel: 0 };
+  if (!w._dragMoveBound) {
+    w._dragMoveBound = true;
+    w.addEventListener('touchmove', function(ev) {
+      if (!_pshDrag) return;
+      var tt = ev.touches[0]; if (!tt) return;
+      var raw = tt.clientY - _pshDrag.y0;
+      var v = raw > 0 ? raw : raw / 3;
+      var dt = ev.timeStamp - _pshDrag.lastT;
+      if (dt > 0) _pshDrag.vel = Math.max(0, (v - _pshDrag.lastD) / dt);
+      _pshDrag.lastD = v; _pshDrag.lastT = ev.timeStamp; _pshDrag.d = v;
+      w.style.transition = 'none';
+      w.style.transform = 'translateY(' + v + 'px)';
+    }, { passive: true });
+    w.addEventListener('touchend', function() {
+      if (!_pshDrag) return;
+      var d = _pshDrag.d, vel = _pshDrag.vel;
+      _pshDrag = null;
+      var size = window.innerHeight;
+      if (d > size * 0.24 || vel > 0.55) {
+        var ms = Math.max(90, Math.min(260, (size - d) / Math.max(vel, 0.7)));
+        w.style.transition = 'transform ' + Math.round(ms) + 'ms linear';
+        w.style.transform = 'translateY(' + size + 'px)';
+        setTimeout(function() {
+          closePostSheet();
+          // draft guard may keep it open — either way, reset cleanly
+          setTimeout(function() {
+            w.style.transition = 'none'; w.style.transform = '';
+            setTimeout(function(){ w.style.transition = ''; }, 40);
+          }, 60);
+        }, ms + 20);
+      } else {
+        w.style.transition = 'transform .3s cubic-bezier(.2,.9,.25,1.15)';
+        w.style.transform = 'translateY(0)';
+        setTimeout(function(){ w.style.transition = ''; }, 320);
+      }
+    }, { passive: true });
+  }
 }
+function _postHeadTE() { /* handled by the container-level touchend */ }
 function openPostSheet(shortcut) {
   if (!requireAuthAction('Posting')) return;
   var w = document.getElementById('post-sheet');
