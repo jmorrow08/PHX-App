@@ -6600,6 +6600,8 @@ var PHOTO_FILTERS = {
   bw:      { label: 'The 602', css: 'grayscale(1) contrast(1.22) brightness(1.02)' },
   fade:    { label: 'Fade', css: 'contrast(.88) brightness(1.12) saturate(.75)' }
 };
+var _composerStickers = [];        // {ch, xPct, yPct, scale} — baked at export
+var _composerStrokes = [];         // {color, pts:[[x,y]..] normalized} — baked at export
 var _composerStamp = false;        // 🐦‍🔥 PHX wordmark baked into the corner
 var _composerTexts = [];           // caption overlays: {text, yPct, style} — baked at export
 var _composerTrustedClip = false;  // set when WE produced the file (trim/bake/Lens) — skip the re-probe
@@ -6616,6 +6618,33 @@ function _getStampImg() {
     im.src = 'assets/logo-wordmark.png';
   });
 }
+// Stickers + drawings render identically in preview and export — the layer
+// coordinates are normalized so every resolution lands the same frame
+function _drawDecor(ctx, w, h) {
+  _composerStickers.forEach(function(st) {
+    ctx.save();
+    ctx.font = Math.round(w * 0.16 * st.scale) + 'px sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.shadowColor = 'rgba(0,0,0,.35)'; ctx.shadowBlur = Math.round(w * 0.01);
+    ctx.fillText(st.ch, st.xPct * w, st.yPct * h);
+    ctx.restore();
+  });
+  if (_composerStrokes.length) {
+    ctx.save();
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    _composerStrokes.forEach(function(sk) {
+      if (sk.pts.length < 2) return;
+      ctx.strokeStyle = sk.color;
+      ctx.lineWidth = Math.max(3, w * 0.012);
+      ctx.beginPath();
+      ctx.moveTo(sk.pts[0][0] * w, sk.pts[0][1] * h);
+      for (var i = 1; i < sk.pts.length; i++) ctx.lineTo(sk.pts[i][0] * w, sk.pts[i][1] * h);
+      ctx.stroke();
+    });
+    ctx.restore();
+  }
+}
+function _decorActive() { return _composerStickers.length > 0 || _composerStrokes.length > 0; }
 function _drawStamp(ctx, w, h) {
   if (!_stampImg) return;
   var sw = Math.round(w * 0.22);
@@ -6625,6 +6654,151 @@ function _drawStamp(ctx, w, h) {
   ctx.globalAlpha = 1;
 }
 function toggleComposerStamp() { _composerStamp = !_composerStamp; _refreshFilterChips(); _flashFilterName(_composerStamp ? '🐦‍🔥 Stamp on' : 'Stamp off'); }
+
+// ── STICKERS ───────────────────────────────────────────────────────────
+// Drag anywhere, double-tap to size-cycle, tap once for the remove chip.
+var _STICKER_SET = ['🐦‍🔥','🔥','🌵','☀️','🌙','⚡','💜','🤘','🎶','🎤','😂','😭','💀','🥵','❤️','👀','💯','✨','🫶','🏀','🌆','🍾','🕺','🏜️'];
+function openStickerTray() {
+  if (!_composerMediaFile) { showToast('Attach a photo or video first.'); return; }
+  _apModal('sticker-tray',
+    '<div style="display:flex;align-items:center;margin-bottom:.6rem"><div style="font-weight:800;font-size:1.05rem">Stickers</div>' +
+      '<button onclick="document.getElementById(\'sticker-tray\').style.display=\'none\'" style="margin-left:auto;background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem">✕</button></div>' +
+    '<div style="display:grid;grid-template-columns:repeat(6,1fr);gap:.3rem">' +
+      _STICKER_SET.map(function(ch) {
+        return '<button onclick="addSticker(\'' + ch + '\')" style="font-size:1.7rem;background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:.45rem 0;cursor:pointer">' + ch + '</button>';
+      }).join('') + '</div>' +
+    '<div style="font-size:.68rem;color:var(--faint);margin-top:.6rem;text-align:center">Drag to place · double-tap to resize · tap once to remove</div>');
+}
+function addSticker(ch) {
+  if (_composerStickers.length >= 6) { showToast('Six stickers max — keep the shot visible.'); return; }
+  _composerStickers.push({ ch: ch, xPct: 0.5, yPct: 0.4 + _composerStickers.length * 0.06, scale: 1 });
+  document.getElementById('sticker-tray').style.display = 'none';
+  _renderDecorLayer();
+  if (typeof haptic === 'function') haptic(8);
+}
+var _SCALES = [0.6, 1, 1.5, 2.1];
+function _renderDecorLayer() {
+  var layer = document.getElementById('composer-text-layer');
+  var stage = document.getElementById('composer-preview-stage');
+  if (!layer || !stage) return;
+  layer.querySelectorAll('.st-emoji, .st-drawcv').forEach(function(n){ n.remove(); });
+  // draw canvas sits under the stickers, over the media
+  if (_composerStrokes.length || window._drawMode) {
+    var dc = document.createElement('canvas');
+    dc.className = 'st-drawcv';
+    var r = stage.getBoundingClientRect();
+    dc.width = Math.max(2, Math.round(r.width)); dc.height = Math.max(2, Math.round(r.height));
+    dc.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:' + (window._drawMode ? 'auto' : 'none') + ';touch-action:none;z-index:4';
+    layer.appendChild(dc);
+    _paintDrawPreview(dc);
+    if (window._drawMode) _bindDrawEvents(dc);
+  }
+  _composerStickers.forEach(function(st, i) {
+    var el = document.createElement('div');
+    el.className = 'st-emoji';
+    el.style.cssText = 'position:absolute;left:' + (st.xPct * 100) + '%;top:' + (st.yPct * 100) + '%;transform:translate(-50%,-50%) scale(' + st.scale + ');font-size:2.6rem;pointer-events:auto;touch-action:none;cursor:grab;z-index:5;filter:drop-shadow(0 2px 6px rgba(0,0,0,.4))';
+    el.textContent = st.ch;
+    var lastTap = 0, moved = false;
+    el.addEventListener('touchstart', function(ev) {
+      ev.stopPropagation(); moved = false;
+      var t = ev.touches[0];
+      el._dx = t.clientX; el._dy = t.clientY; el._x0 = st.xPct; el._y0 = st.yPct;
+    }, { passive: true });
+    el.addEventListener('touchmove', function(ev) {
+      ev.stopPropagation();
+      var t = ev.touches[0];
+      var r2 = stage.getBoundingClientRect();
+      var nx = el._x0 + (t.clientX - el._dx) / r2.width;
+      var ny = el._y0 + (t.clientY - el._dy) / r2.height;
+      if (Math.abs(t.clientX - el._dx) + Math.abs(t.clientY - el._dy) > 6) moved = true;
+      st.xPct = Math.max(0.04, Math.min(0.96, nx));
+      st.yPct = Math.max(0.04, Math.min(0.96, ny));
+      el.style.left = (st.xPct * 100) + '%'; el.style.top = (st.yPct * 100) + '%';
+    }, { passive: true });
+    el.addEventListener('touchend', function(ev) {
+      ev.stopPropagation();
+      if (moved) return;
+      var now = Date.now();
+      if (now - lastTap < 320) {
+        st.scale = _SCALES[(_SCALES.indexOf(st.scale) + 1) % _SCALES.length] || 1;
+        el.style.transform = 'translate(-50%,-50%) scale(' + st.scale + ')';
+        if (typeof haptic === 'function') haptic(8);
+      } else {
+        setTimeout(function() {
+          if (Date.now() - lastTap >= 320) {
+            if (confirm('Remove this sticker?')) { _composerStickers.splice(i, 1); _renderDecorLayer(); }
+          }
+        }, 330);
+      }
+      lastTap = now;
+    }, { passive: true });
+    layer.appendChild(el);
+  });
+}
+
+// ── DRAW ───────────────────────────────────────────────────────────────
+var _drawColor = '#F97316';
+function toggleDrawMode() {
+  if (!_composerMediaFile) { showToast('Attach a photo or video first.'); return; }
+  window._drawMode = !window._drawMode;
+  var bar = document.getElementById('draw-toolbar');
+  if (window._drawMode) {
+    if (!bar) {
+      bar = document.createElement('div');
+      bar.id = 'draw-toolbar';
+      bar.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);bottom:calc(90px + env(safe-area-inset-bottom,0px));z-index:1160;background:rgba(7,7,15,.85);backdrop-filter:blur(10px);border:1px solid var(--border);border-radius:999px;padding:.45rem .7rem;display:flex;gap:.45rem;align-items:center';
+      bar.innerHTML =
+        ['#F97316', '#FFFFFF', '#0B0B14', '#EF4444', '#A78BFA', '#22C55E'].map(function(c2) {
+          return '<button onclick="_drawColor=\'' + c2 + '\';document.querySelectorAll(\'#draw-toolbar .dt-c\').forEach(function(b){b.style.outline=b.dataset.c===\'' + c2 + '\'?\'2px solid #fff\':\'none\'})" data-c="' + c2 + '" class="dt-c" style="width:26px;height:26px;border-radius:50%;border:1px solid rgba(255,255,255,.3);background:' + c2 + ';cursor:pointer;outline:' + (c2 === _drawColor ? '2px solid #fff' : 'none') + '"></button>';
+        }).join('') +
+        '<button onclick="_composerStrokes.pop();_renderDecorLayer()" style="background:none;border:none;color:#fff;font-size:1rem;cursor:pointer;padding:0 .2rem" aria-label="Undo">↩️</button>' +
+        '<button onclick="toggleDrawMode()" style="background:var(--orange);border:none;color:#fff;font-weight:800;font-size:.74rem;border-radius:999px;padding:.3rem .8rem;cursor:pointer">Done</button>';
+      document.body.appendChild(bar);
+    }
+    bar.style.display = 'flex';
+    showToast('✏️ Draw on the ' + (_composerMediaFile.type.indexOf('image/') === 0 ? 'photo' : 'video'));
+  } else if (bar) bar.style.display = 'none';
+  _renderDecorLayer();
+}
+function _paintDrawPreview(dc) {
+  var ctx = dc.getContext('2d');
+  ctx.clearRect(0, 0, dc.width, dc.height);
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  _composerStrokes.forEach(function(sk) {
+    if (sk.pts.length < 2) return;
+    ctx.strokeStyle = sk.color;
+    ctx.lineWidth = Math.max(3, dc.width * 0.012);
+    ctx.beginPath();
+    ctx.moveTo(sk.pts[0][0] * dc.width, sk.pts[0][1] * dc.height);
+    for (var i = 1; i < sk.pts.length; i++) ctx.lineTo(sk.pts[i][0] * dc.width, sk.pts[i][1] * dc.height);
+    ctx.stroke();
+  });
+}
+function _bindDrawEvents(dc) {
+  var cur = null;
+  function pt(ev) {
+    var t = ev.touches ? ev.touches[0] : ev;
+    var r = dc.getBoundingClientRect();
+    return [Math.max(0, Math.min(1, (t.clientX - r.left) / r.width)), Math.max(0, Math.min(1, (t.clientY - r.top) / r.height))];
+  }
+  dc.addEventListener('touchstart', function(ev) {
+    ev.preventDefault(); ev.stopPropagation();
+    cur = { color: _drawColor, pts: [pt(ev)] };
+    _composerStrokes.push(cur);
+  }, { passive: false });
+  dc.addEventListener('touchmove', function(ev) {
+    ev.preventDefault(); ev.stopPropagation();
+    if (!cur) return;
+    cur.pts.push(pt(ev));
+    _paintDrawPreview(dc);
+  }, { passive: false });
+  dc.addEventListener('touchend', function(ev) {
+    ev.stopPropagation();
+    if (cur && cur.pts.length < 2) _composerStrokes.pop();
+    cur = null;
+    _paintDrawPreview(dc);
+  }, { passive: true });
+}
 
 // ── CAPTIONS EDITOR ────────────────────────────────────────────────────
 // Up to 3 text overlays on a photo or clip: type in place, drag up/down,
@@ -6763,6 +6937,8 @@ function renderMediaPreview() {
       }).join('') +
       '<button class="tb-btn" id="composer-stamp-chip" style="font-size:.7rem;padding:.25rem .6rem;white-space:nowrap;flex-shrink:0" onclick="toggleComposerStamp()">🐦‍🔥 PHX stamp</button>' +
       '<button class="tb-btn" style="font-size:.7rem;padding:.25rem .6rem;white-space:nowrap;flex-shrink:0" onclick="addComposerText()">Aa Text</button>' +
+      '<button class="tb-btn" style="font-size:.7rem;padding:.25rem .6rem;white-space:nowrap;flex-shrink:0" onclick="openStickerTray()">😀 Sticker</button>' +
+      '<button class="tb-btn" style="font-size:.7rem;padding:.25rem .6rem;white-space:nowrap;flex-shrink:0" onclick="toggleDrawMode()">✏️ Draw</button>' +
     '</div>' +
     '<div style="margin-top:.55rem;padding:2px;border-radius:14px;background:linear-gradient(120deg,rgba(249,115,22,.5),rgba(124,58,237,.5))">' +
       '<div style="background:var(--bg2);border-radius:12px;padding:.6rem .7rem">' +
@@ -6812,6 +6988,7 @@ function renderMediaPreview() {
   _refreshFilterChips();
   _refreshAudioOpts();
   _studioRefresh();
+  _renderDecorLayer();
 }
 
 // Video + song attached → choose whose sound wins (and the song's volume)
@@ -7257,6 +7434,8 @@ function _refreshComposerTrigger() {
 function clearComposerMedia() {
   _composerMediaFile = null; _composerMediaFiles = []; _composerFilter = 'none'; _composerStamp = false; _composerPosterTime = null; _composerAudioMode = 'original'; _composerTrustedClip = false;
   _editSet = { enhance: false, glow: 0, night: 0 }; _cropAspect = null; _origPreviewUrl = null; _bcTrack = null;
+  _composerStickers = []; _composerStrokes = []; window._drawMode = false;
+  var dtb = document.getElementById('draw-toolbar'); if (dtb) dtb.style.display = 'none';
   _composerTexts = [];
   window._composerAlt = '';
   var m1 = document.getElementById('composer-media'); if (m1) m1.value = '';
@@ -7635,6 +7814,7 @@ async function runBeatCut(btn) {
     _composerAudioMode = 'original';   // the track is already in the file
     _composerPosterTime = null;
     _composerTexts = [];
+    _composerStickers = []; _composerStrokes = [];
     _origPreviewUrl = null;
     document.getElementById('beatcut-modal').style.display = 'none';
     renderMediaPreview();
@@ -7752,7 +7932,7 @@ function _beatCutExport(file, songUrl, grid, outLen, rate, punch, btn) {
 
 // Re-encode a photo through canvas with the chosen filter baked in
 async function applyFilterToImage(file, filterCss) {
-  if (filterCss === 'none' && !_composerStamp && !_composerTexts.length && !_studioActive() && !_cropAspect) return file;
+  if (filterCss === 'none' && !_composerStamp && !_composerTexts.length && !_studioActive() && !_cropAspect && !_decorActive()) return file;
   if (_composerStamp) await _getStampImg();
   return new Promise(function(resolve) {
     var img = new Image();
@@ -7778,6 +7958,7 @@ async function applyFilterToImage(file, filterCss) {
       }
       if (_composerStamp) _drawStamp(ctx, canvas.width, canvas.height);
       _drawTextOverlays(ctx, canvas.width, canvas.height, _composerTexts);
+      _drawDecor(ctx, canvas.width, canvas.height);
       canvas.toBlob(function(blob) {
         resolve(blob ? new File([blob], 'filtered.jpg', { type: 'image/jpeg' }) : file);
       }, 'image/jpeg', 0.9);
@@ -7792,7 +7973,7 @@ async function applyFilterToImage(file, filterCss) {
 async function _bakeVideo(file, filterCss, stamp, progressBtn, audioOpts) {
   audioOpts = audioOpts || {};
   var wantsSong = audioOpts.mode === 'replace' || audioOpts.mode === 'mix';
-  if ((filterCss === 'none' || !filterCss) && !stamp && !wantsSong && !_composerTexts.length && !_studioActive()) return file;
+  if ((filterCss === 'none' || !filterCss) && !stamp && !wantsSong && !_composerTexts.length && !_studioActive() && !_decorActive()) return file;
   if (!window.MediaRecorder) return file;   // preview-only filter is better than a dead post
   if (stamp) await _getStampImg();
   return new Promise(function(resolve) {
@@ -7867,6 +8048,7 @@ async function _bakeVideo(file, filterCss, stamp, progressBtn, audioOpts) {
         if (_editSet.glow > 0 || _editSet.night > 0) _studioLayers(ctx, canvas, canvas.width, canvas.height, _editSet);
         if (stamp) _drawStamp(ctx, canvas.width, canvas.height);
         _drawTextOverlays(ctx, canvas.width, canvas.height, _composerTexts);
+        _drawDecor(ctx, canvas.width, canvas.height);
         if (progressBtn && v.duration) progressBtn.textContent = 'Styling… ' + Math.min(99, Math.round(v.currentTime / v.duration * 100)) + '%';
       }, 33);
       v.onended = function() {
