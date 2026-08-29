@@ -231,8 +231,11 @@ img,video{-webkit-touch-callout:none}
 /* The map is the show on the events view — the player bar sits it out */
 body[data-view="events"] .mini-player{display:none!important}
 /* Neighborhood names paint the city at wide zoom */
-.pm-hood{font:700 .6rem var(--mono);letter-spacing:.2em;text-transform:uppercase;color:rgba(255,171,110,.85);text-shadow:0 1px 8px rgba(0,0,0,.95),0 0 2px rgba(0,0,0,.9);pointer-events:none;white-space:nowrap;transition:opacity .25s}
-.pm-zoomed .pm-hood{opacity:0}
+.pm-hood{font:700 .58rem var(--mono);letter-spacing:.2em;text-transform:uppercase;pointer-events:none;white-space:nowrap;transition:opacity .25s;transform:translate(-50%,-50%);opacity:0}
+.pm-hood-t1{font-size:.68rem;letter-spacing:.3em;color:rgba(241,241,248,.5);text-shadow:0 1px 8px rgba(0,0,0,.9)}
+.pm-hood-t2{color:rgba(255,171,110,.85);text-shadow:0 1px 8px rgba(0,0,0,.95),0 0 2px rgba(0,0,0,.9)}
+.pm-z-city .pm-hood-t1{opacity:1}
+.pm-z-district .pm-hood-t2{opacity:1}
 /* Filter rails: label above, chips big enough for thumbs */
 .pm-rail{flex-direction:column!important;align-items:stretch!important;gap:.25rem!important}
 .pm-rail-label{font-size:.58rem!important;letter-spacing:.16em;text-transform:uppercase;color:var(--faint)!important}
@@ -1614,7 +1617,6 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
         <div style="font-size:.8rem;color:var(--muted);min-width:0;flex:1" id="pm-count">Everything happening in Phoenix — one map.</div>
         <div style="display:flex;gap:.4rem;flex-shrink:0">
           <button class="tb-btn pm-mode" onclick="subscribePlugMap()" title="Live calendar feed">📅</button>
-          <button class="tb-btn pm-mode" id="pm-nearme" onclick="plugMapNearMe()" style="border-color:rgba(249,115,22,.35)">📍 Near me</button>
           <button class="tb-btn pm-mode" data-mode="list" onclick="plugMapMode('list')">List</button>
           <button class="tb-btn pm-mode on" data-mode="map" onclick="plugMapMode('map')">Map</button>
         </div>
@@ -3436,6 +3438,19 @@ function showView(id) {
   if (id === 'home') renderStarterRail();
   if (id === 'mypass') { loadReferralPanel(); loadMyReceipt(); loadMyPassCard(); loadMyWeek(); }
   if (id === 'events') { loadPlugMap(); }
+  // On the map, the top-bar action IS the map action
+  var vcta = document.getElementById('topbar-cta');
+  if (vcta) {
+    if (id === 'events') {
+      vcta.textContent = '📍 Near me';
+      vcta.setAttribute('onclick', 'plugMapNearMe()');
+      vcta.style.display = '';
+    } else if (window._roleCta) {
+      vcta.textContent = window._roleCta.text || '';
+      vcta.setAttribute('onclick', window._roleCta.act || '');
+      vcta.style.display = window._roleCta.text ? '' : 'none';
+    }
+  }
   if (id === 'admin-dashboard') { loadAdminStreamData(); loadAdminOps(); }
   if (id === 'admin-system') loadPlatformHealth();
   if (id === 'admin-members' || id === 'admin-artists' || id === 'admin-financials') loadAdminOps();
@@ -3621,8 +3636,10 @@ function setRole(role) {
 
   // Topbar CTA
   var cta = document.getElementById('topbar-cta');
-  cta.textContent = r.topbarCta;
-  cta.setAttribute('onclick', r.topbarCtaAct);
+  window._roleCta = { text: r.topbarCta, act: r.topbarCtaAct };
+  cta.textContent = r.topbarCta || '';
+  cta.style.display = r.topbarCta ? '' : 'none';
+  cta.setAttribute('onclick', r.topbarCtaAct || '');
 
   // Plays left badge (Explorer only)
   var playsEl = document.getElementById('plays-left-badge');
@@ -6458,25 +6475,34 @@ function _pmDrawPins() {
 
 // The city, named: neighborhood labels at wide zoom so the map reads like
 // PHX knows the town — because it does
+// Two tiers keep the map breathable: whole-city zoom names the CITIES,
+// leaning in reveals the districts, street level clears them all
 var PM_HOODS = [
-  ['Downtown PHX', 33.4484, -112.0740], ['Roosevelt Row', 33.4590, -112.0706],
-  ['Grand Ave', 33.4638, -112.0888], ['Melrose', 33.4952, -112.0805],
-  ['Arcadia', 33.5093, -111.9870], ['Old Town Scottsdale', 33.4936, -111.9260],
-  ['Mill Ave · Tempe', 33.4278, -111.9400], ['Downtown Mesa', 33.4152, -111.8315],
-  ['Westgate', 33.5320, -112.2617], ['Downtown Glendale', 33.5387, -112.1860],
-  ['Camelback Corridor', 33.5093, -112.0400], ['South PHX', 33.3945, -112.0740],
-  ['Sunnyslope', 33.5806, -112.0775], ['Chandler', 33.3062, -111.8413]
+  // tier 1 — the metro anchors (zoom ≤ 11)
+  ['PHOENIX', 33.4484, -112.0740, 1], ['SCOTTSDALE', 33.4936, -111.9261, 1],
+  ['TEMPE', 33.4255, -111.9400, 1], ['MESA', 33.4152, -111.8315, 1],
+  ['GLENDALE', 33.5387, -112.1860, 1], ['CHANDLER', 33.3062, -111.8413, 1],
+  // tier 2 — the districts (zoom 11–12)
+  ['Roosevelt Row', 33.4590, -112.0706, 2], ['Grand Ave', 33.4638, -112.0888, 2],
+  ['Melrose', 33.4952, -112.0805, 2], ['Arcadia', 33.5093, -111.9870, 2],
+  ['Old Town', 33.4936, -111.9210, 2], ['Mill Ave', 33.4278, -111.9400, 2],
+  ['Westgate', 33.5320, -112.2617, 2], ['Camelback Corridor', 33.5093, -112.0400, 2],
+  ['South PHX', 33.3945, -112.0740, 2], ['Sunnyslope', 33.5806, -112.0775, 2]
 ];
 function _pmAddHoods(map) {
   PM_HOODS.forEach(function(hd) {
     L.marker([hd[1], hd[2]], {
-      icon: L.divIcon({ className: 'pm-hood', html: hd[0], iconSize: null }),
+      icon: L.divIcon({ className: 'pm-hood pm-hood-t' + hd[3], html: hd[0], iconSize: null }),
       interactive: false, keyboard: false
     }).addTo(map);
   });
   var sync = function() {
     var el = map.getContainer();
-    if (el) el.classList.toggle('pm-zoomed', map.getZoom() > 12);
+    if (!el) return;
+    var z = map.getZoom();
+    el.classList.toggle('pm-z-city', z <= 11);        // tier 1 only
+    el.classList.toggle('pm-z-district', z > 11 && z <= 12.5);  // tier 2 only
+    el.classList.toggle('pm-zoomed', z > 12.5);       // none
   };
   map.on('zoomend', sync);
   sync();
@@ -16088,7 +16114,8 @@ async function toggleFavoriteUI(artistId, btn) {
   }
   _myFavorites[artistId] = data.favorited;
   if (btn) {
-    btn.textContent = data.favorited ? '★ Favorite' : '☆ Favorite';
+    var mini2 = btn.classList.contains('ap-mini');
+    btn.textContent = data.favorited ? (mini2 ? '★' : '★ Favorite') : (mini2 ? '☆' : '☆ Favorite');
     btn.classList.toggle('on', !!data.favorited);
   }
   showToast(data.favorited ? '★ Added to your favorites — first in line for their drops' : 'Removed from favorites');
@@ -16107,8 +16134,10 @@ async function toggleFollowUI(type, id, btn) {
   if (data.reason === 'not_signed_in') { openJoinSheet('Following'); return; }
   _myFollows[type + ':' + id] = data.following;
   if (btn) {
-    btn.textContent = data.following ? '✓ Following' : '+ Follow';
-    btn.style.color = data.following ? 'var(--green)' : '';
+    var mini = btn.classList.contains('ap-mini');
+    btn.textContent = data.following ? (mini ? '✓' : '✓ Following') : (mini ? '＋' : '+ Follow');
+    if (mini) btn.classList.toggle('on', !!data.following);
+    else btn.style.color = data.following ? 'var(--green)' : '';
   }
   trackEvent('follow_toggle', type, id, { following: data.following });
 }
@@ -17361,7 +17390,7 @@ async function showPageProfile(slugOrId) {
     .eq('followee_type', 'page').eq('followee_id', pg.id);
   var followers = fRes.count || 0;
   var following = !!_myFollows['page:' + pg.id];
-  var isOwner = _authUser && pg.owner_id === _authUser.id;
+  var isOwner = _authUser && (pg.owner_id === _authUser.id || _accountRole === 'admin' || _accountRole === 'super');
 
   var statBits = ['<span style="cursor:pointer" role="button" onclick="openFollowList(\'page\',\'' + pg.id + '\',\'followers\')"><b>' + followers + '</b> follower' + (followers === 1 ? '' : 's') + '</span>',
                   '<b>' + posts.length + '</b> post' + (posts.length === 1 ? '' : 's')];
