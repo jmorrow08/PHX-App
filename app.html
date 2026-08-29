@@ -6166,7 +6166,12 @@ async function scanFlyer(btn) {
     if (msg) { msg.style.color = 'var(--green)'; msg.textContent = '✨ Read it — double-check the details and send.'; }
     if (typeof haptic === 'function') haptic(12);
   } catch (e) {
-    if (msg) { msg.style.color = 'var(--red)'; msg.textContent = 'Could not read that flyer — fill it in manually.'; }
+    if (msg) {
+      msg.style.color = 'var(--red)';
+      msg.textContent = String(e.message) === 'not_a_flyer'
+        ? 'No event details found in that image — works best on flyers and posters with the info printed on them.'
+        : 'Could not read that flyer — fill it in manually.';
+    }
   }
   btn.disabled = false; btn.textContent = '✨ Scan the flyer';
 }
