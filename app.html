@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover">
 <title>PHX App — Member Dashboard</title>
 <meta name="description" content="PHX — the Phoenix scene membership. Stream local artists, and your pass pays the artists you actually play.">
 <meta property="og:title" content="PHX — the city's music, backed by your plays">
@@ -223,6 +223,22 @@ body[data-view="reels"] .mini-player,
 body[data-view="reels"] .topbar{display:none!important}
 body[data-view="reels"] .content{padding:0!important}
 body[data-view="reels"] .reels-wrap{position:fixed;inset:0;height:100dvh;min-height:100dvh;border-radius:0;z-index:80}
+/* An app, not a webpage: no text-select handles, no long-press callouts —
+   except where people actually type or copy on purpose */
+body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+input,textarea,[contenteditable],[contenteditable] *,.pf-bio,.fp-body,.dm-bubble{-webkit-user-select:text;user-select:text}
+img,video{-webkit-touch-callout:none}
+/* The map is the show on the events view — the player bar sits it out */
+body[data-view="events"] .mini-player{display:none!important}
+/* Neighborhood names paint the city at wide zoom */
+.pm-hood{font:700 .6rem var(--mono);letter-spacing:.2em;text-transform:uppercase;color:rgba(255,171,110,.85);text-shadow:0 1px 8px rgba(0,0,0,.95),0 0 2px rgba(0,0,0,.9);pointer-events:none;white-space:nowrap;transition:opacity .25s}
+.pm-zoomed .pm-hood{opacity:0}
+/* Filter rails: label above, chips big enough for thumbs */
+.pm-rail{flex-direction:column!important;align-items:stretch!important;gap:.25rem!important}
+.pm-rail-label{font-size:.58rem!important;letter-spacing:.16em;text-transform:uppercase;color:var(--faint)!important}
+.pm-seg{overflow-x:auto;scrollbar-width:none;padding-bottom:.15rem}
+.pm-seg::-webkit-scrollbar{display:none}
+.pm-seg button{padding:.5rem .9rem!important;font-size:.8rem!important;border-radius:999px!important;flex-shrink:0}
 @keyframes headsup-in{from{transform:translateY(-16px);opacity:0}to{transform:none;opacity:1}}
 /* Feed scroll perf: offscreen posts skip layout+paint entirely */
 .feed-post{content-visibility:auto;contain-intrinsic-size:auto 420px}
@@ -2970,6 +2986,10 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
 var _errBeaconN = 0;
 function _errBeacon(msg, src, line) {
   if (_errBeaconN >= 5 || !window._sb || !_authUser) return;
+  // Wallet/extension scripts crash inside OUR page but they are not OUR
+  // bugs — keep the dashboard signal clean
+  var m0 = String(msg || '');
+  if (!m0 || /metamask|extension:|chrome-extension|moz-extension|coinbase|phantom|solana/i.test(m0)) return;
   _errBeaconN++;
   try {
     _sb.from('user_events').insert({
@@ -3514,7 +3534,7 @@ var ROLES = {
     chipSub: 'PHX Founder · Since 2026',
     sbTagline: 'Artist Dashboard',
     profileAva: 'M', profileName: '', profileTier: '',
-    topbarCta: '➕ Submit Track', topbarCtaAct: "showView('artist-submit')",
+    topbarCta: null, topbarCtaAct: null,
     playsLeftVisible: false,
     navId: 'nav-artist', bottomId: 'sb-bottom-other',
     otherName: 'Murkemz', otherRole: 'PHX Artist · Verified', otherAva: 'M',
@@ -4901,6 +4921,7 @@ async function loadDiscoverTonight() {
     .or('starts_at.gte.' + new Date(now.getTime() - 2 * 3600000).toISOString() + ',ends_at.gte.' + now.toISOString())
     .order('starts_at', { ascending: true }).limit(10);
   var evs = res.data || [];
+  window._tonightIds = evs.map(function(e){ return e.id; });
   if (!evs.length) { box.innerHTML = '<div class="pf-empty">Quiet week — check the Plug Map.</div>'; return; }
   box.innerHTML = evs.map(function(e) {
     var img = safeUrl(e.cover_url);
@@ -5721,9 +5742,7 @@ function _pmRenderList(rows) {
   if (!list) return;
   var cnt = document.getElementById('pm-count');
   if (cnt) cnt.textContent = rows.length
-    ? (_pmUserLoc
-        ? rows.length + ' thing' + (rows.length === 1 ? '' : 's') + ' near you — zoom the map for more'
-        : rows.length + ' thing' + (rows.length === 1 ? '' : 's') + ' happening in Phoenix' + ({today:' today',tomorrow:' tomorrow',weekend:' this weekend',week:' this week',month:' this month'}[_pmRange] || ''))
+    ? ''
     : (_pmUserLoc ? 'Nothing in this stretch of the map — zoom out for more.' : 'Everything happening in Phoenix — one map.');
   if (!rows.length) {
     list.innerHTML = '<div class="pf-empty">' + (_pmUserLoc
@@ -6065,8 +6084,9 @@ async function plugMapAsk() {
 async function loadEventsForYou() {
   var box = document.getElementById('discover-foryou-events');
   if (!box || !_authUser) return;
-  var res = await _sb.rpc('recommend_events', { p_limit: 8 });
-  var evs = (res.data || []).filter(function(e){ return e.score > 0; });
+  var res = await _sb.rpc('recommend_events', { p_limit: 14 });
+  var seen = window._tonightIds || [];
+  var evs = (res.data || []).filter(function(e){ return e.score > 0 && seen.indexOf(e.id) === -1; }).slice(0, 8);
   var wrap = document.getElementById('discover-foryou-wrap');
   if (!evs.length) { if (wrap) wrap.style.display = 'none'; return; }
   if (wrap) wrap.style.display = 'block';
@@ -6396,6 +6416,31 @@ function _pmDrawPins() {
   return pts;
 }
 
+// The city, named: neighborhood labels at wide zoom so the map reads like
+// PHX knows the town — because it does
+var PM_HOODS = [
+  ['Downtown PHX', 33.4484, -112.0740], ['Roosevelt Row', 33.4590, -112.0706],
+  ['Grand Ave', 33.4638, -112.0888], ['Melrose', 33.4952, -112.0805],
+  ['Arcadia', 33.5093, -111.9870], ['Old Town Scottsdale', 33.4936, -111.9260],
+  ['Mill Ave · Tempe', 33.4278, -111.9400], ['Downtown Mesa', 33.4152, -111.8315],
+  ['Westgate', 33.5320, -112.2617], ['Downtown Glendale', 33.5387, -112.1860],
+  ['Camelback Corridor', 33.5093, -112.0400], ['South PHX', 33.3945, -112.0740],
+  ['Sunnyslope', 33.5806, -112.0775], ['Chandler', 33.3062, -111.8413]
+];
+function _pmAddHoods(map) {
+  PM_HOODS.forEach(function(hd) {
+    L.marker([hd[1], hd[2]], {
+      icon: L.divIcon({ className: 'pm-hood', html: hd[0], iconSize: null }),
+      interactive: false, keyboard: false
+    }).addTo(map);
+  });
+  var sync = function() {
+    var el = map.getContainer();
+    if (el) el.classList.toggle('pm-zoomed', map.getZoom() > 12);
+  };
+  map.on('zoomend', sync);
+  sync();
+}
 function renderPlugMapMap() {
   var el = document.getElementById('plug-map-canvas');
   if (!el) return;
@@ -6405,9 +6450,10 @@ function renderPlugMapMap() {
       // hijacking every sideways thumb) — pinch-zoom still works, and the
       // ⤢ fullscreen mode turns real panning on.
       _pmMap = L.map(el, { zoomControl: true, attributionControl: true, dragging: !_pmTouch, tap: true }).setView([33.4484, -112.0740], 11);
-      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
-        attribution: 'Esri &copy; OpenStreetMap contributors', maxNativeZoom: 16, maxZoom: 19
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; OpenStreetMap &copy; CARTO', maxNativeZoom: 19, maxZoom: 19
       }).addTo(_pmMap);
+      _pmAddHoods(_pmMap);
     }
     // Floating controls: locate + fullscreen explore
     if (!document.getElementById('pm-locate')) {
