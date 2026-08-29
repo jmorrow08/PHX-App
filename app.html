@@ -399,14 +399,13 @@ body[data-daypart="night"]{--orange:#F26312;--orange-l:#F98B4A;--orange-d:#C2410
 .apv-play{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:1.4rem;color:#fff;background:rgba(7,7,15,.35)}
 .apv-play::after{content:'';position:absolute;width:58px;height:58px;border-radius:50%;background:rgba(249,115,22,.9);z-index:-1}
 .apv-title{font-size:.84rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-@media (max-width:768px){
-  .apv-grid{display:flex;overflow-x:auto;gap:.7rem;scroll-snap-type:x mandatory;padding-bottom:.45rem;scrollbar-width:none;-webkit-overflow-scrolling:touch}
-  .apv-grid::-webkit-scrollbar{display:none}
-  .apv-card{flex:0 0 84%;scroll-snap-align:center;min-width:0}
-  .apv-card.apv-feat{flex:0 0 100%}
-  .apv-grid .pf-btn{flex:0 0 auto;align-self:center;white-space:nowrap}
-  .apv-feat .apv-frame{border-radius:14px}
-}
+.apv-grid{display:flex;overflow-x:auto;gap:.7rem;scroll-snap-type:x mandatory;padding-bottom:.45rem;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.apv-grid::-webkit-scrollbar{display:none}
+.apv-card{flex:0 0 84%;scroll-snap-align:center;min-width:0}
+.apv-card.apv-feat{flex:0 0 100%}
+.apv-grid .pf-btn{flex:0 0 auto;align-self:center;white-space:nowrap}
+.apv-feat .apv-frame{border-radius:14px}
+@media (min-width:769px){.apv-card{flex:0 0 340px}.apv-card.apv-feat{flex:0 0 100%}}
 
 /* EVENTS */
 .event-row{display:grid;grid-template-columns:70px 1fr auto;gap:1rem;align-items:center;background:var(--bg3);border:none;border-radius:var(--r-m);padding:1rem 1.2rem;margin-bottom:.75rem}
@@ -555,6 +554,11 @@ body[data-daypart="night"]{--orange:#F26312;--orange-l:#F98B4A;--orange-d:#C2410
 .ap-trend{font:500 10px var(--mono);color:var(--green);margin-left:auto}
 /* Action bar */
 .ap-actions{display:flex;gap:9px;align-items:center;padding:16px 22px 0;flex-wrap:wrap;max-width:100%}
+.ap-compact{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.ap-compact::-webkit-scrollbar{display:none}
+.ap-compact .ap-play{flex:1 1 auto;min-width:110px;padding:11px 14px;font-size:.88rem}
+.ap-follow.ap-mini{width:42px;height:42px;padding:0;flex:0 0 42px;display:flex;align-items:center;justify-content:center;font-size:1.02rem;border-radius:50%}
+.ap-follow.ap-mini.on{border-color:var(--orange);color:var(--orange)}
 .ap-play{flex:1;background:var(--orange);border:none;border-radius:100px;padding:14px;cursor:pointer;
   display:flex;align-items:center;justify-content:center;gap:8px;color:#fff;font-family:inherit;
   font-size:.94rem;font-weight:600;box-shadow:0 8px 30px rgba(249,115,22,.4)}
@@ -5485,7 +5489,7 @@ async function loadArtistDrops(artist) {
       if (d.access === 'favorites_only') chip = '🔒 Favorites only';
       else if (d.access === 'first_listen' && early) chip = '⚡ First Listen · favorites early';
       else if (d.access === 'open' && early) chip = '📣 Drop';
-      return '<div style="background:var(--bg3);border-radius:var(--r-s);padding:.85rem 1rem;margin-bottom:.6rem">' +
+      return '<div style="background:var(--bg3);border-radius:var(--r-s);padding:.85rem 1rem;margin-bottom:.6rem;border-left:3px solid var(--orange);box-shadow:0 4px 18px rgba(249,115,22,.08)">' +
         '<div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap">' +
           '<span style="font-family:var(--disp);font-size:.92rem;font-weight:700">' + escapeHtml(d.title) + '</span>' +
           (chip ? '<span style="font:600 .58rem var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--gold);border:1px solid rgba(234,179,8,.4);border-radius:999px;padding:.14rem .5rem">' + chip + '</span>' : '') +
@@ -18072,27 +18076,29 @@ async function showArtistPage(slug) {
       '</div>' +
     '</div>' +
 
-    '<div class="ap-actions">' +
+    '<div class="ap-actions ap-compact">' +
       (_artistPageTracks.length ? '<button class="ap-play" onclick="playArtistTop()">▶ Play</button>' : '') +
-      '<button class="ap-follow' + (following ? ' on' : '') + '" onclick="toggleFollowUI(\'artist\',\'' + artist.id + '\',this)">' +
-        (following ? 'Following' : 'Follow') + '</button>' +
-      '<button class="ap-follow' + (_myFavorites[artist.id] ? ' on' : '') + '" id="fav-btn-' + artist.id + '" ' +
-        'title="Favorites get first access to this artist\'s drops" ' +
-        'onclick="toggleFavoriteUI(\'' + artist.id + '\', this)">' + (_myFavorites[artist.id] ? '★ Favorite' : '☆ Favorite') + '</button>' +
+      '<button class="ap-follow ap-mini' + (following ? ' on' : '') + '" onclick="toggleFollowUI(\'artist\',\'' + artist.id + '\',this)" aria-label="Follow">' +
+        (following ? '✓' : '＋') + '</button>' +
+      '<button class="ap-follow ap-mini' + (_myFavorites[artist.id] ? ' on' : '') + '" id="fav-btn-' + artist.id + '" ' +
+        'title="Favorites get first access to drops" aria-label="Favorite" ' +
+        'onclick="toggleFavoriteUI(\'' + artist.id + '\', this)">' + (_myFavorites[artist.id] ? '★' : '☆') + '</button>' +
       (artist.user_id && (!_authUser || _authUser.id !== artist.user_id)
-        ? '<button class="ap-follow" onclick="dmStart(\'' + artist.user_id + '\')">✉️ Message</button>' : '') +
-      (artistPageCanEdit() ? '<button class="ap-follow" onclick="openArtistEditor()">✎ Edit page</button>' : '') +
+        ? '<button class="ap-follow ap-mini" onclick="dmStart(\'' + artist.user_id + '\')" aria-label="Message">✉️</button>' : '') +
+      '<button class="ap-follow ap-mini" onclick="showArtistQR(\'' + escapeHtml(artist.slug || '') + '\',\'' + escapeHtml(artist.name).replace(/'/g, '') + '\')" aria-label="QR code">▦</button>' +
+      '<button class="ap-follow ap-mini" id="ap-support-toggle" onclick="toggleArtistSupport()" aria-label="Support" title="Supporters wall and badges">💜</button>' +
+      (artistPageCanEdit() ? '<button class="ap-follow ap-mini" onclick="openArtistEditor()" aria-label="Edit page" title="Edit page">✎</button>' : '') +
     '</div>' +
-    '<div id="ap-support-row" style="padding:0 22px .4rem;min-height:1px"></div>' +
+    '<div id="ap-support-row" style="display:none;padding:0 22px .4rem;min-height:1px"></div>' +
 
     renderMoneyStrip(artist, support) +
 
     '<div class="ap-tabs" id="ap-tabs">' +
       '<button class="ap-tab on" data-tab="music" onclick="apTab(\'music\')">Music</button>' +
       ((_artistVideos.length || (artistPageCanEdit() && artistVideosAllowed())) ? '<button class="ap-tab" data-tab="videos" onclick="apTab(\'videos\')">Videos' + (_artistVideos.length ? ' <span class="n">' + _artistVideos.length + '</span>' : '') + '</button>' : '') +
+      (_artistMerch.length ? '<button class="ap-tab" data-tab="merch" onclick="apTab(\'merch\')">Merch <span class="n">' + _artistMerch.length + '</span></button>' : '') +
       '<button class="ap-tab" data-tab="shows" onclick="apTab(\'shows\')">Shows' +
         (_artistShows.length ? ' <span class="n">' + _artistShows.length + '</span>' : '') + '</button>' +
-      (_artistMerch.length ? '<button class="ap-tab" data-tab="merch" onclick="apTab(\'merch\')">Merch <span class="n">' + _artistMerch.length + '</span></button>' : '') +
       '<button class="ap-tab" data-tab="posts" onclick="apTab(\'posts\')">Posts' + (_artistPosts.length ? ' <span class="n">' + _artistPosts.length + '</span>' : '') + '</button>' +
       '<button class="ap-tab" data-tab="about" onclick="apTab(\'about\')">About</button>' +
     '</div>' +
@@ -18189,6 +18195,20 @@ function renderArtistVideos(artist) {
     html += '<button class="pf-btn" style="margin-top:.8rem" onclick="addArtistVideoPrompt(\'' + artist.id + '\')">＋ Add a YouTube video</button>';
   }
   return '<div class="apv-grid">' + html + '</div>';
+}
+// The supporters wall + badge shop live behind the 💜 — one tap when you
+// care, zero clutter when you're just here for the music
+function toggleArtistSupport() {
+  var row = document.getElementById('ap-support-row');
+  var btn = document.getElementById('ap-support-toggle');
+  if (!row) return;
+  var open = row.style.display === 'none';
+  row.style.display = open ? 'block' : 'none';
+  if (btn) btn.classList.toggle('on', open);
+}
+function showArtistQR(slug, name) {
+  var link = SITE_URL + '/app#artist/' + slug;
+  _apModal('qr-modal', _qrCardHtml(link, name || 'PHX artist', 'On PHX Music', 'Scan lands on this artist — put it on merch, flyers, the merch table.'));
 }
 function playArtistVideo(id, ytId) {
   var el = document.getElementById('apv-' + id);
