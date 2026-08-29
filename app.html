@@ -1039,7 +1039,7 @@ body[data-daypart="night"]{--orange:#F26312;--orange-l:#F98B4A;--orange-d:#C2410
 .admin-section-label{font-family:var(--mono);font-size:.62rem;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);margin-bottom:.5rem}
 
 /* REELS */
-.reels-wrap{height:calc(100vh - 180px);min-height:420px;overflow-y:auto;scroll-snap-type:y mandatory;border-radius:var(--r-m);background:#000;-webkit-overflow-scrolling:touch}
+.reels-wrap{height:calc(100vh - 180px);min-height:420px;overflow-y:auto;scroll-snap-type:y mandatory;border-radius:var(--r-m);background:#000;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
 .reel{position:relative;height:100%;min-height:420px;scroll-snap-align:start;scroll-snap-stop:always;display:flex;align-items:center;justify-content:center;background:#000}
 .reel video{width:100%;height:100%;object-fit:contain;background:#000}
 .reel-overlay{position:absolute;left:0;right:0;bottom:0;padding:1rem;background:linear-gradient(transparent,rgba(0,0,0,.75));display:flex;align-items:flex-end;gap:.75rem}
@@ -3024,6 +3024,8 @@ function haptic(ms) { try { if (navigator.vibrate) navigator.vibrate(ms || 8); }
     var bar = document.querySelector('.mini-player');
     if (!bar) return;
     bar.classList.add('idle');
+    // Invisible until music actually exists — first track load reveals it
+    if (!streamData.currentTrack) bar.classList.add('mp-gone');
     var y0 = null;
     bar.addEventListener('touchstart', function(e) { y0 = e.touches[0].clientY; }, { passive: true });
     bar.addEventListener('touchmove', function(e) {
@@ -4026,12 +4028,39 @@ var TRACK_META = {
 function playAudio() {
   streamData.playing = true;
   var mpb = document.querySelector('.mini-player');
-  if (mpb) mpb.classList.remove('idle');
+  if (mpb) { mpb.classList.remove('idle'); mpb.classList.remove('mp-gone'); }
   document.querySelectorAll('.ctrl-btn.play, .mp-btn.play').forEach(function(b){ b.innerHTML = PICON.pause; });
   startStreamTimer(streamData.currentTrack);
-  // Autoplay rejection is an expected browser policy outcome, not a fault
-  if (PHX_AUDIO && PHX_AUDIO.src) PHX_AUDIO.play().catch(function(){});
   if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
+  if (!PHX_AUDIO || !PHX_AUDIO.src) return;
+  // The lock-screen bug: after iOS suspends the element, play() rejects (or
+  // resolves into silence) while our UI kept "playing". Verify — and if the
+  // element died, reload it at the same position and try once more.
+  var t0 = PHX_AUDIO.currentTime || 0;
+  var attempt = PHX_AUDIO.play();
+  if (attempt && attempt.catch) {
+    attempt.catch(function() {
+      try {
+        PHX_AUDIO.load();
+        PHX_AUDIO.currentTime = t0;
+        PHX_AUDIO.play().catch(function() { pauseAudio(); });
+      } catch (e) { pauseAudio(); }
+    });
+  }
+  // Silence check: if the clock has not moved shortly after "playing", the
+  // element is dead — surface the truth instead of counting a fake stream
+  clearTimeout(window._playVerifyT);
+  window._playVerifyT = setTimeout(function() {
+    if (streamData.playing && PHX_AUDIO && !PHX_AUDIO.ended &&
+        Math.abs((PHX_AUDIO.currentTime || 0) - t0) < 0.15 && PHX_AUDIO.paused) {
+      try {
+        PHX_AUDIO.load();
+        PHX_AUDIO.currentTime = t0;
+        var p2 = PHX_AUDIO.play();
+        if (p2 && p2.catch) p2.catch(function(){ pauseAudio(); });
+      } catch (e) { pauseAudio(); }
+    }
+  }, 700);
 }
 
 function pauseAudio() {
@@ -4346,6 +4375,8 @@ function playTrack(el, title, artist, feat, album, duration, trackId, streamCoun
   // Update mini player. The artist name links to their page — previously
   // there was no way to reach an artist from what was playing.
   document.getElementById('mp-title').textContent = title;
+  var mpg = document.querySelector('.mini-player');
+  if (mpg) mpg.classList.remove('mp-gone');
   var mpArtist = document.getElementById('mp-artist');
   var meta = TRACK_ARTIST[trackId] || {};
   if (mpArtist) {
@@ -7492,7 +7523,19 @@ function clearComposerMedia() {
 
 // Clips: swipe RIGHT anywhere to leave — no hunting for an exit
 var _rsX = 0, _rsY = 0;
-function _reelsTS(e) { var t = e.touches && e.touches[0]; if (t) { _rsX = t.clientX; _rsY = t.clientY; } }
+function _reelsTS(e) {
+  var t = e.touches && e.touches[0]; if (t) { _rsX = t.clientX; _rsY = t.clientY; }
+  // Warm the next clip so the snap lands on a ready frame, not a black one
+  try {
+    var wrap = document.getElementById('reels-container');
+    if (wrap) {
+      var reels = wrap.querySelectorAll('.reel video');
+      var idx = Math.round(wrap.scrollTop / wrap.clientHeight);
+      var nxt = reels[idx + 1];
+      if (nxt && nxt.preload !== 'auto') { nxt.preload = 'auto'; nxt.load(); }
+    }
+  } catch (err) { /* warmup optional */ }
+}
 function _reelsTE(e) {
   var t = e.changedTouches && e.changedTouches[0]; if (!t) return;
   var dx = t.clientX - _rsX, dy = t.clientY - _rsY;
@@ -8919,6 +8962,7 @@ function _fitFeedVideo(v) {
     '.feed-video.fv-loading{background:linear-gradient(110deg,#14101E 30%,#241732 45%,#2A1206 55%,#14101E 70%);background-size:220% 100%;animation:fvshimmer 1.6s linear infinite}' +
     '@keyframes fvshimmer{from{background-position:130% 0}to{background-position:-90% 0}}' +
     '.mini-player.idle .mp-art,.mini-player.idle .mp-info,.mini-player.idle .mp-controls,.mini-player.idle .mp-stream-live{display:none!important}' +
+    '.mini-player.mp-gone{display:none!important}' +
     '@media (max-width:768px){' +
       '.mini-player.idle{padding:.3rem .9rem .5rem!important;min-height:0!important;gap:0!important}' +
       '.mini-player.idle .mp-time{display:block!important;font-size:.6rem;color:var(--muted);text-align:center;width:100%;letter-spacing:.04em}' +
@@ -16489,12 +16533,31 @@ function _reelSpeed(btn) {
   btn.childNodes[0].textContent = String(next).replace('0.5', '½') + '×';
 }
 
+// Landscape clips get a blurred wall of their own first frame behind them
+// (the FB/IG treatment) — no dead black above and below, the whole screen
+// belongs to the clip
+function _reelWall(v) {
+  try {
+    if (v.videoWidth < v.videoHeight) return;   // portrait covers already
+    var host = v.parentElement;
+    if (!host || host.querySelector('.reel-wall')) return;
+    var c = document.createElement('canvas');
+    c.width = 36; c.height = 64;
+    c.getContext('2d').drawImage(v, 0, 0, 36, 64);
+    var wall = document.createElement('div');
+    wall.className = 'reel-wall';
+    wall.style.cssText = 'position:absolute;inset:-30px;background:url(' + c.toDataURL('image/jpeg', 0.5) + ') center/cover;filter:blur(26px) brightness(.55) saturate(1.2);z-index:0;pointer-events:none';
+    host.insertBefore(wall, v);
+    v.style.position = 'relative'; v.style.zIndex = '1';
+  } catch (e) { /* wall is a nicety */ }
+}
 // One reel card — shared by the first page and every appended batch
 function _reelHtml(p) {
     var liked = !!_myPostLikes[p.id];
     return '<div class="reel" data-post="' + p.id + '">' +
       '<video src="' + p.media_url + '" loop playsinline preload="metadata" ' +
         'onloadedmetadata="this.style.objectFit=(this.videoWidth&&this.videoWidth<this.videoHeight)?\'cover\':\'contain\'" ' +
+        'onloadeddata="_reelWall(this)" ' +
         'onclick="_reelTap(this,\'' + p.id + '\')"></video>' +
       '<div class="reel-overlay">' +
         '<div class="reel-info">' +
