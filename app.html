@@ -18318,10 +18318,18 @@ function _apGrouped() {
   });
   Object.keys(byAlbum).forEach(function(k) {
     byAlbum[k].sort(k === '_singles'
-      ? function(a, b) { return (b.stream_count || 0) - (a.stream_count || 0); }
+      ? _apByPlaysThenNewest
       : function(a, b) { return (a.track_number || 99) - (b.track_number || 99); });
   });
   return byAlbum;
+}
+
+// Most-played first; ties (a fresh catalog with no plays yet) fall back to
+// newest release first, so a page never reads oldest-to-newest by accident.
+function _apByPlaysThenNewest(a, b) {
+  var d = (b.stream_count || 0) - (a.stream_count || 0);
+  if (d) return d;
+  return new Date(b.created_at || 0) - new Date(a.created_at || 0);
 }
 
 function apRefreshMusic() {
@@ -18380,7 +18388,7 @@ function renderArtistTracks() {
 
   // ── Top Songs — the five that earn the plays ──
   var top = _artistPageTracks.slice()
-    .sort(function(a, b) { return (b.stream_count || 0) - (a.stream_count || 0); })
+    .sort(_apByPlaysThenNewest)
     .slice(0, 5);
   if (top.length) {
     html += '<div class="pf-sec" style="margin-top:1.1rem"><h3>Top Songs</h3></div>' +
@@ -18388,7 +18396,11 @@ function renderArtistTracks() {
   }
 
   // ── Albums & EPs shelf — tap a cover to open it ──
-  var shelf = _artistAlbums.filter(function(al){ return (byAlbum[al.id] || []).length && !al.featured; });
+  // Newest release first (release_date, then created_at for undated rows)
+  var shelf = _artistAlbums.filter(function(al){ return (byAlbum[al.id] || []).length && !al.featured; })
+    .sort(function(a, b) {
+      return String(b.release_date || b.created_at || '').localeCompare(String(a.release_date || a.created_at || ''));
+    });
   if (feat && (byAlbum[feat.id] || []).length) shelf.unshift(feat);
   if (shelf.length) {
     html += '<div class="pf-sec"><h3>Albums &amp; EPs</h3></div>' +
