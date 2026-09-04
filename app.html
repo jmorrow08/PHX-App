@@ -18329,7 +18329,10 @@ function _apGrouped() {
 function _apByPlaysThenNewest(a, b) {
   var d = (b.stream_count || 0) - (a.stream_count || 0);
   if (d) return d;
-  return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+  d = new Date(b.created_at || 0) - new Date(a.created_at || 0);
+  if (d) return d;
+  // Same release, same plays: keep the tracklist order
+  return (a.track_number || 99) - (b.track_number || 99);
 }
 
 function apRefreshMusic() {
