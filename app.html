@@ -18214,6 +18214,19 @@ function _ytIdFrom(url) {
   var m = String(url || '').match(/(?:youtu\.be\/|v=|shorts\/|embed\/)([A-Za-z0-9_-]{6,20})/);
   return m ? m[1] : (/^[A-Za-z0-9_-]{6,20}$/.test(String(url || '').trim()) ? String(url).trim() : null);
 }
+// YouTube thumbnails are not guaranteed per size: maxresdefault 404s on
+// smaller uploads, and hqdefault can come back 200 with YouTube's grey
+// "no thumbnail" placeholder (Black Mike Jack did exactly that). sddefault
+// is the one that reliably carries a real frame, so it sits before hqdefault
+// in the chain and the img walks down the list on each error.
+function _ytThumbImg(ytId, feat) {
+  var chain = feat ? ['maxresdefault', 'sddefault', 'hqdefault', 'mqdefault']
+                   : ['sddefault', 'hqdefault', 'mqdefault'];
+  var base = 'https://i.ytimg.com/vi/' + ytId + '/';
+  return '<img src="' + base + chain[0] + '.jpg" alt="" loading="lazy" data-yt-chain="' + chain.slice(1).join(',') + '" ' +
+    'onerror="var c=(this.dataset.ytChain||\'\').split(\',\').filter(Boolean);if(!c.length){this.onerror=null;return;}this.dataset.ytChain=c.slice(1).join(\',\');this.src=\'' + base + '\'+c[0]+\'.jpg\'">';
+}
+
 function renderArtistVideos(artist) {
   var canEdit = artistPageCanEdit();
   if (canEdit && !artistVideosAllowed()) {
@@ -18226,8 +18239,7 @@ function renderArtistVideos(artist) {
     var feat = i === 0;
     return '<div class="apv-card' + (feat ? ' apv-feat' : '') + '">' +
       '<div class="apv-frame" id="apv-' + v.id + '" onclick="playArtistVideo(\'' + v.id + '\',\'' + v.youtube_id + '\')" role="button" aria-label="Play video">' +
-        '<img src="https://i.ytimg.com/vi/' + v.youtube_id + '/' + (feat ? 'maxresdefault' : 'hqdefault') + '.jpg" alt="" loading="lazy"' +
-          (feat ? ' onerror="this.onerror=null;this.src=\'https://i.ytimg.com/vi/' + v.youtube_id + '/hqdefault.jpg\'"' : '') + '>' +
+        _ytThumbImg(v.youtube_id, feat) +
         '<span class="apv-play">▶</span>' +
         (feat ? '<div class="apv-cap"><span>Latest video</span><b>' + escapeHtml(v.title) + '</b></div>' : '') +
       '</div>' +
@@ -19740,6 +19752,9 @@ function openShowEditor(showId) {
       '<label class="form-label">Ticket link</label>' +
       '<input class="form-input" id="sh-ticket" placeholder="https://…" value="' + escapeHtml(s ? (s.ticket_url||'') : '') + '" style="margin-bottom:.35rem">' +
       '<div style="font-size:.7rem;color:var(--faint);margin-bottom:.8rem">External for now — PHX ticketing will replace this link when it launches.</div>' +
+      '<label class="form-label">Details</label>' +
+      '<textarea class="form-input" id="sh-desc" rows="4" placeholder="What\'s the night? Lineup, set time, dress code, who to hit for tables…" style="margin-bottom:.35rem;resize:vertical">' + escapeHtml(s ? (s.description||'') : '') + '</textarea>' +
+      '<div style="font-size:.7rem;color:var(--faint);margin-bottom:.8rem">Shows on the event page and the Plug Map. Venue + city get pinned on the map automatically.</div>' +
       '<div style="display:flex;gap:.5rem">' +
         '<button class="upgrade-btn" style="margin:0;flex:1;padding:.6rem" onclick="saveShow(' + (s ? "'" + s.id + "'" : 'null') + ',\'' + (artist.id||'') + '\')">Save</button>' +
         (s ? '<button class="tb-btn" style="color:var(--red)" onclick="removeShow(\'' + s.id + '\')">Delete</button>' : '') +
@@ -19753,17 +19768,25 @@ async function saveShow(showId, artistId) {
   var st = document.getElementById('sh-status');
   var when = (document.getElementById('sh-when')||{}).value;
   if (!when) { if (st) st.textContent = 'Pick a date and time.'; return; }
+  var venueText = (document.getElementById('sh-venue')||{}).value || '';
+  var cityText = (document.getElementById('sh-city')||{}).value || 'Phoenix';
+  // Pin it: the Plug Map only shows rows with coordinates, so resolve the
+  // venue to a venues row (geocoded once, reused by name after that).
+  if (st) st.textContent = 'Pinning the venue on the map…';
+  var venueId = await _resolveShowVenue(venueText, cityText);
   if (st) st.textContent = 'Saving…';
   var res = await _sb.rpc('upsert_show', {
     p_id: showId, p_artist_id: artistId || null, p_page_id: null,
     p_title: (document.getElementById('sh-title')||{}).value || '',
-    p_venue: (document.getElementById('sh-venue')||{}).value || null,
-    p_city: (document.getElementById('sh-city')||{}).value || null,
+    p_venue: venueText || null,
+    p_city: cityText || null,
     p_starts_at: new Date(when).toISOString(),
     p_ticket_url: (document.getElementById('sh-ticket')||{}).value || null,
     p_price_text: (document.getElementById('sh-price')||{}).value || null,
     p_is_free: !!(document.getElementById('sh-free')||{}).checked,
-    p_age_limit: null, p_status: 'live'
+    p_age_limit: null, p_status: 'live',
+    p_venue_id: venueId || null,
+    p_description: (document.getElementById('sh-desc')||{}).value || null
   });
   if (res.error || !res.data || !res.data.ok) {
     if (st) st.textContent = (res.data && res.data.reason === 'not_allowed')
@@ -19771,8 +19794,42 @@ async function saveShow(showId, artistId) {
     return;
   }
   closeShowEditor();
-  showToast('Show saved');
+  showToast(res.data.venue_id ? '📍 Show saved and pinned on the Plug Map' : 'Show saved — venue not found on the map, add the street address to pin it');
   if (_artistPage) showArtistPage(_artistPage.slug);
+}
+
+// Venue text ("Dave & Buster's · 2000 E Rio Salado Pkwy") + city → venues.id.
+// Geocodes through OpenStreetMap once; ensure_venue() dedupes by name so the
+// second show at the same spot reuses the pin. Returns null when nothing
+// resolves — the show still saves, it just won't carry a map marker.
+async function _resolveShowVenue(venueText, cityText) {
+  var name = String(venueText || '').split('·')[0].trim();
+  if (!name) return null;
+  var addr = String(venueText || '').split('·').slice(1).join(' ').trim();
+  var city = String(cityText || 'Phoenix').trim();
+  if (!/\b(AZ|Arizona|NM|CA|NV|TX)\b/i.test(city)) city += ', AZ';
+  var queries = [];
+  if (addr) queries.push(addr + ', ' + city);
+  queries.push(name + ', ' + city);
+  var hit = null;
+  for (var i = 0; i < queries.length && !hit; i++) {
+    try {
+      var r = await fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=us&q=' + encodeURIComponent(queries[i]),
+        { headers: { 'Accept': 'application/json' } });
+      var j = r.ok ? await r.json() : [];
+      if (j && j[0] && j[0].lat) hit = j[0];
+    } catch (e) { reportFailure('geocodeVenue', e); }
+  }
+  try {
+    var v = await _sb.rpc('ensure_venue', {
+      p_name: name,
+      p_address: hit ? (addr || hit.display_name) : (addr || null),
+      p_city: city,
+      p_lat: hit ? parseFloat(hit.lat) : null,
+      p_lng: hit ? parseFloat(hit.lon) : null
+    });
+    return (v && v.data) || null;
+  } catch (e) { reportFailure('ensureVenue', e); return null; }
 }
 
 async function removeShow(showId) {
