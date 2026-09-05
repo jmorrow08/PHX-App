@@ -4708,9 +4708,20 @@ _whenDomReady(function() {
   // #join = landing CTAs ("Get the pass") → straight to Create Account.
   // Arriving with an invite link (?ref=CODE) does the same automatically —
   // nobody who came to sign up should have to hunt for the Log In button.
+  // Public pages never get the auto-prompt: any profile/event deep link
+  // (#artist/…, #page/…, /app?artist=…) or a vanity path (thephx.app/murkemz)
+  // must land on the page itself. A stale invite code left on the device
+  // used to throw the signup modal over every artist link — the QR-to-
+  // sign-in bug. Also only nag once per session.
+  var _pathIsApp = /^\/(app(\.html)?|index\.html)?\/?$/.test(window.location.pathname || '/');
+  var _isPublicDeepLink = /^#(artist|event|page|member|playlist|venue)\//.test(window.location.hash || '') ||
+    !!new URLSearchParams(window.location.search).get('artist') || !_pathIsApp;
+  var _promptedThisSession = false;
+  try { _promptedThisSession = !!sessionStorage.getItem('phx_join_prompted'); } catch (e) {}
   var wantsJoin = window.location.hash === '#join' ||
-    (!!localStorage.getItem('phx_pending_invite') && !/^#(artist|event)\//.test(window.location.hash || ''));
+    (!!localStorage.getItem('phx_pending_invite') && !_isPublicDeepLink && !_promptedThisSession);
   if (wantsJoin) {
+    try { sessionStorage.setItem('phx_join_prompted', '1'); } catch (e) {}
     setTimeout(function() {
       if (_authUser) return;
       openAuthModal();
@@ -17913,7 +17924,8 @@ function showProfileQR(userId, name) {
 }
 
 function sharePageProfile(slug, name) {
-  var url = window.location.origin + '/app#page/' + slug;
+  // Pages resolve on the vanity route too (artists → pages → usernames)
+  var url = SITE_URL + '/' + slug;
   if (navigator.share) {
     navigator.share({ title: name + ' on PHX', text: 'Check out ' + name + ' on PHX.', url: url });
   } else if (navigator.clipboard) {
@@ -18240,8 +18252,11 @@ function toggleArtistSupport() {
   row.style.display = open ? 'block' : 'none';
   if (btn) btn.classList.toggle('on', open);
 }
+// Vanity URL (thephx.app/murkemz) — the link people actually type and print.
+// Static /<slug> page serves the OG preview, then hands off to the app.
+function artistPublicUrl(slug) { return SITE_URL + '/' + slug; }
 function showArtistQR(slug, name) {
-  var link = SITE_URL + '/app#artist/' + slug;
+  var link = artistPublicUrl(slug);
   _apModal('qr-modal', _qrCardHtml(link, name || 'PHX artist', 'On PHX Music', 'Scan lands on this artist — put it on merch, flyers, the merch table.'));
 }
 function playArtistVideo(id, ytId) {
@@ -19913,7 +19928,7 @@ function playArtistPageTrack(el, idx) {
 }
 
 function shareArtistPage(slug, name) {
-  var url = window.location.origin + '/app#artist/' + slug;
+  var url = artistPublicUrl(slug);
   if (navigator.share) {
     navigator.share({ title: name + ' on PHX', text: 'Stream ' + name + ' on PHX — your pass pays the artists you play.', url: url });
   } else if (navigator.clipboard) {
