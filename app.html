@@ -18220,13 +18220,21 @@ function _ytIdFrom(url) {
 // smaller uploads, and hqdefault can come back 200 with YouTube's grey
 // "no thumbnail" placeholder (Black Mike Jack did exactly that). sddefault
 // is the one that reliably carries a real frame, so it sits before hqdefault
-// in the chain and the img walks down the list on each error.
+// in the chain. Note the 404 itself carries a 120x90 placeholder image, so
+// browsers fire `load` (not `error`) for it — the size check on load is what
+// actually advances the chain.
 function _ytThumbImg(ytId, feat) {
   var chain = feat ? ['maxresdefault', 'sddefault', 'hqdefault', 'mqdefault']
                    : ['sddefault', 'hqdefault', 'mqdefault'];
   var base = 'https://i.ytimg.com/vi/' + ytId + '/';
-  return '<img src="' + base + chain[0] + '.jpg" alt="" loading="lazy" data-yt-chain="' + chain.slice(1).join(',') + '" ' +
-    'onerror="var c=(this.dataset.ytChain||\'\').split(\',\').filter(Boolean);if(!c.length){this.onerror=null;return;}this.dataset.ytChain=c.slice(1).join(\',\');this.src=\'' + base + '\'+c[0]+\'.jpg\'">';
+  return '<img src="' + base + chain[0] + '.jpg" alt="" loading="lazy" data-yt-base="' + base + '" data-yt-chain="' + chain.slice(1).join(',') + '" ' +
+    'onerror="_ytThumbStep(this)" onload="if(this.naturalWidth<=120)_ytThumbStep(this)">';
+}
+function _ytThumbStep(img) {
+  var c = (img.dataset.ytChain || '').split(',').filter(Boolean);
+  if (!c.length) { img.onerror = null; img.onload = null; return; }
+  img.dataset.ytChain = c.slice(1).join(',');
+  img.src = img.dataset.ytBase + c[0] + '.jpg';
 }
 
 function renderArtistVideos(artist) {
