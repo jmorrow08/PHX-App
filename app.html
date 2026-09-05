@@ -19998,7 +19998,7 @@ function closeDoorMode() {
   var w = document.getElementById('door-mode');
   if (w) w.style.display = 'none';
   if (_doorTimer) { clearInterval(_doorTimer); _doorTimer = null; }
-  try { if (window._doorWake) { window._doorWake.release(); window._doorWake = null; } } catch (e) { /* silent-ok */ }
+  try { if (window._doorWake) { window._doorWake.release(); window._doorWake = null; } } catch (e) { /* silent-ok: wake lock release can throw after the screen sleeps */ }
   _doorShowId = null;
   if (window._curView === 'artist-shows') loadArtistShows();
 }
