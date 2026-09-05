@@ -1201,6 +1201,7 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
     <button class="nav-item" onclick="showView('artist-tracks')"><span class="icon">🎼</span>My Tracks</button>
     <button class="nav-item" onclick="showView('artist-analytics')"><span class="icon">📊</span>Analytics</button>
     <button class="nav-item" onclick="showView('artist-earnings')"><span class="icon">💚</span>Earnings</button>
+    <button class="nav-item" onclick="showView('artist-shows')"><span class="icon">📍</span>My Shows</button>
     <div class="sb-section">Tools</div>
     <button class="nav-item" onclick="showView('artist-submit')"><span class="icon">➕</span>Submit Track</button>
     <div class="nav-business-slot"></div>
@@ -1941,6 +1942,17 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
             <div class="fan-payout-vs">Your earnings come only from members who actually play you — <strong>not a pool where you compete with Drake for fractions of a cent.</strong></div>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- ARTIST — MY SHOWS: every show you headline or guest on, with the
+         numbers behind it, and Door mode on show night. -->
+    <div class="view" id="v-artist-shows">
+      <div class="sh"><h3>My Shows</h3><span class="badge badge-teal" id="artist-shows-count">—</span></div>
+      <div style="font-size:.8rem;color:var(--muted);margin:-.4rem 0 1rem;line-height:1.55">Who said they're coming, who actually walked in, and a Door screen for the merch table on show night. Guest spots on other artists' bills show up here too.</div>
+      <div id="artist-shows-list"><div class="pf-empty">Loading your shows…</div></div>
+      <div style="margin-top:1.2rem;text-align:center">
+        <button class="upgrade-btn" style="max-width:240px" onclick="artistShowsAdd()">➕ Add a show</button>
       </div>
     </div>
 
@@ -3229,7 +3241,7 @@ var titles = {
   'member-page':'Profile', 'artist-page':'Artist', 'artist-directory':'Browse PHX', 'page-profile':'Page',
   'admin-roster':'Launch Desk', 'admin-merch':'Merch Connections', 'admin-pot':'Community Pot', 'admin-ash':'Ash', 'admin-analytics':'Analytics',
   'artist-tracks':'My Tracks', 'artist-analytics':'Analytics',
-  'artist-earnings':'Earnings', 'artist-submit':'Submit Track', 'artist-profile':'Artist Profile',
+  'artist-earnings':'Earnings', 'artist-shows':'My Shows', 'artist-submit':'Submit Track', 'artist-profile':'Artist Profile',
   'admin-dashboard':'Platform Dashboard', 'admin-members':'Members',
   'admin-artists':'Artists', 'admin-content':'Content', 'admin-reports':'Reports',
   'admin-financials':'Financials', 'admin-system':'System Settings',
@@ -3465,6 +3477,7 @@ function showView(id) {
   if (id === 'admin-merch') loadMerchConnections();
   if (id === 'artist-tracks' || id === 'artist-analytics' || id === 'artist-earnings') loadArtistDashboard();
   if (id === 'artist-tracks') loadFeaturedOn();
+  if (id === 'artist-shows') loadArtistShows();
   if (id === 'artist-analytics') loadArtistDeepAnalytics();
   if (id === 'artist-profile') loadArtistProfileEditor();
   if (id === 'home') { loadCityFeed(); loadTrendingRail(); }
@@ -5947,6 +5960,7 @@ async function showEventPage(src, id) {
           '<div>📅 <b>' + escapeHtml(dateLong) + '</b><br><span style="color:var(--muted);margin-left:1.35rem">' + escapeHtml(timeStr) + (doors ? ' · Doors ' + escapeHtml(doors) : '') + '</span></div>' +
           (where.length ? '<div>📍 <b' + (e.venue_id ? ' style="cursor:pointer;text-decoration:underline;text-decoration-color:rgba(249,115,22,.4)" onclick="showVenuePage(\'' + e.venue_id + '\')"' : '') + '>' + escapeHtml(where[0]) + '</b>' + (where.length > 1 ? '<br><span style="color:var(--muted);margin-left:1.35rem">' + escapeHtml(where.slice(1).join(' · ')) + '</span>' : '') + '</div>' : '') +
           (price ? '<div>💵 <b>' + escapeHtml(price) + '</b></div>' : '') +
+          (e.door_perk ? '<div>🎁 <b style="color:var(--gold)">' + escapeHtml(e.door_perk) + '</b><br><span style="color:var(--muted);margin-left:1.35rem;font-size:.78rem">Check in at the door to claim it — your number shows on your phone.</span></div>' : '') +
           (infoUrl && !ticket ? '<div>ℹ️ <a href="' + infoUrl + '" target="_blank" rel="noopener" style="color:var(--orange-l)">Event page & contact ↗</a><br><span style="color:var(--faint);font-size:.72rem;margin-left:1.35rem">details straight from the organizer</span></div>' : '') +
         '</div>' +
         '<div style="display:flex;gap:.55rem;flex-wrap:wrap;margin-bottom:1rem">' +
@@ -6297,7 +6311,8 @@ function _showCheckinMoment(d, src, id) {
       '<div style="font-size:3.4rem;animation:bv-pulse 1.2s ease-in-out infinite">🐦‍🔥</div>' +
       '<div style="font-family:var(--disp);font-size:2rem;font-weight:900;letter-spacing:-.02em;margin:.5rem 0 .2rem">You\'re in.</div>' +
       '<div style="font-family:var(--disp);font-size:1.1rem;color:var(--orange-l);font-weight:800;margin-bottom:.4rem">#' + d.number + ' through the door' + (d.already ? '' : ' tonight') + '</div>' +
-      (d.already ? '' : '<div style="font-size:.85rem;color:var(--gold);font-weight:700;margin-bottom:1.2rem">+25 PHX Points banked</div>') +
+      (d.already ? '' : '<div style="font-size:.85rem;color:var(--gold);font-weight:700;margin-bottom:' + (d.perk ? '.6rem' : '1.2rem') + '">+25 PHX Points banked</div>') +
+      (d.perk ? '<div style="background:rgba(234,179,8,.12);border:1px solid rgba(234,179,8,.45);border-radius:12px;padding:.6rem .8rem;margin-bottom:1.2rem;font-size:.85rem;line-height:1.45">🎁 <b>' + escapeHtml(d.perk) + '</b><br><span style="color:var(--muted);font-size:.76rem">Show this screen at the table.</span></div>' : '') +
       '<button class="cp-post" style="margin:0 auto .6rem;display:flex;justify-content:center;width:100%" onclick="document.getElementById(\'checkin-moment\').remove();window._promptContext=null;openPostSheet(\'lens\')">📸 Capture the night</button>' +
       '<button class="pf-btn" style="margin:0 auto;justify-content:center;width:100%" onclick="document.getElementById(\'checkin-moment\').remove();_mountCheckinRow(window._lastEventRow||{});showEventPage(\'' + src + '\',\'' + id + '\')">Back to the night</button>' +
     '</div>';
@@ -13795,6 +13810,7 @@ var _PTR_REFRESH = {
   events:   function(){ return Promise.resolve(loadPlugMap()); },
   mypass:   function(){ loadReferralPanel(); loadMyReceipt(); loadMyPassCard(); loadMyWeek(); return Promise.resolve(); },
   'artist-tracks': function(){ return Promise.resolve(loadArtistDashboard()); },
+  'artist-shows': function(){ return Promise.resolve(loadArtistShows()); },
   'admin-dashboard': function(){ loadAdminStreamData(); loadAdminOps(); return Promise.resolve(); }
 };
 function _ptrIndicator() {
@@ -19726,6 +19742,7 @@ function renderArtistShows(artist) {
           ? '<a class="pf-btn" style="padding:.35rem .85rem;font-size:.74rem" href="' + ticket + '" target="_blank" rel="noopener">Tickets ↗</a>'
           : '<span class="ap-card-note">' + (s.is_free ? 'No ticket needed' : 'TBA') + '</span>') +
         (canEdit ? '<button class="ap-navbtn" style="position:static;width:26px;height:26px;font-size:.7rem" title="Edit" onclick="openShowEditor(\'' + s.id + '\')">✎</button>' : '') +
+        (canEdit && _showDoorOpen(s) ? '<button class="tb-btn" style="font-size:.7rem;padding:.3rem .6rem;color:var(--green);border-color:rgba(34,197,94,.45)" onclick="openDoorMode(\'' + s.id + '\')">🚪 Door</button>' : '') +
       '</div>' +
     '</div>';
   }).join('') +
@@ -19765,6 +19782,12 @@ function openShowEditor(showId) {
       '<label class="form-label">Details</label>' +
       '<textarea class="form-input" id="sh-desc" rows="4" placeholder="What\'s the night? Lineup, set time, dress code, who to hit for tables…" style="margin-bottom:.35rem;resize:vertical">' + escapeHtml(s ? (s.description||'') : '') + '</textarea>' +
       '<div style="font-size:.7rem;color:var(--faint);margin-bottom:.8rem">Shows on the event page and the Plug Map. Venue + city get pinned on the map automatically.</div>' +
+      '<label class="form-label">Also on the bill <span style="color:var(--faint);font-weight:400">(PHX artists, by @handle)</span></label>' +
+      '<input class="form-input" id="sh-guests" placeholder="@zaestone, @kingbleez" value="' + escapeHtml(s && s.guests ? s.guests.map(function(g){ return '@' + g.slug; }).join(', ') : '') + '" style="margin-bottom:.35rem">' +
+      '<div style="font-size:.7rem;color:var(--faint);margin-bottom:.8rem">Guests see this show in their My Shows and can run the Door too.</div>' +
+      '<label class="form-label">Door perk <span style="color:var(--gold);font-size:.66rem;font-weight:700">DOOR MODE</span></label>' +
+      '<input class="form-input" id="sh-perk" maxlength="120" placeholder="First 25 checked in get a free sticker" value="' + escapeHtml(s ? (s.door_perk||'') : '') + '" style="margin-bottom:.35rem">' +
+      '<div style="font-size:.7rem;color:var(--faint);margin-bottom:.8rem">Shows on the event page and on every fan\'s check-in. Locks once check-in opens (2 hours before start) so the promise stays honest.</div>' +
       '<div style="display:flex;gap:.5rem">' +
         '<button class="upgrade-btn" style="margin:0;flex:1;padding:.6rem" onclick="saveShow(' + (s ? "'" + s.id + "'" : 'null') + ',\'' + (artist.id||'') + '\')">Save</button>' +
         (s ? '<button class="tb-btn" style="color:var(--red)" onclick="removeShow(\'' + s.id + '\')">Delete</button>' : '') +
@@ -19796,7 +19819,9 @@ async function saveShow(showId, artistId) {
     p_is_free: !!(document.getElementById('sh-free')||{}).checked,
     p_age_limit: null, p_status: 'live',
     p_venue_id: venueId || null,
-    p_description: (document.getElementById('sh-desc')||{}).value || null
+    p_description: (document.getElementById('sh-desc')||{}).value || null,
+    p_guest_slugs: String((document.getElementById('sh-guests')||{}).value || '').split(',').map(function(x){ return x.trim().replace(/^@/, '').toLowerCase(); }).filter(Boolean),
+    p_door_perk: (document.getElementById('sh-perk')||{}).value || null
   });
   if (res.error || !res.data || !res.data.ok) {
     if (st) st.textContent = (res.data && res.data.reason === 'not_allowed')
@@ -19805,6 +19830,12 @@ async function saveShow(showId, artistId) {
   }
   closeShowEditor();
   showToast(res.data.venue_id ? '📍 Show saved and pinned on the Plug Map' : 'Show saved — venue not found on the map, add the street address to pin it');
+  _afterShowChange();
+}
+// Saved/deleted from the dashboard → refresh the dashboard; from the artist
+// page → re-render the page.
+function _afterShowChange() {
+  if (window._curView === 'artist-shows') { loadArtistShows(); return; }
   if (_artistPage) showArtistPage(_artistPage.slug);
 }
 
@@ -19842,12 +19873,214 @@ async function _resolveShowVenue(venueText, cityText) {
   } catch (e) { reportFailure('ensureVenue', e); return null; }
 }
 
+// ═══════════════════════════════════════════════════════════════════════
+// MY SHOWS (artist dashboard) + DOOR MODE
+// The show card is the artist's side of the RSVP / check-in machinery the
+// fans already use. Door mode is the show-night screen: live counter, the
+// door list in arrival order, the table QR, the perk line, and one thank-you
+// to everyone who walked in. Full / Headline get the list; Basic gets counts.
+// ═══════════════════════════════════════════════════════════════════════
+var _myShowsArtist = null;
+var _myShowsRows = [];
+var _doorTimer = null;
+var _doorShowId = null;
+
+async function _resolveMyShowsArtist() {
+  if (_myShowsArtist) return _myShowsArtist;
+  if (!_authUser) return null;
+  var r = await _sb.from('artists').select('*').eq('user_id', _authUser.id).maybeSingle();
+  _myShowsArtist = r.data || null;
+  return _myShowsArtist;
+}
+
+async function loadArtistShows() {
+  var el = document.getElementById('artist-shows-list');
+  if (!el) return;
+  var artist = await _resolveMyShowsArtist();
+  if (!artist) { el.innerHTML = '<div class="pf-empty">No artist page is linked to this account yet.</div>'; return; }
+  var res = await _sb.rpc('artist_show_desk', { p_artist_id: artist.id });
+  var d = res.data || {};
+  if (res.error || !d.ok) { el.innerHTML = '<div class="pf-empty">Could not load your shows.</div>'; return; }
+  _myShowsRows = d.shows || [];
+  var up = _myShowsRows.filter(function(s){ return new Date(s.starts_at).getTime() > Date.now() - 6 * 3600000; })
+    .sort(function(a, b){ return new Date(a.starts_at) - new Date(b.starts_at); });
+  var past = _myShowsRows.filter(function(s){ return up.indexOf(s) === -1; });
+  _setText('artist-shows-count', up.length + ' upcoming');
+  if (!_myShowsRows.length) {
+    el.innerHTML = '<div class="pf-empty">No shows yet. Add one and it lands on your page and the Plug Map.</div>';
+    return;
+  }
+  el.innerHTML =
+    (up.length ? up.map(_myShowCardHtml).join('') : '<div class="pf-empty">Nothing upcoming — add your next date.</div>') +
+    (past.length ? '<div class="pf-sec" style="margin-top:1.2rem"><h3>Past 60 days</h3></div>' + past.map(_myShowCardHtml).join('') : '');
+}
+
+function _myShowCardHtml(s) {
+  var tp = showTimeParts(s);
+  var when = new Date(s.starts_at);
+  var isPast = when.getTime() < Date.now() - 6 * 3600000;
+  var stat = function(n, label, color) {
+    return '<div class="a-stat" style="padding:.2rem 0"><div class="a-stat-val" style="font-size:1.35rem;color:' + color + '">' + fmtK(n || 0) + '</div><div class="a-stat-label">' + label + '</div></div>';
+  };
+  var doorOpensAt = new Date(when.getTime() - 2 * 3600000);
+  var doorBtn = s.door_open
+    ? '<button class="cp-post" style="margin:0" onclick="openDoorMode(\'' + s.id + '\')">🚪 Door mode · LIVE</button>'
+    : (isPast
+        ? '<button class="pf-btn" onclick="openDoorMode(\'' + s.id + '\')">🚪 Door log</button>'
+        : '<span class="ap-card-note">Door opens ' + doorOpensAt.toLocaleString('en-US', { weekday: 'short', hour: 'numeric', minute: '2-digit' }) + '</span>');
+  return '<div class="card" style="margin-bottom:.9rem">' +
+    '<div style="display:flex;gap:14px;align-items:flex-start">' +
+      '<div class="ap-date"><div class="m">' + tp.mon + '</div><div class="d">' + tp.day + '</div></div>' +
+      '<div style="flex:1;min-width:0">' +
+        '<div style="display:flex;gap:.4rem;flex-wrap:wrap;align-items:center">' +
+          (s.is_guest ? '<span class="badge badge-orange" style="font-size:.58rem">GUEST SPOT · ' + escapeHtml(s.headliner || '') + '</span>' : '') +
+          (!s.pinned ? '<span class="badge" style="font-size:.58rem;color:var(--red);border:1px solid rgba(239,68,68,.4)">NOT ON MAP</span>' : '') +
+          (s.door_perk ? '<span class="badge" style="font-size:.58rem;color:var(--gold);border:1px solid rgba(234,179,8,.4)">🎁 PERK SET</span>' : '') +
+        '</div>' +
+        '<div style="font-family:var(--disp);font-size:1rem;font-weight:700;margin-top:.2rem">' + escapeHtml(s.title) + '</div>' +
+        '<div style="font-size:.76rem;color:var(--muted);margin-top:2px;line-height:1.45">' + escapeHtml(tp.time) + ' · ' + escapeHtml([s.venue, s.city].filter(Boolean).join(' · ')) + '</div>' +
+        (s.guests && s.guests.length ? '<div style="font-size:.74rem;color:var(--muted);margin-top:2px">with ' + s.guests.map(function(g){ return artistLinkHtml(g.name, g.slug); }).join(', ') + '</div>' : '') +
+      '</div>' +
+    '</div>' +
+    '<div class="a-stat-grid" style="grid-template-columns:repeat(4,1fr);gap:.6rem;margin:.9rem 0 .6rem">' +
+      stat(s.going, 'Going', 'var(--orange)') + stat(s.interested, 'Interested', 'var(--gold)') +
+      stat(s.checkins, 'Through the door', 'var(--green)') + stat(s.ticket_clicks, 'Ticket taps', 'var(--teal)') +
+    '</div>' +
+    '<div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center">' +
+      doorBtn +
+      '<button class="pf-btn" onclick="showEventQR(\'show\',\'' + s.id + '\',\'' + escapeHtml(s.title).replace(/'/g, '') + '\')">▦ QR</button>' +
+      '<button class="pf-btn" onclick="shareEvent(\'show\',\'' + s.id + '\',\'' + escapeHtml(s.title).replace(/'/g, '') + '\')">↗ Share</button>' +
+      '<button class="pf-btn" onclick="showEventPage(\'show\',\'' + s.id + '\')">Event page</button>' +
+      (!s.is_guest ? '<button class="pf-btn" onclick="artistShowsEdit(\'' + s.id + '\')">✎ Edit</button>' : '') +
+    '</div>' +
+    (!s.pinned && !s.is_guest ? '<div style="font-size:.72rem;color:var(--red);margin-top:.5rem">Not pinned on the Plug Map — edit and add the street address after the venue name (Venue · 123 Main St).</div>' : '') +
+  '</div>';
+}
+
+// The editor was built for the artist page; it reads _artistPage + _artistShows.
+async function artistShowsAdd() {
+  var artist = await _resolveMyShowsArtist();
+  if (!artist) { showToast('No artist page linked to this account'); return; }
+  _artistPage = artist; _artistShows = _myShowsRows;
+  openShowEditor(null);
+}
+async function artistShowsEdit(id) {
+  var artist = await _resolveMyShowsArtist();
+  if (!artist) return;
+  _artistPage = artist; _artistShows = _myShowsRows;
+  openShowEditor(id);
+}
+
+// ── DOOR MODE ──
+// Same window the fan-side check-in uses: 2h before start through 6h after.
+function _showDoorOpen(s) {
+  var t = new Date(s.starts_at).getTime();
+  return Date.now() >= t - 2 * 3600000 && Date.now() <= t + 6 * 3600000;
+}
+function openDoorMode(showId) {
+  _doorShowId = showId;
+  var w = document.getElementById('door-mode');
+  if (!w) {
+    w = document.createElement('div');
+    w.id = 'door-mode';
+    w.setAttribute('role', 'dialog'); w.setAttribute('aria-modal', 'true'); w.setAttribute('aria-label', 'Door mode');
+    w.style.cssText = 'position:fixed;inset:0;z-index:1180;background:var(--bg);overflow-y:auto;display:none';
+    document.body.appendChild(w);
+  }
+  w.style.display = 'block';
+  w.innerHTML = '<div class="pf-empty" style="padding-top:4rem">Opening the door…</div>';
+  _refreshDoorMode();
+  if (_doorTimer) clearInterval(_doorTimer);
+  _doorTimer = setInterval(_refreshDoorMode, 15000);   // live enough for a door, no realtime plumbing
+  try { if (navigator.wakeLock && navigator.wakeLock.request) navigator.wakeLock.request('screen').then(function(l){ window._doorWake = l; }).catch(function(){}); } catch (e) { /* silent-ok: wake lock is a nicety */ }
+}
+function closeDoorMode() {
+  var w = document.getElementById('door-mode');
+  if (w) w.style.display = 'none';
+  if (_doorTimer) { clearInterval(_doorTimer); _doorTimer = null; }
+  try { if (window._doorWake) { window._doorWake.release(); window._doorWake = null; } } catch (e) { /* silent-ok */ }
+  _doorShowId = null;
+  if (window._curView === 'artist-shows') loadArtistShows();
+}
+async function _refreshDoorMode() {
+  var w = document.getElementById('door-mode');
+  if (!w || w.style.display === 'none' || !_doorShowId) return;
+  var showId = _doorShowId;
+  var show = _myShowsRows.filter(function(s){ return s.id === showId; })[0] || _artistShows.filter(function(s){ return s.id === showId; })[0] || {};
+  var res = await _sb.rpc('artist_show_door', { p_show_id: showId });
+  var d = res.data || {};
+  if (res.error || !d.ok) { w.innerHTML = '<div class="pf-empty" style="padding-top:4rem">Not allowed to run this door.<br><br><button class="pf-btn" onclick="closeDoorMode()">Close</button></div>'; return; }
+  var link = SITE_URL + '/app#event/show/' + showId;
+  var qr = 'https://api.qrserver.com/v1/create-qr-code/?size=360x360&ecc=H&color=14-8-25&bgcolor=255-255-255&qzone=2&data=' + encodeURIComponent(link);
+  var started = show.starts_at ? Date.now() >= new Date(show.starts_at).getTime() : true;
+  var doorRows = (d.door || []).map(function(c) {
+    var t = new Date(c.at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    return '<div class="ap-show" style="padding:9px 0;gap:10px;cursor:pointer" onclick="showMemberPage(\'' + c.user_id + '\')">' +
+      '<div style="font-family:var(--disp);font-weight:900;font-size:1.05rem;color:var(--orange);width:44px;text-align:center">#' + c.number + '</div>' +
+      avatarHtml(c.avatar, (c.name || '?').charAt(0).toUpperCase(), 'fp-ava', c.name) +
+      '<div style="flex:1;min-width:0"><div style="font-weight:700;font-size:.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + escapeHtml(c.name || '') + '</div>' +
+        '<div style="font-size:.72rem;color:var(--muted)">' + (c.username ? '@' + escapeHtml(c.username) + ' · ' : '') + t + '</div></div>' +
+    '</div>';
+  }).join('');
+  var faces = (d.going_faces || []).slice(0, 12).map(function(p) {
+    return avatarHtml(p.avatar, (p.name || '?').charAt(0).toUpperCase(), 'fp-ava', p.name);
+  }).join('');
+  w.innerHTML =
+    '<div style="max-width:560px;margin:0 auto;padding:1rem 1.1rem calc(2rem + env(safe-area-inset-bottom,0px))">' +
+      '<div style="display:flex;align-items:center;gap:.6rem;margin-bottom:.8rem">' +
+        '<button class="psh-btn" aria-label="Close" onclick="closeDoorMode()">✕</button>' +
+        '<div style="flex:1;min-width:0"><div style="font:700 .62rem var(--mono);letter-spacing:.18em;color:var(--orange)">DOOR MODE' + (show.door_open ? ' · LIVE' : '') + '</div>' +
+          '<div style="font-family:var(--disp);font-weight:800;font-size:1rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + escapeHtml(show.title || 'Show') + '</div></div>' +
+      '</div>' +
+      '<div class="card" style="text-align:center;padding:1.4rem 1rem 1.1rem">' +
+        '<div style="font-family:var(--disp);font-size:4.2rem;font-weight:900;letter-spacing:-.03em;line-height:1;color:var(--green)">' + (d.checkins || 0) + '</div>' +
+        '<div style="font:700 .66rem var(--mono);letter-spacing:.18em;color:var(--muted);margin-top:.35rem">THROUGH THE DOOR</div>' +
+        '<div style="display:flex;justify-content:center;gap:1.6rem;margin-top:1rem;font-size:.8rem;color:var(--muted)">' +
+          '<span><b style="color:var(--orange);font-size:1rem">' + (d.going || 0) + '</b> going</span>' +
+          '<span><b style="color:var(--gold);font-size:1rem">' + (d.interested || 0) + '</b> interested</span>' +
+        '</div>' +
+        (faces ? '<div style="display:flex;justify-content:center;gap:-4px;margin-top:.7rem;flex-wrap:wrap">' + faces + '</div>' : '') +
+      '</div>' +
+      (d.perk
+        ? '<div class="card" style="border-color:rgba(234,179,8,.4);display:flex;gap:.7rem;align-items:center"><div style="font-size:1.6rem">🎁</div><div><div style="font:700 .6rem var(--mono);letter-spacing:.16em;color:var(--gold)">DOOR PERK</div><div style="font-weight:700;font-size:.92rem">' + escapeHtml(d.perk) + '</div><div style="font-size:.72rem;color:var(--muted)">Fans see their number on check-in — read it off their phone.</div></div></div>'
+        : (!show.door_open && !show.is_guest ? '<div style="font-size:.76rem;color:var(--muted);margin:.2rem 0 .8rem">No door perk set. Edit the show to add one, like "first 25 checked in get a free sticker".</div>' : '')) +
+      '<div class="card" style="display:flex;gap:1rem;align-items:center">' +
+        '<div style="background:#fff;border-radius:14px;padding:8px;flex-shrink:0"><img src="' + qr + '" width="132" height="132" alt="QR" style="display:block;border-radius:6px"></div>' +
+        '<div style="font-size:.8rem;line-height:1.55;color:var(--muted)"><b style="color:var(--white)">Put this on the table.</b><br>A scan opens the event page — no sign-in to see it. Members tap <b>I\'m here</b> to check in' + (d.perk ? ' and claim the perk' : '') + '; everyone else gets the invite.' +
+          '<br><button class="pf-btn" style="margin-top:.5rem;padding:.3rem .7rem;font-size:.72rem" onclick="showEventQR(\'show\',\'' + showId + '\',\'' + escapeHtml(show.title || '').replace(/'/g, '') + '\')">Full-screen QR</button></div>' +
+      '</div>' +
+      '<div class="pf-sec"><h3>The door</h3><span style="font-size:.72rem;color:var(--muted)">newest first · refreshes every 15s</span></div>' +
+      (d.list_allowed
+        ? (doorRows || '<div class="pf-empty">Nobody through yet. The first check-in lands here the second it happens.</div>')
+        : '<div class="card" style="border-color:rgba(249,115,22,.3)"><div class="sh"><h3>Who walked in</h3><span class="badge badge-orange" style="font-size:.6rem">FULL ARTIST</span></div><div style="font-size:.8rem;color:var(--muted);line-height:1.6">The door list — names, numbers, arrival times — unlocks with the Full Artist plan. Counts stay free.</div></div>') +
+      '<div style="margin-top:1.2rem">' +
+        (d.shoutout_sent_at
+          ? '<div class="pf-empty">✓ Thank-you sent to everyone who checked in.</div>'
+          : '<button class="cp-post" style="margin:0;width:100%;justify-content:center;display:flex" ' + ((started && (d.checkins || 0) > 0) ? '' : 'disabled style="margin:0;width:100%;justify-content:center;display:flex;opacity:.5"') + ' onclick="doorShoutout(\'' + showId + '\')">📣 Thank everyone who came</button>' +
+            '<div style="font-size:.7rem;color:var(--faint);text-align:center;margin-top:.4rem">One message, one time, to every checked-in member — in-app and push. ' + (started ? '' : 'Unlocks once the show starts.') + '</div>') +
+      '</div>' +
+    '</div>';
+}
+async function doorShoutout(showId) {
+  var msg = prompt('Your message to everyone who came out tonight:', 'Thank you for pulling up tonight — you made it a night. Next one soon. 🐦‍🔥');
+  if (!msg || !msg.trim()) return;
+  var res = await _sb.rpc('artist_show_shoutout', { p_show_id: showId, p_message: msg.trim() });
+  var d = res.data || {};
+  if (res.error || !d.ok) {
+    showToast(d.reason === 'already_sent' ? 'Already sent for this show' : d.reason === 'not_started' ? 'Unlocks once the show starts' : 'Could not send');
+    return;
+  }
+  showToast('📣 Sent to ' + d.sent + ' member' + (d.sent === 1 ? '' : 's'));
+  trackEvent('show_shoutout', 'event', showId, { sent: d.sent });
+  _refreshDoorMode();
+}
+
 async function removeShow(showId) {
   if (!confirm('Delete this show?')) return;
   var res = await _sb.rpc('delete_show', { p_id: showId });
   if (res.error || !res.data || !res.data.ok) { showToast('Not allowed'); return; }
   closeShowEditor();
-  if (_artistPage) showArtistPage(_artistPage.slug);
+  _afterShowChange();
 }
 
 // A bio written in paragraphs deserves to read like one: real paragraph
