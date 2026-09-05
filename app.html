@@ -4717,11 +4717,11 @@ _whenDomReady(function() {
   var _isPublicDeepLink = /^#(artist|event|page|member|playlist|venue)\//.test(window.location.hash || '') ||
     !!new URLSearchParams(window.location.search).get('artist') || !_pathIsApp;
   var _promptedThisSession = false;
-  try { _promptedThisSession = !!sessionStorage.getItem('phx_join_prompted'); } catch (e) {}
+  try { _promptedThisSession = !!sessionStorage.getItem('phx_join_prompted'); } catch (e) { /* silent-ok: storage blocked = just prompt */ }
   var wantsJoin = window.location.hash === '#join' ||
     (!!localStorage.getItem('phx_pending_invite') && !_isPublicDeepLink && !_promptedThisSession);
   if (wantsJoin) {
-    try { sessionStorage.setItem('phx_join_prompted', '1'); } catch (e) {}
+    try { sessionStorage.setItem('phx_join_prompted', '1'); } catch (e) { /* silent-ok: storage blocked */ }
     setTimeout(function() {
       if (_authUser) return;
       openAuthModal();
